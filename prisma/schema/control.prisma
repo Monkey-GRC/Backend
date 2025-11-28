@@ -1,0 +1,13 @@
+model Control {
+    id          String   @id @default(uuid()) @db.Uuid
+    name        String
+    description String?
+    objective   String?
+    code        String   @unique @db.VarChar(10)
+    created_at  DateTime @default(now())
+    updated_at  DateTime @updatedAt
+    created_by  String?
+    updated_by  String?
+
+    @@map("mnk_controls")
+}

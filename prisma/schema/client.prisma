@@ -1,0 +1,15 @@
+model Client {
+    id         String     @id @default(uuid()) @db.Uuid
+    tax_id     String     @unique
+    name       String
+    api_key    String     @unique
+    is_active  Boolean    @default(true)
+    users      User[]
+    templates  Template[] @relation("mnk_client_templates")
+    created_at DateTime   @default(now())
+    updated_at DateTime   @updatedAt
+    created_by String?
+    updated_by String?
+
+    @@map("mnk_clients")
+}
