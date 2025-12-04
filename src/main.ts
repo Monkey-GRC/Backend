@@ -1,3 +1,4 @@
+import { env } from 'prisma/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { setupSwagger } from './swagger.config';
@@ -23,5 +24,7 @@ async function bootstrap() {
   setupSwagger(app);
 
   await app.listen(process.env.PORT || 3000);
+
+  console.log(`App corriendo en el puerto ${process.env.PORT}`)
 }
 bootstrap();
