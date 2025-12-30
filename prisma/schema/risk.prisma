@@ -1,15 +1,28 @@
+enum RiskLevel {
+    LOW
+    MEDIUM
+    HIGH
+    CRITICAL
+}
+
 model Risk {
     id              String    @id @default(uuid()) @db.Uuid
     name            String
     description     String?
     objective       String?
     created_at      DateTime  @default(now())
+    seq             Int      @unique @default(autoincrement())
     updated_at      DateTime  @updatedAt
     code            String    @unique @db.VarChar(10)
+    impact          Int
+    probability     Int
+    level           RiskLevel
     created_by      String?   @db.Uuid
     created_by_user User?     @relation("mnk_user_created_risks", fields: [created_by], references: [id], onDelete: NoAction)
     updated_by      String?   @db.Uuid
     updated_by_user User?     @relation("mnk_user_updated_risks", fields: [updated_by], references: [id], onDelete: NoAction)
 
     @@map("mnk_risks")
+    @@index([seq])
+    @@index([code])
 }

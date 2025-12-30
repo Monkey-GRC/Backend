@@ -2,6 +2,7 @@ model Control {
     id          String   @id @default(uuid()) @db.Uuid
     name        String
     description String?
+    seq         Int      @unique @default(autoincrement())
     objective   String?
     code        String   @unique @db.VarChar(10)
     created_at  DateTime @default(now())
@@ -10,4 +11,7 @@ model Control {
     updated_by  String?
 
     @@map("mnk_controls")
+    @@index([seq])
+    @@index([code])
+
 }

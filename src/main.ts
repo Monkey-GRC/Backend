@@ -1,21 +1,22 @@
-import { env } from 'prisma/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { setupSwagger } from './swagger.config';
-import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import cookieParser from 'cookie-parser';
+import { UserContextInterceptor } from './common/interceptors/user-context.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('v1');
 
-  // Filtro para manejar excepciones globalmente
-  app.useGlobalFilters(new AllExceptionsFilter());
+  app.use(cookieParser());
+
+  app.useGlobalInterceptors(new UserContextInterceptor());
 
   // Configuración de CORS
   app.enableCors({
-    origin: '*',
-    allowedHeaders: 'Content-Type, Authorization',
+    origin: ['http://localhost:4200'],
+    allowedHeaders: 'Content-Type, Authorization, Accept-Language',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });

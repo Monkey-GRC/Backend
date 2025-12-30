@@ -1,23 +1,28 @@
+import { HttpStatus } from '@nestjs/common';
 import { Expose, Transform } from 'class-transformer';
 
-export class ResponseDto {
+export class ResponseDto<T = any> {
+
     @Expose()
     message: string;
 
     @Expose()
-    status: 0 | 1;
+    statusCode: HttpStatus;
 
     @Expose({ toPlainOnly: true })
-    @Transform(({ value }) => (value === null || value === undefined ? undefined : value), { toPlainOnly: true })
-    data?: string | object;
+    @Transform(
+        ({ value }) => (value === undefined ? undefined : value),
+        { toPlainOnly: true },
+    )
+    data?: T;
 
     constructor(params: {
         message: string;
-        status: 0 | 1;
-        data?: string | object | null;
+        statusCode?: HttpStatus;
+        data?: T;
     }) {
         this.message = params.message;
-        this.status = params.status;
-        this.data = params.data ?? undefined;
+        this.statusCode = params.statusCode ?? HttpStatus.OK;
+        this.data = params.data;
     }
 }
