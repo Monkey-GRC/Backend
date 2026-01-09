@@ -5,6 +5,7 @@ import { RiskService } from "../services/risk.service";
 import { ResponseDto } from "src/shared/dtos/response.dto";
 import { I18nService } from "nestjs-i18n";
 import { CreateRiskDto } from "../dtos/risk/create-risk.dto";
+import { UpdateRiskDto } from "../dtos/risk/update-risk.dto";
 
 @ApiCookieAuth()
 @UseGuards(AuthGuard('jwt'))
@@ -55,11 +56,13 @@ export class RiskController {
 
 
     @Patch(':id')
-    async updateRisk(@Req() req: any, @Param('id') id: string, @Body() body: CreateRiskDto) {
+    async updateRisk(@Req() req: any, @Param('id') id: string, @Body() body: UpdateRiskDto) {
         try {
             const risk = await this.riskService.updateRisk(id, {
                 name: body.name,
                 description: body.description,
+                impact: body.impact,
+                probability: body.probability,
                 updated_by_user: {
                     connect: { id: req.user.id }
                 }

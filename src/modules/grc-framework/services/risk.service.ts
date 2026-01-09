@@ -69,9 +69,19 @@ export class RiskService {
 
 
     updateRisk(id: string, data: Prisma.RiskUpdateInput) {
+
+        // 1️⃣ Calcular score del riesgo (impacto + probabilidad)
+        const score = Number(data.impact) + Number(data.probability);
+
+        // 2️⃣ Determinar nivel según score (matriz simple)
+        const level: RiskLevel = this.calculateRiskLevel(score);
+
         return this.prisma.risk.update({
             where: { id },
-            data
+            data: {
+                ...data,
+                level: level
+            }
         });
     }
 
