@@ -13,3 +13,6 @@ export class LoginDto {
     @ApiProperty({ minLength: 8 })
     password!: string;
 }
+
+//Test to see if the DTO is working correctly
+
