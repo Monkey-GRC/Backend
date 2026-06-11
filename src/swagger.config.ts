@@ -21,4 +21,4 @@ export function setupSwagger(app: INestApplication) {
 
     SwaggerModule.setup('v1/docs', app, document);
 }  
-//Testeando bitbucket
+//Nuevo testeo probando permisos
