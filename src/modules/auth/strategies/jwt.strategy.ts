@@ -1,7 +1,9 @@
 // src/modules/auth/strategies/jwt.strategy.ts
+
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Strategy } from 'passport-jwt';
+import { Request } from 'express';
 
 type JwtPayload = {
     sub: string;            // user.id
@@ -11,18 +13,29 @@ type JwtPayload = {
     is_active: boolean;
 };
 
+/**
+ * Extrae el JWT desde cookies httpOnly
+ * NO usa Authorization header
+ */
+const cookieExtractor = (req: Request): string | null => {
+    if (req && req.cookies && req.cookies.access_token) {
+        return req.cookies.access_token;
+    }
+    return null;
+};
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     constructor() {
         super({
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+            jwtFromRequest: cookieExtractor, // 👈 CLAVE
             secretOrKey: process.env.JWT_SECRET || '',
             ignoreExpiration: false,
         });
     }
 
     async validate(payload: JwtPayload) {
-        // Lo que retornes queda en req.user
+        // Lo que retornes queda disponible en req.user
         return {
             id: payload.sub,
             email: payload.email,

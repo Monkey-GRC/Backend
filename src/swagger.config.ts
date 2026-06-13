@@ -8,7 +8,7 @@ export function setupSwagger(app: INestApplication) {
         .setTitle('Monkey Backend')
         .setDescription('Servicios API para la aplicación Monkey')
         .setVersion('1.0')
-        .addBearerAuth()
+        .addCookieAuth()
         .build();
 
     const document = SwaggerModule.createDocument(app, config, {

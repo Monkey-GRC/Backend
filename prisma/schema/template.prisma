@@ -7,6 +7,8 @@ model Template {
     client          Client[] @relation("mnk_client_templates")
     slug            String   @unique
     created_at      DateTime @default(now())
+    seq             Int      @unique @default(autoincrement())
+    code            String   @unique @db.VarChar(10)
     updated_at      DateTime @updatedAt
     created_by      String?  @db.Uuid
     created_by_user User?    @relation("mnk_user_created_templates", fields: [created_by], references: [id], onDelete: NoAction)
@@ -14,4 +16,6 @@ model Template {
     updated_by_user User?    @relation("mnk_user_updated_templates", fields: [updated_by], references: [id], onDelete: NoAction)
 
     @@map("mnk_templates")
+    @@index([seq])
+    @@index([code])
 }

@@ -1,11 +1,11 @@
-// src/modules/auth/auth.controller.ts
-import { Body, Controller, Post, UseGuards, Request, Delete, Get, Headers } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, Request, Delete, Get, Headers, HttpStatus, Res, Req, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { ResponseDto } from 'src/shared/dtos/response.dto';
 import { LoginDto } from './dtos/login.dto';
 import { RefreshDto } from './dtos/refresh-token.dto'
 import { JwtService } from '@nestjs/jwt';
+import express from 'express';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
@@ -16,68 +16,94 @@ export class AuthController {
     ) { }
 
     @Post('login')
-    async login(@Body() dto: LoginDto) {
-        const data = await this.auth.login(dto);
+    async login(
+        @Body() dto: LoginDto,
+        @Res({ passthrough: true }) res: express.Response
+    ) {
+        const { user, access_token, refresh_token } = await this.auth.login(dto);
+
+        // 🔐 Cookies httpOnly
+        res.cookie('access_token', access_token, {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 3 * 60 * 60 * 1000, // 3 horas
+        });
+
+        res.cookie('refresh_token', refresh_token, {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+        });
+
         return new ResponseDto({
-            status: 1,
+            statusCode: HttpStatus.OK,
             message: 'Usuario autenticado correctamente',
-            data,
+            data: {
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    role: user.role,
+                },
+            },
         });
     }
 
     @Post('refresh')
-    async refresh(@Body() dto: RefreshDto) {          // 👈 await
-        const data = await this.auth.refresh(dto.refresh_token);
+    async refresh(
+        @Req() req: express.Request,
+        @Res({ passthrough: true }) res: express.Response
+    ) {
+        const refreshToken = req.cookies?.refresh_token;
+
+        if (!refreshToken) {
+            throw new UnauthorizedException('Refresh token no encontrado');
+        }
+
+        const { access_token } = await this.auth.refresh(refreshToken);
+
+        res.cookie('access_token', access_token, {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 15 * 60 * 1000,
+        });
+
         return new ResponseDto({
-            status: 1,
+            statusCode: HttpStatus.OK,
             message: 'Token refrescado correctamente',
-            data,
         });
     }
 
+
     @UseGuards(AuthGuard('jwt'))
     @Delete('logout')
-    @ApiBearerAuth()
-    async logout(@Request() req: any) {
-        const data = await this.auth.logout(req.user.id);
+    async logout(
+        @Req() req: any,
+        @Res({ passthrough: true }) res: express.Response
+    ) {
+        await this.auth.logout(req.user.id);
+
+        res.clearCookie('access_token');
+        res.clearCookie('refresh_token');
+
         return new ResponseDto({
-            status: 1,
-            message: 'Usuario deslogueado correctamente',
-            data,
+            statusCode: HttpStatus.OK,
+            message: 'Sesión cerrada correctamente',
         });
     }
+
 
     // ✅ Nuevo endpoint: valida el token actual y devuelve info de expiración
     @UseGuards(AuthGuard('jwt'))
     @Get('validate')
-    @ApiBearerAuth()
-    validate(@Request() req: any, @Headers('authorization') authHeader?: string) {
-        // extraer Bearer token del header
-        const token = authHeader && authHeader.startsWith('Bearer ')
-            ? authHeader.substring('Bearer '.length)
-            : undefined;
-
-        let exp: number | undefined;
-        let iat: number | undefined;
-        let expires_at: string | undefined;
-
-        if (token) {
-            const decoded: any = this.jwt.decode(token);
-            exp = decoded?.exp;
-            iat = decoded?.iat;
-            if (typeof exp === 'number') {
-                expires_at = new Date(exp * 1000).toISOString();
-            }
-        }
-
+    validate(@Request() req: any) {
         return new ResponseDto({
-            status: 1,
+            statusCode: HttpStatus.OK,
             message: 'Token válido',
             data: {
                 user: req.user,
-                iat,
-                exp,
-                expires_at,
             },
         });
     }
