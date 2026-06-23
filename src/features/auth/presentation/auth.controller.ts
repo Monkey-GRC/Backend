@@ -1,9 +1,8 @@
-import { Body, Controller, Post, UseGuards, Request, Delete, Get, Headers, HttpStatus, Res, Req, UnauthorizedException } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { ApiBearerAuth } from '@nestjs/swagger';
-import { ResponseDto } from 'src/shared/dtos/response.dto';
-import { LoginDto } from './dtos/login.dto';
-import { RefreshDto } from './dtos/refresh-token.dto'
+import { Body, Controller, Post, UseGuards, Request, Delete, Get, HttpStatus, Res, Req, UnauthorizedException } from '@nestjs/common';
+import { AuthService } from '../application/auth.service';
+import { ApiCookieAuth } from '@nestjs/swagger';
+import { ResponseDto } from 'src/common/dtos/response.dto';
+import { LoginDto } from '../application/dtos/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import express from 'express';
 import { AuthGuard } from '@nestjs/passport';
@@ -22,19 +21,18 @@ export class AuthController {
     ) {
         const { user, access_token, refresh_token } = await this.auth.login(dto);
 
-        // 🔐 Cookies httpOnly
         res.cookie('access_token', access_token, {
             httpOnly: true,
             sameSite: 'lax',
             secure: process.env.NODE_ENV === 'production',
-            maxAge: 3 * 60 * 60 * 1000, // 3 horas
+            maxAge: 3 * 60 * 60 * 1000,
         });
 
         res.cookie('refresh_token', refresh_token, {
             httpOnly: true,
             sameSite: 'lax',
             secure: process.env.NODE_ENV === 'production',
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+            maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
         return new ResponseDto({
@@ -76,7 +74,7 @@ export class AuthController {
         });
     }
 
-
+    @ApiCookieAuth()
     @UseGuards(AuthGuard('jwt'))
     @Delete('logout')
     async logout(
@@ -94,8 +92,7 @@ export class AuthController {
         });
     }
 
-
-    // ✅ Nuevo endpoint: valida el token actual y devuelve info de expiración
+    @ApiCookieAuth()
     @UseGuards(AuthGuard('jwt'))
     @Get('validate')
     validate(@Request() req: any) {

@@ -1,4 +1,3 @@
-// src/modules/auth/auth.service.ts
 import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -21,8 +20,6 @@ export class AuthService {
         private readonly jwt: JwtService,
     ) { }
 
-    // === helpers =============================================================
-
     private now() { return new Date(); }
 
     private secondsFromNow(sec: number) {
@@ -32,7 +29,7 @@ export class AuthService {
     private async signAccessToken(payloadBase: Omit<JwtPayload, 'jti'>, expiresInSec: number) {
         const token = await this.jwt.signAsync(payloadBase, {
             secret: process.env.JWT_SECRET!,
-            expiresIn: expiresInSec, // en segundos
+            expiresIn: expiresInSec,
         });
         return {
             token,
@@ -41,7 +38,6 @@ export class AuthService {
     }
 
     private async signRefreshToken(payloadBase: Omit<JwtPayload, 'jti'>, expiresInSec: number) {
-        // jti para identificar el refresh (útil si usas lista blanca/negra)
         const jti = crypto.randomUUID();
         const token = await this.jwt.signAsync({ ...payloadBase, jti }, {
             secret: process.env.JWT_REFRESH_SECRET!,
@@ -65,11 +61,8 @@ export class AuthService {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
         if (!user || !user.refresh_token_hash) return false;
         if (!user.refresh_token_expires_at || user.refresh_token_expires_at < this.now()) return false;
-        const ok = await bcrypt.compare(providedToken, user.refresh_token_hash);
-        return ok;
+        return bcrypt.compare(providedToken, user.refresh_token_hash);
     }
-
-    // === login / refresh =====================================================
 
     async validateUser(identifier: string, password: string) {
         const user = await this.prisma.user.findFirst({
@@ -103,12 +96,11 @@ export class AuthService {
         const access = await this.signAccessToken(basePayload, accessSecs);
         const refresh = await this.signRefreshToken(basePayload, refreshSecs);
 
-        // Guardamos hash del refresh y su expiración
         await this.storeRefreshToken(user.id, refresh.token, refresh.expiresAt);
 
         return {
             access_token: access.token,
-            access_token_expires_at: access.expiresAt.toISOString(), // 👈 fecha exacta
+            access_token_expires_at: access.expiresAt.toISOString(),
             refresh_token: refresh.token,
             refresh_token_expires_at: refresh.expiresAt.toISOString(),
             user: {
@@ -125,7 +117,6 @@ export class AuthService {
     }
 
     async refresh(refreshToken: string) {
-        // Verificamos firma y expiración del refresh
         let payload: JwtPayload;
         try {
             payload = await this.jwt.verifyAsync<JwtPayload>(refreshToken, {
@@ -135,11 +126,9 @@ export class AuthService {
             throw new UnauthorizedException('Refresh token inválido o expirado');
         }
 
-        // Validar que el token coincide con el hash guardado y no expiró en BD
         const ok = await this.validateRefreshToken(payload.sub, refreshToken);
         if (!ok) throw new ForbiddenException('Refresh token revocado o no coincide');
 
-        // Rotamos: emitimos refresh nuevo y reemplazamos el hash guardado
         const basePayload = {
             sub: payload.sub,
             email: payload.email,
@@ -165,7 +154,6 @@ export class AuthService {
     }
 
     async logout(userId: string) {
-        // Revoca refresh actual
         await this.prisma.user.update({
             where: { id: userId },
             data: { refresh_token_hash: null, refresh_token_expires_at: null },

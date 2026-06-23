@@ -1,4 +1,3 @@
-// src/modules/auth/dtos/login.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, MinLength } from 'class-validator';
 
@@ -13,6 +12,3 @@ export class LoginDto {
     @ApiProperty({ minLength: 8 })
     password!: string;
 }
-
-//Test to see if the DTO is working correctly
-

@@ -1,8 +1,8 @@
 import { Controller, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
-import { ApiBearerAuth } from "@nestjs/swagger";
+import { ApiCookieAuth } from "@nestjs/swagger";
 
-@ApiBearerAuth()
+@ApiCookieAuth()
 @UseGuards(AuthGuard('jwt'))
 @Controller('reasons')
-export class ReasonController {}
+export class ReasonController { }
