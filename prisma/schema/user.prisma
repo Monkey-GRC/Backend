@@ -34,6 +34,10 @@ model User {
   created_risks Risk[] @relation("mnk_user_created_risks")
   updated_risks Risk[] @relation("mnk_user_updated_risks")
 
+  created_controls Control[] @relation("mnk_user_created_controls")
+  updated_controls Control[] @relation("mnk_user_updated_controls")
+
+
   @@map("mnk_users")
 
   @@index([email])

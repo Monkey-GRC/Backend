@@ -8,6 +8,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { AuthModule } from './features/auth/auth.module';
 import { RiskModule } from './features/risk/risk.module';
 import { ReasonModule } from './features/reason/reason.module';
+import { ControlModule } from './features/control/control.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ReasonModule } from './features/reason/reason.module';
     AuthModule,
     RiskModule,
     ReasonModule,
+    ControlModule,
   ],
   controllers: [],
   providers: [
