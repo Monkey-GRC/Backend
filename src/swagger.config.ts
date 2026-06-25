@@ -20,4 +20,5 @@ export function setupSwagger(app: INestApplication) {
     });
 
     SwaggerModule.setup('v1/docs', app, document);
-}
+}  
+//Nuevo testeo probando permisos

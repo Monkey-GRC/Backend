@@ -1,34 +1,31 @@
 import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
-import { ApiBearerAuth, ApiCookieAuth } from "@nestjs/swagger";
-import { RiskService } from "../services/risk.service";
-import { ResponseDto } from "src/shared/dtos/response.dto";
+import { ApiCookieAuth } from "@nestjs/swagger";
 import { I18nService } from "nestjs-i18n";
-import { CreateRiskDto } from "../dtos/risk/create-risk.dto";
-import { UpdateRiskDto } from "../dtos/risk/update-risk.dto";
+import { ResponseDto } from "src/common/dtos/response.dto";
+import { CreateRiskDto } from "../application/dtos/create-risk.dto";
+import { UpdateRiskDto } from "../application/dtos/update-risk.dto";
+import { CreateRiskUseCase } from "../application/use-cases/create-risk.use-case";
+import { GetAllRisksUseCase } from "../application/use-cases/get-all-risks.use-case";
+import { UpdateRiskUseCase } from "../application/use-cases/update-risk.use-case";
+import { DeleteRiskUseCase } from "../application/use-cases/delete-risk.use-case";
 
 @ApiCookieAuth()
 @UseGuards(AuthGuard('jwt'))
 @Controller('risks')
 export class RiskController {
-
     constructor(
-        private readonly riskService: RiskService,
-        private readonly i18n: I18nService
+        private readonly createRiskUseCase: CreateRiskUseCase,
+        private readonly getAllRisksUseCase: GetAllRisksUseCase,
+        private readonly updateRiskUseCase: UpdateRiskUseCase,
+        private readonly deleteRiskUseCase: DeleteRiskUseCase,
+        private readonly i18n: I18nService,
     ) { }
 
     @Post()
     async createRisk(@Req() req: any, @Body() body: CreateRiskDto) {
         try {
-            const risk = await this.riskService.createRisk({
-                name: body.name,
-                description: body.description,
-                impact: body.impact,
-                probability: body.probability,
-                created_by_user: {
-                    connect: { id: req.user.id }
-                }
-            });
+            await this.createRiskUseCase.execute(body, req.user.id);
             return new ResponseDto({
                 statusCode: HttpStatus.CREATED,
                 message: this.i18n.t('risk.CREATED'),
@@ -42,7 +39,7 @@ export class RiskController {
     @Get()
     async getAllRisks() {
         try {
-            const risks = await this.riskService.getAllRisks();
+            const risks = await this.getAllRisksUseCase.execute();
             return new ResponseDto({
                 statusCode: HttpStatus.OK,
                 message: this.i18n.t('risk.READ.ALL'),
@@ -54,19 +51,10 @@ export class RiskController {
         }
     }
 
-
     @Patch(':id')
     async updateRisk(@Req() req: any, @Param('id') id: string, @Body() body: UpdateRiskDto) {
         try {
-            const risk = await this.riskService.updateRisk(id, {
-                name: body.name,
-                description: body.description,
-                impact: body.impact,
-                probability: body.probability,
-                updated_by_user: {
-                    connect: { id: req.user.id }
-                }
-            });
+            await this.updateRiskUseCase.execute(id, body, req.user.id);
             return new ResponseDto({
                 statusCode: HttpStatus.OK,
                 message: this.i18n.t('risk.UPDATED'),
@@ -80,15 +68,14 @@ export class RiskController {
     @Delete(':id')
     async deleteRisk(@Param('id') id: string) {
         try {
-            const risk = await this.riskService.deleteRisk(id);
+            await this.deleteRiskUseCase.execute(id);
             return new ResponseDto({
                 statusCode: HttpStatus.OK,
                 message: this.i18n.t('risk.DELETED'),
             });
         } catch (error) {
-            console.error('Error updating risk:', error);
+            console.error('Error deleting risk:', error);
             throw new HttpException(this.i18n.t('risk.DELETE_FAILED'), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 }
