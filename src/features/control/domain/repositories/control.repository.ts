@@ -1,10 +1,17 @@
-import { ControlType } from 'generated/prisma/browser';
+import { ChecklistOs, ControlType } from 'generated/prisma/browser';
+
+export type ControlChecklistItemInput = {
+    checkId: string;
+    title: string;
+};
 
 export type CreateControlInput = {
     name: string;
     description?: string;
     objective?: string;
     type?: ControlType;
+    os?: ChecklistOs;
+    checklist?: ControlChecklistItemInput[];
     userId: string;
 };
 

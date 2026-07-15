@@ -12,6 +12,8 @@ export class CreateControlUseCase {
             description: dto.description,
             objective: dto.objective,
             type: dto.type,
+            os: dto.os,
+            checklist: dto.checklist,
             userId,
         });
     }

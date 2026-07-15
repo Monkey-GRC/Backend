@@ -32,6 +32,14 @@ export class ControlPrismaRepository extends ControlRepository {
                 updated_by_user: true,
                 created_at: true,
                 updated_at: true,
+                checks: {
+                    select: {
+                        id: true,
+                        check_id: true,
+                        title: true,
+                        os: true,
+                    },
+                },
             }
         });
     }
@@ -46,6 +54,15 @@ export class ControlPrismaRepository extends ControlRepository {
                     type: input.type ?? ControlType.MANUAL,
                     code: 'PENDING',
                     created_by_user: { connect: { id: input.userId } },
+                    checks: input.checklist?.length
+                        ? {
+                            create: input.checklist.map((item) => ({
+                                check_id: item.checkId,
+                                title: item.title,
+                                os: input.os!,
+                            })),
+                        }
+                        : undefined,
                 },
             });
 

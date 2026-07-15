@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpStatus, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpStatus, Param, Patch, Post, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiCookieAuth } from '@nestjs/swagger';
 import { ResponseDto } from 'src/common/dtos/response.dto';
@@ -11,6 +11,7 @@ import { DeleteControlUseCase } from '../application/use-cases/delete-control.us
 
 @ApiCookieAuth()
 @UseGuards(AuthGuard('jwt'))
+@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 @Controller('controls')
 export class ControlController {
     constructor(

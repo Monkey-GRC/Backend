@@ -9,6 +9,7 @@ import { AuthModule } from './features/auth/auth.module';
 import { RiskModule } from './features/risk/risk.module';
 import { ReasonModule } from './features/reason/reason.module';
 import { ControlModule } from './features/control/control.module';
+import { ChecklistModule } from './features/checklist/checklist.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { ControlModule } from './features/control/control.module';
     RiskModule,
     ReasonModule,
     ControlModule,
+    ChecklistModule,
   ],
   controllers: [],
   providers: [
