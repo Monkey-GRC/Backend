@@ -1,0 +1,12 @@
+{
+  "CREATED": "Razón creada exitosamente.",
+  "UPDATED": "Razón actualizada exitosamente.",
+  "DELETED": "Razón eliminada exitosamente.",
+  "READ": {
+    "ALL": "Razones obtenidas exitosamente."
+  },
+  "CREATE_FAILED": "Error al crear la razón.",
+  "UPDATE_FAILED": "Error al actualizar la razón.",
+  "DELETE_FAILED": "Error al eliminar la razón.",
+  "NOT_FOUND": "Razón no encontrada."
+}
