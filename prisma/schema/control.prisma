@@ -1,17 +1,45 @@
+enum ControlType {
+    MANUAL
+    AUTOMATIC
+    HYBRID
+}
+
+enum ChecklistOs {
+    UBUNTU
+    WINDOWS
+}
+
 model Control {
     id          String   @id @default(uuid()) @db.Uuid
     name        String
     description String?
     seq         Int      @unique @default(autoincrement())
+    type  ControlType  @default(MANUAL)
     objective   String?
     code        String   @unique @db.VarChar(10)
     created_at  DateTime @default(now())
     updated_at  DateTime @updatedAt
-    created_by  String?
-    updated_by  String?
+    created_by      String?   @db.Uuid
+    created_by_user User?     @relation("mnk_user_created_controls", fields: [created_by], references: [id], onDelete: NoAction)
+    updated_by      String?   @db.Uuid
+    updated_by_user User?     @relation("mnk_user_updated_controls", fields: [updated_by], references: [id], onDelete: NoAction)
+    checks          ControlCheck[]
 
     @@map("mnk_controls")
     @@index([seq])
     @@index([code])
 
+}
+
+model ControlCheck {
+    id         String      @id @default(uuid()) @db.Uuid
+    control_id String      @db.Uuid
+    control    Control     @relation(fields: [control_id], references: [id], onDelete: Cascade)
+    check_id   String
+    title      String
+    os         ChecklistOs
+    created_at DateTime    @default(now())
+
+    @@map("mnk_control_checks")
+    @@unique([control_id, check_id])
 }

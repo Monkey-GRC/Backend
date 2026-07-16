@@ -19,7 +19,7 @@ export class CreateRiskDto {
     @IsString()
     @IsNotEmpty()
     @MaxLength(150)
-    name: string;
+    name!: string;
 
     @ApiPropertyOptional({
         description: 'Descripción detallada del riesgo',
@@ -41,7 +41,7 @@ export class CreateRiskDto {
     @IsInt()
     @Min(1)
     @Max(5)
-    impact: number;
+    impact!: number;
 
     @ApiProperty({
         description: 'Probabilidad de ocurrencia del riesgo (1 = Muy baja, 5 = Muy alta)',
@@ -53,5 +53,5 @@ export class CreateRiskDto {
     @IsInt()
     @Min(1)
     @Max(5)
-    probability: number;
+    probability!: number;
 }

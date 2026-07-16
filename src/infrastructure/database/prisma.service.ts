@@ -21,15 +21,17 @@ export class PrismaService extends PrismaClient
             query: {
                 $allModels: {
                     async create({ args, query }) {
-                        if (RequestContext.userId && args?.data) {
-                            args.data.created_by ??= RequestContext.userId;
+                        const data = args?.data as Record<string, unknown> | undefined;
+                        if (RequestContext.userId && data) {
+                            data.created_by ??= RequestContext.userId;
                         }
                         return query(args);
                     },
 
                     async update({ args, query }) {
-                        if (RequestContext.userId && args?.data) {
-                            args.data.updated_by = RequestContext.userId;
+                        const data = args?.data as Record<string, unknown> | undefined;
+                        if (RequestContext.userId && data) {
+                            data.updated_by = RequestContext.userId;
                         }
                         return query(args);
                     },
