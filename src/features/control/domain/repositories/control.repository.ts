@@ -25,6 +25,7 @@ export type UpdateControlInput = {
 
 export abstract class ControlRepository {
     abstract findAll(): Promise<any[]>;
+    abstract findOne(id: string): Promise<any>;
     abstract create(input: CreateControlInput): Promise<any>;
     abstract update(id: string, input: UpdateControlInput): Promise<any>;
     abstract delete(id: string): Promise<any>;

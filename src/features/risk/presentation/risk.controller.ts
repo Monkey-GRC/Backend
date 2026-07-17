@@ -7,6 +7,7 @@ import { CreateRiskDto } from "../application/dtos/create-risk.dto";
 import { UpdateRiskDto } from "../application/dtos/update-risk.dto";
 import { CreateRiskUseCase } from "../application/use-cases/create-risk.use-case";
 import { GetAllRisksUseCase } from "../application/use-cases/get-all-risks.use-case";
+import { GetOneRiskUseCase } from "../application/use-cases/get-one-risk.use-case";
 import { UpdateRiskUseCase } from "../application/use-cases/update-risk.use-case";
 import { DeleteRiskUseCase } from "../application/use-cases/delete-risk.use-case";
 
@@ -17,6 +18,7 @@ export class RiskController {
     constructor(
         private readonly createRiskUseCase: CreateRiskUseCase,
         private readonly getAllRisksUseCase: GetAllRisksUseCase,
+        private readonly getOneRiskUseCase: GetOneRiskUseCase,
         private readonly updateRiskUseCase: UpdateRiskUseCase,
         private readonly deleteRiskUseCase: DeleteRiskUseCase,
         private readonly i18n: I18nService,
@@ -48,6 +50,21 @@ export class RiskController {
         } catch (error) {
             console.error('Error fetching risks:', error);
             throw new HttpException(this.i18n.t('risk.READ_FAILED'), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Get(':id')
+    async getOneRisk(@Param('id') id: string) {
+        try {
+            const risk = await this.getOneRiskUseCase.execute(id);
+            return new ResponseDto({
+                statusCode: HttpStatus.OK,
+                message: this.i18n.t('risk.READ.ONE'),
+                data: risk,
+            });
+        } catch (error) {
+            console.error('Error fetching risk:', error);
+            throw new HttpException(this.i18n.t('risk.NOT_FOUND'), HttpStatus.NOT_FOUND);
         }
     }
 

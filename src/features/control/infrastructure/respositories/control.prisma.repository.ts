@@ -44,6 +44,37 @@ export class ControlPrismaRepository extends ControlRepository {
         });
     }
 
+    findOne(id: string) {
+        return this.prisma.control.findUniqueOrThrow({
+            where: { id },
+            select: {
+                id: true,
+                name: true,
+                code: true,
+                description: true,
+                objective: true,
+                type: true,
+                created_at: true,
+                updated_at: true,
+                checks: {
+                    select: {
+                        id: true,
+                        check_id: true,
+                        title: true,
+                        os: true,
+                    },
+                },
+                reasons: {
+                    select: {
+                        reason: {
+                            select: { id: true, name: true, code: true },
+                        },
+                    },
+                },
+            }
+        });
+    }
+
     async create(input: CreateControlInput) {
         return this.prisma.$transaction(async (tx) => {
             const control = await tx.control.create({

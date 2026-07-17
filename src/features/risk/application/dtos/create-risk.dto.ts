@@ -7,6 +7,7 @@ import {
     IsInt,
     Min,
     Max,
+    IsUUID,
 } from 'class-validator';
 
 export class CreateRiskDto {
@@ -54,4 +55,11 @@ export class CreateRiskDto {
     @Min(1)
     @Max(5)
     probability!: number;
+
+    @ApiPropertyOptional({
+        description: 'ID del template al que pertenece este riesgo',
+    })
+    @IsOptional()
+    @IsUUID()
+    templateId?: string;
 }

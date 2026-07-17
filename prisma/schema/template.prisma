@@ -14,6 +14,7 @@ model Template {
     created_by_user User?    @relation("mnk_user_created_templates", fields: [created_by], references: [id], onDelete: NoAction)
     updated_by      String?  @db.Uuid
     updated_by_user User?    @relation("mnk_user_updated_templates", fields: [updated_by], references: [id], onDelete: NoAction)
+    risks           Risk[]
 
     @@map("mnk_templates")
     @@index([seq])

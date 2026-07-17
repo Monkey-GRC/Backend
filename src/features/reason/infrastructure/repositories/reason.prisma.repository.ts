@@ -38,6 +38,68 @@ export class ReasonPrismaRepository extends ReasonRepository {
     });
   }
 
+  findOne(id: string) {
+    return this.prisma.reason.findUniqueOrThrow({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        description: true,
+        created_at: true,
+        updated_at: true,
+        risks: {
+          select: {
+            risk: {
+              select: { id: true, name: true, code: true, level: true },
+            },
+          },
+        },
+        controls: {
+          select: {
+            control: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                type: true,
+                checks: {
+                  select: { id: true, check_id: true, title: true, os: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  attachRisks(reasonId: string, riskIds: string[]) {
+    return this.prisma.riskReason.createMany({
+      data: riskIds.map((riskId) => ({ reason_id: reasonId, risk_id: riskId })),
+      skipDuplicates: true,
+    });
+  }
+
+  detachRisk(reasonId: string, riskId: string) {
+    return this.prisma.riskReason.delete({
+      where: { risk_id_reason_id: { risk_id: riskId, reason_id: reasonId } },
+    });
+  }
+
+  attachControls(reasonId: string, controlIds: string[]) {
+    return this.prisma.reasonControl.createMany({
+      data: controlIds.map((controlId) => ({ reason_id: reasonId, control_id: controlId })),
+      skipDuplicates: true,
+    });
+  }
+
+  detachControl(reasonId: string, controlId: string) {
+    return this.prisma.reasonControl.delete({
+      where: { reason_id_control_id: { reason_id: reasonId, control_id: controlId } },
+    });
+  }
+
   async create(input: CreateReasonInput) {
     return this.prisma.$transaction(async (tx) => {
       const reason = await tx.reason.create({

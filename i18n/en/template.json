@@ -1,0 +1,12 @@
+{
+    "CREATED": "Template created successfully.",
+    "UPDATED": "Template updated successfully.",
+    "DELETED": "Template deleted successfully.",
+    "READ.ONE": "Template retrieved successfully.",
+    "READ.ALL": "Templates retrieved successfully.",
+    "CREATE_FAILED": "Failed to create template.",
+    "UPDATE_FAILED": "Failed to update template.",
+    "DELETE_FAILED": "Failed to delete template.",
+    "READ_FAILED": "Failed to retrieve templates.",
+    "NOT_FOUND": "Template not found."
+}
