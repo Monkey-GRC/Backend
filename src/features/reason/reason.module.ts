@@ -6,8 +6,13 @@ import { ReasonRepository } from './domain/repositories/reason.repository';
 import { ReasonPrismaRepository } from './infrastructure/repositories/reason.prisma.repository';
 import { CreateReasonUseCase } from './application/use-case/create-reason.use-case';
 import { GetAllReasonsUseCase } from './application/use-case/get-all-reasons.use-case';
+import { GetOneReasonUseCase } from './application/use-case/get-one-reason.use-case';
 import { UpdateReasonUseCase } from './application/use-case/update-reason.use-case';
 import { DeleteReasonUseCase } from './application/use-case/delete-reason.use-case';
+import { AttachRisksToReasonUseCase } from './application/use-case/attach-risks-to-reason.use-case';
+import { DetachRiskFromReasonUseCase } from './application/use-case/detach-risk-from-reason.use-case';
+import { AttachControlsToReasonUseCase } from './application/use-case/attach-controls-to-reason.use-case';
+import { DetachControlFromReasonUseCase } from './application/use-case/detach-control-from-reason.use-case';
 
 @Module({
   controllers: [ReasonController],
@@ -18,8 +23,13 @@ import { DeleteReasonUseCase } from './application/use-case/delete-reason.use-ca
     },
     CreateReasonUseCase,
     GetAllReasonsUseCase,
+    GetOneReasonUseCase,
     UpdateReasonUseCase,
     DeleteReasonUseCase,
+    AttachRisksToReasonUseCase,
+    DetachRiskFromReasonUseCase,
+    AttachControlsToReasonUseCase,
+    DetachControlFromReasonUseCase,
   ],
 })
 export class ReasonModule {}

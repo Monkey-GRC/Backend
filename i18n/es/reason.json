@@ -3,10 +3,15 @@
   "UPDATED": "Razón actualizada exitosamente.",
   "DELETED": "Razón eliminada exitosamente.",
   "READ": {
-    "ALL": "Razones obtenidas exitosamente."
+    "ALL": "Razones obtenidas exitosamente.",
+    "ONE": "Razón obtenida exitosamente."
   },
   "CREATE_FAILED": "Error al crear la razón.",
   "UPDATE_FAILED": "Error al actualizar la razón.",
   "DELETE_FAILED": "Error al eliminar la razón.",
-  "NOT_FOUND": "Razón no encontrada."
+  "NOT_FOUND": "Razón no encontrada.",
+  "ATTACHED": "Vínculo creado exitosamente.",
+  "DETACHED": "Vínculo eliminado exitosamente.",
+  "ATTACH_FAILED": "Error al crear el vínculo.",
+  "DETACH_FAILED": "Error al eliminar el vínculo."
 }

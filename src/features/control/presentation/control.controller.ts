@@ -6,6 +6,7 @@ import { CreateControlDto } from '../application/dtos/create-control.dto';
 import { UpdateControlDto } from '../application/dtos/update-control.dto';
 import { CreateControlUseCase } from '../application/use-cases/create-control.use-case';
 import { GetAllControlsUseCase } from '../application/use-cases/get-all-controls.use-case';
+import { GetOneControlUseCase } from '../application/use-cases/get-one-control.use-case';
 import { UpdateControlUseCase } from '../application/use-cases/update-control.use-case';
 import { DeleteControlUseCase } from '../application/use-cases/delete-control.use-case';
 
@@ -17,6 +18,7 @@ export class ControlController {
     constructor(
         private readonly createControlUseCase: CreateControlUseCase,
         private readonly getAllControlsUseCase: GetAllControlsUseCase,
+        private readonly getOneControlUseCase: GetOneControlUseCase,
         private readonly updateControlUseCase: UpdateControlUseCase,
         private readonly deleteControlUseCase: DeleteControlUseCase,
     ) { }
@@ -31,6 +33,12 @@ export class ControlController {
     async findAll() {
         const data = await this.getAllControlsUseCase.execute();
         return new ResponseDto({ statusCode: HttpStatus.OK, message: 'Controles obtenidos', data });
+    }
+
+    @Get(':id')
+    async findOne(@Param('id') id: string) {
+        const data = await this.getOneControlUseCase.execute(id);
+        return new ResponseDto({ statusCode: HttpStatus.OK, message: 'Control obtenido', data });
     }
 
     @Patch(':id')

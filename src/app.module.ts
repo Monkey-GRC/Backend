@@ -10,6 +10,7 @@ import { RiskModule } from './features/risk/risk.module';
 import { ReasonModule } from './features/reason/reason.module';
 import { ControlModule } from './features/control/control.module';
 import { ChecklistModule } from './features/checklist/checklist.module';
+import { TemplateModule } from './features/template/template.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { ChecklistModule } from './features/checklist/checklist.module';
     ReasonModule,
     ControlModule,
     ChecklistModule,
+    TemplateModule,
   ],
   controllers: [],
   providers: [

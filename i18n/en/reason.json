@@ -3,10 +3,15 @@
   "UPDATED": "Reason updated successfully.",
   "DELETED": "Reason deleted successfully.",
   "READ": {
-    "ALL": "Reasons retrieved successfully."
+    "ALL": "Reasons retrieved successfully.",
+    "ONE": "Reason retrieved successfully."
   },
   "CREATE_FAILED": "Error creating reason.",
   "UPDATE_FAILED": "Error updating reason.",
   "DELETE_FAILED": "Error deleting reason.",
-  "NOT_FOUND": "Reason not found."
+  "NOT_FOUND": "Reason not found.",
+  "ATTACHED": "Link created successfully.",
+  "DETACHED": "Link removed successfully.",
+  "ATTACH_FAILED": "Error creating the link.",
+  "DETACH_FAILED": "Error removing the link."
 }

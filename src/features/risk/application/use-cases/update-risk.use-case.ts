@@ -12,6 +12,7 @@ export class UpdateRiskUseCase {
             description: dto.description,
             impact: dto.impact,
             probability: dto.probability,
+            templateId: dto.templateId,
             userId,
         });
     }
