@@ -11,6 +11,7 @@ import { ReasonModule } from './features/reason/reason.module';
 import { ControlModule } from './features/control/control.module';
 import { ChecklistModule } from './features/checklist/checklist.module';
 import { TemplateModule } from './features/template/template.module';
+import { DashboardModule } from './features/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -23,9 +24,7 @@ import { TemplateModule } from './features/template/template.module';
         path: path.join(process.cwd(), 'i18n'),
         watch: true,
       },
-      resolvers: [
-        AcceptLanguageResolver,
-      ],
+      resolvers: [AcceptLanguageResolver],
     }),
     PrismaModule,
     AuthModule,
@@ -34,6 +33,7 @@ import { TemplateModule } from './features/template/template.module';
     ControlModule,
     ChecklistModule,
     TemplateModule,
+    DashboardModule,
   ],
   controllers: [],
   providers: [
@@ -43,4 +43,4 @@ import { TemplateModule } from './features/template/template.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}
