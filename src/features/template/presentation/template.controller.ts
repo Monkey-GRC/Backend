@@ -2,7 +2,10 @@ import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Patch,
 import { AuthGuard } from "@nestjs/passport";
 import { ApiCookieAuth } from "@nestjs/swagger";
 import { I18nService } from "nestjs-i18n";
+import { Role } from "generated/prisma/client";
 import { ResponseDto } from "src/common/dtos/response.dto";
+import { Roles } from "src/common/decorators/roles.decorator";
+import { RolesGuard } from "src/common/guards/roles.guard";
 import { CreateTemplateDto } from "../application/dtos/create-template.dto";
 import { UpdateTemplateDto } from "../application/dtos/update-template.dto";
 import { CreateTemplateUseCase } from "../application/use-cases/create-template.use-case";
@@ -12,7 +15,7 @@ import { UpdateTemplateUseCase } from "../application/use-cases/update-template.
 import { DeleteTemplateUseCase } from "../application/use-cases/delete-template.use-case";
 
 @ApiCookieAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller('templates')
 export class TemplateController {
     constructor(
@@ -25,6 +28,7 @@ export class TemplateController {
     ) { }
 
     @Post()
+    @Roles(Role.MONKEY_ADMIN)
     async createTemplate(@Req() req: any, @Body() body: CreateTemplateDto) {
         try {
             await this.createTemplateUseCase.execute(body, req.user.id);
@@ -69,6 +73,7 @@ export class TemplateController {
     }
 
     @Patch(':id')
+    @Roles(Role.MONKEY_ADMIN)
     async updateTemplate(@Req() req: any, @Param('id') id: string, @Body() body: UpdateTemplateDto) {
         try {
             await this.updateTemplateUseCase.execute(id, body, req.user.id);
@@ -83,6 +88,7 @@ export class TemplateController {
     }
 
     @Delete(':id')
+    @Roles(Role.MONKEY_ADMIN)
     async deleteTemplate(@Param('id') id: string) {
         try {
             await this.deleteTemplateUseCase.execute(id);
