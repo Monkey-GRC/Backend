@@ -12,6 +12,7 @@ import { ControlModule } from './features/control/control.module';
 import { ChecklistModule } from './features/checklist/checklist.module';
 import { TemplateModule } from './features/template/template.module';
 import { DashboardModule } from './features/dashboard/dashboard.module';
+import { UserModule } from './features/user/user.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { DashboardModule } from './features/dashboard/dashboard.module';
     ChecklistModule,
     TemplateModule,
     DashboardModule,
+    UserModule,
   ],
   controllers: [],
   providers: [
