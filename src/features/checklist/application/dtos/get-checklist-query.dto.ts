@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { ChecklistOs } from 'generated/prisma/browser';
+import { ChecklistOs } from 'generated/prisma-tenant/browser';
 
 export class GetChecklistQueryDto {
     @ApiProperty({ enum: ChecklistOs, description: 'Sistema operativo del checklist CIS' })

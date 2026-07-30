@@ -2,10 +2,11 @@ import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Patch,
 import { AuthGuard } from "@nestjs/passport";
 import { ApiCookieAuth } from "@nestjs/swagger";
 import { I18nService } from "nestjs-i18n";
-import { Role } from "generated/prisma/client";
+import { Role } from "src/common/enums/role.enum";
 import { ResponseDto } from "src/common/dtos/response.dto";
 import { Roles } from "src/common/decorators/roles.decorator";
 import { RolesGuard } from "src/common/guards/roles.guard";
+import { TenantResolutionGuard } from "src/common/guards/tenant-resolution.guard";
 import { CreateRiskDto } from "../application/dtos/create-risk.dto";
 import { UpdateRiskDto } from "../application/dtos/update-risk.dto";
 import { CreateRiskUseCase } from "../application/use-cases/create-risk.use-case";
@@ -15,7 +16,7 @@ import { UpdateRiskUseCase } from "../application/use-cases/update-risk.use-case
 import { DeleteRiskUseCase } from "../application/use-cases/delete-risk.use-case";
 
 @ApiCookieAuth()
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard('jwt'), TenantResolutionGuard, RolesGuard)
 @Controller('risks')
 export class RiskController {
     constructor(
@@ -28,7 +29,7 @@ export class RiskController {
     ) { }
 
     @Post()
-    @Roles(Role.MONKEY_ADMIN)
+    @Roles(Role.MONKEY_ADMIN, Role.CLIENT_ADMIN)
     async createRisk(@Req() req: any, @Body() body: CreateRiskDto) {
         try {
             await this.createRiskUseCase.execute(body, req.user.id);
@@ -73,7 +74,7 @@ export class RiskController {
     }
 
     @Patch(':id')
-    @Roles(Role.MONKEY_ADMIN)
+    @Roles(Role.MONKEY_ADMIN, Role.CLIENT_ADMIN)
     async updateRisk(@Req() req: any, @Param('id') id: string, @Body() body: UpdateRiskDto) {
         try {
             await this.updateRiskUseCase.execute(id, body, req.user.id);
@@ -88,7 +89,7 @@ export class RiskController {
     }
 
     @Delete(':id')
-    @Roles(Role.MONKEY_ADMIN)
+    @Roles(Role.MONKEY_ADMIN, Role.CLIENT_ADMIN)
     async deleteRisk(@Param('id') id: string) {
         try {
             await this.deleteRiskUseCase.execute(id);

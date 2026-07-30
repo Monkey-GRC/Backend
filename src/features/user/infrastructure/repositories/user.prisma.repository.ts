@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
+import { CentralPrismaService } from 'src/infrastructure/database/central-prisma.service';
 import {
   UserRepository,
   CreateUserInput,
@@ -13,8 +13,6 @@ const USER_SELECT = {
   name: true,
   last_name: true,
   role: true,
-  client_id: true,
-  client: { select: { id: true, name: true, tax_id: true } },
   is_active: true,
   created_at: true,
   updated_at: true,
@@ -22,7 +20,7 @@ const USER_SELECT = {
 
 @Injectable()
 export class UserPrismaRepository extends UserRepository {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(private readonly prisma: CentralPrismaService) {
     super();
   }
 
@@ -45,8 +43,6 @@ export class UserPrismaRepository extends UserRepository {
         password: input.password,
         name: input.name,
         last_name: input.last_name,
-        role: input.role,
-        client: input.client_id ? { connect: { id: input.client_id } } : undefined,
       },
       select: USER_SELECT,
     });
@@ -60,13 +56,7 @@ export class UserPrismaRepository extends UserRepository {
     if (input.password !== undefined) updateData['password'] = input.password;
     if (input.name !== undefined) updateData['name'] = input.name;
     if (input.last_name !== undefined) updateData['last_name'] = input.last_name;
-    if (input.role !== undefined) updateData['role'] = input.role;
     if (input.is_active !== undefined) updateData['is_active'] = input.is_active;
-    if (input.client_id !== undefined) {
-      updateData['client'] = input.client_id
-        ? { connect: { id: input.client_id } }
-        : { disconnect: true };
-    }
 
     return this.prisma.user.update({
       where: { id },

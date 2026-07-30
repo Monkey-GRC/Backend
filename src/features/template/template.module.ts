@@ -7,6 +7,8 @@ import { GetAllTemplatesUseCase } from "./application/use-cases/get-all-template
 import { GetOneTemplateUseCase } from "./application/use-cases/get-one-template.use-case";
 import { UpdateTemplateUseCase } from "./application/use-cases/update-template.use-case";
 import { DeleteTemplateUseCase } from "./application/use-cases/delete-template.use-case";
+import { GetAllMasterTemplatesUseCase } from "./application/use-cases/get-all-master-templates.use-case";
+import { AdoptTemplateUseCase } from "./application/use-cases/adopt-template.use-case";
 
 @Module({
     controllers: [TemplateController],
@@ -20,6 +22,8 @@ import { DeleteTemplateUseCase } from "./application/use-cases/delete-template.u
         GetOneTemplateUseCase,
         UpdateTemplateUseCase,
         DeleteTemplateUseCase,
+        GetAllMasterTemplatesUseCase,
+        AdoptTemplateUseCase,
     ],
 })
 export class TemplateModule { }

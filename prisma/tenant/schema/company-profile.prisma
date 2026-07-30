@@ -1,0 +1,19 @@
+enum BusinessType {
+    E_COMMERCE
+    FINTECH
+    SAAS
+    HEALTHTECH
+    OTHER
+}
+
+/// Una sola fila por DB de tenant — se llena durante el onboarding (fuera de
+/// este backend), usando el api_key entregado al crear el tenant.
+model CompanyProfile {
+    id            String        @id @default(uuid()) @db.Uuid
+    business_type BusinessType?
+    server_count  Int?
+    created_at    DateTime      @default(now())
+    updated_at    DateTime      @updatedAt
+
+    @@map("mnk_company_profile")
+}

@@ -1,4 +1,4 @@
-import { ChecklistOs } from 'generated/prisma/browser';
+import { ChecklistOs } from 'generated/prisma-tenant/browser';
 import { ControlWithChecks } from '../domain/repositories/control-compliance.repository';
 import { ScaCheckResult } from '../domain/repositories/sca-result.repository';
 

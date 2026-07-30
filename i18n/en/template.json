@@ -8,5 +8,9 @@
     "UPDATE_FAILED": "Failed to update template.",
     "DELETE_FAILED": "Failed to delete template.",
     "READ_FAILED": "Failed to retrieve templates.",
-    "NOT_FOUND": "Template not found."
+    "NOT_FOUND": "Template not found.",
+    "DUPLICATE_SLUG": "A template with that slug already exists — choose a different one.",
+    "ADOPTED": "Template adopted successfully.",
+    "ADOPT_FAILED": "Failed to adopt template.",
+    "MASTER_NOT_FOUND": "Master template not found."
 }

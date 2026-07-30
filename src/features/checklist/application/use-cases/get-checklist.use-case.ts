@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ChecklistOs } from 'generated/prisma/browser';
+import { ChecklistOs } from 'generated/prisma-tenant/browser';
 import { CisCheckRepository } from '../../domain/repositories/cis-check.repository';
 
 @Injectable()

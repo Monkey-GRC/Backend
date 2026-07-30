@@ -3,7 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { I18nModule, AcceptLanguageResolver } from 'nestjs-i18n';
 import path from 'path';
 import { APP_FILTER } from '@nestjs/core';
-import { PrismaModule } from './infrastructure/database/prisma.module';
+import { CentralPrismaModule } from './infrastructure/database/central-prisma.module';
+import { TenancyModule } from './infrastructure/tenancy/tenancy.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { AuthModule } from './features/auth/auth.module';
 import { RiskModule } from './features/risk/risk.module';
@@ -13,6 +14,8 @@ import { ChecklistModule } from './features/checklist/checklist.module';
 import { TemplateModule } from './features/template/template.module';
 import { DashboardModule } from './features/dashboard/dashboard.module';
 import { UserModule } from './features/user/user.module';
+import { ClientModule } from './features/client/client.module';
+import { OnboardingModule } from './features/onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -27,7 +30,8 @@ import { UserModule } from './features/user/user.module';
       },
       resolvers: [AcceptLanguageResolver],
     }),
-    PrismaModule,
+    CentralPrismaModule,
+    TenancyModule,
     AuthModule,
     RiskModule,
     ReasonModule,
@@ -36,6 +40,8 @@ import { UserModule } from './features/user/user.module';
     TemplateModule,
     DashboardModule,
     UserModule,
+    ClientModule,
+    OnboardingModule,
   ],
   controllers: [],
   providers: [

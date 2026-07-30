@@ -1,6 +1,6 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Pool } from 'pg';
-import { ChecklistOs } from 'generated/prisma/browser';
+import { ChecklistOs } from 'generated/prisma-tenant/browser';
 import { CisCheckRepository, CisChecklistItem } from '../../domain/repositories/cis-check.repository';
 
 const POLICY_ID_BY_OS: Record<ChecklistOs, string> = {

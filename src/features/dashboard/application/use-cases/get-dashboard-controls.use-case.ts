@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ChecklistOs } from 'generated/prisma/browser';
+import { ChecklistOs } from 'generated/prisma-tenant/browser';
 import { ControlComplianceRepository } from '../../domain/repositories/control-compliance.repository';
 import {
   ScaCheckResult,

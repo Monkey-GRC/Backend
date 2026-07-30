@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class LoginDto {
     @IsString()
@@ -11,4 +11,12 @@ export class LoginDto {
     @MinLength(8)
     @ApiProperty({ minLength: 8 })
     password!: string;
+
+    @IsOptional()
+    @IsString()
+    @ApiPropertyOptional({
+        description:
+            'api_key del tenant ("<api_key_id>.<secret>"). Requerido para iniciar sesión como usuario de un tenant; se omite para sesiones MONKEY_ADMIN.',
+    })
+    api_key?: string;
 }

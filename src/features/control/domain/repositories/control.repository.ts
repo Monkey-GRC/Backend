@@ -1,4 +1,4 @@
-import { ChecklistOs, ControlType } from 'generated/prisma/browser';
+import { ChecklistOs, ControlType } from 'generated/prisma-tenant/browser';
 
 export type ControlChecklistItemInput = {
     checkId: string;

@@ -12,7 +12,7 @@ export type UpdateRiskInput = {
     description?: string;
     impact?: number;
     probability?: number;
-    templateId?: string;
+    templateId?: string | null;
     userId: string;
 };
 

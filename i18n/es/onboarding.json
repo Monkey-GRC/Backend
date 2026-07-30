@@ -1,0 +1,9 @@
+{
+  "ADMIN_CREATED": "Usuario administrador creado exitosamente.",
+  "ADMIN_CREATE_FAILED": "Error al crear el usuario administrador.",
+  "ADMIN_ALREADY_EXISTS": "Este tenant ya tiene un administrador creado.",
+  "PROFILE_READ": "Perfil de la empresa obtenido exitosamente.",
+  "PROFILE_READ_FAILED": "Error al obtener el perfil de la empresa.",
+  "PROFILE_UPDATED": "Perfil de la empresa actualizado exitosamente.",
+  "PROFILE_UPDATE_FAILED": "Error al actualizar el perfil de la empresa."
+}

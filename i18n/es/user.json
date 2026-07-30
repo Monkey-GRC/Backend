@@ -11,7 +11,5 @@
   "DELETE_FAILED": "Error al eliminar el usuario.",
   "READ_FAILED": "Error al obtener los usuarios.",
   "NOT_FOUND": "Usuario no encontrado.",
-  "DUPLICATE": "El correo o nombre de usuario ya está en uso.",
-  "TENANT_REQUIRED": "El rol CLIENT_ADMIN requiere un cliente (tenant) asignado.",
-  "TENANT_NOT_ALLOWED": "Solo CLIENT_ADMIN puede tener un cliente (tenant) asignado."
+  "DUPLICATE": "El correo o nombre de usuario ya está en uso."
 }

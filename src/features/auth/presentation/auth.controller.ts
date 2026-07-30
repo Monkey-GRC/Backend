@@ -81,7 +81,7 @@ export class AuthController {
         @Req() req: any,
         @Res({ passthrough: true }) res: express.Response
     ) {
-        await this.auth.logout(req.user.id);
+        await this.auth.logout(req.user.id, req.user.client_id ?? null);
 
         res.clearCookie('access_token');
         res.clearCookie('refresh_token');

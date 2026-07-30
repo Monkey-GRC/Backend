@@ -1,7 +1,9 @@
 // src/features/reason/infrastructure/repositories/reason.prisma.repository.ts
 
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
+import { CentralPrismaService } from 'src/infrastructure/database/central-prisma.service';
+import { TenantConnectionManager } from 'src/infrastructure/tenancy/tenant-connection-manager.service';
+import { RequestContext } from 'src/common/utils/request-context';
 import { obfuscateSeq } from 'src/common/utils/obfuscate-code';
 import {
   ReasonRepository,
@@ -11,12 +13,21 @@ import {
 
 @Injectable()
 export class ReasonPrismaRepository extends ReasonRepository {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly centralPrisma: CentralPrismaService,
+    private readonly tenantConnection: TenantConnectionManager,
+  ) {
     super();
   }
 
-  findAll() {
-    return this.prisma.reason.findMany({
+  private db(): Promise<any> {
+    const tenantId = RequestContext.clientId;
+    return tenantId ? this.tenantConnection.getClientFor(tenantId) : Promise.resolve(this.centralPrisma);
+  }
+
+  async findAll() {
+    const db = await this.db();
+    return db.reason.findMany({
       select: {
         id: true,
         name: true,
@@ -31,15 +42,24 @@ export class ReasonPrismaRepository extends ReasonRepository {
             username: true,
           },
         },
-        updated_by_user: true,
+        updated_by_user: {
+          select: {
+            id: true,
+            name: true,
+            last_name: true,
+            role: true,
+            username: true,
+          },
+        },
         created_at: true,
         updated_at: true,
       },
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.reason.findUniqueOrThrow({
+  async findOne(id: string) {
+    const db = await this.db();
+    return db.reason.findUniqueOrThrow({
       where: { id },
       select: {
         id: true,
@@ -74,34 +94,39 @@ export class ReasonPrismaRepository extends ReasonRepository {
     });
   }
 
-  attachRisks(reasonId: string, riskIds: string[]) {
-    return this.prisma.riskReason.createMany({
+  async attachRisks(reasonId: string, riskIds: string[]) {
+    const db = await this.db();
+    return db.riskReason.createMany({
       data: riskIds.map((riskId) => ({ reason_id: reasonId, risk_id: riskId })),
       skipDuplicates: true,
     });
   }
 
-  detachRisk(reasonId: string, riskId: string) {
-    return this.prisma.riskReason.delete({
+  async detachRisk(reasonId: string, riskId: string) {
+    const db = await this.db();
+    return db.riskReason.delete({
       where: { risk_id_reason_id: { risk_id: riskId, reason_id: reasonId } },
     });
   }
 
-  attachControls(reasonId: string, controlIds: string[]) {
-    return this.prisma.reasonControl.createMany({
+  async attachControls(reasonId: string, controlIds: string[]) {
+    const db = await this.db();
+    return db.reasonControl.createMany({
       data: controlIds.map((controlId) => ({ reason_id: reasonId, control_id: controlId })),
       skipDuplicates: true,
     });
   }
 
-  detachControl(reasonId: string, controlId: string) {
-    return this.prisma.reasonControl.delete({
+  async detachControl(reasonId: string, controlId: string) {
+    const db = await this.db();
+    return db.reasonControl.delete({
       where: { reason_id_control_id: { reason_id: reasonId, control_id: controlId } },
     });
   }
 
   async create(input: CreateReasonInput) {
-    return this.prisma.$transaction(async (tx) => {
+    const db = await this.db();
+    return db.$transaction(async (tx: any) => {
       const reason = await tx.reason.create({
         data: {
           name: input.name,
@@ -121,6 +146,7 @@ export class ReasonPrismaRepository extends ReasonRepository {
   }
 
   async update(id: string, input: UpdateReasonInput) {
+    const db = await this.db();
     const updateData: Record<string, any> = {};
 
     if (input.name !== undefined) updateData['name'] = input.name;
@@ -128,10 +154,11 @@ export class ReasonPrismaRepository extends ReasonRepository {
       updateData['description'] = input.description;
     updateData['updated_by_user'] = { connect: { id: input.userId } };
 
-    return this.prisma.reason.update({ where: { id }, data: updateData });
+    return db.reason.update({ where: { id }, data: updateData });
   }
 
-  delete(id: string) {
-    return this.prisma.reason.delete({ where: { id } });
+  async delete(id: string) {
+    const db = await this.db();
+    return db.reason.delete({ where: { id } });
   }
 }

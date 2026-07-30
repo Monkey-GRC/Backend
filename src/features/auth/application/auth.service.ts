@@ -1,22 +1,37 @@
 import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
+import { CentralPrismaService } from 'src/infrastructure/database/central-prisma.service';
+import { TenantConnectionManager } from 'src/infrastructure/tenancy/tenant-connection-manager.service';
+import { splitApiKey } from 'src/infrastructure/tenancy/api-key.util';
+import { Role } from 'src/common/enums/role.enum';
 import { LoginDto } from './dtos/login.dto';
 
 type JwtPayload = {
     sub: string;
     email: string;
     role: string;
-    client_id?: string | null;
+    client_id: string | null;
     is_active: boolean;
     jti?: string;
+};
+
+type AuthenticatedUser = {
+    id: string;
+    email: string;
+    username: string;
+    name: string | null;
+    last_name: string | null;
+    role: string;
+    password: string;
+    is_active: boolean;
 };
 
 @Injectable()
 export class AuthService {
     constructor(
-        private readonly prisma: PrismaService,
+        private readonly centralPrisma: CentralPrismaService,
+        private readonly tenantConnection: TenantConnectionManager,
         private readonly jwt: JwtService,
     ) { }
 
@@ -46,9 +61,15 @@ export class AuthService {
         return { token, jti, expiresAt: this.secondsFromNow(expiresInSec) };
     }
 
-    private async storeRefreshToken(userId: string, refreshToken: string, expiresAt: Date) {
+    /** Resuelve el "db handle" (central o de un tenant) a partir de un client_id de JWT/payload. */
+    private async dbFor(clientId: string | null): Promise<any> {
+        if (!clientId) return this.centralPrisma;
+        return this.tenantConnection.getClientFor(clientId);
+    }
+
+    private async storeRefreshToken(db: any, userId: string, refreshToken: string, expiresAt: Date) {
         const hash = await bcrypt.hash(refreshToken, 10);
-        await this.prisma.user.update({
+        await db.user.update({
             where: { id: userId },
             data: {
                 refresh_token_hash: hash,
@@ -57,15 +78,15 @@ export class AuthService {
         });
     }
 
-    private async validateRefreshToken(userId: string, providedToken: string) {
-        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    private async validateRefreshToken(db: any, userId: string, providedToken: string) {
+        const user = await db.user.findUnique({ where: { id: userId } });
         if (!user || !user.refresh_token_hash) return false;
         if (!user.refresh_token_expires_at || user.refresh_token_expires_at < this.now()) return false;
         return bcrypt.compare(providedToken, user.refresh_token_hash);
     }
 
-    async validateUser(identifier: string, password: string) {
-        const user = await this.prisma.user.findFirst({
+    private async findUserByIdentifier(db: any, identifier: string): Promise<AuthenticatedUser | null> {
+        const user = await db.user.findFirst({
             where: {
                 OR: [
                     { email: identifier.toLowerCase() },
@@ -73,20 +94,15 @@ export class AuthService {
                 ],
             },
         });
-        if (!user || !user.is_active) return null;
-        const ok = await bcrypt.compare(password, user.password);
-        return ok ? user : null;
+        return user as AuthenticatedUser | null;
     }
 
-    async login(dto: LoginDto) {
-        const user = await this.validateUser(dto.identifier, dto.password);
-        if (!user) throw new UnauthorizedException('Credenciales inválidas');
-
+    private async issueTokens(user: AuthenticatedUser, clientId: string | null, db: any) {
         const basePayload = {
             sub: user.id,
             email: user.email,
             role: user.role,
-            client_id: user.client_id,
+            client_id: clientId,
             is_active: user.is_active,
         };
 
@@ -96,7 +112,7 @@ export class AuthService {
         const access = await this.signAccessToken(basePayload, accessSecs);
         const refresh = await this.signRefreshToken(basePayload, refreshSecs);
 
-        await this.storeRefreshToken(user.id, refresh.token, refresh.expiresAt);
+        await this.storeRefreshToken(db, user.id, refresh.token, refresh.expiresAt);
 
         return {
             access_token: access.token,
@@ -110,10 +126,52 @@ export class AuthService {
                 name: user.name,
                 last_name: user.last_name,
                 role: user.role,
-                client_id: user.client_id,
+                client_id: clientId,
                 is_active: user.is_active,
             },
         };
+    }
+
+    private async loginMonkeyAdmin(dto: LoginDto) {
+        const user = await this.findUserByIdentifier(this.centralPrisma, dto.identifier);
+        if (!user || !user.is_active || user.role !== Role.MONKEY_ADMIN) {
+            throw new UnauthorizedException('Credenciales inválidas');
+        }
+        const ok = await bcrypt.compare(dto.password, user.password);
+        if (!ok) throw new UnauthorizedException('Credenciales inválidas');
+
+        return this.issueTokens(user, null, this.centralPrisma);
+    }
+
+    private async loginTenant(dto: LoginDto) {
+        let apiKeyId: string;
+        let secret: string;
+        try {
+            ({ apiKeyId, secret } = splitApiKey(dto.api_key!));
+        } catch {
+            throw new UnauthorizedException('Credenciales inválidas');
+        }
+
+        const client = await this.centralPrisma.client.findUnique({ where: { api_key_id: apiKeyId } });
+        if (!client || !client.is_active) {
+            throw new UnauthorizedException('Credenciales inválidas');
+        }
+        const apiKeyOk = await bcrypt.compare(secret, client.api_key_hash);
+        if (!apiKeyOk) throw new UnauthorizedException('Credenciales inválidas');
+
+        const tenantDb = await this.tenantConnection.getClientFor(client.id);
+        const user = await this.findUserByIdentifier(tenantDb, dto.identifier);
+        if (!user || !user.is_active) {
+            throw new UnauthorizedException('Credenciales inválidas');
+        }
+        const ok = await bcrypt.compare(dto.password, user.password);
+        if (!ok) throw new UnauthorizedException('Credenciales inválidas');
+
+        return this.issueTokens(user, client.id, tenantDb);
+    }
+
+    async login(dto: LoginDto) {
+        return dto.api_key ? this.loginTenant(dto) : this.loginMonkeyAdmin(dto);
     }
 
     async refresh(refreshToken: string) {
@@ -126,7 +184,8 @@ export class AuthService {
             throw new UnauthorizedException('Refresh token inválido o expirado');
         }
 
-        const ok = await this.validateRefreshToken(payload.sub, refreshToken);
+        const db = await this.dbFor(payload.client_id);
+        const ok = await this.validateRefreshToken(db, payload.sub, refreshToken);
         if (!ok) throw new ForbiddenException('Refresh token revocado o no coincide');
 
         const basePayload = {
@@ -143,7 +202,7 @@ export class AuthService {
         const access = await this.signAccessToken(basePayload, accessSecs);
         const refresh = await this.signRefreshToken(basePayload, refreshSecs);
 
-        await this.storeRefreshToken(payload.sub, refresh.token, refresh.expiresAt);
+        await this.storeRefreshToken(db, payload.sub, refresh.token, refresh.expiresAt);
 
         return {
             access_token: access.token,
@@ -153,8 +212,9 @@ export class AuthService {
         };
     }
 
-    async logout(userId: string) {
-        await this.prisma.user.update({
+    async logout(userId: string, clientId: string | null) {
+        const db = await this.dbFor(clientId);
+        await db.user.update({
             where: { id: userId },
             data: { refresh_token_hash: null, refresh_token_expires_at: null },
         });

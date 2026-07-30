@@ -1,18 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { RiskLevel } from 'generated/prisma/browser';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
+import { RiskLevel } from 'generated/prisma-tenant/browser';
+import { CentralPrismaService } from 'src/infrastructure/database/central-prisma.service';
+import { TenantConnectionManager } from 'src/infrastructure/tenancy/tenant-connection-manager.service';
+import { RequestContext } from 'src/common/utils/request-context';
 import { obfuscateSeq } from 'src/common/utils/obfuscate-code';
 import { RiskRepository, CreateRiskInput, UpdateRiskInput } from '../../domain/repositories/risk.repository';
 import { RiskEntity } from '../../domain/entities/risk.entity';
 
 @Injectable()
 export class RiskPrismaRepository extends RiskRepository {
-    constructor(private readonly prisma: PrismaService) {
+    constructor(
+        private readonly centralPrisma: CentralPrismaService,
+        private readonly tenantConnection: TenantConnectionManager,
+    ) {
         super();
     }
 
-    findAll() {
-        return this.prisma.risk.findMany({
+    /** MONKEY_ADMIN (sin client_id) opera sobre la biblioteca central; un tenant, sobre su propia DB. */
+    private db(): Promise<any> {
+        const tenantId = RequestContext.clientId;
+        return tenantId ? this.tenantConnection.getClientFor(tenantId) : Promise.resolve(this.centralPrisma);
+    }
+
+    async findAll() {
+        const db = await this.db();
+        return db.risk.findMany({
             select: {
                 id: true,
                 name: true,
@@ -33,15 +45,24 @@ export class RiskPrismaRepository extends RiskRepository {
                         username: true,
                     }
                 },
-                updated_by_user: true,
+                updated_by_user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        last_name: true,
+                        role: true,
+                        username: true,
+                    }
+                },
                 created_at: true,
                 updated_at: true,
             }
         });
     }
 
-    findOne(id: string) {
-        return this.prisma.risk.findUniqueOrThrow({
+    async findOne(id: string) {
+        const db = await this.db();
+        return db.risk.findUniqueOrThrow({
             where: { id },
             select: {
                 id: true,
@@ -68,9 +89,10 @@ export class RiskPrismaRepository extends RiskRepository {
     }
 
     async create(input: CreateRiskInput) {
+        const db = await this.db();
         const level = RiskEntity.calculateLevel(input.impact, input.probability) as RiskLevel;
 
-        return this.prisma.$transaction(async (tx) => {
+        return db.$transaction(async (tx: any) => {
             const risk = await tx.risk.create({
                 data: {
                     name: input.name,
@@ -94,17 +116,22 @@ export class RiskPrismaRepository extends RiskRepository {
     }
 
     async update(id: string, input: UpdateRiskInput) {
+        const db = await this.db();
         const updateData: Record<string, any> = {};
 
         if (input.name !== undefined) updateData['name'] = input.name;
         if (input.description !== undefined) updateData['description'] = input.description;
         if (input.impact !== undefined) updateData['impact'] = input.impact;
         if (input.probability !== undefined) updateData['probability'] = input.probability;
-        if (input.templateId !== undefined) updateData['template'] = { connect: { id: input.templateId } };
+        if (input.templateId !== undefined) {
+            updateData['template'] = input.templateId
+                ? { connect: { id: input.templateId } }
+                : { disconnect: true };
+        }
         updateData['updated_by_user'] = { connect: { id: input.userId } };
 
         if (input.impact !== undefined || input.probability !== undefined) {
-            const current = await this.prisma.risk.findUniqueOrThrow({
+            const current = await db.risk.findUniqueOrThrow({
                 where: { id },
                 select: { impact: true, probability: true },
             });
@@ -113,10 +140,11 @@ export class RiskPrismaRepository extends RiskRepository {
             updateData['level'] = RiskEntity.calculateLevel(newImpact, newProbability) as RiskLevel;
         }
 
-        return this.prisma.risk.update({ where: { id }, data: updateData });
+        return db.risk.update({ where: { id }, data: updateData });
     }
 
-    delete(id: string) {
-        return this.prisma.risk.delete({ where: { id } });
+    async delete(id: string) {
+        const db = await this.db();
+        return db.risk.delete({ where: { id } });
     }
 }

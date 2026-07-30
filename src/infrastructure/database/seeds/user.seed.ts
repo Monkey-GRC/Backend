@@ -1,5 +1,6 @@
 import * as bcrypt from 'bcrypt'
-import { PrismaClient, Role } from 'generated/prisma/client'
+import { PrismaClient } from 'generated/prisma-central/client'
+import { Role } from 'src/common/enums/role.enum'
 
 export async function seedUsers(prisma: PrismaClient) {
   console.log("➡️ Insertando usuarios...")
