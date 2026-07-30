@@ -1,0 +1,21 @@
+model Template {
+    id              String   @id @default(uuid()) @db.Uuid
+    name            String
+    description     String?
+    objective       String?
+    scope           String?
+    slug            String   @unique
+    created_at      DateTime @default(now())
+    seq             Int      @unique @default(autoincrement())
+    code            String   @unique @db.VarChar(10)
+    updated_at      DateTime @updatedAt
+    created_by      String?  @db.Uuid
+    created_by_user User?    @relation("mnk_user_created_templates", fields: [created_by], references: [id], onDelete: NoAction)
+    updated_by      String?  @db.Uuid
+    updated_by_user User?    @relation("mnk_user_updated_templates", fields: [updated_by], references: [id], onDelete: NoAction)
+    risks           Risk[]
+
+    @@map("mnk_templates")
+    @@index([seq])
+    @@index([code])
+}

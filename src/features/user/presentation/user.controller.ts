@@ -13,7 +13,8 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ApiCookieAuth } from '@nestjs/swagger';
 import { I18nService } from 'nestjs-i18n';
-import { Prisma, Role } from 'generated/prisma/client';
+import { Prisma } from 'generated/prisma-central/client';
+import { Role } from 'src/common/enums/role.enum';
 import { ResponseDto } from 'src/common/dtos/response.dto';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';

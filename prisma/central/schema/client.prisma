@@ -1,0 +1,37 @@
+enum ClientProvisioningStatus {
+    PENDING
+    PROVISIONING
+    READY
+    FAILED
+}
+
+model Client {
+    id         String  @id @default(uuid()) @db.Uuid
+    tax_id     String  @unique
+    name       String
+    seq        Int     @unique @default(autoincrement())
+    is_active  Boolean @default(true)
+
+    api_key_id   String @unique @db.VarChar(16)
+    api_key_hash String @db.Text
+
+    db_host         String
+    db_port         Int
+    db_name         String
+    db_user         String
+    db_password_enc String  @db.Text
+    db_ssl          Boolean @default(false)
+
+    provisioning_status ClientProvisioningStatus @default(PENDING)
+    provisioned_at      DateTime?
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+    created_by String?
+    updated_by String?
+
+    @@map("mnk_clients")
+
+    @@index([tax_id])
+    @@index([seq])
+}

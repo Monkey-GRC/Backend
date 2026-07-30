@@ -1,13 +1,9 @@
-import { Role } from 'generated/prisma/client';
-
 export type CreateUserInput = {
   email: string;
   username: string;
   password: string;
   name?: string;
   last_name?: string;
-  role: Role;
-  client_id?: string | null;
 };
 
 export type UpdateUserInput = {
@@ -16,8 +12,6 @@ export type UpdateUserInput = {
   password?: string;
   name?: string;
   last_name?: string;
-  role?: Role;
-  client_id?: string | null;
   is_active?: boolean;
 };
 

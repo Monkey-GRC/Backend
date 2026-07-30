@@ -11,7 +11,7 @@ import {
     ValidateIf,
     ValidateNested,
 } from 'class-validator';
-import { ChecklistOs, ControlType } from 'generated/prisma/browser';
+import { ChecklistOs, ControlType } from 'generated/prisma-tenant/browser';
 
 export class ControlChecklistItemDto {
     @ApiProperty({ description: 'check_id del check CIS en Wazuh', example: '28500' })

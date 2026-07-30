@@ -15,8 +15,16 @@ export class UserContextInterceptor implements NestInterceptor {
     ): Observable<any> {
         const req = context.switchToHttp().getRequest();
 
-        RequestContext.userId = req.user?.id;
+        const store = {
+            userId: req.user?.id,
+            clientId: req.user?.client_id ?? undefined,
+            role: req.user?.role,
+        };
 
-        return next.handle();
+        return new Observable((subscriber) => {
+            RequestContext.run(store, () => {
+                next.handle().subscribe(subscriber);
+            });
+        });
     }
 }

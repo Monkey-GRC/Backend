@@ -14,10 +14,11 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ApiCookieAuth } from '@nestjs/swagger';
 import { I18nService } from 'nestjs-i18n';
-import { Role } from 'generated/prisma/client';
+import { Role } from 'src/common/enums/role.enum';
 import { ResponseDto } from 'src/common/dtos/response.dto';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
+import { TenantResolutionGuard } from 'src/common/guards/tenant-resolution.guard';
 import { CreateReasonDto } from '../application/dtos/create-reason.dto';
 import { UpdateReasonDto } from '../application/dtos/update-reason.dto';
 import { AttachRisksDto } from '../application/dtos/attach-risks.dto';
@@ -33,7 +34,7 @@ import { AttachControlsToReasonUseCase } from '../application/use-case/attach-co
 import { DetachControlFromReasonUseCase } from '../application/use-case/detach-control-from-reason.use-case';
 
 @ApiCookieAuth()
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard('jwt'), TenantResolutionGuard, RolesGuard)
 @Controller('reasons')
 export class ReasonController {
   constructor(
@@ -50,7 +51,7 @@ export class ReasonController {
   ) {}
 
   @Post()
-  @Roles(Role.MONKEY_ADMIN)
+  @Roles(Role.MONKEY_ADMIN, Role.CLIENT_ADMIN)
   async createReason(@Req() req: any, @Body() body: CreateReasonDto) {
     try {
       await this.createReasonUseCase.execute(body, req.user.id);
@@ -104,7 +105,7 @@ export class ReasonController {
   }
 
   @Patch(':id')
-  @Roles(Role.MONKEY_ADMIN)
+  @Roles(Role.MONKEY_ADMIN, Role.CLIENT_ADMIN)
   async updateReason(
     @Req() req: any,
     @Param('id') id: string,
@@ -126,7 +127,7 @@ export class ReasonController {
   }
 
   @Delete(':id')
-  @Roles(Role.MONKEY_ADMIN)
+  @Roles(Role.MONKEY_ADMIN, Role.CLIENT_ADMIN)
   async deleteReason(@Param('id') id: string) {
     try {
       await this.deleteReasonUseCase.execute(id);
@@ -144,7 +145,7 @@ export class ReasonController {
   }
 
   @Post(':id/risks')
-  @Roles(Role.MONKEY_ADMIN)
+  @Roles(Role.MONKEY_ADMIN, Role.CLIENT_ADMIN)
   async attachRisks(@Param('id') id: string, @Body() body: AttachRisksDto) {
     try {
       await this.attachRisksToReasonUseCase.execute(id, body);
@@ -162,7 +163,7 @@ export class ReasonController {
   }
 
   @Delete(':id/risks/:riskId')
-  @Roles(Role.MONKEY_ADMIN)
+  @Roles(Role.MONKEY_ADMIN, Role.CLIENT_ADMIN)
   async detachRisk(@Param('id') id: string, @Param('riskId') riskId: string) {
     try {
       await this.detachRiskFromReasonUseCase.execute(id, riskId);
@@ -180,7 +181,7 @@ export class ReasonController {
   }
 
   @Post(':id/controls')
-  @Roles(Role.MONKEY_ADMIN)
+  @Roles(Role.MONKEY_ADMIN, Role.CLIENT_ADMIN)
   async attachControls(@Param('id') id: string, @Body() body: AttachControlsDto) {
     try {
       await this.attachControlsToReasonUseCase.execute(id, body);
@@ -198,7 +199,7 @@ export class ReasonController {
   }
 
   @Delete(':id/controls/:controlId')
-  @Roles(Role.MONKEY_ADMIN)
+  @Roles(Role.MONKEY_ADMIN, Role.CLIENT_ADMIN)
   async detachControl(@Param('id') id: string, @Param('controlId') controlId: string) {
     try {
       await this.detachControlFromReasonUseCase.execute(id, controlId);

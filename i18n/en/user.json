@@ -11,7 +11,5 @@
   "DELETE_FAILED": "Error deleting user.",
   "READ_FAILED": "Error fetching users.",
   "NOT_FOUND": "User not found.",
-  "DUPLICATE": "Email or username is already taken.",
-  "TENANT_REQUIRED": "The CLIENT_ADMIN role requires an assigned client (tenant).",
-  "TENANT_NOT_ALLOWED": "Only CLIENT_ADMIN can have an assigned client (tenant)."
+  "DUPLICATE": "Email or username is already taken."
 }

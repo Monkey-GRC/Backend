@@ -20,6 +20,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { ResponseDto } from 'src/common/dtos/response.dto';
+import { TenantResolutionGuard } from 'src/common/guards/tenant-resolution.guard';
 import { GetControlChecksDetailUseCase } from '../application/use-cases/get-control-checks-detail.use-case';
 import { GetDashboardControlsUseCase } from '../application/use-cases/get-dashboard-controls.use-case';
 import { GetDashboardSummaryUseCase } from '../application/use-cases/get-dashboard-summary.use-case';
@@ -52,7 +53,7 @@ const responseEnvelope = (dataSchema: object) => ({
   DashboardSummaryResponseDto,
   ControlChecksDetailResponseDto,
 )
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), TenantResolutionGuard)
 @Controller('dashboard')
 export class DashboardController {
   constructor(

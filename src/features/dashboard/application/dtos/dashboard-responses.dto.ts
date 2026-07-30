@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ChecklistOs } from 'generated/prisma/browser';
+import { ChecklistOs } from 'generated/prisma-tenant/browser';
 import { ControlCompliance } from '../compliance.calculator';
 import { DashboardSummary } from '../use-cases/get-dashboard-summary.use-case';
 import {

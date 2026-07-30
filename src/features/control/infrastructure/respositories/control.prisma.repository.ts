@@ -1,18 +1,29 @@
 import { Injectable } from '@nestjs/common';
-import { ControlType } from 'generated/prisma/browser';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
+import { ControlType } from 'generated/prisma-tenant/browser';
+import { CentralPrismaService } from 'src/infrastructure/database/central-prisma.service';
+import { TenantConnectionManager } from 'src/infrastructure/tenancy/tenant-connection-manager.service';
+import { RequestContext } from 'src/common/utils/request-context';
 import { obfuscateSeq } from 'src/common/utils/obfuscate-code';
 import { ControlRepository, CreateControlInput, UpdateControlInput } from '../../domain/repositories/control.repository';
 import { ControlEntity } from '../../domain/entities/control.entity';
 
 @Injectable()
 export class ControlPrismaRepository extends ControlRepository {
-    constructor(private readonly prisma: PrismaService) {
+    constructor(
+        private readonly centralPrisma: CentralPrismaService,
+        private readonly tenantConnection: TenantConnectionManager,
+    ) {
         super();
     }
 
-    findAll() {
-        return this.prisma.control.findMany({
+    private db(): Promise<any> {
+        const tenantId = RequestContext.clientId;
+        return tenantId ? this.tenantConnection.getClientFor(tenantId) : Promise.resolve(this.centralPrisma);
+    }
+
+    async findAll() {
+        const db = await this.db();
+        return db.control.findMany({
             select: {
                 id: true,
                 name: true,
@@ -29,7 +40,15 @@ export class ControlPrismaRepository extends ControlRepository {
                         username: true,
                     }
                 },
-                updated_by_user: true,
+                updated_by_user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        last_name: true,
+                        role: true,
+                        username: true,
+                    }
+                },
                 created_at: true,
                 updated_at: true,
                 checks: {
@@ -44,8 +63,9 @@ export class ControlPrismaRepository extends ControlRepository {
         });
     }
 
-    findOne(id: string) {
-        return this.prisma.control.findUniqueOrThrow({
+    async findOne(id: string) {
+        const db = await this.db();
+        return db.control.findUniqueOrThrow({
             where: { id },
             select: {
                 id: true,
@@ -76,7 +96,8 @@ export class ControlPrismaRepository extends ControlRepository {
     }
 
     async create(input: CreateControlInput) {
-        return this.prisma.$transaction(async (tx) => {
+        const db = await this.db();
+        return db.$transaction(async (tx: any) => {
             const control = await tx.control.create({
                 data: {
                     name: input.name,
@@ -107,6 +128,7 @@ export class ControlPrismaRepository extends ControlRepository {
     }
 
     async update(id: string, input: UpdateControlInput) {
+        const db = await this.db();
         const updateData: Record<string, any> = {};
 
         if (input.name !== undefined) updateData['name'] = input.name;
@@ -115,10 +137,11 @@ export class ControlPrismaRepository extends ControlRepository {
         if (input.type !== undefined) updateData['type'] = input.type;
         updateData['updated_by_user'] = { connect: { id: input.userId } };
 
-        return this.prisma.control.update({ where: { id }, data: updateData });
+        return db.control.update({ where: { id }, data: updateData });
     }
 
-    delete(id: string) {
-        return this.prisma.control.delete({ where: { id } });
+    async delete(id: string) {
+        const db = await this.db();
+        return db.control.delete({ where: { id } });
     }
 }

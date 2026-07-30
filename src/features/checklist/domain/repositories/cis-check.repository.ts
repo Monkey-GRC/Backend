@@ -1,4 +1,4 @@
-import { ChecklistOs } from 'generated/prisma/browser';
+import { ChecklistOs } from 'generated/prisma-tenant/browser';
 
 export type CisChecklistItem = {
     checkId: string;

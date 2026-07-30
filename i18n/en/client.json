@@ -1,0 +1,10 @@
+{
+  "CREATED": "Tenant created successfully.",
+  "READ": {
+    "ALL": "Tenants retrieved successfully.",
+    "ONE": "Tenant retrieved successfully."
+  },
+  "NOT_FOUND": "Tenant not found.",
+  "DUPLICATE_TAX_ID": "A client with that tax_id already exists.",
+  "PROVISIONING_FAILED": "Could not provision the tenant's database."
+}
