@@ -1,0 +1,9 @@
+{
+  "ADMIN_CREATED": "Admin user created successfully.",
+  "ADMIN_CREATE_FAILED": "Failed to create the admin user.",
+  "ADMIN_ALREADY_EXISTS": "This tenant already has an admin created.",
+  "PROFILE_READ": "Company profile retrieved successfully.",
+  "PROFILE_READ_FAILED": "Failed to retrieve the company profile.",
+  "PROFILE_UPDATED": "Company profile updated successfully.",
+  "PROFILE_UPDATE_FAILED": "Failed to update the company profile."
+}

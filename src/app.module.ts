@@ -15,6 +15,7 @@ import { TemplateModule } from './features/template/template.module';
 import { DashboardModule } from './features/dashboard/dashboard.module';
 import { UserModule } from './features/user/user.module';
 import { ClientModule } from './features/client/client.module';
+import { OnboardingModule } from './features/onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ClientModule } from './features/client/client.module';
     DashboardModule,
     UserModule,
     ClientModule,
+    OnboardingModule,
   ],
   controllers: [],
   providers: [
