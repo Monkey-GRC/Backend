@@ -30,8 +30,8 @@ export class ControlController {
     @Post()
     @Roles(Role.MONKEY_ADMIN, Role.CLIENT_ADMIN)
     async create(@Req() req: any, @Body() body: CreateControlDto) {
-        await this.createControlUseCase.execute(body, req.user.id);
-        return new ResponseDto({ statusCode: HttpStatus.CREATED, message: 'Control creado' });
+        const data = await this.createControlUseCase.execute(body, req.user.id);
+        return new ResponseDto({ statusCode: HttpStatus.CREATED, message: 'Control creado', data });
     }
 
     @Get()
