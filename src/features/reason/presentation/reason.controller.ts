@@ -54,10 +54,11 @@ export class ReasonController {
   @Roles(Role.MONKEY_ADMIN, Role.CLIENT_ADMIN)
   async createReason(@Req() req: any, @Body() body: CreateReasonDto) {
     try {
-      await this.createReasonUseCase.execute(body, req.user.id);
+      const data = await this.createReasonUseCase.execute(body, req.user.id);
       return new ResponseDto({
         statusCode: HttpStatus.CREATED,
         message: this.i18n.t('reason.CREATED'),
+        data,
       });
     } catch (error) {
       console.error('Error creating reason:', error);

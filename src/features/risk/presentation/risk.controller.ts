@@ -32,10 +32,11 @@ export class RiskController {
     @Roles(Role.MONKEY_ADMIN, Role.CLIENT_ADMIN)
     async createRisk(@Req() req: any, @Body() body: CreateRiskDto) {
         try {
-            await this.createRiskUseCase.execute(body, req.user.id);
+            const data = await this.createRiskUseCase.execute(body, req.user.id);
             return new ResponseDto({
                 statusCode: HttpStatus.CREATED,
                 message: this.i18n.t('risk.CREATED'),
+                data,
             });
         } catch (error) {
             console.error('Error creating risk:', error);
