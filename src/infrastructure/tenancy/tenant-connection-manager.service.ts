@@ -34,6 +34,10 @@ export class TenantConnectionManager implements OnModuleDestroy {
     if (!row || !row.is_active) {
       throw new UnauthorizedException();
     }
+    if (row.provisioning_status !== 'READY' || !row.db_host || !row.db_port || !row.db_name || !row.db_user || !row.db_password_enc) {
+      // Onboarding todavía no completado (o falló) — la DB física no existe.
+      throw new UnauthorizedException();
+    }
 
     const password = decryptSecret(row.db_password_enc);
     const url = buildPostgresUrl({
@@ -42,7 +46,7 @@ export class TenantConnectionManager implements OnModuleDestroy {
       database: row.db_name,
       user: row.db_user,
       password,
-      ssl: row.db_ssl,
+      ssl: !!row.db_ssl,
     });
 
     const client = createTenantPrismaClient(url);

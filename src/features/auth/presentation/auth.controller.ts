@@ -6,6 +6,7 @@ import { LoginDto } from '../application/dtos/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import express from 'express';
 import { AuthGuard } from '@nestjs/passport';
+import { ClientCredentialsGuard } from 'src/common/guards/client-credentials.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -15,6 +16,7 @@ export class AuthController {
     ) { }
 
     @Post('login')
+    @UseGuards(ClientCredentialsGuard)
     async login(
         @Body() dto: LoginDto,
         @Res({ passthrough: true }) res: express.Response

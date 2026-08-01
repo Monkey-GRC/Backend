@@ -19,6 +19,17 @@ export const ClientProvisioningStatus = {
 export type ClientProvisioningStatus = (typeof ClientProvisioningStatus)[keyof typeof ClientProvisioningStatus]
 
 
+export const ClientDocumentType = {
+  NIT: 'NIT',
+  RUC: 'RUC',
+  CEDULA: 'CEDULA',
+  PASAPORTE: 'PASAPORTE',
+  OTRO: 'OTRO'
+} as const
+
+export type ClientDocumentType = (typeof ClientDocumentType)[keyof typeof ClientDocumentType]
+
+
 export const ControlType = {
   MANUAL: 'MANUAL',
   AUTOMATIC: 'AUTOMATIC',

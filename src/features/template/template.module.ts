@@ -25,5 +25,6 @@ import { AdoptTemplateUseCase } from "./application/use-cases/adopt-template.use
         GetAllMasterTemplatesUseCase,
         AdoptTemplateUseCase,
     ],
+    exports: [GetAllMasterTemplatesUseCase],
 })
 export class TemplateModule { }

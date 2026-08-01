@@ -5,22 +5,42 @@ enum ClientProvisioningStatus {
     FAILED
 }
 
+enum ClientDocumentType {
+    NIT
+    RUC
+    CEDULA
+    PASAPORTE
+    OTRO
+}
+
 model Client {
-    id         String  @id @default(uuid()) @db.Uuid
-    tax_id     String  @unique
-    name       String
-    seq        Int     @unique @default(autoincrement())
-    is_active  Boolean @default(true)
+    id   String @id @default(uuid()) @db.Uuid
+    name String
 
-    api_key_id   String @unique @db.VarChar(16)
-    api_key_hash String @db.Text
+    document_type   ClientDocumentType
+    document_number String
+    email           String
+    phone           String
+    address         String
 
-    db_host         String
-    db_port         Int
-    db_name         String
-    db_user         String
-    db_password_enc String  @db.Text
-    db_ssl          Boolean @default(false)
+    seq       Int     @unique @default(autoincrement())
+    is_active Boolean @default(true)
+
+    // Se generan al final del onboarding, cuando la DB física ya existe.
+    client_identifier String? @unique @db.VarChar(32)
+    client_key_hash   String? @db.Text
+
+    // Se generan al crear el cliente (monkey_admin).
+    onboarding_code_hash       String?   @unique @db.Text
+    onboarding_code_expires_at DateTime?
+    onboarding_completed_at    DateTime?
+
+    db_host         String?
+    db_port         Int?
+    db_name         String?
+    db_user         String?
+    db_password_enc String?  @db.Text
+    db_ssl          Boolean?
 
     provisioning_status ClientProvisioningStatus @default(PENDING)
     provisioned_at      DateTime?
@@ -32,6 +52,7 @@ model Client {
 
     @@map("mnk_clients")
 
-    @@index([tax_id])
+    @@unique([document_type, document_number])
     @@index([seq])
+    @@index([client_identifier])
 }

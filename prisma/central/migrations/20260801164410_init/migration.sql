@@ -2,6 +2,9 @@
 CREATE TYPE "ClientProvisioningStatus" AS ENUM ('PENDING', 'PROVISIONING', 'READY', 'FAILED');
 
 -- CreateEnum
+CREATE TYPE "ClientDocumentType" AS ENUM ('NIT', 'RUC', 'CEDULA', 'PASAPORTE', 'OTRO');
+
+-- CreateEnum
 CREATE TYPE "ControlType" AS ENUM ('MANUAL', 'AUTOMATIC', 'HYBRID');
 
 -- CreateEnum
@@ -16,18 +19,25 @@ CREATE TYPE "Role" AS ENUM ('CLIENT_ADMIN', 'USER', 'VIEWER', 'MONKEY_ADMIN');
 -- CreateTable
 CREATE TABLE "mnk_clients" (
     "id" UUID NOT NULL,
-    "tax_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "document_type" "ClientDocumentType" NOT NULL,
+    "document_number" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+    "address" TEXT NOT NULL,
     "seq" SERIAL NOT NULL,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "api_key_id" VARCHAR(16) NOT NULL,
-    "api_key_hash" TEXT NOT NULL,
-    "db_host" TEXT NOT NULL,
-    "db_port" INTEGER NOT NULL,
-    "db_name" TEXT NOT NULL,
-    "db_user" TEXT NOT NULL,
-    "db_password_enc" TEXT NOT NULL,
-    "db_ssl" BOOLEAN NOT NULL DEFAULT false,
+    "client_identifier" VARCHAR(32),
+    "client_key_hash" TEXT,
+    "onboarding_code_hash" TEXT,
+    "onboarding_code_expires_at" TIMESTAMP(3),
+    "onboarding_completed_at" TIMESTAMP(3),
+    "db_host" TEXT,
+    "db_port" INTEGER,
+    "db_name" TEXT,
+    "db_user" TEXT,
+    "db_password_enc" TEXT,
+    "db_ssl" BOOLEAN,
     "provisioning_status" "ClientProvisioningStatus" NOT NULL DEFAULT 'PENDING',
     "provisioned_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -162,19 +172,22 @@ CREATE TABLE "mnk_users" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "mnk_clients_tax_id_key" ON "mnk_clients"("tax_id");
-
--- CreateIndex
 CREATE UNIQUE INDEX "mnk_clients_seq_key" ON "mnk_clients"("seq");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "mnk_clients_api_key_id_key" ON "mnk_clients"("api_key_id");
+CREATE UNIQUE INDEX "mnk_clients_client_identifier_key" ON "mnk_clients"("client_identifier");
 
 -- CreateIndex
-CREATE INDEX "mnk_clients_tax_id_idx" ON "mnk_clients"("tax_id");
+CREATE UNIQUE INDEX "mnk_clients_onboarding_code_hash_key" ON "mnk_clients"("onboarding_code_hash");
 
 -- CreateIndex
 CREATE INDEX "mnk_clients_seq_idx" ON "mnk_clients"("seq");
+
+-- CreateIndex
+CREATE INDEX "mnk_clients_client_identifier_idx" ON "mnk_clients"("client_identifier");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "mnk_clients_document_type_document_number_key" ON "mnk_clients"("document_type", "document_number");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "mnk_controls_seq_key" ON "mnk_controls"("seq");

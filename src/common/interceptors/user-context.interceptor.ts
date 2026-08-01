@@ -17,7 +17,7 @@ export class UserContextInterceptor implements NestInterceptor {
 
         const store = {
             userId: req.user?.id,
-            clientId: req.user?.client_id ?? undefined,
+            clientId: req.resolvedClientId ?? req.user?.client_id ?? undefined,
             role: req.user?.role,
         };
 

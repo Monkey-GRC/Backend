@@ -1119,12 +1119,19 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 
 export const ClientScalarFieldEnum = {
   id: 'id',
-  tax_id: 'tax_id',
   name: 'name',
+  document_type: 'document_type',
+  document_number: 'document_number',
+  email: 'email',
+  phone: 'phone',
+  address: 'address',
   seq: 'seq',
   is_active: 'is_active',
-  api_key_id: 'api_key_id',
-  api_key_hash: 'api_key_hash',
+  client_identifier: 'client_identifier',
+  client_key_hash: 'client_key_hash',
+  onboarding_code_hash: 'onboarding_code_hash',
+  onboarding_code_expires_at: 'onboarding_code_expires_at',
+  onboarding_completed_at: 'onboarding_completed_at',
   db_host: 'db_host',
   db_port: 'db_port',
   db_name: 'db_name',
@@ -1310,6 +1317,20 @@ export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMod
 
 
 /**
+ * Reference to a field of type 'ClientDocumentType'
+ */
+export type EnumClientDocumentTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ClientDocumentType'>
+    
+
+
+/**
+ * Reference to a field of type 'ClientDocumentType[]'
+ */
+export type ListEnumClientDocumentTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ClientDocumentType[]'>
+    
+
+
+/**
  * Reference to a field of type 'Int'
  */
 export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -1331,20 +1352,6 @@ export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
 
 
 /**
- * Reference to a field of type 'ClientProvisioningStatus'
- */
-export type EnumClientProvisioningStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ClientProvisioningStatus'>
-    
-
-
-/**
- * Reference to a field of type 'ClientProvisioningStatus[]'
- */
-export type ListEnumClientProvisioningStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ClientProvisioningStatus[]'>
-    
-
-
-/**
  * Reference to a field of type 'DateTime'
  */
 export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
@@ -1355,6 +1362,20 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
  * Reference to a field of type 'DateTime[]'
  */
 export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+/**
+ * Reference to a field of type 'ClientProvisioningStatus'
+ */
+export type EnumClientProvisioningStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ClientProvisioningStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'ClientProvisioningStatus[]'
+ */
+export type ListEnumClientProvisioningStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ClientProvisioningStatus[]'>
     
 
 

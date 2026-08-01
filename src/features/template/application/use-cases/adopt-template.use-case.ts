@@ -2,37 +2,34 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { CentralPrismaService } from 'src/infrastructure/database/central-prisma.service';
 import { TenantConnectionManager } from 'src/infrastructure/tenancy/tenant-connection-manager.service';
+import { TenantPrismaClient } from 'src/infrastructure/tenancy/tenant-prisma-client.factory';
 import { RequestContext } from 'src/common/utils/request-context';
 
-@Injectable()
-export class AdoptTemplateUseCase {
-  constructor(
-    private readonly centralPrisma: CentralPrismaService,
-    private readonly tenantConnection: TenantConnectionManager,
-    private readonly i18n: I18nService,
-  ) {}
-
-  async execute(masterTemplateId: string) {
-    const tenantId = RequestContext.clientId;
-    if (!tenantId) {
-      // Solo tiene sentido "adoptar" dentro de una sesión de tenant.
-      throw new NotFoundException(this.i18n.t('template.MASTER_NOT_FOUND'));
-    }
-
-    const master = await this.centralPrisma.template.findUnique({
-      where: { id: masterTemplateId },
-      include: {
-        risks: {
-          include: {
-            reasons: {
-              include: {
-                reason: {
-                  include: {
-                    controls: {
-                      include: {
-                        control: {
-                          include: { checks: true },
-                        },
+/**
+ * Extraído de AdoptTemplateUseCase para que el onboarding también pueda
+ * clonar una plantilla maestra dentro de la DB del tenant recién
+ * aprovisionada, sin depender de RequestContext (todavía no hay sesión en
+ * ese punto del flujo).
+ */
+export async function cloneMasterTemplateIntoTenant(
+  centralPrisma: CentralPrismaService,
+  tenantDb: TenantPrismaClient,
+  masterTemplateId: string,
+  i18n: I18nService,
+) {
+  const master = await centralPrisma.template.findUnique({
+    where: { id: masterTemplateId },
+    include: {
+      risks: {
+        include: {
+          reasons: {
+            include: {
+              reason: {
+                include: {
+                  controls: {
+                    include: {
+                      control: {
+                        include: { checks: true },
                       },
                     },
                   },
@@ -42,15 +39,14 @@ export class AdoptTemplateUseCase {
           },
         },
       },
-    });
+    },
+  });
 
-    if (!master) {
-      throw new NotFoundException(this.i18n.t('template.MASTER_NOT_FOUND'));
-    }
+  if (!master) {
+    throw new NotFoundException(i18n.t('template.MASTER_NOT_FOUND'));
+  }
 
-    const tenantDb = await this.tenantConnection.getClientFor(tenantId);
-
-    return tenantDb.$transaction(async (tx: any) => {
+  return tenantDb.$transaction(async (tx: any) => {
       const newTemplate = await tx.template.create({
         data: {
           name: master.name,
@@ -138,6 +134,25 @@ export class AdoptTemplateUseCase {
       }
 
       return newTemplate;
-    });
+  });
+}
+
+@Injectable()
+export class AdoptTemplateUseCase {
+  constructor(
+    private readonly centralPrisma: CentralPrismaService,
+    private readonly tenantConnection: TenantConnectionManager,
+    private readonly i18n: I18nService,
+  ) {}
+
+  async execute(masterTemplateId: string) {
+    const tenantId = RequestContext.clientId;
+    if (!tenantId) {
+      // Solo tiene sentido "adoptar" dentro de una sesión de tenant.
+      throw new NotFoundException(this.i18n.t('template.MASTER_NOT_FOUND'));
+    }
+
+    const tenantDb = await this.tenantConnection.getClientFor(tenantId);
+    return cloneMasterTemplateIntoTenant(this.centralPrisma, tenantDb, masterTemplateId, this.i18n);
   }
 }

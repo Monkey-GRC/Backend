@@ -1,56 +1,39 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { ClientRepository } from '../../domain/repositories/client.repository';
-import { TenantProvisioningService } from '../../infrastructure/services/tenant-provisioning.service';
-import { generateApiKey } from 'src/infrastructure/tenancy/api-key.util';
-import { encryptSecret } from 'src/infrastructure/tenancy/tenant-crypto.util';
+import { generateToken, hashToken } from 'src/infrastructure/tenancy/fast-token.util';
 import { CreateClientDto } from '../dtos/create-client.dto';
+
+const ONBOARDING_CODE_TTL_DAYS = 7;
 
 @Injectable()
 export class CreateClientUseCase {
   constructor(
     private readonly clientRepository: ClientRepository,
-    private readonly tenantProvisioningService: TenantProvisioningService,
     private readonly i18n: I18nService,
   ) {}
 
   async execute(dto: CreateClientDto) {
-    const existing = await this.clientRepository.findByTaxId(dto.tax_id);
+    const existing = await this.clientRepository.findByDocument(dto.document_type, dto.document_number);
     if (existing) {
-      throw new BadRequestException(this.i18n.t('client.DUPLICATE_TAX_ID'));
+      throw new BadRequestException(this.i18n.t('client.DUPLICATE_DOCUMENT'));
     }
 
-    const { apiKeyId, secret, fullKey } = generateApiKey();
-    const apiKeyHash = await bcrypt.hash(secret, 10);
+    const onboardingCode = generateToken(24);
+    const onboardingCodeHash = hashToken(onboardingCode);
+    const expiresAt = new Date(Date.now() + ONBOARDING_CODE_TTL_DAYS * 24 * 60 * 60 * 1000);
 
     const client = await this.clientRepository.create({
-      tax_id: dto.tax_id,
       name: dto.name,
-      api_key_id: apiKeyId,
-      api_key_hash: apiKeyHash,
+      document_type: dto.document_type,
+      document_number: dto.document_number,
+      email: dto.email,
+      phone: dto.phone,
+      address: dto.address,
+      onboarding_code_hash: onboardingCodeHash,
+      onboarding_code_expires_at: expiresAt,
     });
 
-    let provisioned;
-    try {
-      provisioned = await this.tenantProvisioningService.provision(client.seq);
-    } catch (err) {
-      await this.clientRepository.setStatus(client.id, 'FAILED');
-      throw new InternalServerErrorException(this.i18n.t('client.PROVISIONING_FAILED'));
-    }
-
-    const finalClient = await this.clientRepository.finalizeProvisioning(client.id, {
-      db_host: provisioned.dbHost,
-      db_port: provisioned.dbPort,
-      db_name: provisioned.dbName,
-      db_user: provisioned.dbUser,
-      db_password_enc: encryptSecret(provisioned.dbPassword),
-      db_ssl: provisioned.dbSsl,
-    });
-
-    return {
-      client: finalClient,
-      api_key: fullKey,
-    };
+    return { client, onboarding_code: onboardingCode };
   }
 }

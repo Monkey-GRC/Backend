@@ -53,6 +53,10 @@ async function main() {
 
   for (const tenant of tenants) {
     process.stdout.write(`  → ${tenant.name} (${tenant.db_name})... `);
+    if (!tenant.db_host || !tenant.db_port || !tenant.db_name || !tenant.db_user || !tenant.db_password_enc) {
+      console.log('SIN DB APROVISIONADA (se omite)');
+      continue;
+    }
     try {
       const databaseUrl = buildPostgresUrl({
         host: tenant.db_host,
@@ -60,7 +64,7 @@ async function main() {
         database: tenant.db_name,
         user: tenant.db_user,
         password: decryptSecret(tenant.db_password_enc),
-        ssl: tenant.db_ssl,
+        ssl: !!tenant.db_ssl,
       });
       await runMigrateDeploy(databaseUrl);
       console.log('OK');
