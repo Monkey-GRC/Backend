@@ -44,12 +44,14 @@ export class CompleteOnboardingUseCase {
       throw new GoneException(this.i18n.t('onboarding.CODE_EXPIRED'));
     }
 
-    const masterTemplate = await this.centralPrisma.template.findUnique({
-      where: { id: dto.template_id },
-      select: { id: true },
-    });
-    if (!masterTemplate) {
-      throw new NotFoundException(this.i18n.t('onboarding.TEMPLATE_NOT_FOUND'));
+    if (dto.template_id) {
+      const masterTemplate = await this.centralPrisma.template.findUnique({
+        where: { id: dto.template_id },
+        select: { id: true },
+      });
+      if (!masterTemplate) {
+        throw new NotFoundException(this.i18n.t('onboarding.TEMPLATE_NOT_FOUND'));
+      }
     }
 
     await this.centralPrisma.client.update({
@@ -103,8 +105,11 @@ export class CompleteOnboardingUseCase {
         });
       }
 
-      await cloneMasterTemplateIntoTenant(this.centralPrisma, tenantDb, dto.template_id, this.i18n);
+      if (dto.template_id) {
+        await cloneMasterTemplateIntoTenant(this.centralPrisma, tenantDb, dto.template_id, this.i18n);
+      }
     } catch (err) {
+      console.error('Error creating tenant admin / cloning template during onboarding:', err);
       await tenantDb.$disconnect();
       await this.tenantProvisioningService.deprovision(provisioned.dbName, provisioned.dbUser);
       await this.centralPrisma.client.update({

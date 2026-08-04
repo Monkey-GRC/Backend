@@ -18,10 +18,11 @@ export class CompleteOnboardingDto {
   @IsNotEmpty()
   onboarding_code!: string;
 
-  @ApiProperty({ description: 'Plantilla maestra elegida — se clona dentro del tenant recién aprovisionado' })
+  @ApiPropertyOptional({ description: 'Plantilla maestra elegida — se clona dentro del tenant recién aprovisionado. Si no se envía, el tenant arranca sin template inicial.' })
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  template_id!: string;
+  template_id?: string;
 
   @ApiProperty()
   @IsEmail()

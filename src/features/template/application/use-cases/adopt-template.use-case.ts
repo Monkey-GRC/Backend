@@ -134,7 +134,7 @@ export async function cloneMasterTemplateIntoTenant(
       }
 
       return newTemplate;
-  });
+  }, { timeout: 60_000 });
 }
 
 @Injectable()
