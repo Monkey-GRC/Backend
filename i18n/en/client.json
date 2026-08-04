@@ -1,10 +1,14 @@
 {
-  "CREATED": "Tenant created successfully.",
+  "CREATED": "Client created successfully.",
   "READ": {
-    "ALL": "Tenants retrieved successfully.",
-    "ONE": "Tenant retrieved successfully."
+    "ALL": "Clients retrieved successfully.",
+    "ONE": "Client retrieved successfully."
   },
-  "NOT_FOUND": "Tenant not found.",
-  "DUPLICATE_TAX_ID": "A client with that tax_id already exists.",
-  "PROVISIONING_FAILED": "Could not provision the tenant's database."
+  "NOT_FOUND": "Client not found.",
+  "DUPLICATE_DOCUMENT": "A client with that document type and number already exists.",
+  "PROVISIONING_FAILED": "Could not provision the tenant's database.",
+  "ONBOARDING_ALREADY_DONE": "This client already completed onboarding — the code can't be regenerated.",
+  "ONBOARDING_CODE_REGENERATED": "Onboarding code regenerated successfully.",
+  "DEACTIVATED": "Client deactivated successfully.",
+  "REACTIVATED": "Client reactivated successfully."
 }

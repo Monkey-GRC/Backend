@@ -18,7 +18,7 @@ import { Role } from 'src/common/enums/role.enum';
 import { ResponseDto } from 'src/common/dtos/response.dto';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
-import { TenantResolutionGuard } from 'src/common/guards/tenant-resolution.guard';
+import { ClientCredentialsGuard } from 'src/common/guards/client-credentials.guard';
 import { CreateReasonDto } from '../application/dtos/create-reason.dto';
 import { UpdateReasonDto } from '../application/dtos/update-reason.dto';
 import { AttachRisksDto } from '../application/dtos/attach-risks.dto';
@@ -34,7 +34,7 @@ import { AttachControlsToReasonUseCase } from '../application/use-case/attach-co
 import { DetachControlFromReasonUseCase } from '../application/use-case/detach-control-from-reason.use-case';
 
 @ApiCookieAuth()
-@UseGuards(AuthGuard('jwt'), TenantResolutionGuard, RolesGuard)
+@UseGuards(AuthGuard('jwt'), ClientCredentialsGuard, RolesGuard)
 @Controller('reasons')
 export class ReasonController {
   constructor(

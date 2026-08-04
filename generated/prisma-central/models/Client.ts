@@ -38,12 +38,19 @@ export type ClientSumAggregateOutputType = {
 
 export type ClientMinAggregateOutputType = {
   id: string | null
-  tax_id: string | null
   name: string | null
+  document_type: $Enums.ClientDocumentType | null
+  document_number: string | null
+  email: string | null
+  phone: string | null
+  address: string | null
   seq: number | null
   is_active: boolean | null
-  api_key_id: string | null
-  api_key_hash: string | null
+  client_identifier: string | null
+  client_key_hash: string | null
+  onboarding_code_hash: string | null
+  onboarding_code_expires_at: Date | null
+  onboarding_completed_at: Date | null
   db_host: string | null
   db_port: number | null
   db_name: string | null
@@ -60,12 +67,19 @@ export type ClientMinAggregateOutputType = {
 
 export type ClientMaxAggregateOutputType = {
   id: string | null
-  tax_id: string | null
   name: string | null
+  document_type: $Enums.ClientDocumentType | null
+  document_number: string | null
+  email: string | null
+  phone: string | null
+  address: string | null
   seq: number | null
   is_active: boolean | null
-  api_key_id: string | null
-  api_key_hash: string | null
+  client_identifier: string | null
+  client_key_hash: string | null
+  onboarding_code_hash: string | null
+  onboarding_code_expires_at: Date | null
+  onboarding_completed_at: Date | null
   db_host: string | null
   db_port: number | null
   db_name: string | null
@@ -82,12 +96,19 @@ export type ClientMaxAggregateOutputType = {
 
 export type ClientCountAggregateOutputType = {
   id: number
-  tax_id: number
   name: number
+  document_type: number
+  document_number: number
+  email: number
+  phone: number
+  address: number
   seq: number
   is_active: number
-  api_key_id: number
-  api_key_hash: number
+  client_identifier: number
+  client_key_hash: number
+  onboarding_code_hash: number
+  onboarding_code_expires_at: number
+  onboarding_completed_at: number
   db_host: number
   db_port: number
   db_name: number
@@ -116,12 +137,19 @@ export type ClientSumAggregateInputType = {
 
 export type ClientMinAggregateInputType = {
   id?: true
-  tax_id?: true
   name?: true
+  document_type?: true
+  document_number?: true
+  email?: true
+  phone?: true
+  address?: true
   seq?: true
   is_active?: true
-  api_key_id?: true
-  api_key_hash?: true
+  client_identifier?: true
+  client_key_hash?: true
+  onboarding_code_hash?: true
+  onboarding_code_expires_at?: true
+  onboarding_completed_at?: true
   db_host?: true
   db_port?: true
   db_name?: true
@@ -138,12 +166,19 @@ export type ClientMinAggregateInputType = {
 
 export type ClientMaxAggregateInputType = {
   id?: true
-  tax_id?: true
   name?: true
+  document_type?: true
+  document_number?: true
+  email?: true
+  phone?: true
+  address?: true
   seq?: true
   is_active?: true
-  api_key_id?: true
-  api_key_hash?: true
+  client_identifier?: true
+  client_key_hash?: true
+  onboarding_code_hash?: true
+  onboarding_code_expires_at?: true
+  onboarding_completed_at?: true
   db_host?: true
   db_port?: true
   db_name?: true
@@ -160,12 +195,19 @@ export type ClientMaxAggregateInputType = {
 
 export type ClientCountAggregateInputType = {
   id?: true
-  tax_id?: true
   name?: true
+  document_type?: true
+  document_number?: true
+  email?: true
+  phone?: true
+  address?: true
   seq?: true
   is_active?: true
-  api_key_id?: true
-  api_key_hash?: true
+  client_identifier?: true
+  client_key_hash?: true
+  onboarding_code_hash?: true
+  onboarding_code_expires_at?: true
+  onboarding_completed_at?: true
   db_host?: true
   db_port?: true
   db_name?: true
@@ -269,18 +311,25 @@ export type ClientGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalA
 
 export type ClientGroupByOutputType = {
   id: string
-  tax_id: string
   name: string
+  document_type: $Enums.ClientDocumentType
+  document_number: string
+  email: string
+  phone: string
+  address: string
   seq: number
   is_active: boolean
-  api_key_id: string
-  api_key_hash: string
-  db_host: string
-  db_port: number
-  db_name: string
-  db_user: string
-  db_password_enc: string
-  db_ssl: boolean
+  client_identifier: string | null
+  client_key_hash: string | null
+  onboarding_code_hash: string | null
+  onboarding_code_expires_at: Date | null
+  onboarding_completed_at: Date | null
+  db_host: string | null
+  db_port: number | null
+  db_name: string | null
+  db_user: string | null
+  db_password_enc: string | null
+  db_ssl: boolean | null
   provisioning_status: $Enums.ClientProvisioningStatus
   provisioned_at: Date | null
   created_at: Date
@@ -314,18 +363,25 @@ export type ClientWhereInput = {
   OR?: Prisma.ClientWhereInput[]
   NOT?: Prisma.ClientWhereInput | Prisma.ClientWhereInput[]
   id?: Prisma.UuidFilter<"Client"> | string
-  tax_id?: Prisma.StringFilter<"Client"> | string
   name?: Prisma.StringFilter<"Client"> | string
+  document_type?: Prisma.EnumClientDocumentTypeFilter<"Client"> | $Enums.ClientDocumentType
+  document_number?: Prisma.StringFilter<"Client"> | string
+  email?: Prisma.StringFilter<"Client"> | string
+  phone?: Prisma.StringFilter<"Client"> | string
+  address?: Prisma.StringFilter<"Client"> | string
   seq?: Prisma.IntFilter<"Client"> | number
   is_active?: Prisma.BoolFilter<"Client"> | boolean
-  api_key_id?: Prisma.StringFilter<"Client"> | string
-  api_key_hash?: Prisma.StringFilter<"Client"> | string
-  db_host?: Prisma.StringFilter<"Client"> | string
-  db_port?: Prisma.IntFilter<"Client"> | number
-  db_name?: Prisma.StringFilter<"Client"> | string
-  db_user?: Prisma.StringFilter<"Client"> | string
-  db_password_enc?: Prisma.StringFilter<"Client"> | string
-  db_ssl?: Prisma.BoolFilter<"Client"> | boolean
+  client_identifier?: Prisma.StringNullableFilter<"Client"> | string | null
+  client_key_hash?: Prisma.StringNullableFilter<"Client"> | string | null
+  onboarding_code_hash?: Prisma.StringNullableFilter<"Client"> | string | null
+  onboarding_code_expires_at?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
+  onboarding_completed_at?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
+  db_host?: Prisma.StringNullableFilter<"Client"> | string | null
+  db_port?: Prisma.IntNullableFilter<"Client"> | number | null
+  db_name?: Prisma.StringNullableFilter<"Client"> | string | null
+  db_user?: Prisma.StringNullableFilter<"Client"> | string | null
+  db_password_enc?: Prisma.StringNullableFilter<"Client"> | string | null
+  db_ssl?: Prisma.BoolNullableFilter<"Client"> | boolean | null
   provisioning_status?: Prisma.EnumClientProvisioningStatusFilter<"Client"> | $Enums.ClientProvisioningStatus
   provisioned_at?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
   created_at?: Prisma.DateTimeFilter<"Client"> | Date | string
@@ -336,18 +392,25 @@ export type ClientWhereInput = {
 
 export type ClientOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  tax_id?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  document_type?: Prisma.SortOrder
+  document_number?: Prisma.SortOrder
+  email?: Prisma.SortOrder
+  phone?: Prisma.SortOrder
+  address?: Prisma.SortOrder
   seq?: Prisma.SortOrder
   is_active?: Prisma.SortOrder
-  api_key_id?: Prisma.SortOrder
-  api_key_hash?: Prisma.SortOrder
-  db_host?: Prisma.SortOrder
-  db_port?: Prisma.SortOrder
-  db_name?: Prisma.SortOrder
-  db_user?: Prisma.SortOrder
-  db_password_enc?: Prisma.SortOrder
-  db_ssl?: Prisma.SortOrder
+  client_identifier?: Prisma.SortOrderInput | Prisma.SortOrder
+  client_key_hash?: Prisma.SortOrderInput | Prisma.SortOrder
+  onboarding_code_hash?: Prisma.SortOrderInput | Prisma.SortOrder
+  onboarding_code_expires_at?: Prisma.SortOrderInput | Prisma.SortOrder
+  onboarding_completed_at?: Prisma.SortOrderInput | Prisma.SortOrder
+  db_host?: Prisma.SortOrderInput | Prisma.SortOrder
+  db_port?: Prisma.SortOrderInput | Prisma.SortOrder
+  db_name?: Prisma.SortOrderInput | Prisma.SortOrder
+  db_user?: Prisma.SortOrderInput | Prisma.SortOrder
+  db_password_enc?: Prisma.SortOrderInput | Prisma.SortOrder
+  db_ssl?: Prisma.SortOrderInput | Prisma.SortOrder
   provisioning_status?: Prisma.SortOrder
   provisioned_at?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -358,43 +421,58 @@ export type ClientOrderByWithRelationInput = {
 
 export type ClientWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  tax_id?: string
   seq?: number
-  api_key_id?: string
+  client_identifier?: string
+  onboarding_code_hash?: string
+  document_type_document_number?: Prisma.ClientDocument_typeDocument_numberCompoundUniqueInput
   AND?: Prisma.ClientWhereInput | Prisma.ClientWhereInput[]
   OR?: Prisma.ClientWhereInput[]
   NOT?: Prisma.ClientWhereInput | Prisma.ClientWhereInput[]
   name?: Prisma.StringFilter<"Client"> | string
+  document_type?: Prisma.EnumClientDocumentTypeFilter<"Client"> | $Enums.ClientDocumentType
+  document_number?: Prisma.StringFilter<"Client"> | string
+  email?: Prisma.StringFilter<"Client"> | string
+  phone?: Prisma.StringFilter<"Client"> | string
+  address?: Prisma.StringFilter<"Client"> | string
   is_active?: Prisma.BoolFilter<"Client"> | boolean
-  api_key_hash?: Prisma.StringFilter<"Client"> | string
-  db_host?: Prisma.StringFilter<"Client"> | string
-  db_port?: Prisma.IntFilter<"Client"> | number
-  db_name?: Prisma.StringFilter<"Client"> | string
-  db_user?: Prisma.StringFilter<"Client"> | string
-  db_password_enc?: Prisma.StringFilter<"Client"> | string
-  db_ssl?: Prisma.BoolFilter<"Client"> | boolean
+  client_key_hash?: Prisma.StringNullableFilter<"Client"> | string | null
+  onboarding_code_expires_at?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
+  onboarding_completed_at?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
+  db_host?: Prisma.StringNullableFilter<"Client"> | string | null
+  db_port?: Prisma.IntNullableFilter<"Client"> | number | null
+  db_name?: Prisma.StringNullableFilter<"Client"> | string | null
+  db_user?: Prisma.StringNullableFilter<"Client"> | string | null
+  db_password_enc?: Prisma.StringNullableFilter<"Client"> | string | null
+  db_ssl?: Prisma.BoolNullableFilter<"Client"> | boolean | null
   provisioning_status?: Prisma.EnumClientProvisioningStatusFilter<"Client"> | $Enums.ClientProvisioningStatus
   provisioned_at?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
   created_at?: Prisma.DateTimeFilter<"Client"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"Client"> | Date | string
   created_by?: Prisma.StringNullableFilter<"Client"> | string | null
   updated_by?: Prisma.StringNullableFilter<"Client"> | string | null
-}, "id" | "tax_id" | "seq" | "api_key_id">
+}, "id" | "seq" | "client_identifier" | "onboarding_code_hash" | "document_type_document_number">
 
 export type ClientOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  tax_id?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  document_type?: Prisma.SortOrder
+  document_number?: Prisma.SortOrder
+  email?: Prisma.SortOrder
+  phone?: Prisma.SortOrder
+  address?: Prisma.SortOrder
   seq?: Prisma.SortOrder
   is_active?: Prisma.SortOrder
-  api_key_id?: Prisma.SortOrder
-  api_key_hash?: Prisma.SortOrder
-  db_host?: Prisma.SortOrder
-  db_port?: Prisma.SortOrder
-  db_name?: Prisma.SortOrder
-  db_user?: Prisma.SortOrder
-  db_password_enc?: Prisma.SortOrder
-  db_ssl?: Prisma.SortOrder
+  client_identifier?: Prisma.SortOrderInput | Prisma.SortOrder
+  client_key_hash?: Prisma.SortOrderInput | Prisma.SortOrder
+  onboarding_code_hash?: Prisma.SortOrderInput | Prisma.SortOrder
+  onboarding_code_expires_at?: Prisma.SortOrderInput | Prisma.SortOrder
+  onboarding_completed_at?: Prisma.SortOrderInput | Prisma.SortOrder
+  db_host?: Prisma.SortOrderInput | Prisma.SortOrder
+  db_port?: Prisma.SortOrderInput | Prisma.SortOrder
+  db_name?: Prisma.SortOrderInput | Prisma.SortOrder
+  db_user?: Prisma.SortOrderInput | Prisma.SortOrder
+  db_password_enc?: Prisma.SortOrderInput | Prisma.SortOrder
+  db_ssl?: Prisma.SortOrderInput | Prisma.SortOrder
   provisioning_status?: Prisma.SortOrder
   provisioned_at?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -413,18 +491,25 @@ export type ClientScalarWhereWithAggregatesInput = {
   OR?: Prisma.ClientScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ClientScalarWhereWithAggregatesInput | Prisma.ClientScalarWhereWithAggregatesInput[]
   id?: Prisma.UuidWithAggregatesFilter<"Client"> | string
-  tax_id?: Prisma.StringWithAggregatesFilter<"Client"> | string
   name?: Prisma.StringWithAggregatesFilter<"Client"> | string
+  document_type?: Prisma.EnumClientDocumentTypeWithAggregatesFilter<"Client"> | $Enums.ClientDocumentType
+  document_number?: Prisma.StringWithAggregatesFilter<"Client"> | string
+  email?: Prisma.StringWithAggregatesFilter<"Client"> | string
+  phone?: Prisma.StringWithAggregatesFilter<"Client"> | string
+  address?: Prisma.StringWithAggregatesFilter<"Client"> | string
   seq?: Prisma.IntWithAggregatesFilter<"Client"> | number
   is_active?: Prisma.BoolWithAggregatesFilter<"Client"> | boolean
-  api_key_id?: Prisma.StringWithAggregatesFilter<"Client"> | string
-  api_key_hash?: Prisma.StringWithAggregatesFilter<"Client"> | string
-  db_host?: Prisma.StringWithAggregatesFilter<"Client"> | string
-  db_port?: Prisma.IntWithAggregatesFilter<"Client"> | number
-  db_name?: Prisma.StringWithAggregatesFilter<"Client"> | string
-  db_user?: Prisma.StringWithAggregatesFilter<"Client"> | string
-  db_password_enc?: Prisma.StringWithAggregatesFilter<"Client"> | string
-  db_ssl?: Prisma.BoolWithAggregatesFilter<"Client"> | boolean
+  client_identifier?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
+  client_key_hash?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
+  onboarding_code_hash?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
+  onboarding_code_expires_at?: Prisma.DateTimeNullableWithAggregatesFilter<"Client"> | Date | string | null
+  onboarding_completed_at?: Prisma.DateTimeNullableWithAggregatesFilter<"Client"> | Date | string | null
+  db_host?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
+  db_port?: Prisma.IntNullableWithAggregatesFilter<"Client"> | number | null
+  db_name?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
+  db_user?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
+  db_password_enc?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
+  db_ssl?: Prisma.BoolNullableWithAggregatesFilter<"Client"> | boolean | null
   provisioning_status?: Prisma.EnumClientProvisioningStatusWithAggregatesFilter<"Client"> | $Enums.ClientProvisioningStatus
   provisioned_at?: Prisma.DateTimeNullableWithAggregatesFilter<"Client"> | Date | string | null
   created_at?: Prisma.DateTimeWithAggregatesFilter<"Client"> | Date | string
@@ -435,18 +520,25 @@ export type ClientScalarWhereWithAggregatesInput = {
 
 export type ClientCreateInput = {
   id?: string
-  tax_id: string
   name: string
+  document_type: $Enums.ClientDocumentType
+  document_number: string
+  email: string
+  phone: string
+  address: string
   seq?: number
   is_active?: boolean
-  api_key_id: string
-  api_key_hash: string
-  db_host: string
-  db_port: number
-  db_name: string
-  db_user: string
-  db_password_enc: string
-  db_ssl?: boolean
+  client_identifier?: string | null
+  client_key_hash?: string | null
+  onboarding_code_hash?: string | null
+  onboarding_code_expires_at?: Date | string | null
+  onboarding_completed_at?: Date | string | null
+  db_host?: string | null
+  db_port?: number | null
+  db_name?: string | null
+  db_user?: string | null
+  db_password_enc?: string | null
+  db_ssl?: boolean | null
   provisioning_status?: $Enums.ClientProvisioningStatus
   provisioned_at?: Date | string | null
   created_at?: Date | string
@@ -457,18 +549,25 @@ export type ClientCreateInput = {
 
 export type ClientUncheckedCreateInput = {
   id?: string
-  tax_id: string
   name: string
+  document_type: $Enums.ClientDocumentType
+  document_number: string
+  email: string
+  phone: string
+  address: string
   seq?: number
   is_active?: boolean
-  api_key_id: string
-  api_key_hash: string
-  db_host: string
-  db_port: number
-  db_name: string
-  db_user: string
-  db_password_enc: string
-  db_ssl?: boolean
+  client_identifier?: string | null
+  client_key_hash?: string | null
+  onboarding_code_hash?: string | null
+  onboarding_code_expires_at?: Date | string | null
+  onboarding_completed_at?: Date | string | null
+  db_host?: string | null
+  db_port?: number | null
+  db_name?: string | null
+  db_user?: string | null
+  db_password_enc?: string | null
+  db_ssl?: boolean | null
   provisioning_status?: $Enums.ClientProvisioningStatus
   provisioned_at?: Date | string | null
   created_at?: Date | string
@@ -479,17 +578,24 @@ export type ClientUncheckedCreateInput = {
 
 export type ClientUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  tax_id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  document_type?: Prisma.EnumClientDocumentTypeFieldUpdateOperationsInput | $Enums.ClientDocumentType
+  document_number?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
+  address?: Prisma.StringFieldUpdateOperationsInput | string
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  api_key_id?: Prisma.StringFieldUpdateOperationsInput | string
-  api_key_hash?: Prisma.StringFieldUpdateOperationsInput | string
-  db_host?: Prisma.StringFieldUpdateOperationsInput | string
-  db_port?: Prisma.IntFieldUpdateOperationsInput | number
-  db_name?: Prisma.StringFieldUpdateOperationsInput | string
-  db_user?: Prisma.StringFieldUpdateOperationsInput | string
-  db_password_enc?: Prisma.StringFieldUpdateOperationsInput | string
-  db_ssl?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  client_identifier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  client_key_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarding_code_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarding_code_expires_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  onboarding_completed_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  db_host?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_port?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  db_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_user?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_password_enc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_ssl?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   provisioning_status?: Prisma.EnumClientProvisioningStatusFieldUpdateOperationsInput | $Enums.ClientProvisioningStatus
   provisioned_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -500,18 +606,25 @@ export type ClientUpdateInput = {
 
 export type ClientUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  tax_id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  document_type?: Prisma.EnumClientDocumentTypeFieldUpdateOperationsInput | $Enums.ClientDocumentType
+  document_number?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
+  address?: Prisma.StringFieldUpdateOperationsInput | string
   seq?: Prisma.IntFieldUpdateOperationsInput | number
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  api_key_id?: Prisma.StringFieldUpdateOperationsInput | string
-  api_key_hash?: Prisma.StringFieldUpdateOperationsInput | string
-  db_host?: Prisma.StringFieldUpdateOperationsInput | string
-  db_port?: Prisma.IntFieldUpdateOperationsInput | number
-  db_name?: Prisma.StringFieldUpdateOperationsInput | string
-  db_user?: Prisma.StringFieldUpdateOperationsInput | string
-  db_password_enc?: Prisma.StringFieldUpdateOperationsInput | string
-  db_ssl?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  client_identifier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  client_key_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarding_code_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarding_code_expires_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  onboarding_completed_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  db_host?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_port?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  db_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_user?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_password_enc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_ssl?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   provisioning_status?: Prisma.EnumClientProvisioningStatusFieldUpdateOperationsInput | $Enums.ClientProvisioningStatus
   provisioned_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -522,18 +635,25 @@ export type ClientUncheckedUpdateInput = {
 
 export type ClientCreateManyInput = {
   id?: string
-  tax_id: string
   name: string
+  document_type: $Enums.ClientDocumentType
+  document_number: string
+  email: string
+  phone: string
+  address: string
   seq?: number
   is_active?: boolean
-  api_key_id: string
-  api_key_hash: string
-  db_host: string
-  db_port: number
-  db_name: string
-  db_user: string
-  db_password_enc: string
-  db_ssl?: boolean
+  client_identifier?: string | null
+  client_key_hash?: string | null
+  onboarding_code_hash?: string | null
+  onboarding_code_expires_at?: Date | string | null
+  onboarding_completed_at?: Date | string | null
+  db_host?: string | null
+  db_port?: number | null
+  db_name?: string | null
+  db_user?: string | null
+  db_password_enc?: string | null
+  db_ssl?: boolean | null
   provisioning_status?: $Enums.ClientProvisioningStatus
   provisioned_at?: Date | string | null
   created_at?: Date | string
@@ -544,17 +664,24 @@ export type ClientCreateManyInput = {
 
 export type ClientUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  tax_id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  document_type?: Prisma.EnumClientDocumentTypeFieldUpdateOperationsInput | $Enums.ClientDocumentType
+  document_number?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
+  address?: Prisma.StringFieldUpdateOperationsInput | string
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  api_key_id?: Prisma.StringFieldUpdateOperationsInput | string
-  api_key_hash?: Prisma.StringFieldUpdateOperationsInput | string
-  db_host?: Prisma.StringFieldUpdateOperationsInput | string
-  db_port?: Prisma.IntFieldUpdateOperationsInput | number
-  db_name?: Prisma.StringFieldUpdateOperationsInput | string
-  db_user?: Prisma.StringFieldUpdateOperationsInput | string
-  db_password_enc?: Prisma.StringFieldUpdateOperationsInput | string
-  db_ssl?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  client_identifier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  client_key_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarding_code_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarding_code_expires_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  onboarding_completed_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  db_host?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_port?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  db_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_user?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_password_enc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_ssl?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   provisioning_status?: Prisma.EnumClientProvisioningStatusFieldUpdateOperationsInput | $Enums.ClientProvisioningStatus
   provisioned_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -565,18 +692,25 @@ export type ClientUpdateManyMutationInput = {
 
 export type ClientUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  tax_id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  document_type?: Prisma.EnumClientDocumentTypeFieldUpdateOperationsInput | $Enums.ClientDocumentType
+  document_number?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
+  address?: Prisma.StringFieldUpdateOperationsInput | string
   seq?: Prisma.IntFieldUpdateOperationsInput | number
   is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  api_key_id?: Prisma.StringFieldUpdateOperationsInput | string
-  api_key_hash?: Prisma.StringFieldUpdateOperationsInput | string
-  db_host?: Prisma.StringFieldUpdateOperationsInput | string
-  db_port?: Prisma.IntFieldUpdateOperationsInput | number
-  db_name?: Prisma.StringFieldUpdateOperationsInput | string
-  db_user?: Prisma.StringFieldUpdateOperationsInput | string
-  db_password_enc?: Prisma.StringFieldUpdateOperationsInput | string
-  db_ssl?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  client_identifier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  client_key_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarding_code_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarding_code_expires_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  onboarding_completed_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  db_host?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_port?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  db_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_user?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_password_enc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_ssl?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   provisioning_status?: Prisma.EnumClientProvisioningStatusFieldUpdateOperationsInput | $Enums.ClientProvisioningStatus
   provisioned_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -585,14 +719,26 @@ export type ClientUncheckedUpdateManyInput = {
   updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
+export type ClientDocument_typeDocument_numberCompoundUniqueInput = {
+  document_type: $Enums.ClientDocumentType
+  document_number: string
+}
+
 export type ClientCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  tax_id?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  document_type?: Prisma.SortOrder
+  document_number?: Prisma.SortOrder
+  email?: Prisma.SortOrder
+  phone?: Prisma.SortOrder
+  address?: Prisma.SortOrder
   seq?: Prisma.SortOrder
   is_active?: Prisma.SortOrder
-  api_key_id?: Prisma.SortOrder
-  api_key_hash?: Prisma.SortOrder
+  client_identifier?: Prisma.SortOrder
+  client_key_hash?: Prisma.SortOrder
+  onboarding_code_hash?: Prisma.SortOrder
+  onboarding_code_expires_at?: Prisma.SortOrder
+  onboarding_completed_at?: Prisma.SortOrder
   db_host?: Prisma.SortOrder
   db_port?: Prisma.SortOrder
   db_name?: Prisma.SortOrder
@@ -614,12 +760,19 @@ export type ClientAvgOrderByAggregateInput = {
 
 export type ClientMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  tax_id?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  document_type?: Prisma.SortOrder
+  document_number?: Prisma.SortOrder
+  email?: Prisma.SortOrder
+  phone?: Prisma.SortOrder
+  address?: Prisma.SortOrder
   seq?: Prisma.SortOrder
   is_active?: Prisma.SortOrder
-  api_key_id?: Prisma.SortOrder
-  api_key_hash?: Prisma.SortOrder
+  client_identifier?: Prisma.SortOrder
+  client_key_hash?: Prisma.SortOrder
+  onboarding_code_hash?: Prisma.SortOrder
+  onboarding_code_expires_at?: Prisma.SortOrder
+  onboarding_completed_at?: Prisma.SortOrder
   db_host?: Prisma.SortOrder
   db_port?: Prisma.SortOrder
   db_name?: Prisma.SortOrder
@@ -636,12 +789,19 @@ export type ClientMaxOrderByAggregateInput = {
 
 export type ClientMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  tax_id?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  document_type?: Prisma.SortOrder
+  document_number?: Prisma.SortOrder
+  email?: Prisma.SortOrder
+  phone?: Prisma.SortOrder
+  address?: Prisma.SortOrder
   seq?: Prisma.SortOrder
   is_active?: Prisma.SortOrder
-  api_key_id?: Prisma.SortOrder
-  api_key_hash?: Prisma.SortOrder
+  client_identifier?: Prisma.SortOrder
+  client_key_hash?: Prisma.SortOrder
+  onboarding_code_hash?: Prisma.SortOrder
+  onboarding_code_expires_at?: Prisma.SortOrder
+  onboarding_completed_at?: Prisma.SortOrder
   db_host?: Prisma.SortOrder
   db_port?: Prisma.SortOrder
   db_name?: Prisma.SortOrder
@@ -665,8 +825,40 @@ export type StringFieldUpdateOperationsInput = {
   set?: string
 }
 
+export type EnumClientDocumentTypeFieldUpdateOperationsInput = {
+  set?: $Enums.ClientDocumentType
+}
+
 export type BoolFieldUpdateOperationsInput = {
   set?: boolean
+}
+
+export type NullableStringFieldUpdateOperationsInput = {
+  set?: string | null
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
+}
+
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
+export type NullableBoolFieldUpdateOperationsInput = {
+  set?: boolean | null
+}
+
+export type EnumClientProvisioningStatusFieldUpdateOperationsInput = {
+  set?: $Enums.ClientProvisioningStatus
+}
+
+export type DateTimeFieldUpdateOperationsInput = {
+  set?: Date | string
 }
 
 export type IntFieldUpdateOperationsInput = {
@@ -677,32 +869,23 @@ export type IntFieldUpdateOperationsInput = {
   divide?: number
 }
 
-export type EnumClientProvisioningStatusFieldUpdateOperationsInput = {
-  set?: $Enums.ClientProvisioningStatus
-}
-
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
-export type DateTimeFieldUpdateOperationsInput = {
-  set?: Date | string
-}
-
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
-}
-
 
 
 export type ClientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  tax_id?: boolean
   name?: boolean
+  document_type?: boolean
+  document_number?: boolean
+  email?: boolean
+  phone?: boolean
+  address?: boolean
   seq?: boolean
   is_active?: boolean
-  api_key_id?: boolean
-  api_key_hash?: boolean
+  client_identifier?: boolean
+  client_key_hash?: boolean
+  onboarding_code_hash?: boolean
+  onboarding_code_expires_at?: boolean
+  onboarding_completed_at?: boolean
   db_host?: boolean
   db_port?: boolean
   db_name?: boolean
@@ -719,12 +902,19 @@ export type ClientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
 
 export type ClientSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  tax_id?: boolean
   name?: boolean
+  document_type?: boolean
+  document_number?: boolean
+  email?: boolean
+  phone?: boolean
+  address?: boolean
   seq?: boolean
   is_active?: boolean
-  api_key_id?: boolean
-  api_key_hash?: boolean
+  client_identifier?: boolean
+  client_key_hash?: boolean
+  onboarding_code_hash?: boolean
+  onboarding_code_expires_at?: boolean
+  onboarding_completed_at?: boolean
   db_host?: boolean
   db_port?: boolean
   db_name?: boolean
@@ -741,12 +931,19 @@ export type ClientSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
 
 export type ClientSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  tax_id?: boolean
   name?: boolean
+  document_type?: boolean
+  document_number?: boolean
+  email?: boolean
+  phone?: boolean
+  address?: boolean
   seq?: boolean
   is_active?: boolean
-  api_key_id?: boolean
-  api_key_hash?: boolean
+  client_identifier?: boolean
+  client_key_hash?: boolean
+  onboarding_code_hash?: boolean
+  onboarding_code_expires_at?: boolean
+  onboarding_completed_at?: boolean
   db_host?: boolean
   db_port?: boolean
   db_name?: boolean
@@ -763,12 +960,19 @@ export type ClientSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
 
 export type ClientSelectScalar = {
   id?: boolean
-  tax_id?: boolean
   name?: boolean
+  document_type?: boolean
+  document_number?: boolean
+  email?: boolean
+  phone?: boolean
+  address?: boolean
   seq?: boolean
   is_active?: boolean
-  api_key_id?: boolean
-  api_key_hash?: boolean
+  client_identifier?: boolean
+  client_key_hash?: boolean
+  onboarding_code_hash?: boolean
+  onboarding_code_expires_at?: boolean
+  onboarding_completed_at?: boolean
   db_host?: boolean
   db_port?: boolean
   db_name?: boolean
@@ -783,25 +987,32 @@ export type ClientSelectScalar = {
   updated_by?: boolean
 }
 
-export type ClientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "tax_id" | "name" | "seq" | "is_active" | "api_key_id" | "api_key_hash" | "db_host" | "db_port" | "db_name" | "db_user" | "db_password_enc" | "db_ssl" | "provisioning_status" | "provisioned_at" | "created_at" | "updated_at" | "created_by" | "updated_by", ExtArgs["result"]["client"]>
+export type ClientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "document_type" | "document_number" | "email" | "phone" | "address" | "seq" | "is_active" | "client_identifier" | "client_key_hash" | "onboarding_code_hash" | "onboarding_code_expires_at" | "onboarding_completed_at" | "db_host" | "db_port" | "db_name" | "db_user" | "db_password_enc" | "db_ssl" | "provisioning_status" | "provisioned_at" | "created_at" | "updated_at" | "created_by" | "updated_by", ExtArgs["result"]["client"]>
 
 export type $ClientPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Client"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    tax_id: string
     name: string
+    document_type: $Enums.ClientDocumentType
+    document_number: string
+    email: string
+    phone: string
+    address: string
     seq: number
     is_active: boolean
-    api_key_id: string
-    api_key_hash: string
-    db_host: string
-    db_port: number
-    db_name: string
-    db_user: string
-    db_password_enc: string
-    db_ssl: boolean
+    client_identifier: string | null
+    client_key_hash: string | null
+    onboarding_code_hash: string | null
+    onboarding_code_expires_at: Date | null
+    onboarding_completed_at: Date | null
+    db_host: string | null
+    db_port: number | null
+    db_name: string | null
+    db_user: string | null
+    db_password_enc: string | null
+    db_ssl: boolean | null
     provisioning_status: $Enums.ClientProvisioningStatus
     provisioned_at: Date | null
     created_at: Date
@@ -1232,12 +1443,19 @@ export interface Prisma__ClientClient<T, Null = never, ExtArgs extends runtime.T
  */
 export interface ClientFieldRefs {
   readonly id: Prisma.FieldRef<"Client", 'String'>
-  readonly tax_id: Prisma.FieldRef<"Client", 'String'>
   readonly name: Prisma.FieldRef<"Client", 'String'>
+  readonly document_type: Prisma.FieldRef<"Client", 'ClientDocumentType'>
+  readonly document_number: Prisma.FieldRef<"Client", 'String'>
+  readonly email: Prisma.FieldRef<"Client", 'String'>
+  readonly phone: Prisma.FieldRef<"Client", 'String'>
+  readonly address: Prisma.FieldRef<"Client", 'String'>
   readonly seq: Prisma.FieldRef<"Client", 'Int'>
   readonly is_active: Prisma.FieldRef<"Client", 'Boolean'>
-  readonly api_key_id: Prisma.FieldRef<"Client", 'String'>
-  readonly api_key_hash: Prisma.FieldRef<"Client", 'String'>
+  readonly client_identifier: Prisma.FieldRef<"Client", 'String'>
+  readonly client_key_hash: Prisma.FieldRef<"Client", 'String'>
+  readonly onboarding_code_hash: Prisma.FieldRef<"Client", 'String'>
+  readonly onboarding_code_expires_at: Prisma.FieldRef<"Client", 'DateTime'>
+  readonly onboarding_completed_at: Prisma.FieldRef<"Client", 'DateTime'>
   readonly db_host: Prisma.FieldRef<"Client", 'String'>
   readonly db_port: Prisma.FieldRef<"Client", 'Int'>
   readonly db_name: Prisma.FieldRef<"Client", 'String'>

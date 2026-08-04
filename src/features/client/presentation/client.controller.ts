@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiCookieAuth } from '@nestjs/swagger';
 import { I18nService } from 'nestjs-i18n';
@@ -10,6 +10,8 @@ import { CreateClientDto } from '../application/dtos/create-client.dto';
 import { CreateClientUseCase } from '../application/use-cases/create-client.use-case';
 import { GetAllClientsUseCase } from '../application/use-cases/get-all-clients.use-case';
 import { GetOneClientUseCase } from '../application/use-cases/get-one-client.use-case';
+import { RegenerateOnboardingCodeUseCase } from '../application/use-cases/regenerate-onboarding-code.use-case';
+import { SetClientActiveUseCase } from '../application/use-cases/set-client-active.use-case';
 
 @ApiCookieAuth()
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -20,6 +22,8 @@ export class ClientController {
     private readonly createClientUseCase: CreateClientUseCase,
     private readonly getAllClientsUseCase: GetAllClientsUseCase,
     private readonly getOneClientUseCase: GetOneClientUseCase,
+    private readonly regenerateOnboardingCodeUseCase: RegenerateOnboardingCodeUseCase,
+    private readonly setClientActiveUseCase: SetClientActiveUseCase,
     private readonly i18n: I18nService,
   ) {}
 
@@ -49,6 +53,36 @@ export class ClientController {
     return new ResponseDto({
       statusCode: HttpStatus.OK,
       message: this.i18n.t('client.READ.ONE'),
+      data: client,
+    });
+  }
+
+  @Post(':id/onboarding-code/regenerate')
+  async regenerateOnboardingCode(@Param('id') id: string) {
+    const result = await this.regenerateOnboardingCodeUseCase.execute(id);
+    return new ResponseDto({
+      statusCode: HttpStatus.OK,
+      message: this.i18n.t('client.ONBOARDING_CODE_REGENERATED'),
+      data: result,
+    });
+  }
+
+  @Patch(':id/deactivate')
+  async deactivate(@Param('id') id: string) {
+    const client = await this.setClientActiveUseCase.execute(id, false);
+    return new ResponseDto({
+      statusCode: HttpStatus.OK,
+      message: this.i18n.t('client.DEACTIVATED'),
+      data: client,
+    });
+  }
+
+  @Patch(':id/reactivate')
+  async reactivate(@Param('id') id: string) {
+    const client = await this.setClientActiveUseCase.execute(id, true);
+    return new ResponseDto({
+      statusCode: HttpStatus.OK,
+      message: this.i18n.t('client.REACTIVATED'),
       data: client,
     });
   }

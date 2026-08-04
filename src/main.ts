@@ -15,8 +15,8 @@ async function bootstrap() {
 
   // Configuración de CORS
   app.enableCors({
-    origin: ['http://localhost:4200'],
-    allowedHeaders: 'Content-Type, Authorization, Accept-Language',
+    origin: ['http://localhost:4200', 'http://localhost:4201'],
+    allowedHeaders: 'Content-Type, Authorization, Accept-Language, mnk-client-identifier, mnk-client-key',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });

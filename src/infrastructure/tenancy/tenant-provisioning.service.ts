@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { Pool } from 'pg';
 import format from 'pg-format';
 import { generateSecureToken } from 'src/common/utils/secure-random.util';
-import { assertSafePgIdentifier, buildPostgresUrl, tenantIdentifiersFromSeq } from 'src/infrastructure/tenancy/tenant-db.util';
+import { assertSafePgIdentifier, buildPostgresUrl, tenantIdentifiersFromSeq } from './tenant-db.util';
 
 export interface ProvisionedTenantDb {
   dbHost: string;

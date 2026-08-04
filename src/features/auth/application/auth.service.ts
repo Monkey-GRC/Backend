@@ -3,8 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { CentralPrismaService } from 'src/infrastructure/database/central-prisma.service';
 import { TenantConnectionManager } from 'src/infrastructure/tenancy/tenant-connection-manager.service';
-import { splitApiKey } from 'src/infrastructure/tenancy/api-key.util';
 import { Role } from 'src/common/enums/role.enum';
+import { RequestContext } from 'src/common/utils/request-context';
 import { LoginDto } from './dtos/login.dto';
 
 type JwtPayload = {
@@ -97,7 +97,13 @@ export class AuthService {
         return user as AuthenticatedUser | null;
     }
 
-    private async issueTokens(user: AuthenticatedUser, clientId: string | null, db: any) {
+    /**
+     * Público a propósito: lo reutiliza el onboarding para dejar logueado al
+     * admin recién creado, sin pasar por login() (que ahora depende de que
+     * ya existan los headers mnk-client-identifier/mnk-client-key, los
+     * cuales todavía no existen en ese punto exacto del flujo).
+     */
+    async issueTokens(user: AuthenticatedUser, clientId: string | null, db: any) {
         const basePayload = {
             sub: user.id,
             email: user.email,
@@ -143,23 +149,8 @@ export class AuthService {
         return this.issueTokens(user, null, this.centralPrisma);
     }
 
-    private async loginTenant(dto: LoginDto) {
-        let apiKeyId: string;
-        let secret: string;
-        try {
-            ({ apiKeyId, secret } = splitApiKey(dto.api_key!));
-        } catch {
-            throw new UnauthorizedException('Credenciales inválidas');
-        }
-
-        const client = await this.centralPrisma.client.findUnique({ where: { api_key_id: apiKeyId } });
-        if (!client || !client.is_active) {
-            throw new UnauthorizedException('Credenciales inválidas');
-        }
-        const apiKeyOk = await bcrypt.compare(secret, client.api_key_hash);
-        if (!apiKeyOk) throw new UnauthorizedException('Credenciales inválidas');
-
-        const tenantDb = await this.tenantConnection.getClientFor(client.id);
+    private async loginTenant(dto: LoginDto, clientId: string) {
+        const tenantDb = await this.tenantConnection.getClientFor(clientId);
         const user = await this.findUserByIdentifier(tenantDb, dto.identifier);
         if (!user || !user.is_active) {
             throw new UnauthorizedException('Credenciales inválidas');
@@ -167,11 +158,16 @@ export class AuthService {
         const ok = await bcrypt.compare(dto.password, user.password);
         if (!ok) throw new UnauthorizedException('Credenciales inválidas');
 
-        return this.issueTokens(user, client.id, tenantDb);
+        return this.issueTokens(user, clientId, tenantDb);
     }
 
+    /**
+     * clientId ya viene resuelto por ClientCredentialsGuard (headers
+     * mnk-client-identifier/mnk-client-key) antes de llegar aquí.
+     */
     async login(dto: LoginDto) {
-        return dto.api_key ? this.loginTenant(dto) : this.loginMonkeyAdmin(dto);
+        const clientId = RequestContext.clientId;
+        return clientId ? this.loginTenant(dto, clientId) : this.loginMonkeyAdmin(dto);
     }
 
     async refresh(refreshToken: string) {

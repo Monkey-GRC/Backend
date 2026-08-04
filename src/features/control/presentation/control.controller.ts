@@ -5,7 +5,7 @@ import { Role } from 'src/common/enums/role.enum';
 import { ResponseDto } from 'src/common/dtos/response.dto';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
-import { TenantResolutionGuard } from 'src/common/guards/tenant-resolution.guard';
+import { ClientCredentialsGuard } from 'src/common/guards/client-credentials.guard';
 import { CreateControlDto } from '../application/dtos/create-control.dto';
 import { UpdateControlDto } from '../application/dtos/update-control.dto';
 import { CreateControlUseCase } from '../application/use-cases/create-control.use-case';
@@ -15,7 +15,7 @@ import { UpdateControlUseCase } from '../application/use-cases/update-control.us
 import { DeleteControlUseCase } from '../application/use-cases/delete-control.use-case';
 
 @ApiCookieAuth()
-@UseGuards(AuthGuard('jwt'), TenantResolutionGuard, RolesGuard)
+@UseGuards(AuthGuard('jwt'), ClientCredentialsGuard, RolesGuard)
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 @Controller('controls')
 export class ControlController {

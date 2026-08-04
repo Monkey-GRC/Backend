@@ -6,7 +6,7 @@ import { Role } from "src/common/enums/role.enum";
 import { ResponseDto } from "src/common/dtos/response.dto";
 import { Roles } from "src/common/decorators/roles.decorator";
 import { RolesGuard } from "src/common/guards/roles.guard";
-import { TenantResolutionGuard } from "src/common/guards/tenant-resolution.guard";
+import { ClientCredentialsGuard } from "src/common/guards/client-credentials.guard";
 import { CreateTemplateDto } from "../application/dtos/create-template.dto";
 import { UpdateTemplateDto } from "../application/dtos/update-template.dto";
 import { CreateTemplateUseCase } from "../application/use-cases/create-template.use-case";
@@ -18,7 +18,7 @@ import { GetAllMasterTemplatesUseCase } from "../application/use-cases/get-all-m
 import { AdoptTemplateUseCase } from "../application/use-cases/adopt-template.use-case";
 
 @ApiCookieAuth()
-@UseGuards(AuthGuard('jwt'), TenantResolutionGuard, RolesGuard)
+@UseGuards(AuthGuard('jwt'), ClientCredentialsGuard, RolesGuard)
 @Controller('templates')
 export class TemplateController {
     constructor(

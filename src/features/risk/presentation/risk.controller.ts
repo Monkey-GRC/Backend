@@ -6,7 +6,7 @@ import { Role } from "src/common/enums/role.enum";
 import { ResponseDto } from "src/common/dtos/response.dto";
 import { Roles } from "src/common/decorators/roles.decorator";
 import { RolesGuard } from "src/common/guards/roles.guard";
-import { TenantResolutionGuard } from "src/common/guards/tenant-resolution.guard";
+import { ClientCredentialsGuard } from "src/common/guards/client-credentials.guard";
 import { CreateRiskDto } from "../application/dtos/create-risk.dto";
 import { UpdateRiskDto } from "../application/dtos/update-risk.dto";
 import { CreateRiskUseCase } from "../application/use-cases/create-risk.use-case";
@@ -16,7 +16,7 @@ import { UpdateRiskUseCase } from "../application/use-cases/update-risk.use-case
 import { DeleteRiskUseCase } from "../application/use-cases/delete-risk.use-case";
 
 @ApiCookieAuth()
-@UseGuards(AuthGuard('jwt'), TenantResolutionGuard, RolesGuard)
+@UseGuards(AuthGuard('jwt'), ClientCredentialsGuard, RolesGuard)
 @Controller('risks')
 export class RiskController {
     constructor(

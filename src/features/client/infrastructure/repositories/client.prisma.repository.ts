@@ -3,17 +3,22 @@ import { CentralPrismaService } from 'src/infrastructure/database/central-prisma
 import {
   ClientRepository,
   CreateClientRow,
-  FinalizeProvisioningInput,
 } from '../../domain/repositories/client.repository';
 
 const SAFE_CLIENT_SELECT = {
   id: true,
-  tax_id: true,
   name: true,
+  document_type: true,
+  document_number: true,
+  email: true,
+  phone: true,
+  address: true,
   seq: true,
   is_active: true,
-  api_key_id: true,
+  client_identifier: true,
   provisioning_status: true,
+  onboarding_code_expires_at: true,
+  onboarding_completed_at: true,
   provisioned_at: true,
   created_at: true,
   updated_at: true,
@@ -33,49 +38,50 @@ export class ClientPrismaRepository extends ClientRepository {
     return this.prisma.client.findUnique({ where: { id }, select: SAFE_CLIENT_SELECT }) as any;
   }
 
-  findByTaxId(taxId: string) {
-    return this.prisma.client.findUnique({ where: { tax_id: taxId }, select: SAFE_CLIENT_SELECT }) as any;
+  findByDocument(documentType: string, documentNumber: string) {
+    return this.prisma.client.findUnique({
+      where: {
+        document_type_document_number: {
+          document_type: documentType as any,
+          document_number: documentNumber,
+        },
+      },
+      select: SAFE_CLIENT_SELECT,
+    }) as any;
   }
 
   async create(input: CreateClientRow) {
     return this.prisma.client.create({
       data: {
-        tax_id: input.tax_id,
         name: input.name,
-        is_active: false,
-        provisioning_status: 'PROVISIONING',
-        api_key_id: input.api_key_id,
-        api_key_hash: input.api_key_hash,
-        // Placeholders temporales de conexión — se completan en
-        // finalizeProvisioning() una vez que la DB física existe. No pueden
-        // quedar NULL porque el schema los exige.
-        db_host: '',
-        db_port: 0,
-        db_name: '',
-        db_user: '',
-        db_password_enc: '',
+        document_type: input.document_type as any,
+        document_number: input.document_number,
+        email: input.email,
+        phone: input.phone,
+        address: input.address,
+        onboarding_code_hash: input.onboarding_code_hash,
+        onboarding_code_expires_at: input.onboarding_code_expires_at,
+        provisioning_status: 'PENDING',
+        is_active: true,
       },
       select: { ...SAFE_CLIENT_SELECT, seq: true },
     }) as any;
   }
 
-  async setStatus(id: string, status: 'PENDING' | 'PROVISIONING' | 'READY' | 'FAILED') {
-    await this.prisma.client.update({ where: { id }, data: { provisioning_status: status } });
+  async setActive(id: string, isActive: boolean) {
+    return this.prisma.client.update({
+      where: { id },
+      data: { is_active: isActive },
+      select: SAFE_CLIENT_SELECT,
+    }) as any;
   }
 
-  async finalizeProvisioning(id: string, input: FinalizeProvisioningInput) {
+  async regenerateOnboardingCode(id: string, onboardingCodeHash: string, expiresAt: Date) {
     return this.prisma.client.update({
       where: { id },
       data: {
-        db_host: input.db_host,
-        db_port: input.db_port,
-        db_name: input.db_name,
-        db_user: input.db_user,
-        db_password_enc: input.db_password_enc,
-        db_ssl: input.db_ssl,
-        provisioning_status: 'READY',
-        is_active: true,
-        provisioned_at: new Date(),
+        onboarding_code_hash: onboardingCodeHash,
+        onboarding_code_expires_at: expiresAt,
       },
       select: SAFE_CLIENT_SELECT,
     }) as any;
