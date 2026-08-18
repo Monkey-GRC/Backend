@@ -8,13 +8,17 @@
  *
  * 🟢 You can import this file directly.
  */
+export type * from './models/CisCheckTranslation.js'
 export type * from './models/Client.js'
 export type * from './models/Control.js'
 export type * from './models/ControlCheck.js'
+export type * from './models/ManualCheckItem.js'
+export type * from './models/ManualCheckEvidence.js'
 export type * from './models/Reason.js'
 export type * from './models/RiskReason.js'
 export type * from './models/ReasonControl.js'
 export type * from './models/Risk.js'
 export type * from './models/Template.js'
+export type * from './models/TenantIdentifierDirectory.js'
 export type * from './models/User.js'
 export type * from './commonInputTypes.js'

@@ -37,6 +37,16 @@ export const ChecklistOs = {
 export type ChecklistOs = (typeof ChecklistOs)[keyof typeof ChecklistOs]
 
 
+export const ManualCheckStatus = {
+  PENDING: 'PENDING',
+  PASSED: 'PASSED',
+  FAILED: 'FAILED',
+  NOT_APPLICABLE: 'NOT_APPLICABLE'
+} as const
+
+export type ManualCheckStatus = (typeof ManualCheckStatus)[keyof typeof ManualCheckStatus]
+
+
 export const RiskLevel = {
   LOW: 'LOW',
   MEDIUM: 'MEDIUM',

@@ -1,0 +1,58 @@
+enum ManualCheckStatus {
+    PENDING
+    PASSED
+    FAILED
+    NOT_APPLICABLE
+}
+
+/// Check manual/hybrido de un control (MANUAL o HYBRID). No viene de Wazuh —
+/// lo redacta quien construye el template/control, incluyendo su propia
+/// remediación (qué hacer si al evaluarlo el resultado es FAILED). Guarda el
+/// estado actual de la evaluación, no un historial.
+model ManualCheckItem {
+    id          String @id @default(uuid()) @db.Uuid
+    control_id  String @db.Uuid
+    control     Control @relation(fields: [control_id], references: [id], onDelete: Cascade)
+
+    title       String
+    description String? @db.Text
+    remediation String? @db.Text
+    seq         Int     @unique @default(autoincrement())
+
+    status       ManualCheckStatus @default(PENDING)
+    notes        String?           @db.Text
+    evaluated_by String?           @db.Uuid
+    evaluated_by_user User?        @relation("mnk_user_evaluated_manual_checks", fields: [evaluated_by], references: [id], onDelete: NoAction)
+    evaluated_at DateTime?
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+    created_by String?  @db.Uuid
+    created_by_user User? @relation("mnk_user_created_manual_checks", fields: [created_by], references: [id], onDelete: NoAction)
+
+    evidence ManualCheckEvidence[]
+
+    @@map("mnk_manual_check_items")
+    @@index([control_id])
+}
+
+/// Archivo de evidencia adjunto a un check manual (p.ej. captura de pantalla,
+/// política firmada, export de configuración). El binario vive en el bucket
+/// S3/MinIO del tenant; acá solo se guarda la referencia (storage_key).
+model ManualCheckEvidence {
+    id               String          @id @default(uuid()) @db.Uuid
+    manual_check_id  String          @db.Uuid
+    manual_check     ManualCheckItem @relation(fields: [manual_check_id], references: [id], onDelete: Cascade)
+
+    file_name   String
+    mime_type   String
+    size_bytes  Int
+    storage_key String @db.Text
+
+    uploaded_by String? @db.Uuid
+    uploaded_by_user User? @relation("mnk_user_uploaded_manual_check_evidence", fields: [uploaded_by], references: [id], onDelete: NoAction)
+    uploaded_at DateTime @default(now())
+
+    @@map("mnk_manual_check_evidence")
+    @@index([manual_check_id])
+}

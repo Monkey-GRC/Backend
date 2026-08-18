@@ -1,0 +1,17 @@
+/// Traducción al español de los checks del catálogo CIS de Wazuh (tabla
+/// externa `cis_checks`, en inglés — no la modificamos directamente porque es
+/// contenido de referencia de un tercero). Cache propia, independiente de
+/// tenant: un check_id significa lo mismo para cualquier cliente.
+/// Si un check_id no tiene fila acá, el repositorio cae de vuelta al inglés.
+model CisCheckTranslation {
+    check_id    String  @id
+    title_es       String  @db.Text
+    description_es String? @db.Text
+    rationale_es   String? @db.Text
+    remediation_es String? @db.Text
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    @@map("mnk_cis_check_translations")
+}

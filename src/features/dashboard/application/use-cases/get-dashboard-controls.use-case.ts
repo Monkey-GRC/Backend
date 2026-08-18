@@ -18,8 +18,7 @@ export class GetDashboardControlsUseCase {
   ) {}
 
   async execute(): Promise<ControlCompliance[]> {
-    const controls =
-      await this.controlRepository.findAutomaticControlsWithChecks();
+    const controls = await this.controlRepository.findControlsWithChecks();
     const resultsByOs = await this.loadResultsByOs(
       controls.flatMap((control) => control.checks.map((check) => check.os)),
     );

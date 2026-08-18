@@ -29,7 +29,7 @@ export async function cloneMasterTemplateIntoTenant(
                   controls: {
                     include: {
                       control: {
-                        include: { checks: true },
+                        include: { checks: true, manual_checks: true },
                       },
                     },
                   },
@@ -116,6 +116,19 @@ export async function cloneMasterTemplateIntoTenant(
                       check_id: check.check_id,
                       title: check.title,
                       os: check.os,
+                    })),
+                  });
+                }
+
+                if (masterControl.manual_checks.length) {
+                  // Solo se copia la definición (título/descripción/remediación) — el
+                  // estado arranca en PENDING para el tenant, que es quien lo evalúa de verdad.
+                  await tx.manualCheckItem.createMany({
+                    data: masterControl.manual_checks.map((check: any) => ({
+                      control_id: newControlId,
+                      title: check.title,
+                      description: check.description,
+                      remediation: check.remediation,
                     })),
                   });
                 }

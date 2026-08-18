@@ -1,0 +1,19 @@
+/// Directorio liviano identifier (email o username) -> tenant. NO es un
+/// mecanismo de seguridad — no guarda contraseñas ni permite autenticarse
+/// por sí solo, solo responde "¿a qué tenant pertenece este identifier?"
+/// para que /auth/login sepa contra qué base de datos física verificar la
+/// contraseña, sin depender de que el navegador ya tenga guardadas las keys
+/// mnk-client-identifier/mnk-client-key (que siguen existiendo, pero solo
+/// para integraciones directas a la API sin sesión de usuario).
+model TenantIdentifierDirectory {
+    id         String @id @default(uuid()) @db.Uuid
+    identifier String @unique @db.VarChar(150)
+
+    client_id String @db.Uuid
+    client    Client @relation(fields: [client_id], references: [id], onDelete: Cascade)
+
+    created_at DateTime @default(now())
+
+    @@map("mnk_tenant_identifier_directory")
+    @@index([client_id])
+}

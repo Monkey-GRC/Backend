@@ -587,10 +587,6 @@ export type TemplateUpdateOneWithoutRisksNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.TemplateUpdateToOneWithWhereWithoutRisksInput, Prisma.TemplateUpdateWithoutRisksInput>, Prisma.TemplateUncheckedUpdateWithoutRisksInput>
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type TemplateCreateNestedManyWithoutCreated_by_userInput = {
   create?: Prisma.XOR<Prisma.TemplateCreateWithoutCreated_by_userInput, Prisma.TemplateUncheckedCreateWithoutCreated_by_userInput> | Prisma.TemplateCreateWithoutCreated_by_userInput[] | Prisma.TemplateUncheckedCreateWithoutCreated_by_userInput[]
   connectOrCreate?: Prisma.TemplateCreateOrConnectWithoutCreated_by_userInput | Prisma.TemplateCreateOrConnectWithoutCreated_by_userInput[]

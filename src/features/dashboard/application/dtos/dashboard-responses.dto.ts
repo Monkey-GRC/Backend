@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ChecklistOs } from 'generated/prisma-tenant/browser';
+import { ChecklistOs, ControlType } from 'generated/prisma-tenant/browser';
 import { ControlCompliance } from '../compliance.calculator';
 import { DashboardSummary } from '../use-cases/get-dashboard-summary.use-case';
 import {
@@ -27,34 +27,43 @@ export class ControlComplianceResponseDto implements ControlCompliance {
   })
   description!: string | null;
 
+  @ApiProperty({ enum: ControlType, example: 'HYBRID' })
+  type!: ControlType;
+
   @ApiProperty({
     nullable: true,
     example: 50,
     description:
-      'Percentage of passed checks over applicable checks (0-100). Null when the control has no applicable results yet.',
+      'Percentage of passed checks over applicable checks (0-100). Null cuando el control no tiene ningún check evaluado todavía.',
   })
   compliance!: number | null;
 
-  @ApiProperty({ example: 4, description: 'Checks attached to the control' })
+  @ApiProperty({ example: 4, description: 'Checks (automáticos + manuales) del control' })
   checksTotal!: number;
 
   @ApiProperty({
     example: 2,
-    description: 'Checks passing on every agent (bool_and aggregation)',
+    description: 'Checks automáticos que pasan en todos los agentes + checks manuales marcados como cumple',
   })
   checksPassed!: number;
 
   @ApiProperty({
     example: 2,
-    description: 'Checks failing on at least one agent',
+    description: 'Checks automáticos fallidos en al menos un agente + checks manuales marcados como falla',
   })
   checksFailed!: number;
 
   @ApiProperty({
     example: 0,
-    description: 'Checks not applicable or without results',
+    description: 'Checks no aplicables o sin resultado',
   })
   checksNotApplicable!: number;
+
+  @ApiProperty({
+    example: 1,
+    description: 'Checks manuales que todavía nadie ha evaluado (no cuentan como cumple ni como falla)',
+  })
+  checksPending!: number;
 }
 
 export class ControlCheckDetailResponseDto implements ControlCheckDetail {
@@ -76,6 +85,18 @@ export class ControlCheckDetailResponseDto implements ControlCheckDetail {
       'Aggregated result across all agents (bool_and): passed only if it passed on every agent running the policy.',
   })
   result!: ScaCheckResult;
+
+  @ApiProperty({ nullable: true, description: 'Explicación de qué evalúa el check (catálogo CIS)' })
+  description!: string | null;
+
+  @ApiProperty({ nullable: true, description: 'Por qué importa este check (catálogo CIS)' })
+  rationale!: string | null;
+
+  @ApiProperty({
+    nullable: true,
+    description: 'Solución exacta a aplicar cuando result es "failed" (catálogo CIS)',
+  })
+  remediation!: string | null;
 }
 
 export class ControlChecksDetailResponseDto implements ControlChecksDetail {
@@ -104,7 +125,13 @@ export class DashboardSummaryResponseDto implements DashboardSummary {
   @ApiProperty({ example: 3, description: 'Controls at 100% compliance' })
   controlsCompliant!: number;
 
-  @ApiProperty({ example: 8, description: 'AUTOMATIC controls evaluated' })
+  @ApiProperty({
+    example: 18,
+    description: 'Controles con al menos un check evaluado — cobertura de la evaluación (no todos son AUTOMATIC)',
+  })
+  controlsEvaluated!: number;
+
+  @ApiProperty({ example: 24, description: 'Todos los controles del framework: AUTOMATIC + MANUAL + HYBRID' })
   controlsTotal!: number;
 
   @ApiProperty({

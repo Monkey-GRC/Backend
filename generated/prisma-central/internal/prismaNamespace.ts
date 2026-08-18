@@ -384,14 +384,18 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 
 export const ModelName = {
+  CisCheckTranslation: 'CisCheckTranslation',
   Client: 'Client',
   Control: 'Control',
   ControlCheck: 'ControlCheck',
+  ManualCheckItem: 'ManualCheckItem',
+  ManualCheckEvidence: 'ManualCheckEvidence',
   Reason: 'Reason',
   RiskReason: 'RiskReason',
   ReasonControl: 'ReasonControl',
   Risk: 'Risk',
   Template: 'Template',
+  TenantIdentifierDirectory: 'TenantIdentifierDirectory',
   User: 'User'
 } as const
 
@@ -408,10 +412,84 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "client" | "control" | "controlCheck" | "reason" | "riskReason" | "reasonControl" | "risk" | "template" | "user"
+    modelProps: "cisCheckTranslation" | "client" | "control" | "controlCheck" | "manualCheckItem" | "manualCheckEvidence" | "reason" | "riskReason" | "reasonControl" | "risk" | "template" | "tenantIdentifierDirectory" | "user"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
+    CisCheckTranslation: {
+      payload: Prisma.$CisCheckTranslationPayload<ExtArgs>
+      fields: Prisma.CisCheckTranslationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CisCheckTranslationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CisCheckTranslationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CisCheckTranslationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CisCheckTranslationPayload>
+        }
+        findFirst: {
+          args: Prisma.CisCheckTranslationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CisCheckTranslationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CisCheckTranslationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CisCheckTranslationPayload>
+        }
+        findMany: {
+          args: Prisma.CisCheckTranslationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CisCheckTranslationPayload>[]
+        }
+        create: {
+          args: Prisma.CisCheckTranslationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CisCheckTranslationPayload>
+        }
+        createMany: {
+          args: Prisma.CisCheckTranslationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CisCheckTranslationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CisCheckTranslationPayload>[]
+        }
+        delete: {
+          args: Prisma.CisCheckTranslationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CisCheckTranslationPayload>
+        }
+        update: {
+          args: Prisma.CisCheckTranslationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CisCheckTranslationPayload>
+        }
+        deleteMany: {
+          args: Prisma.CisCheckTranslationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CisCheckTranslationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CisCheckTranslationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CisCheckTranslationPayload>[]
+        }
+        upsert: {
+          args: Prisma.CisCheckTranslationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CisCheckTranslationPayload>
+        }
+        aggregate: {
+          args: Prisma.CisCheckTranslationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCisCheckTranslation>
+        }
+        groupBy: {
+          args: Prisma.CisCheckTranslationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CisCheckTranslationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CisCheckTranslationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CisCheckTranslationCountAggregateOutputType> | number
+        }
+      }
+    }
     Client: {
       payload: Prisma.$ClientPayload<ExtArgs>
       fields: Prisma.ClientFieldRefs
@@ -631,6 +709,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ControlCheckCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ControlCheckCountAggregateOutputType> | number
+        }
+      }
+    }
+    ManualCheckItem: {
+      payload: Prisma.$ManualCheckItemPayload<ExtArgs>
+      fields: Prisma.ManualCheckItemFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ManualCheckItemFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckItemPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ManualCheckItemFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckItemPayload>
+        }
+        findFirst: {
+          args: Prisma.ManualCheckItemFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckItemPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ManualCheckItemFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckItemPayload>
+        }
+        findMany: {
+          args: Prisma.ManualCheckItemFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckItemPayload>[]
+        }
+        create: {
+          args: Prisma.ManualCheckItemCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckItemPayload>
+        }
+        createMany: {
+          args: Prisma.ManualCheckItemCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ManualCheckItemCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckItemPayload>[]
+        }
+        delete: {
+          args: Prisma.ManualCheckItemDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckItemPayload>
+        }
+        update: {
+          args: Prisma.ManualCheckItemUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckItemPayload>
+        }
+        deleteMany: {
+          args: Prisma.ManualCheckItemDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ManualCheckItemUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ManualCheckItemUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckItemPayload>[]
+        }
+        upsert: {
+          args: Prisma.ManualCheckItemUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckItemPayload>
+        }
+        aggregate: {
+          args: Prisma.ManualCheckItemAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateManualCheckItem>
+        }
+        groupBy: {
+          args: Prisma.ManualCheckItemGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ManualCheckItemGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ManualCheckItemCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ManualCheckItemCountAggregateOutputType> | number
+        }
+      }
+    }
+    ManualCheckEvidence: {
+      payload: Prisma.$ManualCheckEvidencePayload<ExtArgs>
+      fields: Prisma.ManualCheckEvidenceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ManualCheckEvidenceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckEvidencePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ManualCheckEvidenceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckEvidencePayload>
+        }
+        findFirst: {
+          args: Prisma.ManualCheckEvidenceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckEvidencePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ManualCheckEvidenceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckEvidencePayload>
+        }
+        findMany: {
+          args: Prisma.ManualCheckEvidenceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckEvidencePayload>[]
+        }
+        create: {
+          args: Prisma.ManualCheckEvidenceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckEvidencePayload>
+        }
+        createMany: {
+          args: Prisma.ManualCheckEvidenceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ManualCheckEvidenceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckEvidencePayload>[]
+        }
+        delete: {
+          args: Prisma.ManualCheckEvidenceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckEvidencePayload>
+        }
+        update: {
+          args: Prisma.ManualCheckEvidenceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckEvidencePayload>
+        }
+        deleteMany: {
+          args: Prisma.ManualCheckEvidenceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ManualCheckEvidenceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ManualCheckEvidenceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckEvidencePayload>[]
+        }
+        upsert: {
+          args: Prisma.ManualCheckEvidenceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ManualCheckEvidencePayload>
+        }
+        aggregate: {
+          args: Prisma.ManualCheckEvidenceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateManualCheckEvidence>
+        }
+        groupBy: {
+          args: Prisma.ManualCheckEvidenceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ManualCheckEvidenceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ManualCheckEvidenceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ManualCheckEvidenceCountAggregateOutputType> | number
         }
       }
     }
@@ -1004,6 +1230,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    TenantIdentifierDirectory: {
+      payload: Prisma.$TenantIdentifierDirectoryPayload<ExtArgs>
+      fields: Prisma.TenantIdentifierDirectoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TenantIdentifierDirectoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TenantIdentifierDirectoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TenantIdentifierDirectoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TenantIdentifierDirectoryPayload>
+        }
+        findFirst: {
+          args: Prisma.TenantIdentifierDirectoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TenantIdentifierDirectoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TenantIdentifierDirectoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TenantIdentifierDirectoryPayload>
+        }
+        findMany: {
+          args: Prisma.TenantIdentifierDirectoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TenantIdentifierDirectoryPayload>[]
+        }
+        create: {
+          args: Prisma.TenantIdentifierDirectoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TenantIdentifierDirectoryPayload>
+        }
+        createMany: {
+          args: Prisma.TenantIdentifierDirectoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TenantIdentifierDirectoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TenantIdentifierDirectoryPayload>[]
+        }
+        delete: {
+          args: Prisma.TenantIdentifierDirectoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TenantIdentifierDirectoryPayload>
+        }
+        update: {
+          args: Prisma.TenantIdentifierDirectoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TenantIdentifierDirectoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.TenantIdentifierDirectoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TenantIdentifierDirectoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TenantIdentifierDirectoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TenantIdentifierDirectoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.TenantIdentifierDirectoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TenantIdentifierDirectoryPayload>
+        }
+        aggregate: {
+          args: Prisma.TenantIdentifierDirectoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTenantIdentifierDirectory>
+        }
+        groupBy: {
+          args: Prisma.TenantIdentifierDirectoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TenantIdentifierDirectoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TenantIdentifierDirectoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TenantIdentifierDirectoryCountAggregateOutputType> | number
+        }
+      }
+    }
     User: {
       payload: Prisma.$UserPayload<ExtArgs>
       fields: Prisma.UserFieldRefs
@@ -1117,6 +1417,19 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+export const CisCheckTranslationScalarFieldEnum = {
+  check_id: 'check_id',
+  title_es: 'title_es',
+  description_es: 'description_es',
+  rationale_es: 'rationale_es',
+  remediation_es: 'remediation_es',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type CisCheckTranslationScalarFieldEnum = (typeof CisCheckTranslationScalarFieldEnum)[keyof typeof CisCheckTranslationScalarFieldEnum]
+
+
 export const ClientScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -1176,6 +1489,39 @@ export const ControlCheckScalarFieldEnum = {
 } as const
 
 export type ControlCheckScalarFieldEnum = (typeof ControlCheckScalarFieldEnum)[keyof typeof ControlCheckScalarFieldEnum]
+
+
+export const ManualCheckItemScalarFieldEnum = {
+  id: 'id',
+  control_id: 'control_id',
+  title: 'title',
+  description: 'description',
+  remediation: 'remediation',
+  seq: 'seq',
+  status: 'status',
+  notes: 'notes',
+  evaluated_by: 'evaluated_by',
+  evaluated_at: 'evaluated_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  created_by: 'created_by'
+} as const
+
+export type ManualCheckItemScalarFieldEnum = (typeof ManualCheckItemScalarFieldEnum)[keyof typeof ManualCheckItemScalarFieldEnum]
+
+
+export const ManualCheckEvidenceScalarFieldEnum = {
+  id: 'id',
+  manual_check_id: 'manual_check_id',
+  file_name: 'file_name',
+  mime_type: 'mime_type',
+  size_bytes: 'size_bytes',
+  storage_key: 'storage_key',
+  uploaded_by: 'uploaded_by',
+  uploaded_at: 'uploaded_at'
+} as const
+
+export type ManualCheckEvidenceScalarFieldEnum = (typeof ManualCheckEvidenceScalarFieldEnum)[keyof typeof ManualCheckEvidenceScalarFieldEnum]
 
 
 export const ReasonScalarFieldEnum = {
@@ -1251,6 +1597,16 @@ export const TemplateScalarFieldEnum = {
 export type TemplateScalarFieldEnum = (typeof TemplateScalarFieldEnum)[keyof typeof TemplateScalarFieldEnum]
 
 
+export const TenantIdentifierDirectoryScalarFieldEnum = {
+  id: 'id',
+  identifier: 'identifier',
+  client_id: 'client_id',
+  created_at: 'created_at'
+} as const
+
+export type TenantIdentifierDirectoryScalarFieldEnum = (typeof TenantIdentifierDirectoryScalarFieldEnum)[keyof typeof TenantIdentifierDirectoryScalarFieldEnum]
+
+
 export const UserScalarFieldEnum = {
   id: 'id',
   email: 'email',
@@ -1317,6 +1673,20 @@ export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMod
 
 
 /**
+ * Reference to a field of type 'DateTime'
+ */
+export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
+    
+
+
+/**
+ * Reference to a field of type 'DateTime[]'
+ */
+export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+/**
  * Reference to a field of type 'ClientDocumentType'
  */
 export type EnumClientDocumentTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ClientDocumentType'>
@@ -1348,20 +1718,6 @@ export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
  * Reference to a field of type 'Boolean'
  */
 export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
-    
-
-
-/**
- * Reference to a field of type 'DateTime'
- */
-export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
-    
-
-
-/**
- * Reference to a field of type 'DateTime[]'
- */
-export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
     
 
 
@@ -1404,6 +1760,20 @@ export type EnumChecklistOsFieldRefInput<$PrismaModel> = FieldRefInputType<$Pris
  * Reference to a field of type 'ChecklistOs[]'
  */
 export type ListEnumChecklistOsFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ChecklistOs[]'>
+    
+
+
+/**
+ * Reference to a field of type 'ManualCheckStatus'
+ */
+export type EnumManualCheckStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ManualCheckStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'ManualCheckStatus[]'
+ */
+export type ListEnumManualCheckStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ManualCheckStatus[]'>
     
 
 
@@ -1543,14 +1913,18 @@ export type PrismaClientOptions = ({
   comments?: runtime.SqlCommenterPlugin[]
 }
 export type GlobalOmitConfig = {
+  cisCheckTranslation?: Prisma.CisCheckTranslationOmit
   client?: Prisma.ClientOmit
   control?: Prisma.ControlOmit
   controlCheck?: Prisma.ControlCheckOmit
+  manualCheckItem?: Prisma.ManualCheckItemOmit
+  manualCheckEvidence?: Prisma.ManualCheckEvidenceOmit
   reason?: Prisma.ReasonOmit
   riskReason?: Prisma.RiskReasonOmit
   reasonControl?: Prisma.ReasonControlOmit
   risk?: Prisma.RiskOmit
   template?: Prisma.TemplateOmit
+  tenantIdentifierDirectory?: Prisma.TenantIdentifierDirectoryOmit
   user?: Prisma.UserOmit
 }
 

@@ -1,0 +1,61 @@
+enum ManualCheckStatus {
+    PENDING
+    PASSED
+    FAILED
+    NOT_APPLICABLE
+}
+
+/// Check manual/hibrido de un control (MANUAL o HYBRID) de un TEMPLATE MAESTRO.
+/// Acá es pura definición (qué hay que verificar y qué hacer si falla) — no
+/// tiene sentido de "evaluación en vivo" (status/notes/evidencia) porque un
+/// master template es un blueprint, no una empresa real. Al clonarse a un
+/// tenant en el onboarding, cada uno de estos se copia a un ManualCheckItem
+/// del tenant con status PENDING.
+model ManualCheckItem {
+    id          String @id @default(uuid()) @db.Uuid
+    control_id  String @db.Uuid
+    control     Control @relation(fields: [control_id], references: [id], onDelete: Cascade)
+
+    title       String
+    description String? @db.Text
+    remediation String? @db.Text
+    seq         Int     @unique @default(autoincrement())
+
+    status       ManualCheckStatus @default(PENDING)
+    notes        String?           @db.Text
+    evaluated_by String?           @db.Uuid
+    evaluated_by_user User?        @relation("mnk_user_evaluated_manual_checks", fields: [evaluated_by], references: [id], onDelete: NoAction)
+    evaluated_at DateTime?
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+    created_by String?  @db.Uuid
+    created_by_user User? @relation("mnk_user_created_manual_checks", fields: [created_by], references: [id], onDelete: NoAction)
+
+    evidence ManualCheckEvidence[]
+
+    @@map("mnk_manual_check_items")
+    @@index([control_id])
+}
+
+/// Sin uso real en un master template (nadie sube evidencia a un blueprint),
+/// pero se mantiene el modelo idéntico al del tenant para reusar el mismo
+/// código de aplicación (ManualCheckRepository resuelve central vs tenant
+/// según RequestContext, igual que ya hace ControlRepository).
+model ManualCheckEvidence {
+    id               String          @id @default(uuid()) @db.Uuid
+    manual_check_id  String          @db.Uuid
+    manual_check     ManualCheckItem @relation(fields: [manual_check_id], references: [id], onDelete: Cascade)
+
+    file_name   String
+    mime_type   String
+    size_bytes  Int
+    storage_key String @db.Text
+
+    uploaded_by String? @db.Uuid
+    uploaded_by_user User? @relation("mnk_user_uploaded_manual_check_evidence", fields: [uploaded_by], references: [id], onDelete: NoAction)
+    uploaded_at DateTime @default(now())
+
+    @@map("mnk_manual_check_evidence")
+    @@index([manual_check_id])
+}

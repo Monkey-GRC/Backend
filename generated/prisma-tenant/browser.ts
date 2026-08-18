@@ -34,6 +34,21 @@ export type Control = Prisma.ControlModel
  */
 export type ControlCheck = Prisma.ControlCheckModel
 /**
+ * Model ManualCheckItem
+ * Check manual/hybrido de un control (MANUAL o HYBRID). No viene de Wazuh —
+ * lo redacta quien construye el template/control, incluyendo su propia
+ * remediación (qué hacer si al evaluarlo el resultado es FAILED). Guarda el
+ * estado actual de la evaluación, no un historial.
+ */
+export type ManualCheckItem = Prisma.ManualCheckItemModel
+/**
+ * Model ManualCheckEvidence
+ * Archivo de evidencia adjunto a un check manual (p.ej. captura de pantalla,
+ * política firmada, export de configuración). El binario vive en el bucket
+ * S3/MinIO del tenant; acá solo se guarda la referencia (storage_key).
+ */
+export type ManualCheckEvidence = Prisma.ManualCheckEvidenceModel
+/**
  * Model Reason
  * 
  */
