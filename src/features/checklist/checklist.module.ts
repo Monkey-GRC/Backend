@@ -13,5 +13,6 @@ import { GetChecklistUseCase } from './application/use-cases/get-checklist.use-c
         },
         GetChecklistUseCase,
     ],
+    exports: [CisCheckRepository],
 })
 export class ChecklistModule { }

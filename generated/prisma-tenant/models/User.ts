@@ -304,6 +304,9 @@ export type UserWhereInput = {
   updated_risks?: Prisma.RiskListRelationFilter
   created_controls?: Prisma.ControlListRelationFilter
   updated_controls?: Prisma.ControlListRelationFilter
+  created_manual_checks?: Prisma.ManualCheckItemListRelationFilter
+  evaluated_manual_checks?: Prisma.ManualCheckItemListRelationFilter
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -330,6 +333,9 @@ export type UserOrderByWithRelationInput = {
   updated_risks?: Prisma.RiskOrderByRelationAggregateInput
   created_controls?: Prisma.ControlOrderByRelationAggregateInput
   updated_controls?: Prisma.ControlOrderByRelationAggregateInput
+  created_manual_checks?: Prisma.ManualCheckItemOrderByRelationAggregateInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemOrderByRelationAggregateInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -359,6 +365,9 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   updated_risks?: Prisma.RiskListRelationFilter
   created_controls?: Prisma.ControlListRelationFilter
   updated_controls?: Prisma.ControlListRelationFilter
+  created_manual_checks?: Prisma.ManualCheckItemListRelationFilter
+  evaluated_manual_checks?: Prisma.ManualCheckItemListRelationFilter
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceListRelationFilter
 }, "id" | "email" | "username" | "seq">
 
 export type UserOrderByWithAggregationInput = {
@@ -429,6 +438,9 @@ export type UserCreateInput = {
   updated_risks?: Prisma.RiskCreateNestedManyWithoutUpdated_by_userInput
   created_controls?: Prisma.ControlCreateNestedManyWithoutCreated_by_userInput
   updated_controls?: Prisma.ControlCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -455,6 +467,9 @@ export type UserUncheckedCreateInput = {
   updated_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutUpdated_by_userInput
   created_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutCreated_by_userInput
   updated_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserUpdateInput = {
@@ -480,6 +495,9 @@ export type UserUpdateInput = {
   updated_risks?: Prisma.RiskUpdateManyWithoutUpdated_by_userNestedInput
   created_controls?: Prisma.ControlUpdateManyWithoutCreated_by_userNestedInput
   updated_controls?: Prisma.ControlUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -506,6 +524,9 @@ export type UserUncheckedUpdateInput = {
   updated_risks?: Prisma.RiskUncheckedUpdateManyWithoutUpdated_by_userNestedInput
   created_controls?: Prisma.ControlUncheckedUpdateManyWithoutCreated_by_userNestedInput
   updated_controls?: Prisma.ControlUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -660,6 +681,54 @@ export type UserUpdateOneWithoutUpdated_controlsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutUpdated_controlsInput, Prisma.UserUpdateWithoutUpdated_controlsInput>, Prisma.UserUncheckedUpdateWithoutUpdated_controlsInput>
 }
 
+export type UserCreateNestedOneWithoutEvaluated_manual_checksInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutEvaluated_manual_checksInput, Prisma.UserUncheckedCreateWithoutEvaluated_manual_checksInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutEvaluated_manual_checksInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserCreateNestedOneWithoutCreated_manual_checksInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCreated_manual_checksInput, Prisma.UserUncheckedCreateWithoutCreated_manual_checksInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreated_manual_checksInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutEvaluated_manual_checksNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutEvaluated_manual_checksInput, Prisma.UserUncheckedCreateWithoutEvaluated_manual_checksInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutEvaluated_manual_checksInput
+  upsert?: Prisma.UserUpsertWithoutEvaluated_manual_checksInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutEvaluated_manual_checksInput, Prisma.UserUpdateWithoutEvaluated_manual_checksInput>, Prisma.UserUncheckedUpdateWithoutEvaluated_manual_checksInput>
+}
+
+export type UserUpdateOneWithoutCreated_manual_checksNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCreated_manual_checksInput, Prisma.UserUncheckedCreateWithoutCreated_manual_checksInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreated_manual_checksInput
+  upsert?: Prisma.UserUpsertWithoutCreated_manual_checksInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCreated_manual_checksInput, Prisma.UserUpdateWithoutCreated_manual_checksInput>, Prisma.UserUncheckedUpdateWithoutCreated_manual_checksInput>
+}
+
+export type UserCreateNestedOneWithoutUploaded_manual_check_evidenceInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutUploaded_manual_check_evidenceInput, Prisma.UserUncheckedCreateWithoutUploaded_manual_check_evidenceInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutUploaded_manual_check_evidenceInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutUploaded_manual_check_evidenceNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutUploaded_manual_check_evidenceInput, Prisma.UserUncheckedCreateWithoutUploaded_manual_check_evidenceInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutUploaded_manual_check_evidenceInput
+  upsert?: Prisma.UserUpsertWithoutUploaded_manual_check_evidenceInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutUploaded_manual_check_evidenceInput, Prisma.UserUpdateWithoutUploaded_manual_check_evidenceInput>, Prisma.UserUncheckedUpdateWithoutUploaded_manual_check_evidenceInput>
+}
+
 export type UserCreateNestedOneWithoutCreated_reasonsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutCreated_reasonsInput, Prisma.UserUncheckedCreateWithoutCreated_reasonsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreated_reasonsInput
@@ -787,6 +856,9 @@ export type UserCreateWithoutCreated_controlsInput = {
   created_risks?: Prisma.RiskCreateNestedManyWithoutCreated_by_userInput
   updated_risks?: Prisma.RiskCreateNestedManyWithoutUpdated_by_userInput
   updated_controls?: Prisma.ControlCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserUncheckedCreateWithoutCreated_controlsInput = {
@@ -812,6 +884,9 @@ export type UserUncheckedCreateWithoutCreated_controlsInput = {
   created_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutCreated_by_userInput
   updated_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutUpdated_by_userInput
   updated_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserCreateOrConnectWithoutCreated_controlsInput = {
@@ -842,6 +917,9 @@ export type UserCreateWithoutUpdated_controlsInput = {
   created_risks?: Prisma.RiskCreateNestedManyWithoutCreated_by_userInput
   updated_risks?: Prisma.RiskCreateNestedManyWithoutUpdated_by_userInput
   created_controls?: Prisma.ControlCreateNestedManyWithoutCreated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserUncheckedCreateWithoutUpdated_controlsInput = {
@@ -867,6 +945,9 @@ export type UserUncheckedCreateWithoutUpdated_controlsInput = {
   created_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutCreated_by_userInput
   updated_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutUpdated_by_userInput
   created_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutCreated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserCreateOrConnectWithoutUpdated_controlsInput = {
@@ -907,6 +988,9 @@ export type UserUpdateWithoutCreated_controlsInput = {
   created_risks?: Prisma.RiskUpdateManyWithoutCreated_by_userNestedInput
   updated_risks?: Prisma.RiskUpdateManyWithoutUpdated_by_userNestedInput
   updated_controls?: Prisma.ControlUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreated_controlsInput = {
@@ -932,6 +1016,9 @@ export type UserUncheckedUpdateWithoutCreated_controlsInput = {
   created_risks?: Prisma.RiskUncheckedUpdateManyWithoutCreated_by_userNestedInput
   updated_risks?: Prisma.RiskUncheckedUpdateManyWithoutUpdated_by_userNestedInput
   updated_controls?: Prisma.ControlUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserUpsertWithoutUpdated_controlsInput = {
@@ -967,6 +1054,9 @@ export type UserUpdateWithoutUpdated_controlsInput = {
   created_risks?: Prisma.RiskUpdateManyWithoutCreated_by_userNestedInput
   updated_risks?: Prisma.RiskUpdateManyWithoutUpdated_by_userNestedInput
   created_controls?: Prisma.ControlUpdateManyWithoutCreated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserUncheckedUpdateWithoutUpdated_controlsInput = {
@@ -992,6 +1082,390 @@ export type UserUncheckedUpdateWithoutUpdated_controlsInput = {
   created_risks?: Prisma.RiskUncheckedUpdateManyWithoutCreated_by_userNestedInput
   updated_risks?: Prisma.RiskUncheckedUpdateManyWithoutUpdated_by_userNestedInput
   created_controls?: Prisma.ControlUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedUpdateManyWithoutUploaded_by_userNestedInput
+}
+
+export type UserCreateWithoutEvaluated_manual_checksInput = {
+  id?: string
+  email: string
+  password: string
+  name?: string | null
+  last_name?: string | null
+  username: string
+  role?: $Enums.Role
+  seq?: number
+  is_active?: boolean
+  created_at?: Date | string
+  updated_at?: Date | string
+  created_by?: string | null
+  updated_by?: string | null
+  refresh_token_hash?: string | null
+  refresh_token_expires_at?: Date | string | null
+  created_templates?: Prisma.TemplateCreateNestedManyWithoutCreated_by_userInput
+  updated_templates?: Prisma.TemplateCreateNestedManyWithoutUpdated_by_userInput
+  created_reasons?: Prisma.ReasonCreateNestedManyWithoutCreated_by_userInput
+  updated_reasons?: Prisma.ReasonCreateNestedManyWithoutUpdated_by_userInput
+  created_risks?: Prisma.RiskCreateNestedManyWithoutCreated_by_userInput
+  updated_risks?: Prisma.RiskCreateNestedManyWithoutUpdated_by_userInput
+  created_controls?: Prisma.ControlCreateNestedManyWithoutCreated_by_userInput
+  updated_controls?: Prisma.ControlCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutCreated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceCreateNestedManyWithoutUploaded_by_userInput
+}
+
+export type UserUncheckedCreateWithoutEvaluated_manual_checksInput = {
+  id?: string
+  email: string
+  password: string
+  name?: string | null
+  last_name?: string | null
+  username: string
+  role?: $Enums.Role
+  seq?: number
+  is_active?: boolean
+  created_at?: Date | string
+  updated_at?: Date | string
+  created_by?: string | null
+  updated_by?: string | null
+  refresh_token_hash?: string | null
+  refresh_token_expires_at?: Date | string | null
+  created_templates?: Prisma.TemplateUncheckedCreateNestedManyWithoutCreated_by_userInput
+  updated_templates?: Prisma.TemplateUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_reasons?: Prisma.ReasonUncheckedCreateNestedManyWithoutCreated_by_userInput
+  updated_reasons?: Prisma.ReasonUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutCreated_by_userInput
+  updated_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutCreated_by_userInput
+  updated_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutCreated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedCreateNestedManyWithoutUploaded_by_userInput
+}
+
+export type UserCreateOrConnectWithoutEvaluated_manual_checksInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutEvaluated_manual_checksInput, Prisma.UserUncheckedCreateWithoutEvaluated_manual_checksInput>
+}
+
+export type UserCreateWithoutCreated_manual_checksInput = {
+  id?: string
+  email: string
+  password: string
+  name?: string | null
+  last_name?: string | null
+  username: string
+  role?: $Enums.Role
+  seq?: number
+  is_active?: boolean
+  created_at?: Date | string
+  updated_at?: Date | string
+  created_by?: string | null
+  updated_by?: string | null
+  refresh_token_hash?: string | null
+  refresh_token_expires_at?: Date | string | null
+  created_templates?: Prisma.TemplateCreateNestedManyWithoutCreated_by_userInput
+  updated_templates?: Prisma.TemplateCreateNestedManyWithoutUpdated_by_userInput
+  created_reasons?: Prisma.ReasonCreateNestedManyWithoutCreated_by_userInput
+  updated_reasons?: Prisma.ReasonCreateNestedManyWithoutUpdated_by_userInput
+  created_risks?: Prisma.RiskCreateNestedManyWithoutCreated_by_userInput
+  updated_risks?: Prisma.RiskCreateNestedManyWithoutUpdated_by_userInput
+  created_controls?: Prisma.ControlCreateNestedManyWithoutCreated_by_userInput
+  updated_controls?: Prisma.ControlCreateNestedManyWithoutUpdated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceCreateNestedManyWithoutUploaded_by_userInput
+}
+
+export type UserUncheckedCreateWithoutCreated_manual_checksInput = {
+  id?: string
+  email: string
+  password: string
+  name?: string | null
+  last_name?: string | null
+  username: string
+  role?: $Enums.Role
+  seq?: number
+  is_active?: boolean
+  created_at?: Date | string
+  updated_at?: Date | string
+  created_by?: string | null
+  updated_by?: string | null
+  refresh_token_hash?: string | null
+  refresh_token_expires_at?: Date | string | null
+  created_templates?: Prisma.TemplateUncheckedCreateNestedManyWithoutCreated_by_userInput
+  updated_templates?: Prisma.TemplateUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_reasons?: Prisma.ReasonUncheckedCreateNestedManyWithoutCreated_by_userInput
+  updated_reasons?: Prisma.ReasonUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutCreated_by_userInput
+  updated_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutCreated_by_userInput
+  updated_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedCreateNestedManyWithoutUploaded_by_userInput
+}
+
+export type UserCreateOrConnectWithoutCreated_manual_checksInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutCreated_manual_checksInput, Prisma.UserUncheckedCreateWithoutCreated_manual_checksInput>
+}
+
+export type UserUpsertWithoutEvaluated_manual_checksInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutEvaluated_manual_checksInput, Prisma.UserUncheckedUpdateWithoutEvaluated_manual_checksInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutEvaluated_manual_checksInput, Prisma.UserUncheckedCreateWithoutEvaluated_manual_checksInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutEvaluated_manual_checksInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutEvaluated_manual_checksInput, Prisma.UserUncheckedUpdateWithoutEvaluated_manual_checksInput>
+}
+
+export type UserUpdateWithoutEvaluated_manual_checksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  last_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  refresh_token_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  refresh_token_expires_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  created_templates?: Prisma.TemplateUpdateManyWithoutCreated_by_userNestedInput
+  updated_templates?: Prisma.TemplateUpdateManyWithoutUpdated_by_userNestedInput
+  created_reasons?: Prisma.ReasonUpdateManyWithoutCreated_by_userNestedInput
+  updated_reasons?: Prisma.ReasonUpdateManyWithoutUpdated_by_userNestedInput
+  created_risks?: Prisma.RiskUpdateManyWithoutCreated_by_userNestedInput
+  updated_risks?: Prisma.RiskUpdateManyWithoutUpdated_by_userNestedInput
+  created_controls?: Prisma.ControlUpdateManyWithoutCreated_by_userNestedInput
+  updated_controls?: Prisma.ControlUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutCreated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUpdateManyWithoutUploaded_by_userNestedInput
+}
+
+export type UserUncheckedUpdateWithoutEvaluated_manual_checksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  last_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  seq?: Prisma.IntFieldUpdateOperationsInput | number
+  is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  refresh_token_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  refresh_token_expires_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  created_templates?: Prisma.TemplateUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  updated_templates?: Prisma.TemplateUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_reasons?: Prisma.ReasonUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  updated_reasons?: Prisma.ReasonUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_risks?: Prisma.RiskUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  updated_risks?: Prisma.RiskUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_controls?: Prisma.ControlUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  updated_controls?: Prisma.ControlUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedUpdateManyWithoutUploaded_by_userNestedInput
+}
+
+export type UserUpsertWithoutCreated_manual_checksInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutCreated_manual_checksInput, Prisma.UserUncheckedUpdateWithoutCreated_manual_checksInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutCreated_manual_checksInput, Prisma.UserUncheckedCreateWithoutCreated_manual_checksInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutCreated_manual_checksInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutCreated_manual_checksInput, Prisma.UserUncheckedUpdateWithoutCreated_manual_checksInput>
+}
+
+export type UserUpdateWithoutCreated_manual_checksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  last_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  refresh_token_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  refresh_token_expires_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  created_templates?: Prisma.TemplateUpdateManyWithoutCreated_by_userNestedInput
+  updated_templates?: Prisma.TemplateUpdateManyWithoutUpdated_by_userNestedInput
+  created_reasons?: Prisma.ReasonUpdateManyWithoutCreated_by_userNestedInput
+  updated_reasons?: Prisma.ReasonUpdateManyWithoutUpdated_by_userNestedInput
+  created_risks?: Prisma.RiskUpdateManyWithoutCreated_by_userNestedInput
+  updated_risks?: Prisma.RiskUpdateManyWithoutUpdated_by_userNestedInput
+  created_controls?: Prisma.ControlUpdateManyWithoutCreated_by_userNestedInput
+  updated_controls?: Prisma.ControlUpdateManyWithoutUpdated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUpdateManyWithoutUploaded_by_userNestedInput
+}
+
+export type UserUncheckedUpdateWithoutCreated_manual_checksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  last_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  seq?: Prisma.IntFieldUpdateOperationsInput | number
+  is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  refresh_token_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  refresh_token_expires_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  created_templates?: Prisma.TemplateUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  updated_templates?: Prisma.TemplateUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_reasons?: Prisma.ReasonUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  updated_reasons?: Prisma.ReasonUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_risks?: Prisma.RiskUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  updated_risks?: Prisma.RiskUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_controls?: Prisma.ControlUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  updated_controls?: Prisma.ControlUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedUpdateManyWithoutUploaded_by_userNestedInput
+}
+
+export type UserCreateWithoutUploaded_manual_check_evidenceInput = {
+  id?: string
+  email: string
+  password: string
+  name?: string | null
+  last_name?: string | null
+  username: string
+  role?: $Enums.Role
+  seq?: number
+  is_active?: boolean
+  created_at?: Date | string
+  updated_at?: Date | string
+  created_by?: string | null
+  updated_by?: string | null
+  refresh_token_hash?: string | null
+  refresh_token_expires_at?: Date | string | null
+  created_templates?: Prisma.TemplateCreateNestedManyWithoutCreated_by_userInput
+  updated_templates?: Prisma.TemplateCreateNestedManyWithoutUpdated_by_userInput
+  created_reasons?: Prisma.ReasonCreateNestedManyWithoutCreated_by_userInput
+  updated_reasons?: Prisma.ReasonCreateNestedManyWithoutUpdated_by_userInput
+  created_risks?: Prisma.RiskCreateNestedManyWithoutCreated_by_userInput
+  updated_risks?: Prisma.RiskCreateNestedManyWithoutUpdated_by_userInput
+  created_controls?: Prisma.ControlCreateNestedManyWithoutCreated_by_userInput
+  updated_controls?: Prisma.ControlCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutEvaluated_by_userInput
+}
+
+export type UserUncheckedCreateWithoutUploaded_manual_check_evidenceInput = {
+  id?: string
+  email: string
+  password: string
+  name?: string | null
+  last_name?: string | null
+  username: string
+  role?: $Enums.Role
+  seq?: number
+  is_active?: boolean
+  created_at?: Date | string
+  updated_at?: Date | string
+  created_by?: string | null
+  updated_by?: string | null
+  refresh_token_hash?: string | null
+  refresh_token_expires_at?: Date | string | null
+  created_templates?: Prisma.TemplateUncheckedCreateNestedManyWithoutCreated_by_userInput
+  updated_templates?: Prisma.TemplateUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_reasons?: Prisma.ReasonUncheckedCreateNestedManyWithoutCreated_by_userInput
+  updated_reasons?: Prisma.ReasonUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutCreated_by_userInput
+  updated_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutCreated_by_userInput
+  updated_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutEvaluated_by_userInput
+}
+
+export type UserCreateOrConnectWithoutUploaded_manual_check_evidenceInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutUploaded_manual_check_evidenceInput, Prisma.UserUncheckedCreateWithoutUploaded_manual_check_evidenceInput>
+}
+
+export type UserUpsertWithoutUploaded_manual_check_evidenceInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutUploaded_manual_check_evidenceInput, Prisma.UserUncheckedUpdateWithoutUploaded_manual_check_evidenceInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutUploaded_manual_check_evidenceInput, Prisma.UserUncheckedCreateWithoutUploaded_manual_check_evidenceInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutUploaded_manual_check_evidenceInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutUploaded_manual_check_evidenceInput, Prisma.UserUncheckedUpdateWithoutUploaded_manual_check_evidenceInput>
+}
+
+export type UserUpdateWithoutUploaded_manual_check_evidenceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  last_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  refresh_token_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  refresh_token_expires_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  created_templates?: Prisma.TemplateUpdateManyWithoutCreated_by_userNestedInput
+  updated_templates?: Prisma.TemplateUpdateManyWithoutUpdated_by_userNestedInput
+  created_reasons?: Prisma.ReasonUpdateManyWithoutCreated_by_userNestedInput
+  updated_reasons?: Prisma.ReasonUpdateManyWithoutUpdated_by_userNestedInput
+  created_risks?: Prisma.RiskUpdateManyWithoutCreated_by_userNestedInput
+  updated_risks?: Prisma.RiskUpdateManyWithoutUpdated_by_userNestedInput
+  created_controls?: Prisma.ControlUpdateManyWithoutCreated_by_userNestedInput
+  updated_controls?: Prisma.ControlUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutEvaluated_by_userNestedInput
+}
+
+export type UserUncheckedUpdateWithoutUploaded_manual_check_evidenceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  last_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  seq?: Prisma.IntFieldUpdateOperationsInput | number
+  is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  refresh_token_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  refresh_token_expires_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  created_templates?: Prisma.TemplateUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  updated_templates?: Prisma.TemplateUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_reasons?: Prisma.ReasonUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  updated_reasons?: Prisma.ReasonUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_risks?: Prisma.RiskUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  updated_risks?: Prisma.RiskUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_controls?: Prisma.ControlUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  updated_controls?: Prisma.ControlUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutEvaluated_by_userNestedInput
 }
 
 export type UserCreateWithoutCreated_reasonsInput = {
@@ -1017,6 +1491,9 @@ export type UserCreateWithoutCreated_reasonsInput = {
   updated_risks?: Prisma.RiskCreateNestedManyWithoutUpdated_by_userInput
   created_controls?: Prisma.ControlCreateNestedManyWithoutCreated_by_userInput
   updated_controls?: Prisma.ControlCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserUncheckedCreateWithoutCreated_reasonsInput = {
@@ -1042,6 +1519,9 @@ export type UserUncheckedCreateWithoutCreated_reasonsInput = {
   updated_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutUpdated_by_userInput
   created_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutCreated_by_userInput
   updated_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserCreateOrConnectWithoutCreated_reasonsInput = {
@@ -1072,6 +1552,9 @@ export type UserCreateWithoutUpdated_reasonsInput = {
   updated_risks?: Prisma.RiskCreateNestedManyWithoutUpdated_by_userInput
   created_controls?: Prisma.ControlCreateNestedManyWithoutCreated_by_userInput
   updated_controls?: Prisma.ControlCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserUncheckedCreateWithoutUpdated_reasonsInput = {
@@ -1097,6 +1580,9 @@ export type UserUncheckedCreateWithoutUpdated_reasonsInput = {
   updated_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutUpdated_by_userInput
   created_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutCreated_by_userInput
   updated_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserCreateOrConnectWithoutUpdated_reasonsInput = {
@@ -1137,6 +1623,9 @@ export type UserUpdateWithoutCreated_reasonsInput = {
   updated_risks?: Prisma.RiskUpdateManyWithoutUpdated_by_userNestedInput
   created_controls?: Prisma.ControlUpdateManyWithoutCreated_by_userNestedInput
   updated_controls?: Prisma.ControlUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreated_reasonsInput = {
@@ -1162,6 +1651,9 @@ export type UserUncheckedUpdateWithoutCreated_reasonsInput = {
   updated_risks?: Prisma.RiskUncheckedUpdateManyWithoutUpdated_by_userNestedInput
   created_controls?: Prisma.ControlUncheckedUpdateManyWithoutCreated_by_userNestedInput
   updated_controls?: Prisma.ControlUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserUpsertWithoutUpdated_reasonsInput = {
@@ -1197,6 +1689,9 @@ export type UserUpdateWithoutUpdated_reasonsInput = {
   updated_risks?: Prisma.RiskUpdateManyWithoutUpdated_by_userNestedInput
   created_controls?: Prisma.ControlUpdateManyWithoutCreated_by_userNestedInput
   updated_controls?: Prisma.ControlUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserUncheckedUpdateWithoutUpdated_reasonsInput = {
@@ -1222,6 +1717,9 @@ export type UserUncheckedUpdateWithoutUpdated_reasonsInput = {
   updated_risks?: Prisma.RiskUncheckedUpdateManyWithoutUpdated_by_userNestedInput
   created_controls?: Prisma.ControlUncheckedUpdateManyWithoutCreated_by_userNestedInput
   updated_controls?: Prisma.ControlUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserCreateWithoutCreated_risksInput = {
@@ -1247,6 +1745,9 @@ export type UserCreateWithoutCreated_risksInput = {
   updated_risks?: Prisma.RiskCreateNestedManyWithoutUpdated_by_userInput
   created_controls?: Prisma.ControlCreateNestedManyWithoutCreated_by_userInput
   updated_controls?: Prisma.ControlCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserUncheckedCreateWithoutCreated_risksInput = {
@@ -1272,6 +1773,9 @@ export type UserUncheckedCreateWithoutCreated_risksInput = {
   updated_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutUpdated_by_userInput
   created_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutCreated_by_userInput
   updated_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserCreateOrConnectWithoutCreated_risksInput = {
@@ -1302,6 +1806,9 @@ export type UserCreateWithoutUpdated_risksInput = {
   created_risks?: Prisma.RiskCreateNestedManyWithoutCreated_by_userInput
   created_controls?: Prisma.ControlCreateNestedManyWithoutCreated_by_userInput
   updated_controls?: Prisma.ControlCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserUncheckedCreateWithoutUpdated_risksInput = {
@@ -1327,6 +1834,9 @@ export type UserUncheckedCreateWithoutUpdated_risksInput = {
   created_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutCreated_by_userInput
   created_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutCreated_by_userInput
   updated_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserCreateOrConnectWithoutUpdated_risksInput = {
@@ -1367,6 +1877,9 @@ export type UserUpdateWithoutCreated_risksInput = {
   updated_risks?: Prisma.RiskUpdateManyWithoutUpdated_by_userNestedInput
   created_controls?: Prisma.ControlUpdateManyWithoutCreated_by_userNestedInput
   updated_controls?: Prisma.ControlUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreated_risksInput = {
@@ -1392,6 +1905,9 @@ export type UserUncheckedUpdateWithoutCreated_risksInput = {
   updated_risks?: Prisma.RiskUncheckedUpdateManyWithoutUpdated_by_userNestedInput
   created_controls?: Prisma.ControlUncheckedUpdateManyWithoutCreated_by_userNestedInput
   updated_controls?: Prisma.ControlUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserUpsertWithoutUpdated_risksInput = {
@@ -1427,6 +1943,9 @@ export type UserUpdateWithoutUpdated_risksInput = {
   created_risks?: Prisma.RiskUpdateManyWithoutCreated_by_userNestedInput
   created_controls?: Prisma.ControlUpdateManyWithoutCreated_by_userNestedInput
   updated_controls?: Prisma.ControlUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserUncheckedUpdateWithoutUpdated_risksInput = {
@@ -1452,6 +1971,9 @@ export type UserUncheckedUpdateWithoutUpdated_risksInput = {
   created_risks?: Prisma.RiskUncheckedUpdateManyWithoutCreated_by_userNestedInput
   created_controls?: Prisma.ControlUncheckedUpdateManyWithoutCreated_by_userNestedInput
   updated_controls?: Prisma.ControlUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserCreateWithoutCreated_templatesInput = {
@@ -1477,6 +1999,9 @@ export type UserCreateWithoutCreated_templatesInput = {
   updated_risks?: Prisma.RiskCreateNestedManyWithoutUpdated_by_userInput
   created_controls?: Prisma.ControlCreateNestedManyWithoutCreated_by_userInput
   updated_controls?: Prisma.ControlCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserUncheckedCreateWithoutCreated_templatesInput = {
@@ -1502,6 +2027,9 @@ export type UserUncheckedCreateWithoutCreated_templatesInput = {
   updated_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutUpdated_by_userInput
   created_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutCreated_by_userInput
   updated_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserCreateOrConnectWithoutCreated_templatesInput = {
@@ -1532,6 +2060,9 @@ export type UserCreateWithoutUpdated_templatesInput = {
   updated_risks?: Prisma.RiskCreateNestedManyWithoutUpdated_by_userInput
   created_controls?: Prisma.ControlCreateNestedManyWithoutCreated_by_userInput
   updated_controls?: Prisma.ControlCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserUncheckedCreateWithoutUpdated_templatesInput = {
@@ -1557,6 +2088,9 @@ export type UserUncheckedCreateWithoutUpdated_templatesInput = {
   updated_risks?: Prisma.RiskUncheckedCreateNestedManyWithoutUpdated_by_userInput
   created_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutCreated_by_userInput
   updated_controls?: Prisma.ControlUncheckedCreateNestedManyWithoutUpdated_by_userInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutCreated_by_userInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutEvaluated_by_userInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedCreateNestedManyWithoutUploaded_by_userInput
 }
 
 export type UserCreateOrConnectWithoutUpdated_templatesInput = {
@@ -1597,6 +2131,9 @@ export type UserUpdateWithoutCreated_templatesInput = {
   updated_risks?: Prisma.RiskUpdateManyWithoutUpdated_by_userNestedInput
   created_controls?: Prisma.ControlUpdateManyWithoutCreated_by_userNestedInput
   updated_controls?: Prisma.ControlUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreated_templatesInput = {
@@ -1622,6 +2159,9 @@ export type UserUncheckedUpdateWithoutCreated_templatesInput = {
   updated_risks?: Prisma.RiskUncheckedUpdateManyWithoutUpdated_by_userNestedInput
   created_controls?: Prisma.ControlUncheckedUpdateManyWithoutCreated_by_userNestedInput
   updated_controls?: Prisma.ControlUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserUpsertWithoutUpdated_templatesInput = {
@@ -1657,6 +2197,9 @@ export type UserUpdateWithoutUpdated_templatesInput = {
   updated_risks?: Prisma.RiskUpdateManyWithoutUpdated_by_userNestedInput
   created_controls?: Prisma.ControlUpdateManyWithoutCreated_by_userNestedInput
   updated_controls?: Prisma.ControlUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 export type UserUncheckedUpdateWithoutUpdated_templatesInput = {
@@ -1682,6 +2225,9 @@ export type UserUncheckedUpdateWithoutUpdated_templatesInput = {
   updated_risks?: Prisma.RiskUncheckedUpdateManyWithoutUpdated_by_userNestedInput
   created_controls?: Prisma.ControlUncheckedUpdateManyWithoutCreated_by_userNestedInput
   updated_controls?: Prisma.ControlUncheckedUpdateManyWithoutUpdated_by_userNestedInput
+  created_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutCreated_by_userNestedInput
+  evaluated_manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutEvaluated_by_userNestedInput
+  uploaded_manual_check_evidence?: Prisma.ManualCheckEvidenceUncheckedUpdateManyWithoutUploaded_by_userNestedInput
 }
 
 
@@ -1698,6 +2244,9 @@ export type UserCountOutputType = {
   updated_risks: number
   created_controls: number
   updated_controls: number
+  created_manual_checks: number
+  evaluated_manual_checks: number
+  uploaded_manual_check_evidence: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1709,6 +2258,9 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   updated_risks?: boolean | UserCountOutputTypeCountUpdated_risksArgs
   created_controls?: boolean | UserCountOutputTypeCountCreated_controlsArgs
   updated_controls?: boolean | UserCountOutputTypeCountUpdated_controlsArgs
+  created_manual_checks?: boolean | UserCountOutputTypeCountCreated_manual_checksArgs
+  evaluated_manual_checks?: boolean | UserCountOutputTypeCountEvaluated_manual_checksArgs
+  uploaded_manual_check_evidence?: boolean | UserCountOutputTypeCountUploaded_manual_check_evidenceArgs
 }
 
 /**
@@ -1777,6 +2329,27 @@ export type UserCountOutputTypeCountUpdated_controlsArgs<ExtArgs extends runtime
   where?: Prisma.ControlWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountCreated_manual_checksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ManualCheckItemWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountEvaluated_manual_checksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ManualCheckItemWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountUploaded_manual_check_evidenceArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ManualCheckEvidenceWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1802,6 +2375,9 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   updated_risks?: boolean | Prisma.User$updated_risksArgs<ExtArgs>
   created_controls?: boolean | Prisma.User$created_controlsArgs<ExtArgs>
   updated_controls?: boolean | Prisma.User$updated_controlsArgs<ExtArgs>
+  created_manual_checks?: boolean | Prisma.User$created_manual_checksArgs<ExtArgs>
+  evaluated_manual_checks?: boolean | Prisma.User$evaluated_manual_checksArgs<ExtArgs>
+  uploaded_manual_check_evidence?: boolean | Prisma.User$uploaded_manual_check_evidenceArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1869,6 +2445,9 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   updated_risks?: boolean | Prisma.User$updated_risksArgs<ExtArgs>
   created_controls?: boolean | Prisma.User$created_controlsArgs<ExtArgs>
   updated_controls?: boolean | Prisma.User$updated_controlsArgs<ExtArgs>
+  created_manual_checks?: boolean | Prisma.User$created_manual_checksArgs<ExtArgs>
+  evaluated_manual_checks?: boolean | Prisma.User$evaluated_manual_checksArgs<ExtArgs>
+  uploaded_manual_check_evidence?: boolean | Prisma.User$uploaded_manual_check_evidenceArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1885,6 +2464,9 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     updated_risks: Prisma.$RiskPayload<ExtArgs>[]
     created_controls: Prisma.$ControlPayload<ExtArgs>[]
     updated_controls: Prisma.$ControlPayload<ExtArgs>[]
+    created_manual_checks: Prisma.$ManualCheckItemPayload<ExtArgs>[]
+    evaluated_manual_checks: Prisma.$ManualCheckItemPayload<ExtArgs>[]
+    uploaded_manual_check_evidence: Prisma.$ManualCheckEvidencePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2304,6 +2886,9 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   updated_risks<T extends Prisma.User$updated_risksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$updated_risksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RiskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   created_controls<T extends Prisma.User$created_controlsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$created_controlsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ControlPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   updated_controls<T extends Prisma.User$updated_controlsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$updated_controlsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ControlPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  created_manual_checks<T extends Prisma.User$created_manual_checksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$created_manual_checksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ManualCheckItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  evaluated_manual_checks<T extends Prisma.User$evaluated_manual_checksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$evaluated_manual_checksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ManualCheckItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  uploaded_manual_check_evidence<T extends Prisma.User$uploaded_manual_check_evidenceArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$uploaded_manual_check_evidenceArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ManualCheckEvidencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2925,6 +3510,78 @@ export type User$updated_controlsArgs<ExtArgs extends runtime.Types.Extensions.I
   take?: number
   skip?: number
   distinct?: Prisma.ControlScalarFieldEnum | Prisma.ControlScalarFieldEnum[]
+}
+
+/**
+ * User.created_manual_checks
+ */
+export type User$created_manual_checksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ManualCheckItem
+   */
+  select?: Prisma.ManualCheckItemSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ManualCheckItem
+   */
+  omit?: Prisma.ManualCheckItemOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManualCheckItemInclude<ExtArgs> | null
+  where?: Prisma.ManualCheckItemWhereInput
+  orderBy?: Prisma.ManualCheckItemOrderByWithRelationInput | Prisma.ManualCheckItemOrderByWithRelationInput[]
+  cursor?: Prisma.ManualCheckItemWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ManualCheckItemScalarFieldEnum | Prisma.ManualCheckItemScalarFieldEnum[]
+}
+
+/**
+ * User.evaluated_manual_checks
+ */
+export type User$evaluated_manual_checksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ManualCheckItem
+   */
+  select?: Prisma.ManualCheckItemSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ManualCheckItem
+   */
+  omit?: Prisma.ManualCheckItemOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManualCheckItemInclude<ExtArgs> | null
+  where?: Prisma.ManualCheckItemWhereInput
+  orderBy?: Prisma.ManualCheckItemOrderByWithRelationInput | Prisma.ManualCheckItemOrderByWithRelationInput[]
+  cursor?: Prisma.ManualCheckItemWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ManualCheckItemScalarFieldEnum | Prisma.ManualCheckItemScalarFieldEnum[]
+}
+
+/**
+ * User.uploaded_manual_check_evidence
+ */
+export type User$uploaded_manual_check_evidenceArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ManualCheckEvidence
+   */
+  select?: Prisma.ManualCheckEvidenceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ManualCheckEvidence
+   */
+  omit?: Prisma.ManualCheckEvidenceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ManualCheckEvidenceInclude<ExtArgs> | null
+  where?: Prisma.ManualCheckEvidenceWhereInput
+  orderBy?: Prisma.ManualCheckEvidenceOrderByWithRelationInput | Prisma.ManualCheckEvidenceOrderByWithRelationInput[]
+  cursor?: Prisma.ManualCheckEvidenceWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ManualCheckEvidenceScalarFieldEnum | Prisma.ManualCheckEvidenceScalarFieldEnum[]
 }
 
 /**

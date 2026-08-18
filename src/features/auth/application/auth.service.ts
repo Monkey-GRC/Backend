@@ -162,11 +162,32 @@ export class AuthService {
     }
 
     /**
-     * clientId ya viene resuelto por ClientCredentialsGuard (headers
-     * mnk-client-identifier/mnk-client-key) antes de llegar aquí.
+     * Resuelve a qué tenant pertenece un identifier consultando el
+     * directorio central — es un simple directorio (email/username ->
+     * client_id), no un mecanismo de seguridad: no prueba nada por sí solo,
+     * solo evita depender de que el navegador ya tenga guardadas las keys
+     * mnk-client-identifier/mnk-client-key para saber a qué base de datos
+     * dirigir la verificación real de la contraseña.
+     */
+    private async resolveClientIdByIdentifier(identifier: string): Promise<string | null> {
+        // Mismo criterio que findUserByIdentifier: el email se guarda/compara
+        // en minúsculas, el username tal cual se escribió (case-sensitive).
+        const entry = await this.centralPrisma.tenantIdentifierDirectory.findFirst({
+            where: { OR: [{ identifier: identifier.toLowerCase() }, { identifier }] },
+            select: { client_id: true },
+        });
+        return entry?.client_id ?? null;
+    }
+
+    /**
+     * clientId puede venir ya resuelto por ClientCredentialsGuard (headers
+     * mnk-client-identifier/mnk-client-key, para integraciones directas a la
+     * API sin sesión de usuario). Si no vino así, se intenta resolver por el
+     * directorio central a partir del identifier — así el login con
+     * usuario/contraseña funciona desde cualquier dispositivo.
      */
     async login(dto: LoginDto) {
-        const clientId = RequestContext.clientId;
+        const clientId = RequestContext.clientId ?? (await this.resolveClientIdByIdentifier(dto.identifier));
         return clientId ? this.loginTenant(dto, clientId) : this.loginMonkeyAdmin(dto);
     }
 

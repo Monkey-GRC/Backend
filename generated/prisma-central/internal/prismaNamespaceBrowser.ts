@@ -51,14 +51,18 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
+  CisCheckTranslation: 'CisCheckTranslation',
   Client: 'Client',
   Control: 'Control',
   ControlCheck: 'ControlCheck',
+  ManualCheckItem: 'ManualCheckItem',
+  ManualCheckEvidence: 'ManualCheckEvidence',
   Reason: 'Reason',
   RiskReason: 'RiskReason',
   ReasonControl: 'ReasonControl',
   Risk: 'Risk',
   Template: 'Template',
+  TenantIdentifierDirectory: 'TenantIdentifierDirectory',
   User: 'User'
 } as const
 
@@ -76,6 +80,19 @@ export const TransactionIsolationLevel = {
 } as const
 
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
+
+
+export const CisCheckTranslationScalarFieldEnum = {
+  check_id: 'check_id',
+  title_es: 'title_es',
+  description_es: 'description_es',
+  rationale_es: 'rationale_es',
+  remediation_es: 'remediation_es',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type CisCheckTranslationScalarFieldEnum = (typeof CisCheckTranslationScalarFieldEnum)[keyof typeof CisCheckTranslationScalarFieldEnum]
 
 
 export const ClientScalarFieldEnum = {
@@ -137,6 +154,39 @@ export const ControlCheckScalarFieldEnum = {
 } as const
 
 export type ControlCheckScalarFieldEnum = (typeof ControlCheckScalarFieldEnum)[keyof typeof ControlCheckScalarFieldEnum]
+
+
+export const ManualCheckItemScalarFieldEnum = {
+  id: 'id',
+  control_id: 'control_id',
+  title: 'title',
+  description: 'description',
+  remediation: 'remediation',
+  seq: 'seq',
+  status: 'status',
+  notes: 'notes',
+  evaluated_by: 'evaluated_by',
+  evaluated_at: 'evaluated_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  created_by: 'created_by'
+} as const
+
+export type ManualCheckItemScalarFieldEnum = (typeof ManualCheckItemScalarFieldEnum)[keyof typeof ManualCheckItemScalarFieldEnum]
+
+
+export const ManualCheckEvidenceScalarFieldEnum = {
+  id: 'id',
+  manual_check_id: 'manual_check_id',
+  file_name: 'file_name',
+  mime_type: 'mime_type',
+  size_bytes: 'size_bytes',
+  storage_key: 'storage_key',
+  uploaded_by: 'uploaded_by',
+  uploaded_at: 'uploaded_at'
+} as const
+
+export type ManualCheckEvidenceScalarFieldEnum = (typeof ManualCheckEvidenceScalarFieldEnum)[keyof typeof ManualCheckEvidenceScalarFieldEnum]
 
 
 export const ReasonScalarFieldEnum = {
@@ -210,6 +260,16 @@ export const TemplateScalarFieldEnum = {
 } as const
 
 export type TemplateScalarFieldEnum = (typeof TemplateScalarFieldEnum)[keyof typeof TemplateScalarFieldEnum]
+
+
+export const TenantIdentifierDirectoryScalarFieldEnum = {
+  id: 'id',
+  identifier: 'identifier',
+  client_id: 'client_id',
+  created_at: 'created_at'
+} as const
+
+export type TenantIdentifierDirectoryScalarFieldEnum = (typeof TenantIdentifierDirectoryScalarFieldEnum)[keyof typeof TenantIdentifierDirectoryScalarFieldEnum]
 
 
 export const UserScalarFieldEnum = {

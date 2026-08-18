@@ -54,6 +54,8 @@ export const ModelName = {
   CompanyProfile: 'CompanyProfile',
   Control: 'Control',
   ControlCheck: 'ControlCheck',
+  ManualCheckItem: 'ManualCheckItem',
+  ManualCheckEvidence: 'ManualCheckEvidence',
   Reason: 'Reason',
   RiskReason: 'RiskReason',
   ReasonControl: 'ReasonControl',
@@ -116,6 +118,39 @@ export const ControlCheckScalarFieldEnum = {
 } as const
 
 export type ControlCheckScalarFieldEnum = (typeof ControlCheckScalarFieldEnum)[keyof typeof ControlCheckScalarFieldEnum]
+
+
+export const ManualCheckItemScalarFieldEnum = {
+  id: 'id',
+  control_id: 'control_id',
+  title: 'title',
+  description: 'description',
+  remediation: 'remediation',
+  seq: 'seq',
+  status: 'status',
+  notes: 'notes',
+  evaluated_by: 'evaluated_by',
+  evaluated_at: 'evaluated_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  created_by: 'created_by'
+} as const
+
+export type ManualCheckItemScalarFieldEnum = (typeof ManualCheckItemScalarFieldEnum)[keyof typeof ManualCheckItemScalarFieldEnum]
+
+
+export const ManualCheckEvidenceScalarFieldEnum = {
+  id: 'id',
+  manual_check_id: 'manual_check_id',
+  file_name: 'file_name',
+  mime_type: 'mime_type',
+  size_bytes: 'size_bytes',
+  storage_key: 'storage_key',
+  uploaded_by: 'uploaded_by',
+  uploaded_at: 'uploaded_at'
+} as const
+
+export type ManualCheckEvidenceScalarFieldEnum = (typeof ManualCheckEvidenceScalarFieldEnum)[keyof typeof ManualCheckEvidenceScalarFieldEnum]
 
 
 export const ReasonScalarFieldEnum = {

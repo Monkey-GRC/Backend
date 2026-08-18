@@ -388,6 +388,7 @@ export type ClientWhereInput = {
   updated_at?: Prisma.DateTimeFilter<"Client"> | Date | string
   created_by?: Prisma.StringNullableFilter<"Client"> | string | null
   updated_by?: Prisma.StringNullableFilter<"Client"> | string | null
+  directory_entries?: Prisma.TenantIdentifierDirectoryListRelationFilter
 }
 
 export type ClientOrderByWithRelationInput = {
@@ -417,6 +418,7 @@ export type ClientOrderByWithRelationInput = {
   updated_at?: Prisma.SortOrder
   created_by?: Prisma.SortOrderInput | Prisma.SortOrder
   updated_by?: Prisma.SortOrderInput | Prisma.SortOrder
+  directory_entries?: Prisma.TenantIdentifierDirectoryOrderByRelationAggregateInput
 }
 
 export type ClientWhereUniqueInput = Prisma.AtLeast<{
@@ -450,6 +452,7 @@ export type ClientWhereUniqueInput = Prisma.AtLeast<{
   updated_at?: Prisma.DateTimeFilter<"Client"> | Date | string
   created_by?: Prisma.StringNullableFilter<"Client"> | string | null
   updated_by?: Prisma.StringNullableFilter<"Client"> | string | null
+  directory_entries?: Prisma.TenantIdentifierDirectoryListRelationFilter
 }, "id" | "seq" | "client_identifier" | "onboarding_code_hash" | "document_type_document_number">
 
 export type ClientOrderByWithAggregationInput = {
@@ -545,6 +548,7 @@ export type ClientCreateInput = {
   updated_at?: Date | string
   created_by?: string | null
   updated_by?: string | null
+  directory_entries?: Prisma.TenantIdentifierDirectoryCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateInput = {
@@ -574,6 +578,7 @@ export type ClientUncheckedCreateInput = {
   updated_at?: Date | string
   created_by?: string | null
   updated_by?: string | null
+  directory_entries?: Prisma.TenantIdentifierDirectoryUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientUpdateInput = {
@@ -602,6 +607,7 @@ export type ClientUpdateInput = {
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directory_entries?: Prisma.TenantIdentifierDirectoryUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateInput = {
@@ -631,6 +637,7 @@ export type ClientUncheckedUpdateInput = {
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directory_entries?: Prisma.TenantIdentifierDirectoryUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateManyInput = {
@@ -821,8 +828,9 @@ export type ClientSumOrderByAggregateInput = {
   db_port?: Prisma.SortOrder
 }
 
-export type StringFieldUpdateOperationsInput = {
-  set?: string
+export type ClientScalarRelationFilter = {
+  is?: Prisma.ClientWhereInput
+  isNot?: Prisma.ClientWhereInput
 }
 
 export type EnumClientDocumentTypeFieldUpdateOperationsInput = {
@@ -831,10 +839,6 @@ export type EnumClientDocumentTypeFieldUpdateOperationsInput = {
 
 export type BoolFieldUpdateOperationsInput = {
   set?: boolean
-}
-
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
 }
 
 export type NullableDateTimeFieldUpdateOperationsInput = {
@@ -857,10 +861,6 @@ export type EnumClientProvisioningStatusFieldUpdateOperationsInput = {
   set?: $Enums.ClientProvisioningStatus
 }
 
-export type DateTimeFieldUpdateOperationsInput = {
-  set?: Date | string
-}
-
 export type IntFieldUpdateOperationsInput = {
   set?: number
   increment?: number
@@ -869,6 +869,180 @@ export type IntFieldUpdateOperationsInput = {
   divide?: number
 }
 
+export type ClientCreateNestedOneWithoutDirectory_entriesInput = {
+  create?: Prisma.XOR<Prisma.ClientCreateWithoutDirectory_entriesInput, Prisma.ClientUncheckedCreateWithoutDirectory_entriesInput>
+  connectOrCreate?: Prisma.ClientCreateOrConnectWithoutDirectory_entriesInput
+  connect?: Prisma.ClientWhereUniqueInput
+}
+
+export type ClientUpdateOneRequiredWithoutDirectory_entriesNestedInput = {
+  create?: Prisma.XOR<Prisma.ClientCreateWithoutDirectory_entriesInput, Prisma.ClientUncheckedCreateWithoutDirectory_entriesInput>
+  connectOrCreate?: Prisma.ClientCreateOrConnectWithoutDirectory_entriesInput
+  upsert?: Prisma.ClientUpsertWithoutDirectory_entriesInput
+  connect?: Prisma.ClientWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ClientUpdateToOneWithWhereWithoutDirectory_entriesInput, Prisma.ClientUpdateWithoutDirectory_entriesInput>, Prisma.ClientUncheckedUpdateWithoutDirectory_entriesInput>
+}
+
+export type ClientCreateWithoutDirectory_entriesInput = {
+  id?: string
+  name: string
+  document_type: $Enums.ClientDocumentType
+  document_number: string
+  email: string
+  phone: string
+  address: string
+  seq?: number
+  is_active?: boolean
+  client_identifier?: string | null
+  client_key_hash?: string | null
+  onboarding_code_hash?: string | null
+  onboarding_code_expires_at?: Date | string | null
+  onboarding_completed_at?: Date | string | null
+  db_host?: string | null
+  db_port?: number | null
+  db_name?: string | null
+  db_user?: string | null
+  db_password_enc?: string | null
+  db_ssl?: boolean | null
+  provisioning_status?: $Enums.ClientProvisioningStatus
+  provisioned_at?: Date | string | null
+  created_at?: Date | string
+  updated_at?: Date | string
+  created_by?: string | null
+  updated_by?: string | null
+}
+
+export type ClientUncheckedCreateWithoutDirectory_entriesInput = {
+  id?: string
+  name: string
+  document_type: $Enums.ClientDocumentType
+  document_number: string
+  email: string
+  phone: string
+  address: string
+  seq?: number
+  is_active?: boolean
+  client_identifier?: string | null
+  client_key_hash?: string | null
+  onboarding_code_hash?: string | null
+  onboarding_code_expires_at?: Date | string | null
+  onboarding_completed_at?: Date | string | null
+  db_host?: string | null
+  db_port?: number | null
+  db_name?: string | null
+  db_user?: string | null
+  db_password_enc?: string | null
+  db_ssl?: boolean | null
+  provisioning_status?: $Enums.ClientProvisioningStatus
+  provisioned_at?: Date | string | null
+  created_at?: Date | string
+  updated_at?: Date | string
+  created_by?: string | null
+  updated_by?: string | null
+}
+
+export type ClientCreateOrConnectWithoutDirectory_entriesInput = {
+  where: Prisma.ClientWhereUniqueInput
+  create: Prisma.XOR<Prisma.ClientCreateWithoutDirectory_entriesInput, Prisma.ClientUncheckedCreateWithoutDirectory_entriesInput>
+}
+
+export type ClientUpsertWithoutDirectory_entriesInput = {
+  update: Prisma.XOR<Prisma.ClientUpdateWithoutDirectory_entriesInput, Prisma.ClientUncheckedUpdateWithoutDirectory_entriesInput>
+  create: Prisma.XOR<Prisma.ClientCreateWithoutDirectory_entriesInput, Prisma.ClientUncheckedCreateWithoutDirectory_entriesInput>
+  where?: Prisma.ClientWhereInput
+}
+
+export type ClientUpdateToOneWithWhereWithoutDirectory_entriesInput = {
+  where?: Prisma.ClientWhereInput
+  data: Prisma.XOR<Prisma.ClientUpdateWithoutDirectory_entriesInput, Prisma.ClientUncheckedUpdateWithoutDirectory_entriesInput>
+}
+
+export type ClientUpdateWithoutDirectory_entriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  document_type?: Prisma.EnumClientDocumentTypeFieldUpdateOperationsInput | $Enums.ClientDocumentType
+  document_number?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
+  address?: Prisma.StringFieldUpdateOperationsInput | string
+  is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  client_identifier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  client_key_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarding_code_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarding_code_expires_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  onboarding_completed_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  db_host?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_port?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  db_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_user?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_password_enc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_ssl?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  provisioning_status?: Prisma.EnumClientProvisioningStatusFieldUpdateOperationsInput | $Enums.ClientProvisioningStatus
+  provisioned_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type ClientUncheckedUpdateWithoutDirectory_entriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  document_type?: Prisma.EnumClientDocumentTypeFieldUpdateOperationsInput | $Enums.ClientDocumentType
+  document_number?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
+  address?: Prisma.StringFieldUpdateOperationsInput | string
+  seq?: Prisma.IntFieldUpdateOperationsInput | number
+  is_active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  client_identifier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  client_key_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarding_code_hash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarding_code_expires_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  onboarding_completed_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  db_host?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_port?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  db_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_user?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_password_enc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  db_ssl?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  provisioning_status?: Prisma.EnumClientProvisioningStatusFieldUpdateOperationsInput | $Enums.ClientProvisioningStatus
+  provisioned_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+
+/**
+ * Count Type ClientCountOutputType
+ */
+
+export type ClientCountOutputType = {
+  directory_entries: number
+}
+
+export type ClientCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  directory_entries?: boolean | ClientCountOutputTypeCountDirectory_entriesArgs
+}
+
+/**
+ * ClientCountOutputType without action
+ */
+export type ClientCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ClientCountOutputType
+   */
+  select?: Prisma.ClientCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * ClientCountOutputType without action
+ */
+export type ClientCountOutputTypeCountDirectory_entriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TenantIdentifierDirectoryWhereInput
+}
 
 
 export type ClientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -898,6 +1072,8 @@ export type ClientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   updated_at?: boolean
   created_by?: boolean
   updated_by?: boolean
+  directory_entries?: boolean | Prisma.Client$directory_entriesArgs<ExtArgs>
+  _count?: boolean | Prisma.ClientCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["client"]>
 
 export type ClientSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -988,10 +1164,18 @@ export type ClientSelectScalar = {
 }
 
 export type ClientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "document_type" | "document_number" | "email" | "phone" | "address" | "seq" | "is_active" | "client_identifier" | "client_key_hash" | "onboarding_code_hash" | "onboarding_code_expires_at" | "onboarding_completed_at" | "db_host" | "db_port" | "db_name" | "db_user" | "db_password_enc" | "db_ssl" | "provisioning_status" | "provisioned_at" | "created_at" | "updated_at" | "created_by" | "updated_by", ExtArgs["result"]["client"]>
+export type ClientInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  directory_entries?: boolean | Prisma.Client$directory_entriesArgs<ExtArgs>
+  _count?: boolean | Prisma.ClientCountOutputTypeDefaultArgs<ExtArgs>
+}
+export type ClientIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type ClientIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
 export type $ClientPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Client"
-  objects: {}
+  objects: {
+    directory_entries: Prisma.$TenantIdentifierDirectoryPayload<ExtArgs>[]
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     name: string
@@ -1413,6 +1597,7 @@ readonly fields: ClientFieldRefs;
  */
 export interface Prisma__ClientClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  directory_entries<T extends Prisma.Client$directory_entriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Client$directory_entriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TenantIdentifierDirectoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1485,6 +1670,10 @@ export type ClientFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.Intern
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
+  /**
    * Filter, which Client to fetch.
    */
   where: Prisma.ClientWhereUniqueInput
@@ -1503,6 +1692,10 @@ export type ClientFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensions
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
+  /**
    * Filter, which Client to fetch.
    */
   where: Prisma.ClientWhereUniqueInput
@@ -1520,6 +1713,10 @@ export type ClientFindFirstArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Omit specific fields from the Client
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
   /**
    * Filter, which Client to fetch.
    */
@@ -1569,6 +1766,10 @@ export type ClientFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions.
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
+  /**
    * Filter, which Client to fetch.
    */
   where?: Prisma.ClientWhereInput
@@ -1617,6 +1818,10 @@ export type ClientFindManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
+  /**
    * Filter, which Clients to fetch.
    */
   where?: Prisma.ClientWhereInput
@@ -1659,6 +1864,10 @@ export type ClientCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    * Omit specific fields from the Client
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
   /**
    * The data needed to create a Client.
    */
@@ -1707,6 +1916,10 @@ export type ClientUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    * Omit specific fields from the Client
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
   /**
    * The data needed to update a Client.
    */
@@ -1774,6 +1987,10 @@ export type ClientUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
+  /**
    * The filter to search for the Client to update in case it exists.
    */
   where: Prisma.ClientWhereUniqueInput
@@ -1800,6 +2017,10 @@ export type ClientDeleteArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
+  /**
    * Filter which Client to delete.
    */
   where: Prisma.ClientWhereUniqueInput
@@ -1820,6 +2041,30 @@ export type ClientDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
 }
 
 /**
+ * Client.directory_entries
+ */
+export type Client$directory_entriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TenantIdentifierDirectory
+   */
+  select?: Prisma.TenantIdentifierDirectorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TenantIdentifierDirectory
+   */
+  omit?: Prisma.TenantIdentifierDirectoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TenantIdentifierDirectoryInclude<ExtArgs> | null
+  where?: Prisma.TenantIdentifierDirectoryWhereInput
+  orderBy?: Prisma.TenantIdentifierDirectoryOrderByWithRelationInput | Prisma.TenantIdentifierDirectoryOrderByWithRelationInput[]
+  cursor?: Prisma.TenantIdentifierDirectoryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TenantIdentifierDirectoryScalarFieldEnum | Prisma.TenantIdentifierDirectoryScalarFieldEnum[]
+}
+
+/**
  * Client without action
  */
 export type ClientDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1831,4 +2076,8 @@ export type ClientDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalA
    * Omit specific fields from the Client
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
 }

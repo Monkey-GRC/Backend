@@ -6,9 +6,19 @@ import { verifyToken } from 'src/infrastructure/tenancy/fast-token.util';
 /**
  * Reemplaza a TenantResolutionGuard. Resuelve el tenant a partir de los
  * headers mnk-client-identifier/mnk-client-key (modelo access-key/secret-key
- * tipo AWS), obligatorios en TODAS las peticiones de un tenant, no solo en
- * el login — pensado para que el propio cliente pueda integrar la API
- * directamente a futuro.
+ * tipo AWS) SOLO cuando vienen presentes — pensado para integraciones
+ * directas a la API sin sesión de usuario (servidor a servidor).
+ *
+ * Para una sesión de usuario ya autenticada (cookie/JWT validado por
+ * AuthGuard('jwt') antes que este guard), el client_id firmado dentro del
+ * propio token ya es prueba suficiente de a qué tenant pertenece la
+ * petición — UserContextInterceptor lo toma de ahí
+ * (`req.resolvedClientId ?? req.user?.client_id`) sin que este guard tenga
+ * que exigir las keys de nuevo en cada request. Exigirlas ahí no sumaba
+ * seguridad real (la cookie httpOnly ya es la prueba, y si alguien la roba
+ * probablemente ya tiene también las keys del mismo localStorage) y sí
+ * rompía el login/uso desde cualquier dispositivo que no las tuviera
+ * guardadas.
  */
 @Injectable()
 export class ClientCredentialsGuard implements CanActivate {
@@ -23,10 +33,9 @@ export class ClientCredentialsGuard implements CanActivate {
     const key = req.headers['mnk-client-key'];
 
     if (!identifier || !key) {
-      if (req.user?.client_id) {
-        throw new UnauthorizedException('Se requieren los headers mnk-client-identifier y mnk-client-key');
-      }
-      // Sesión MONKEY_ADMIN (o /auth/login sin headers) — nada que resolver.
+      // Sesión de usuario ya autenticada, o /auth/login sin headers (se
+      // resuelve por directorio de identifiers dentro de AuthService) — en
+      // ninguno de los dos casos hay nada que este guard deba validar.
       return true;
     }
 

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ChecklistModule } from 'src/features/checklist/checklist.module';
 import { DashboardController } from './presentation/dashboard.controller';
 import { ControlComplianceRepository } from './domain/repositories/control-compliance.repository';
 import { ScaResultRepository } from './domain/repositories/sca-result.repository';
@@ -10,6 +11,7 @@ import { GetDashboardSummaryUseCase } from './application/use-cases/get-dashboar
 import { GetControlChecksDetailUseCase } from './application/use-cases/get-control-checks-detail.use-case';
 
 @Module({
+  imports: [ChecklistModule],
   controllers: [DashboardController],
   providers: [
     WazuhApiClient,

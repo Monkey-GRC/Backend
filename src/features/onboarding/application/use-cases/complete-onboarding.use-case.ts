@@ -140,6 +140,24 @@ export class CompleteOnboardingUseCase {
       },
     });
 
+    // Directorio identifier -> tenant, para que /auth/login pueda resolver a
+    // qué base de datos dirigir la autenticación con solo el email/usuario,
+    // sin depender de que el navegador ya tenga guardadas las keys de tenant
+    // (esas siguen existiendo, pero solo para integraciones directas a la
+    // API sin sesión de usuario). Best-effort: si falla, el tenant sigue
+    // quedando READY y utilizable, solo no se benefician de este atajo.
+    try {
+      await this.centralPrisma.tenantIdentifierDirectory.createMany({
+        data: [
+          { identifier: dto.email.toLowerCase(), client_id: client.id },
+          { identifier: dto.username, client_id: client.id },
+        ],
+        skipDuplicates: true,
+      });
+    } catch (err) {
+      console.error('Error registrando el directorio de identificadores del tenant:', err);
+    }
+
     const session = await this.authService.issueTokens(createdUser, client.id, tenantDb);
     await tenantDb.$disconnect();
 

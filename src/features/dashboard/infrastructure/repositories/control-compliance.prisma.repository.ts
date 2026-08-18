@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { ControlType } from 'generated/prisma-tenant/browser';
 import { CentralPrismaService } from 'src/infrastructure/database/central-prisma.service';
 import { TenantConnectionManager } from 'src/infrastructure/tenancy/tenant-connection-manager.service';
 import { RequestContext } from 'src/common/utils/request-context';
@@ -22,20 +21,26 @@ export class ControlCompliancePrismaRepository extends ControlComplianceReposito
     return tenantId ? this.tenantConnection.getClientFor(tenantId) : Promise.resolve(this.centralPrisma);
   }
 
-  async findAutomaticControlsWithChecks(): Promise<ControlWithChecks[]> {
+  async findControlsWithChecks(): Promise<ControlWithChecks[]> {
     const db = await this.db();
     const controls = await db.control.findMany({
-      where: { type: ControlType.AUTOMATIC },
       select: {
         id: true,
         code: true,
         name: true,
         description: true,
+        type: true,
         checks: {
           select: {
             check_id: true,
             title: true,
             os: true,
+          },
+        },
+        manual_checks: {
+          select: {
+            id: true,
+            status: true,
           },
         },
       },
@@ -47,10 +52,15 @@ export class ControlCompliancePrismaRepository extends ControlComplianceReposito
       code: control.code,
       name: control.name,
       description: control.description,
+      type: control.type,
       checks: control.checks.map((check: any) => ({
         checkId: check.check_id,
         title: check.title,
         os: check.os,
+      })),
+      manualChecks: control.manual_checks.map((check: any) => ({
+        id: check.id,
+        status: check.status,
       })),
     }));
   }

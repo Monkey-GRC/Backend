@@ -16,6 +16,7 @@ import { DashboardModule } from './features/dashboard/dashboard.module';
 import { UserModule } from './features/user/user.module';
 import { ClientModule } from './features/client/client.module';
 import { OnboardingModule } from './features/onboarding/onboarding.module';
+import { ManualCheckModule } from './features/manual-check/manual-check.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { OnboardingModule } from './features/onboarding/onboarding.module';
     UserModule,
     ClientModule,
     OnboardingModule,
+    ManualCheckModule,
   ],
   controllers: [],
   providers: [

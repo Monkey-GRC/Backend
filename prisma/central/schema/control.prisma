@@ -24,6 +24,7 @@ model Control {
     updated_by      String?   @db.Uuid
     updated_by_user User?     @relation("mnk_user_updated_controls", fields: [updated_by], references: [id], onDelete: NoAction)
     checks          ControlCheck[]
+    manual_checks   ManualCheckItem[]
     reasons         ReasonControl[]
 
     @@map("mnk_controls")

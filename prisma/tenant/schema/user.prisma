@@ -35,6 +35,9 @@ model User {
   created_controls Control[] @relation("mnk_user_created_controls")
   updated_controls Control[] @relation("mnk_user_updated_controls")
 
+  created_manual_checks   ManualCheckItem[]     @relation("mnk_user_created_manual_checks")
+  evaluated_manual_checks ManualCheckItem[]     @relation("mnk_user_evaluated_manual_checks")
+  uploaded_manual_check_evidence ManualCheckEvidence[] @relation("mnk_user_uploaded_manual_check_evidence")
 
   @@map("mnk_users")
 

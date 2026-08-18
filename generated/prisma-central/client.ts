@@ -27,8 +27,8 @@ export * from "./enums.js"
  * @example
  * ```
  * const prisma = new PrismaClient()
- * // Fetch zero or more Clients
- * const clients = await prisma.client.findMany()
+ * // Fetch zero or more CisCheckTranslations
+ * const cisCheckTranslations = await prisma.cisCheckTranslation.findMany()
  * ```
  * 
  * Read more in our [docs](https://pris.ly/d/client).
@@ -37,6 +37,15 @@ export const PrismaClient = $Class.getPrismaClientClass()
 export type PrismaClient<LogOpts extends Prisma.LogLevel = never, OmitOpts extends Prisma.PrismaClientOptions["omit"] = Prisma.PrismaClientOptions["omit"], ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = $Class.PrismaClient<LogOpts, OmitOpts, ExtArgs>
 export { Prisma }
 
+/**
+ * Model CisCheckTranslation
+ * Traducción al español de los checks del catálogo CIS de Wazuh (tabla
+ * externa `cis_checks`, en inglés — no la modificamos directamente porque es
+ * contenido de referencia de un tercero). Cache propia, independiente de
+ * tenant: un check_id significa lo mismo para cualquier cliente.
+ * Si un check_id no tiene fila acá, el repositorio cae de vuelta al inglés.
+ */
+export type CisCheckTranslation = Prisma.CisCheckTranslationModel
 /**
  * Model Client
  * 
@@ -52,6 +61,24 @@ export type Control = Prisma.ControlModel
  * 
  */
 export type ControlCheck = Prisma.ControlCheckModel
+/**
+ * Model ManualCheckItem
+ * Check manual/hibrido de un control (MANUAL o HYBRID) de un TEMPLATE MAESTRO.
+ * Acá es pura definición (qué hay que verificar y qué hacer si falla) — no
+ * tiene sentido de "evaluación en vivo" (status/notes/evidencia) porque un
+ * master template es un blueprint, no una empresa real. Al clonarse a un
+ * tenant en el onboarding, cada uno de estos se copia a un ManualCheckItem
+ * del tenant con status PENDING.
+ */
+export type ManualCheckItem = Prisma.ManualCheckItemModel
+/**
+ * Model ManualCheckEvidence
+ * Sin uso real en un master template (nadie sube evidencia a un blueprint),
+ * pero se mantiene el modelo idéntico al del tenant para reusar el mismo
+ * código de aplicación (ManualCheckRepository resuelve central vs tenant
+ * según RequestContext, igual que ya hace ControlRepository).
+ */
+export type ManualCheckEvidence = Prisma.ManualCheckEvidenceModel
 /**
  * Model Reason
  * 
@@ -77,6 +104,17 @@ export type Risk = Prisma.RiskModel
  * 
  */
 export type Template = Prisma.TemplateModel
+/**
+ * Model TenantIdentifierDirectory
+ * Directorio liviano identifier (email o username) -> tenant. NO es un
+ * mecanismo de seguridad — no guarda contraseñas ni permite autenticarse
+ * por sí solo, solo responde "¿a qué tenant pertenece este identifier?"
+ * para que /auth/login sepa contra qué base de datos física verificar la
+ * contraseña, sin depender de que el navegador ya tenga guardadas las keys
+ * mnk-client-identifier/mnk-client-key (que siguen existiendo, pero solo
+ * para integraciones directas a la API sin sesión de usuario).
+ */
+export type TenantIdentifierDirectory = Prisma.TenantIdentifierDirectoryModel
 /**
  * Model User
  * 

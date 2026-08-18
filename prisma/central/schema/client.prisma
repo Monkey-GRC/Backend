@@ -50,6 +50,8 @@ model Client {
     created_by String?
     updated_by String?
 
+    directory_entries TenantIdentifierDirectory[]
+
     @@map("mnk_clients")
 
     @@unique([document_type, document_number])
