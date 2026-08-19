@@ -17,6 +17,7 @@ import { UserModule } from './features/user/user.module';
 import { ClientModule } from './features/client/client.module';
 import { OnboardingModule } from './features/onboarding/onboarding.module';
 import { ManualCheckModule } from './features/manual-check/manual-check.module';
+import { TranslationModule } from './features/translation/translation.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { ManualCheckModule } from './features/manual-check/manual-check.module';
     ClientModule,
     OnboardingModule,
     ManualCheckModule,
+    TranslationModule,
   ],
   controllers: [],
   providers: [

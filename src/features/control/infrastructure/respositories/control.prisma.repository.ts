@@ -57,6 +57,9 @@ export class ControlPrismaRepository extends ControlRepository {
                         check_id: true,
                         title: true,
                         os: true,
+                        soc2_code: true,
+                        cis_code: true,
+                        pci_dss_code: true,
                     },
                 },
             }
@@ -82,6 +85,9 @@ export class ControlPrismaRepository extends ControlRepository {
                         check_id: true,
                         title: true,
                         os: true,
+                        soc2_code: true,
+                        cis_code: true,
+                        pci_dss_code: true,
                     },
                 },
                 reasons: {
@@ -112,6 +118,9 @@ export class ControlPrismaRepository extends ControlRepository {
                                 check_id: item.checkId,
                                 title: item.title,
                                 os: input.os!,
+                                soc2_code: item.soc2Code ?? null,
+                                cis_code: item.cisCode ?? null,
+                                pci_dss_code: item.pciDssCode ?? null,
                             })),
                         }
                         : undefined,

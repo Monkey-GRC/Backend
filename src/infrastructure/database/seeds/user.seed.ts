@@ -9,14 +9,14 @@ export async function seedUsers(prisma: PrismaClient) {
     {
       email: 'jannergonpa.10@gmail.com',
       username: 'janner-gp',
-      password: 'Janner2002+',
+      password: ' Janner@1998*',
       name: 'Janner',
       last_name: 'Gonzalez',
       role: Role.MONKEY_ADMIN,
       is_active: true,
       created_by: 'seed_script',
     },
-    {
+    { 
       email: 'sergio011304@gmail.com',
       username: 'sergio-lema',
       password: 'Sergio2003+',
