@@ -1485,6 +1485,9 @@ export const ControlCheckScalarFieldEnum = {
   check_id: 'check_id',
   title: 'title',
   os: 'os',
+  soc2_code: 'soc2_code',
+  cis_code: 'cis_code',
+  pci_dss_code: 'pci_dss_code',
   created_at: 'created_at'
 } as const
 

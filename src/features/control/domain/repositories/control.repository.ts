@@ -3,6 +3,9 @@ import { ChecklistOs, ControlType } from 'generated/prisma-tenant/browser';
 export type ControlChecklistItemInput = {
     checkId: string;
     title: string;
+    soc2Code?: string | null;
+    cisCode?: string | null;
+    pciDssCode?: string | null;
 };
 
 export type CreateControlInput = {

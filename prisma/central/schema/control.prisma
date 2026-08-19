@@ -34,13 +34,16 @@ model Control {
 }
 
 model ControlCheck {
-    id         String      @id @default(uuid()) @db.Uuid
-    control_id String      @db.Uuid
-    control    Control     @relation(fields: [control_id], references: [id], onDelete: Cascade)
-    check_id   String
-    title      String
-    os         ChecklistOs
-    created_at DateTime    @default(now())
+    id           String      @id @default(uuid()) @db.Uuid
+    control_id   String      @db.Uuid
+    control      Control     @relation(fields: [control_id], references: [id], onDelete: Cascade)
+    check_id     String
+    title        String
+    os           ChecklistOs
+    soc2_code    String?
+    cis_code     String?
+    pci_dss_code String?
+    created_at   DateTime    @default(now())
 
     @@map("mnk_control_checks")
     @@unique([control_id, check_id])

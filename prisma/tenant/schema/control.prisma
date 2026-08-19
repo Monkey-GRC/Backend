@@ -34,13 +34,20 @@ model Control {
 }
 
 model ControlCheck {
-    id         String      @id @default(uuid()) @db.Uuid
-    control_id String      @db.Uuid
-    control    Control     @relation(fields: [control_id], references: [id], onDelete: Cascade)
-    check_id   String
-    title      String
-    os         ChecklistOs
-    created_at DateTime    @default(now())
+    id           String      @id @default(uuid()) @db.Uuid
+    control_id   String      @db.Uuid
+    control      Control     @relation(fields: [control_id], references: [id], onDelete: Cascade)
+    check_id     String
+    title        String
+    os           ChecklistOs
+    // Snapshot del mapeo a frameworks que Wazuh ya traia para este check en
+    // el momento en que se agrego al control (catalogo cis_checks). Se
+    // guarda aqui, no solo en el catalogo, para que el control conserve su
+    // evidencia de mapeo aunque el catalogo cambie despues.
+    soc2_code    String?
+    cis_code     String?
+    pci_dss_code String?
+    created_at   DateTime    @default(now())
 
     @@map("mnk_control_checks")
     @@unique([control_id, check_id])

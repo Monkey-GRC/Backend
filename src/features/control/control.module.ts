@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ChecklistModule } from 'src/features/checklist/checklist.module';
 import { ControlController } from './presentation/control.controller';
 import { ControlRepository } from './domain/repositories/control.repository';
 import { ControlPrismaRepository } from './infrastructure/respositories/control.prisma.repository';
@@ -9,6 +10,7 @@ import { UpdateControlUseCase } from './application/use-cases/update-control.use
 import { DeleteControlUseCase } from './application/use-cases/delete-control.use-case';
 
 @Module({
+    imports: [ChecklistModule],
     controllers: [ControlController],
     providers: [
         {

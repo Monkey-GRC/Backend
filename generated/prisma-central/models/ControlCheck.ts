@@ -30,6 +30,9 @@ export type ControlCheckMinAggregateOutputType = {
   check_id: string | null
   title: string | null
   os: $Enums.ChecklistOs | null
+  soc2_code: string | null
+  cis_code: string | null
+  pci_dss_code: string | null
   created_at: Date | null
 }
 
@@ -39,6 +42,9 @@ export type ControlCheckMaxAggregateOutputType = {
   check_id: string | null
   title: string | null
   os: $Enums.ChecklistOs | null
+  soc2_code: string | null
+  cis_code: string | null
+  pci_dss_code: string | null
   created_at: Date | null
 }
 
@@ -48,6 +54,9 @@ export type ControlCheckCountAggregateOutputType = {
   check_id: number
   title: number
   os: number
+  soc2_code: number
+  cis_code: number
+  pci_dss_code: number
   created_at: number
   _all: number
 }
@@ -59,6 +68,9 @@ export type ControlCheckMinAggregateInputType = {
   check_id?: true
   title?: true
   os?: true
+  soc2_code?: true
+  cis_code?: true
+  pci_dss_code?: true
   created_at?: true
 }
 
@@ -68,6 +80,9 @@ export type ControlCheckMaxAggregateInputType = {
   check_id?: true
   title?: true
   os?: true
+  soc2_code?: true
+  cis_code?: true
+  pci_dss_code?: true
   created_at?: true
 }
 
@@ -77,6 +92,9 @@ export type ControlCheckCountAggregateInputType = {
   check_id?: true
   title?: true
   os?: true
+  soc2_code?: true
+  cis_code?: true
+  pci_dss_code?: true
   created_at?: true
   _all?: true
 }
@@ -159,6 +177,9 @@ export type ControlCheckGroupByOutputType = {
   check_id: string
   title: string
   os: $Enums.ChecklistOs
+  soc2_code: string | null
+  cis_code: string | null
+  pci_dss_code: string | null
   created_at: Date
   _count: ControlCheckCountAggregateOutputType | null
   _min: ControlCheckMinAggregateOutputType | null
@@ -189,6 +210,9 @@ export type ControlCheckWhereInput = {
   check_id?: Prisma.StringFilter<"ControlCheck"> | string
   title?: Prisma.StringFilter<"ControlCheck"> | string
   os?: Prisma.EnumChecklistOsFilter<"ControlCheck"> | $Enums.ChecklistOs
+  soc2_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  cis_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  pci_dss_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
   created_at?: Prisma.DateTimeFilter<"ControlCheck"> | Date | string
   control?: Prisma.XOR<Prisma.ControlScalarRelationFilter, Prisma.ControlWhereInput>
 }
@@ -199,6 +223,9 @@ export type ControlCheckOrderByWithRelationInput = {
   check_id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   os?: Prisma.SortOrder
+  soc2_code?: Prisma.SortOrderInput | Prisma.SortOrder
+  cis_code?: Prisma.SortOrderInput | Prisma.SortOrder
+  pci_dss_code?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   control?: Prisma.ControlOrderByWithRelationInput
 }
@@ -213,6 +240,9 @@ export type ControlCheckWhereUniqueInput = Prisma.AtLeast<{
   check_id?: Prisma.StringFilter<"ControlCheck"> | string
   title?: Prisma.StringFilter<"ControlCheck"> | string
   os?: Prisma.EnumChecklistOsFilter<"ControlCheck"> | $Enums.ChecklistOs
+  soc2_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  cis_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  pci_dss_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
   created_at?: Prisma.DateTimeFilter<"ControlCheck"> | Date | string
   control?: Prisma.XOR<Prisma.ControlScalarRelationFilter, Prisma.ControlWhereInput>
 }, "id" | "control_id_check_id">
@@ -223,6 +253,9 @@ export type ControlCheckOrderByWithAggregationInput = {
   check_id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   os?: Prisma.SortOrder
+  soc2_code?: Prisma.SortOrderInput | Prisma.SortOrder
+  cis_code?: Prisma.SortOrderInput | Prisma.SortOrder
+  pci_dss_code?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   _count?: Prisma.ControlCheckCountOrderByAggregateInput
   _max?: Prisma.ControlCheckMaxOrderByAggregateInput
@@ -238,6 +271,9 @@ export type ControlCheckScalarWhereWithAggregatesInput = {
   check_id?: Prisma.StringWithAggregatesFilter<"ControlCheck"> | string
   title?: Prisma.StringWithAggregatesFilter<"ControlCheck"> | string
   os?: Prisma.EnumChecklistOsWithAggregatesFilter<"ControlCheck"> | $Enums.ChecklistOs
+  soc2_code?: Prisma.StringNullableWithAggregatesFilter<"ControlCheck"> | string | null
+  cis_code?: Prisma.StringNullableWithAggregatesFilter<"ControlCheck"> | string | null
+  pci_dss_code?: Prisma.StringNullableWithAggregatesFilter<"ControlCheck"> | string | null
   created_at?: Prisma.DateTimeWithAggregatesFilter<"ControlCheck"> | Date | string
 }
 
@@ -246,6 +282,9 @@ export type ControlCheckCreateInput = {
   check_id: string
   title: string
   os: $Enums.ChecklistOs
+  soc2_code?: string | null
+  cis_code?: string | null
+  pci_dss_code?: string | null
   created_at?: Date | string
   control: Prisma.ControlCreateNestedOneWithoutChecksInput
 }
@@ -256,6 +295,9 @@ export type ControlCheckUncheckedCreateInput = {
   check_id: string
   title: string
   os: $Enums.ChecklistOs
+  soc2_code?: string | null
+  cis_code?: string | null
+  pci_dss_code?: string | null
   created_at?: Date | string
 }
 
@@ -264,6 +306,9 @@ export type ControlCheckUpdateInput = {
   check_id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   os?: Prisma.EnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs
+  soc2_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cis_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pci_dss_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   control?: Prisma.ControlUpdateOneRequiredWithoutChecksNestedInput
 }
@@ -274,6 +319,9 @@ export type ControlCheckUncheckedUpdateInput = {
   check_id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   os?: Prisma.EnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs
+  soc2_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cis_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pci_dss_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -283,6 +331,9 @@ export type ControlCheckCreateManyInput = {
   check_id: string
   title: string
   os: $Enums.ChecklistOs
+  soc2_code?: string | null
+  cis_code?: string | null
+  pci_dss_code?: string | null
   created_at?: Date | string
 }
 
@@ -291,6 +342,9 @@ export type ControlCheckUpdateManyMutationInput = {
   check_id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   os?: Prisma.EnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs
+  soc2_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cis_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pci_dss_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -300,6 +354,9 @@ export type ControlCheckUncheckedUpdateManyInput = {
   check_id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   os?: Prisma.EnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs
+  soc2_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cis_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pci_dss_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -324,6 +381,9 @@ export type ControlCheckCountOrderByAggregateInput = {
   check_id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   os?: Prisma.SortOrder
+  soc2_code?: Prisma.SortOrder
+  cis_code?: Prisma.SortOrder
+  pci_dss_code?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -333,6 +393,9 @@ export type ControlCheckMaxOrderByAggregateInput = {
   check_id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   os?: Prisma.SortOrder
+  soc2_code?: Prisma.SortOrder
+  cis_code?: Prisma.SortOrder
+  pci_dss_code?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -342,6 +405,9 @@ export type ControlCheckMinOrderByAggregateInput = {
   check_id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   os?: Prisma.SortOrder
+  soc2_code?: Prisma.SortOrder
+  cis_code?: Prisma.SortOrder
+  pci_dss_code?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -396,6 +462,9 @@ export type ControlCheckCreateWithoutControlInput = {
   check_id: string
   title: string
   os: $Enums.ChecklistOs
+  soc2_code?: string | null
+  cis_code?: string | null
+  pci_dss_code?: string | null
   created_at?: Date | string
 }
 
@@ -404,6 +473,9 @@ export type ControlCheckUncheckedCreateWithoutControlInput = {
   check_id: string
   title: string
   os: $Enums.ChecklistOs
+  soc2_code?: string | null
+  cis_code?: string | null
+  pci_dss_code?: string | null
   created_at?: Date | string
 }
 
@@ -442,6 +514,9 @@ export type ControlCheckScalarWhereInput = {
   check_id?: Prisma.StringFilter<"ControlCheck"> | string
   title?: Prisma.StringFilter<"ControlCheck"> | string
   os?: Prisma.EnumChecklistOsFilter<"ControlCheck"> | $Enums.ChecklistOs
+  soc2_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  cis_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  pci_dss_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
   created_at?: Prisma.DateTimeFilter<"ControlCheck"> | Date | string
 }
 
@@ -450,6 +525,9 @@ export type ControlCheckCreateManyControlInput = {
   check_id: string
   title: string
   os: $Enums.ChecklistOs
+  soc2_code?: string | null
+  cis_code?: string | null
+  pci_dss_code?: string | null
   created_at?: Date | string
 }
 
@@ -458,6 +536,9 @@ export type ControlCheckUpdateWithoutControlInput = {
   check_id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   os?: Prisma.EnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs
+  soc2_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cis_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pci_dss_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -466,6 +547,9 @@ export type ControlCheckUncheckedUpdateWithoutControlInput = {
   check_id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   os?: Prisma.EnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs
+  soc2_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cis_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pci_dss_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -474,6 +558,9 @@ export type ControlCheckUncheckedUpdateManyWithoutControlInput = {
   check_id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   os?: Prisma.EnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs
+  soc2_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cis_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pci_dss_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -485,6 +572,9 @@ export type ControlCheckSelect<ExtArgs extends runtime.Types.Extensions.Internal
   check_id?: boolean
   title?: boolean
   os?: boolean
+  soc2_code?: boolean
+  cis_code?: boolean
+  pci_dss_code?: boolean
   created_at?: boolean
   control?: boolean | Prisma.ControlDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["controlCheck"]>
@@ -495,6 +585,9 @@ export type ControlCheckSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   check_id?: boolean
   title?: boolean
   os?: boolean
+  soc2_code?: boolean
+  cis_code?: boolean
+  pci_dss_code?: boolean
   created_at?: boolean
   control?: boolean | Prisma.ControlDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["controlCheck"]>
@@ -505,6 +598,9 @@ export type ControlCheckSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   check_id?: boolean
   title?: boolean
   os?: boolean
+  soc2_code?: boolean
+  cis_code?: boolean
+  pci_dss_code?: boolean
   created_at?: boolean
   control?: boolean | Prisma.ControlDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["controlCheck"]>
@@ -515,10 +611,13 @@ export type ControlCheckSelectScalar = {
   check_id?: boolean
   title?: boolean
   os?: boolean
+  soc2_code?: boolean
+  cis_code?: boolean
+  pci_dss_code?: boolean
   created_at?: boolean
 }
 
-export type ControlCheckOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "control_id" | "check_id" | "title" | "os" | "created_at", ExtArgs["result"]["controlCheck"]>
+export type ControlCheckOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "control_id" | "check_id" | "title" | "os" | "soc2_code" | "cis_code" | "pci_dss_code" | "created_at", ExtArgs["result"]["controlCheck"]>
 export type ControlCheckInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   control?: boolean | Prisma.ControlDefaultArgs<ExtArgs>
 }
@@ -540,6 +639,9 @@ export type $ControlCheckPayload<ExtArgs extends runtime.Types.Extensions.Intern
     check_id: string
     title: string
     os: $Enums.ChecklistOs
+    soc2_code: string | null
+    cis_code: string | null
+    pci_dss_code: string | null
     created_at: Date
   }, ExtArgs["result"]["controlCheck"]>
   composites: {}
@@ -970,6 +1072,9 @@ export interface ControlCheckFieldRefs {
   readonly check_id: Prisma.FieldRef<"ControlCheck", 'String'>
   readonly title: Prisma.FieldRef<"ControlCheck", 'String'>
   readonly os: Prisma.FieldRef<"ControlCheck", 'ChecklistOs'>
+  readonly soc2_code: Prisma.FieldRef<"ControlCheck", 'String'>
+  readonly cis_code: Prisma.FieldRef<"ControlCheck", 'String'>
+  readonly pci_dss_code: Prisma.FieldRef<"ControlCheck", 'String'>
   readonly created_at: Prisma.FieldRef<"ControlCheck", 'DateTime'>
 }
     
