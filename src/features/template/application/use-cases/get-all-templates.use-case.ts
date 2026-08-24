@@ -3,9 +3,9 @@ import { TemplateRepository } from '../../domain/repositories/template.repositor
 
 @Injectable()
 export class GetAllTemplatesUseCase {
-    constructor(private readonly templateRepository: TemplateRepository) { }
+  constructor(private readonly templateRepository: TemplateRepository) {}
 
-    execute() {
-        return this.templateRepository.findAll();
-    }
+  execute() {
+    return this.templateRepository.findAll();
+  }
 }

@@ -1,12 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ChecklistOs, ControlType } from 'generated/prisma-tenant/browser';
 import { ControlCompliance } from '../compliance.calculator';
+import type { ScaCheckResult } from '../compliance.calculator';
 import { DashboardSummary } from '../use-cases/get-dashboard-summary.use-case';
+import { ServerCompliance } from '../use-cases/get-dashboard-servers.use-case';
 import {
   ControlCheckDetail,
   ControlChecksDetail,
 } from '../use-cases/get-control-checks-detail.use-case';
-import type { ScaCheckResult } from '../../domain/repositories/sca-result.repository';
 
 export class ControlComplianceResponseDto implements ControlCompliance {
   @ApiProperty({
@@ -38,18 +39,18 @@ export class ControlComplianceResponseDto implements ControlCompliance {
   })
   compliance!: number | null;
 
-  @ApiProperty({ example: 4, description: 'Checks (automáticos + manuales) del control' })
+  @ApiProperty({ example: 4, description: 'Checks (automáticos, por cada servidor donde aplican, + manuales)' })
   checksTotal!: number;
 
   @ApiProperty({
     example: 2,
-    description: 'Checks automáticos que pasan en todos los agentes + checks manuales marcados como cumple',
+    description: 'Checks automáticos que pasan por servidor + checks manuales marcados como cumple',
   })
   checksPassed!: number;
 
   @ApiProperty({
     example: 2,
-    description: 'Checks automáticos fallidos en al menos un agente + checks manuales marcados como falla',
+    description: 'Checks automáticos fallidos por servidor + checks manuales marcados como falla',
   })
   checksFailed!: number;
 
@@ -64,6 +65,12 @@ export class ControlComplianceResponseDto implements ControlCompliance {
     description: 'Checks manuales que todavía nadie ha evaluado (no cuentan como cumple ni como falla)',
   })
   checksPending!: number;
+
+  @ApiProperty({
+    example: 2,
+    description: 'Servidores registrados con al menos un check evaluado para este control',
+  })
+  serversEvaluated!: number;
 }
 
 export class ControlCheckDetailResponseDto implements ControlCheckDetail {
@@ -82,7 +89,7 @@ export class ControlCheckDetailResponseDto implements ControlCheckDetail {
     enum: ['passed', 'failed', 'not_applicable'],
     example: 'failed',
     description:
-      'Aggregated result across all agents (bool_and): passed only if it passed on every agent running the policy.',
+      'Resultado agregado entre los servidores registrados de ese sistema operativo (bool_and): pasa solo si pasa en todos.',
   })
   result!: ScaCheckResult;
 
@@ -139,4 +146,48 @@ export class DashboardSummaryResponseDto implements DashboardSummary {
     description: 'Total failed checks across all controls (open findings)',
   })
   openFindings!: number;
+
+  @ApiProperty({
+    example: 2,
+    description: 'Servidores registrados y activos (origen Wazuh) considerados en este resumen',
+  })
+  serversEvaluated!: number;
+}
+
+export class ServerComplianceResponseDto implements ServerCompliance {
+  @ApiProperty({ format: 'uuid' })
+  assetId!: string;
+
+  @ApiProperty({ example: 'AST-112648' })
+  assetCode!: string;
+
+  @ApiProperty({ example: 'Servidor de base de datos - Producción' })
+  assetName!: string;
+
+  @ApiProperty({ enum: ChecklistOs, example: 'UBUNTU' })
+  os!: ChecklistOs;
+
+  @ApiProperty({ nullable: true, example: 'Ubuntu' })
+  osName!: string | null;
+
+  @ApiProperty({ nullable: true, example: '22.04.5 LTS' })
+  osVersion!: string | null;
+
+  @ApiProperty({ example: 'active', description: 'Estado de conexión reportado por Wazuh' })
+  status!: string;
+
+  @ApiProperty({ nullable: true, example: 45.2 })
+  compliance!: number | null;
+
+  @ApiProperty({ example: 42 })
+  checksTotal!: number;
+
+  @ApiProperty({ example: 19 })
+  checksPassed!: number;
+
+  @ApiProperty({ example: 23 })
+  checksFailed!: number;
+
+  @ApiProperty({ example: 0 })
+  checksNotApplicable!: number;
 }

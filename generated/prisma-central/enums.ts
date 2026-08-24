@@ -9,6 +9,32 @@
 * 🟢 You can import this file directly.
 */
 
+export const AssetType = {
+  SERVER: 'SERVER',
+  DATABASE: 'DATABASE',
+  CLOUD_RESOURCE: 'CLOUD_RESOURCE',
+  NETWORK_DEVICE: 'NETWORK_DEVICE'
+} as const
+
+export type AssetType = (typeof AssetType)[keyof typeof AssetType]
+
+
+export const AssetSource = {
+  WAZUH_AGENT: 'WAZUH_AGENT',
+  MANUAL: 'MANUAL'
+} as const
+
+export type AssetSource = (typeof AssetSource)[keyof typeof AssetSource]
+
+
+export const AssetStatus = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE'
+} as const
+
+export type AssetStatus = (typeof AssetStatus)[keyof typeof AssetStatus]
+
+
 export const ClientProvisioningStatus = {
   PENDING: 'PENDING',
   PROVISIONING: 'PROVISIONING',

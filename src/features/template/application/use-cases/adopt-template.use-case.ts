@@ -5,12 +5,6 @@ import { TenantConnectionManager } from 'src/infrastructure/tenancy/tenant-conne
 import { TenantPrismaClient } from 'src/infrastructure/tenancy/tenant-prisma-client.factory';
 import { RequestContext } from 'src/common/utils/request-context';
 
-/**
- * Extraído de AdoptTemplateUseCase para que el onboarding también pueda
- * clonar una plantilla maestra dentro de la DB del tenant recién
- * aprovisionada, sin depender de RequestContext (todavía no hay sesión en
- * ese punto del flujo).
- */
 export async function cloneMasterTemplateIntoTenant(
   centralPrisma: CentralPrismaService,
   tenantDb: TenantPrismaClient,
@@ -46,7 +40,8 @@ export async function cloneMasterTemplateIntoTenant(
     throw new NotFoundException(i18n.t('template.MASTER_NOT_FOUND'));
   }
 
-  return tenantDb.$transaction(async (tx: any) => {
+  return tenantDb.$transaction(
+    async (tx: any) => {
       const newTemplate = await tx.template.create({
         data: {
           name: master.name,
@@ -116,6 +111,13 @@ export async function cloneMasterTemplateIntoTenant(
                       check_id: check.check_id,
                       title: check.title,
                       os: check.os,
+                      soc2_code: check.soc2_code,
+                      cis_code: check.cis_code,
+                      pci_dss_code: check.pci_dss_code,
+                      soc2_code_inferred: check.soc2_code_inferred,
+                      soc2_mapping_source: check.soc2_mapping_source,
+                      soc2_mapping_confidence: check.soc2_mapping_confidence,
+                      soc2_mapping_citation: check.soc2_mapping_citation,
                     })),
                   });
                 }
@@ -147,7 +149,9 @@ export async function cloneMasterTemplateIntoTenant(
       }
 
       return newTemplate;
-  }, { timeout: 60_000 });
+    },
+    { timeout: 60_000 },
+  );
 }
 
 @Injectable()
@@ -166,6 +170,11 @@ export class AdoptTemplateUseCase {
     }
 
     const tenantDb = await this.tenantConnection.getClientFor(tenantId);
-    return cloneMasterTemplateIntoTenant(this.centralPrisma, tenantDb, masterTemplateId, this.i18n);
+    return cloneMasterTemplateIntoTenant(
+      this.centralPrisma,
+      tenantDb,
+      masterTemplateId,
+      this.i18n,
+    );
   }
 }

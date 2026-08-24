@@ -12,6 +12,7 @@ import { UpdateTemplateDto } from "../application/dtos/update-template.dto";
 import { CreateTemplateUseCase } from "../application/use-cases/create-template.use-case";
 import { GetAllTemplatesUseCase } from "../application/use-cases/get-all-templates.use-case";
 import { GetOneTemplateUseCase } from "../application/use-cases/get-one-template.use-case";
+import { GetTemplateFullTreeUseCase } from "../application/use-cases/get-template-full-tree.use-case";
 import { UpdateTemplateUseCase } from "../application/use-cases/update-template.use-case";
 import { DeleteTemplateUseCase } from "../application/use-cases/delete-template.use-case";
 import { GetAllMasterTemplatesUseCase } from "../application/use-cases/get-all-master-templates.use-case";
@@ -25,6 +26,7 @@ export class TemplateController {
         private readonly createTemplateUseCase: CreateTemplateUseCase,
         private readonly getAllTemplatesUseCase: GetAllTemplatesUseCase,
         private readonly getOneTemplateUseCase: GetOneTemplateUseCase,
+        private readonly getTemplateFullTreeUseCase: GetTemplateFullTreeUseCase,
         private readonly updateTemplateUseCase: UpdateTemplateUseCase,
         private readonly deleteTemplateUseCase: DeleteTemplateUseCase,
         private readonly getAllMasterTemplatesUseCase: GetAllMasterTemplatesUseCase,
@@ -113,6 +115,21 @@ export class TemplateController {
             });
         } catch (error) {
             console.error('Error fetching template:', error);
+            throw new HttpException(this.i18n.t('template.NOT_FOUND'), HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @Get(':id/full-tree')
+    async getTemplateFullTree(@Param('id') id: string) {
+        try {
+            const template = await this.getTemplateFullTreeUseCase.execute(id);
+            return new ResponseDto({
+                statusCode: HttpStatus.OK,
+                message: this.i18n.t('template.READ.ONE'),
+                data: template,
+            });
+        } catch (error) {
+            console.error('Error fetching template full tree:', error);
             throw new HttpException(this.i18n.t('template.NOT_FOUND'), HttpStatus.NOT_FOUND);
         }
     }

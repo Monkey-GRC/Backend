@@ -6,6 +6,10 @@ export type ControlChecklistItemInput = {
     soc2Code?: string | null;
     cisCode?: string | null;
     pciDssCode?: string | null;
+    soc2CodeInferred?: string | null;
+    soc2MappingSource?: string | null;
+    soc2MappingConfidence?: string | null;
+    soc2MappingCitation?: string | null;
 };
 
 export type CreateControlInput = {

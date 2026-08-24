@@ -60,6 +60,10 @@ export class ControlPrismaRepository extends ControlRepository {
                         soc2_code: true,
                         cis_code: true,
                         pci_dss_code: true,
+                        soc2_code_inferred: true,
+                        soc2_mapping_source: true,
+                        soc2_mapping_confidence: true,
+                        soc2_mapping_citation: true,
                     },
                 },
             }
@@ -88,6 +92,10 @@ export class ControlPrismaRepository extends ControlRepository {
                         soc2_code: true,
                         cis_code: true,
                         pci_dss_code: true,
+                        soc2_code_inferred: true,
+                        soc2_mapping_source: true,
+                        soc2_mapping_confidence: true,
+                        soc2_mapping_citation: true,
                     },
                 },
                 reasons: {
@@ -121,6 +129,10 @@ export class ControlPrismaRepository extends ControlRepository {
                                 soc2_code: item.soc2Code ?? null,
                                 cis_code: item.cisCode ?? null,
                                 pci_dss_code: item.pciDssCode ?? null,
+                                soc2_code_inferred: item.soc2CodeInferred ?? null,
+                                soc2_mapping_source: item.soc2MappingSource ?? null,
+                                soc2_mapping_confidence: item.soc2MappingConfidence ?? null,
+                                soc2_mapping_citation: item.soc2MappingCitation ?? null,
                             })),
                         }
                         : undefined,

@@ -51,6 +51,7 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
+  Asset: 'Asset',
   CompanyProfile: 'CompanyProfile',
   Control: 'Control',
   ControlCheck: 'ControlCheck',
@@ -78,6 +79,26 @@ export const TransactionIsolationLevel = {
 } as const
 
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
+
+
+export const AssetScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  seq: 'seq',
+  code: 'code',
+  type: 'type',
+  source: 'source',
+  external_id: 'external_id',
+  os: 'os',
+  status: 'status',
+  last_seen_at: 'last_seen_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  created_by: 'created_by',
+  updated_by: 'updated_by'
+} as const
+
+export type AssetScalarFieldEnum = (typeof AssetScalarFieldEnum)[keyof typeof AssetScalarFieldEnum]
 
 
 export const CompanyProfileScalarFieldEnum = {
@@ -117,6 +138,10 @@ export const ControlCheckScalarFieldEnum = {
   soc2_code: 'soc2_code',
   cis_code: 'cis_code',
   pci_dss_code: 'pci_dss_code',
+  soc2_code_inferred: 'soc2_code_inferred',
+  soc2_mapping_source: 'soc2_mapping_source',
+  soc2_mapping_confidence: 'soc2_mapping_confidence',
+  soc2_mapping_citation: 'soc2_mapping_citation',
   created_at: 'created_at'
 } as const
 

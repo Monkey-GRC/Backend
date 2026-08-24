@@ -43,6 +43,10 @@ model ControlCheck {
     soc2_code    String?
     cis_code     String?
     pci_dss_code String?
+    soc2_code_inferred       String?
+    soc2_mapping_source      String?
+    soc2_mapping_confidence  String?
+    soc2_mapping_citation    String?
     created_at   DateTime    @default(now())
 
     @@map("mnk_control_checks")

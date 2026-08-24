@@ -18,6 +18,11 @@ export { Prisma }
 export * as $Enums from './enums.js'
 export * from './enums.js';
 /**
+ * Model Asset
+ * 
+ */
+export type Asset = Prisma.AssetModel
+/**
  * Model CompanyProfile
  * Una sola fila por DB de tenant — se llena durante el onboarding (fuera de
  * este backend), usando el api_key entregado al crear el tenant.

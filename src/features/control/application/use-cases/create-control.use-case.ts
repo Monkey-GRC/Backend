@@ -51,6 +51,10 @@ export class CreateControlUseCase {
         soc2Code: catalogItem?.soc2Code ?? null,
         cisCode: catalogItem?.cisCode ?? null,
         pciDssCode: catalogItem?.pciDssCode ?? null,
+        soc2CodeInferred: catalogItem?.soc2CodeInferred ?? null,
+        soc2MappingSource: catalogItem?.soc2MappingSource ?? null,
+        soc2MappingConfidence: catalogItem?.soc2MappingConfidence ?? null,
+        soc2MappingCitation: catalogItem?.soc2MappingCitation ?? null,
       };
     });
   }

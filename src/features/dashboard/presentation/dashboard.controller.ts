@@ -16,18 +16,19 @@ import {
   ApiParam,
   ApiTags,
   ApiUnauthorizedResponse,
-  ApiServiceUnavailableResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
 import { ResponseDto } from 'src/common/dtos/response.dto';
 import { ClientCredentialsGuard } from 'src/common/guards/client-credentials.guard';
 import { GetControlChecksDetailUseCase } from '../application/use-cases/get-control-checks-detail.use-case';
 import { GetDashboardControlsUseCase } from '../application/use-cases/get-dashboard-controls.use-case';
+import { GetDashboardServersUseCase } from '../application/use-cases/get-dashboard-servers.use-case';
 import { GetDashboardSummaryUseCase } from '../application/use-cases/get-dashboard-summary.use-case';
 import {
   ControlChecksDetailResponseDto,
   ControlComplianceResponseDto,
   DashboardSummaryResponseDto,
+  ServerComplianceResponseDto,
 } from '../application/dtos/dashboard-responses.dto';
 
 const responseEnvelope = (dataSchema: object) => ({
@@ -45,13 +46,11 @@ const responseEnvelope = (dataSchema: object) => ({
 @ApiUnauthorizedResponse({
   description: 'Missing or expired access_token cookie',
 })
-@ApiServiceUnavailableResponse({
-  description: 'Wazuh Manager API unreachable or rejected the request',
-})
 @ApiExtraModels(
   ControlComplianceResponseDto,
   DashboardSummaryResponseDto,
   ControlChecksDetailResponseDto,
+  ServerComplianceResponseDto,
 )
 @UseGuards(AuthGuard('jwt'), ClientCredentialsGuard)
 @Controller('dashboard')
@@ -59,6 +58,7 @@ export class DashboardController {
   constructor(
     private readonly getDashboardSummaryUseCase: GetDashboardSummaryUseCase,
     private readonly getDashboardControlsUseCase: GetDashboardControlsUseCase,
+    private readonly getDashboardServersUseCase: GetDashboardServersUseCase,
     private readonly getControlChecksDetailUseCase: GetControlChecksDetailUseCase,
   ) {}
 
@@ -66,8 +66,7 @@ export class DashboardController {
   @ApiOperation({
     summary: 'Executive compliance summary (Level 1)',
     description:
-      'Framework-wide compliance computed from live Wazuh SCA results. ' +
-      'A check counts as passed only if it passes on every agent running its policy (bool_and). ' +
+      'Framework-wide compliance combinando todos los servidores registrados y activos. ' +
       "Framework % is the simple average of every control's %, not weighted by check count.",
   })
   @ApiOkResponse({
@@ -87,8 +86,8 @@ export class DashboardController {
   @ApiOperation({
     summary: 'Per-control compliance breakdown (Level 2)',
     description:
-      'One row per AUTOMATIC control with its compliance % and check counts ' +
-      '(passed / failed / not applicable), aggregated across all agents. ' +
+      'One row per control con su % de cumplimiento y conteo de checks ' +
+      '(passed / failed / not applicable), combinando todos los servidores registrados. ' +
       "A control's % = passed checks / applicable checks; every check weighs equally.",
   })
   @ApiOkResponse({
@@ -107,12 +106,35 @@ export class DashboardController {
     });
   }
 
+  @Get('servers')
+  @ApiOperation({
+    summary: 'Per-server compliance breakdown',
+    description:
+      'Una fila por servidor registrado (origen Wazuh) con su cumplimiento propio, ' +
+      'limitado a los checks que ya forman parte de algún control del framework.',
+  })
+  @ApiOkResponse({
+    description: 'Per-server compliance list',
+    ...responseEnvelope({
+      type: 'array',
+      items: { $ref: getSchemaPath(ServerComplianceResponseDto) },
+    }),
+  })
+  async getServers() {
+    const data = await this.getDashboardServersUseCase.execute();
+    return new ResponseDto({
+      statusCode: HttpStatus.OK,
+      message: 'Cumplimiento por servidor obtenido',
+      data,
+    });
+  }
+
   @Get('controls/:id/checks')
   @ApiOperation({
     summary: 'Check-level detail for one control',
     description:
       'Every check attached to the control with its aggregated result ' +
-      '(passed / failed / not_applicable) across all agents. ' +
+      '(passed / failed / not_applicable) entre los servidores registrados. ' +
       'Meant for the expandable detail row when a control is clicked in the dashboard.',
   })
   @ApiParam({ name: 'id', format: 'uuid', description: 'Control id' })

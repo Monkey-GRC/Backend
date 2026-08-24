@@ -600,10 +600,6 @@ export type EnumManualCheckStatusFieldUpdateOperationsInput = {
   set?: $Enums.ManualCheckStatus
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type ManualCheckItemCreateNestedOneWithoutEvidenceInput = {
   create?: Prisma.XOR<Prisma.ManualCheckItemCreateWithoutEvidenceInput, Prisma.ManualCheckItemUncheckedCreateWithoutEvidenceInput>
   connectOrCreate?: Prisma.ManualCheckItemCreateOrConnectWithoutEvidenceInput

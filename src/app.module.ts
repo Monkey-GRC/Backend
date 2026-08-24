@@ -18,6 +18,7 @@ import { ClientModule } from './features/client/client.module';
 import { OnboardingModule } from './features/onboarding/onboarding.module';
 import { ManualCheckModule } from './features/manual-check/manual-check.module';
 import { TranslationModule } from './features/translation/translation.module';
+import { AssetModule } from './features/asset/asset.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { TranslationModule } from './features/translation/translation.module';
     OnboardingModule,
     ManualCheckModule,
     TranslationModule,
+    AssetModule,
   ],
   controllers: [],
   providers: [

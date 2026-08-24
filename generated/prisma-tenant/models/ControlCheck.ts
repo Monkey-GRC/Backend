@@ -33,6 +33,10 @@ export type ControlCheckMinAggregateOutputType = {
   soc2_code: string | null
   cis_code: string | null
   pci_dss_code: string | null
+  soc2_code_inferred: string | null
+  soc2_mapping_source: string | null
+  soc2_mapping_confidence: string | null
+  soc2_mapping_citation: string | null
   created_at: Date | null
 }
 
@@ -45,6 +49,10 @@ export type ControlCheckMaxAggregateOutputType = {
   soc2_code: string | null
   cis_code: string | null
   pci_dss_code: string | null
+  soc2_code_inferred: string | null
+  soc2_mapping_source: string | null
+  soc2_mapping_confidence: string | null
+  soc2_mapping_citation: string | null
   created_at: Date | null
 }
 
@@ -57,6 +65,10 @@ export type ControlCheckCountAggregateOutputType = {
   soc2_code: number
   cis_code: number
   pci_dss_code: number
+  soc2_code_inferred: number
+  soc2_mapping_source: number
+  soc2_mapping_confidence: number
+  soc2_mapping_citation: number
   created_at: number
   _all: number
 }
@@ -71,6 +83,10 @@ export type ControlCheckMinAggregateInputType = {
   soc2_code?: true
   cis_code?: true
   pci_dss_code?: true
+  soc2_code_inferred?: true
+  soc2_mapping_source?: true
+  soc2_mapping_confidence?: true
+  soc2_mapping_citation?: true
   created_at?: true
 }
 
@@ -83,6 +99,10 @@ export type ControlCheckMaxAggregateInputType = {
   soc2_code?: true
   cis_code?: true
   pci_dss_code?: true
+  soc2_code_inferred?: true
+  soc2_mapping_source?: true
+  soc2_mapping_confidence?: true
+  soc2_mapping_citation?: true
   created_at?: true
 }
 
@@ -95,6 +115,10 @@ export type ControlCheckCountAggregateInputType = {
   soc2_code?: true
   cis_code?: true
   pci_dss_code?: true
+  soc2_code_inferred?: true
+  soc2_mapping_source?: true
+  soc2_mapping_confidence?: true
+  soc2_mapping_citation?: true
   created_at?: true
   _all?: true
 }
@@ -180,6 +204,10 @@ export type ControlCheckGroupByOutputType = {
   soc2_code: string | null
   cis_code: string | null
   pci_dss_code: string | null
+  soc2_code_inferred: string | null
+  soc2_mapping_source: string | null
+  soc2_mapping_confidence: string | null
+  soc2_mapping_citation: string | null
   created_at: Date
   _count: ControlCheckCountAggregateOutputType | null
   _min: ControlCheckMinAggregateOutputType | null
@@ -213,6 +241,10 @@ export type ControlCheckWhereInput = {
   soc2_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
   cis_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
   pci_dss_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  soc2_code_inferred?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  soc2_mapping_source?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  soc2_mapping_confidence?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  soc2_mapping_citation?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
   created_at?: Prisma.DateTimeFilter<"ControlCheck"> | Date | string
   control?: Prisma.XOR<Prisma.ControlScalarRelationFilter, Prisma.ControlWhereInput>
 }
@@ -226,6 +258,10 @@ export type ControlCheckOrderByWithRelationInput = {
   soc2_code?: Prisma.SortOrderInput | Prisma.SortOrder
   cis_code?: Prisma.SortOrderInput | Prisma.SortOrder
   pci_dss_code?: Prisma.SortOrderInput | Prisma.SortOrder
+  soc2_code_inferred?: Prisma.SortOrderInput | Prisma.SortOrder
+  soc2_mapping_source?: Prisma.SortOrderInput | Prisma.SortOrder
+  soc2_mapping_confidence?: Prisma.SortOrderInput | Prisma.SortOrder
+  soc2_mapping_citation?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   control?: Prisma.ControlOrderByWithRelationInput
 }
@@ -243,6 +279,10 @@ export type ControlCheckWhereUniqueInput = Prisma.AtLeast<{
   soc2_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
   cis_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
   pci_dss_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  soc2_code_inferred?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  soc2_mapping_source?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  soc2_mapping_confidence?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  soc2_mapping_citation?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
   created_at?: Prisma.DateTimeFilter<"ControlCheck"> | Date | string
   control?: Prisma.XOR<Prisma.ControlScalarRelationFilter, Prisma.ControlWhereInput>
 }, "id" | "control_id_check_id">
@@ -256,6 +296,10 @@ export type ControlCheckOrderByWithAggregationInput = {
   soc2_code?: Prisma.SortOrderInput | Prisma.SortOrder
   cis_code?: Prisma.SortOrderInput | Prisma.SortOrder
   pci_dss_code?: Prisma.SortOrderInput | Prisma.SortOrder
+  soc2_code_inferred?: Prisma.SortOrderInput | Prisma.SortOrder
+  soc2_mapping_source?: Prisma.SortOrderInput | Prisma.SortOrder
+  soc2_mapping_confidence?: Prisma.SortOrderInput | Prisma.SortOrder
+  soc2_mapping_citation?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   _count?: Prisma.ControlCheckCountOrderByAggregateInput
   _max?: Prisma.ControlCheckMaxOrderByAggregateInput
@@ -274,6 +318,10 @@ export type ControlCheckScalarWhereWithAggregatesInput = {
   soc2_code?: Prisma.StringNullableWithAggregatesFilter<"ControlCheck"> | string | null
   cis_code?: Prisma.StringNullableWithAggregatesFilter<"ControlCheck"> | string | null
   pci_dss_code?: Prisma.StringNullableWithAggregatesFilter<"ControlCheck"> | string | null
+  soc2_code_inferred?: Prisma.StringNullableWithAggregatesFilter<"ControlCheck"> | string | null
+  soc2_mapping_source?: Prisma.StringNullableWithAggregatesFilter<"ControlCheck"> | string | null
+  soc2_mapping_confidence?: Prisma.StringNullableWithAggregatesFilter<"ControlCheck"> | string | null
+  soc2_mapping_citation?: Prisma.StringNullableWithAggregatesFilter<"ControlCheck"> | string | null
   created_at?: Prisma.DateTimeWithAggregatesFilter<"ControlCheck"> | Date | string
 }
 
@@ -285,6 +333,10 @@ export type ControlCheckCreateInput = {
   soc2_code?: string | null
   cis_code?: string | null
   pci_dss_code?: string | null
+  soc2_code_inferred?: string | null
+  soc2_mapping_source?: string | null
+  soc2_mapping_confidence?: string | null
+  soc2_mapping_citation?: string | null
   created_at?: Date | string
   control: Prisma.ControlCreateNestedOneWithoutChecksInput
 }
@@ -298,6 +350,10 @@ export type ControlCheckUncheckedCreateInput = {
   soc2_code?: string | null
   cis_code?: string | null
   pci_dss_code?: string | null
+  soc2_code_inferred?: string | null
+  soc2_mapping_source?: string | null
+  soc2_mapping_confidence?: string | null
+  soc2_mapping_citation?: string | null
   created_at?: Date | string
 }
 
@@ -309,6 +365,10 @@ export type ControlCheckUpdateInput = {
   soc2_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cis_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pci_dss_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_code_inferred?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_confidence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_citation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   control?: Prisma.ControlUpdateOneRequiredWithoutChecksNestedInput
 }
@@ -322,6 +382,10 @@ export type ControlCheckUncheckedUpdateInput = {
   soc2_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cis_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pci_dss_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_code_inferred?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_confidence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_citation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -334,6 +398,10 @@ export type ControlCheckCreateManyInput = {
   soc2_code?: string | null
   cis_code?: string | null
   pci_dss_code?: string | null
+  soc2_code_inferred?: string | null
+  soc2_mapping_source?: string | null
+  soc2_mapping_confidence?: string | null
+  soc2_mapping_citation?: string | null
   created_at?: Date | string
 }
 
@@ -345,6 +413,10 @@ export type ControlCheckUpdateManyMutationInput = {
   soc2_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cis_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pci_dss_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_code_inferred?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_confidence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_citation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -357,6 +429,10 @@ export type ControlCheckUncheckedUpdateManyInput = {
   soc2_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cis_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pci_dss_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_code_inferred?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_confidence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_citation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -384,6 +460,10 @@ export type ControlCheckCountOrderByAggregateInput = {
   soc2_code?: Prisma.SortOrder
   cis_code?: Prisma.SortOrder
   pci_dss_code?: Prisma.SortOrder
+  soc2_code_inferred?: Prisma.SortOrder
+  soc2_mapping_source?: Prisma.SortOrder
+  soc2_mapping_confidence?: Prisma.SortOrder
+  soc2_mapping_citation?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -396,6 +476,10 @@ export type ControlCheckMaxOrderByAggregateInput = {
   soc2_code?: Prisma.SortOrder
   cis_code?: Prisma.SortOrder
   pci_dss_code?: Prisma.SortOrder
+  soc2_code_inferred?: Prisma.SortOrder
+  soc2_mapping_source?: Prisma.SortOrder
+  soc2_mapping_confidence?: Prisma.SortOrder
+  soc2_mapping_citation?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -408,6 +492,10 @@ export type ControlCheckMinOrderByAggregateInput = {
   soc2_code?: Prisma.SortOrder
   cis_code?: Prisma.SortOrder
   pci_dss_code?: Prisma.SortOrder
+  soc2_code_inferred?: Prisma.SortOrder
+  soc2_mapping_source?: Prisma.SortOrder
+  soc2_mapping_confidence?: Prisma.SortOrder
+  soc2_mapping_citation?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -465,6 +553,10 @@ export type ControlCheckCreateWithoutControlInput = {
   soc2_code?: string | null
   cis_code?: string | null
   pci_dss_code?: string | null
+  soc2_code_inferred?: string | null
+  soc2_mapping_source?: string | null
+  soc2_mapping_confidence?: string | null
+  soc2_mapping_citation?: string | null
   created_at?: Date | string
 }
 
@@ -476,6 +568,10 @@ export type ControlCheckUncheckedCreateWithoutControlInput = {
   soc2_code?: string | null
   cis_code?: string | null
   pci_dss_code?: string | null
+  soc2_code_inferred?: string | null
+  soc2_mapping_source?: string | null
+  soc2_mapping_confidence?: string | null
+  soc2_mapping_citation?: string | null
   created_at?: Date | string
 }
 
@@ -517,6 +613,10 @@ export type ControlCheckScalarWhereInput = {
   soc2_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
   cis_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
   pci_dss_code?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  soc2_code_inferred?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  soc2_mapping_source?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  soc2_mapping_confidence?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
+  soc2_mapping_citation?: Prisma.StringNullableFilter<"ControlCheck"> | string | null
   created_at?: Prisma.DateTimeFilter<"ControlCheck"> | Date | string
 }
 
@@ -528,6 +628,10 @@ export type ControlCheckCreateManyControlInput = {
   soc2_code?: string | null
   cis_code?: string | null
   pci_dss_code?: string | null
+  soc2_code_inferred?: string | null
+  soc2_mapping_source?: string | null
+  soc2_mapping_confidence?: string | null
+  soc2_mapping_citation?: string | null
   created_at?: Date | string
 }
 
@@ -539,6 +643,10 @@ export type ControlCheckUpdateWithoutControlInput = {
   soc2_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cis_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pci_dss_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_code_inferred?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_confidence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_citation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -550,6 +658,10 @@ export type ControlCheckUncheckedUpdateWithoutControlInput = {
   soc2_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cis_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pci_dss_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_code_inferred?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_confidence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_citation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -561,6 +673,10 @@ export type ControlCheckUncheckedUpdateManyWithoutControlInput = {
   soc2_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cis_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pci_dss_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_code_inferred?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_confidence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  soc2_mapping_citation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -575,6 +691,10 @@ export type ControlCheckSelect<ExtArgs extends runtime.Types.Extensions.Internal
   soc2_code?: boolean
   cis_code?: boolean
   pci_dss_code?: boolean
+  soc2_code_inferred?: boolean
+  soc2_mapping_source?: boolean
+  soc2_mapping_confidence?: boolean
+  soc2_mapping_citation?: boolean
   created_at?: boolean
   control?: boolean | Prisma.ControlDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["controlCheck"]>
@@ -588,6 +708,10 @@ export type ControlCheckSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   soc2_code?: boolean
   cis_code?: boolean
   pci_dss_code?: boolean
+  soc2_code_inferred?: boolean
+  soc2_mapping_source?: boolean
+  soc2_mapping_confidence?: boolean
+  soc2_mapping_citation?: boolean
   created_at?: boolean
   control?: boolean | Prisma.ControlDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["controlCheck"]>
@@ -601,6 +725,10 @@ export type ControlCheckSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   soc2_code?: boolean
   cis_code?: boolean
   pci_dss_code?: boolean
+  soc2_code_inferred?: boolean
+  soc2_mapping_source?: boolean
+  soc2_mapping_confidence?: boolean
+  soc2_mapping_citation?: boolean
   created_at?: boolean
   control?: boolean | Prisma.ControlDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["controlCheck"]>
@@ -614,10 +742,14 @@ export type ControlCheckSelectScalar = {
   soc2_code?: boolean
   cis_code?: boolean
   pci_dss_code?: boolean
+  soc2_code_inferred?: boolean
+  soc2_mapping_source?: boolean
+  soc2_mapping_confidence?: boolean
+  soc2_mapping_citation?: boolean
   created_at?: boolean
 }
 
-export type ControlCheckOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "control_id" | "check_id" | "title" | "os" | "soc2_code" | "cis_code" | "pci_dss_code" | "created_at", ExtArgs["result"]["controlCheck"]>
+export type ControlCheckOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "control_id" | "check_id" | "title" | "os" | "soc2_code" | "cis_code" | "pci_dss_code" | "soc2_code_inferred" | "soc2_mapping_source" | "soc2_mapping_confidence" | "soc2_mapping_citation" | "created_at", ExtArgs["result"]["controlCheck"]>
 export type ControlCheckInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   control?: boolean | Prisma.ControlDefaultArgs<ExtArgs>
 }
@@ -642,6 +774,10 @@ export type $ControlCheckPayload<ExtArgs extends runtime.Types.Extensions.Intern
     soc2_code: string | null
     cis_code: string | null
     pci_dss_code: string | null
+    soc2_code_inferred: string | null
+    soc2_mapping_source: string | null
+    soc2_mapping_confidence: string | null
+    soc2_mapping_citation: string | null
     created_at: Date
   }, ExtArgs["result"]["controlCheck"]>
   composites: {}
@@ -1075,6 +1211,10 @@ export interface ControlCheckFieldRefs {
   readonly soc2_code: Prisma.FieldRef<"ControlCheck", 'String'>
   readonly cis_code: Prisma.FieldRef<"ControlCheck", 'String'>
   readonly pci_dss_code: Prisma.FieldRef<"ControlCheck", 'String'>
+  readonly soc2_code_inferred: Prisma.FieldRef<"ControlCheck", 'String'>
+  readonly soc2_mapping_source: Prisma.FieldRef<"ControlCheck", 'String'>
+  readonly soc2_mapping_confidence: Prisma.FieldRef<"ControlCheck", 'String'>
+  readonly soc2_mapping_citation: Prisma.FieldRef<"ControlCheck", 'String'>
   readonly created_at: Prisma.FieldRef<"ControlCheck", 'DateTime'>
 }
     

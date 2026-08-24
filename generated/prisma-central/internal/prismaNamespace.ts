@@ -384,6 +384,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 
 export const ModelName = {
+  Asset: 'Asset',
   CisCheckTranslation: 'CisCheckTranslation',
   Client: 'Client',
   Control: 'Control',
@@ -412,10 +413,84 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "cisCheckTranslation" | "client" | "control" | "controlCheck" | "manualCheckItem" | "manualCheckEvidence" | "reason" | "riskReason" | "reasonControl" | "risk" | "template" | "tenantIdentifierDirectory" | "user"
+    modelProps: "asset" | "cisCheckTranslation" | "client" | "control" | "controlCheck" | "manualCheckItem" | "manualCheckEvidence" | "reason" | "riskReason" | "reasonControl" | "risk" | "template" | "tenantIdentifierDirectory" | "user"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
+    Asset: {
+      payload: Prisma.$AssetPayload<ExtArgs>
+      fields: Prisma.AssetFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AssetFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AssetFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetPayload>
+        }
+        findFirst: {
+          args: Prisma.AssetFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AssetFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetPayload>
+        }
+        findMany: {
+          args: Prisma.AssetFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetPayload>[]
+        }
+        create: {
+          args: Prisma.AssetCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetPayload>
+        }
+        createMany: {
+          args: Prisma.AssetCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AssetCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetPayload>[]
+        }
+        delete: {
+          args: Prisma.AssetDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetPayload>
+        }
+        update: {
+          args: Prisma.AssetUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetPayload>
+        }
+        deleteMany: {
+          args: Prisma.AssetDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AssetUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AssetUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetPayload>[]
+        }
+        upsert: {
+          args: Prisma.AssetUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetPayload>
+        }
+        aggregate: {
+          args: Prisma.AssetAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAsset>
+        }
+        groupBy: {
+          args: Prisma.AssetGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssetGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AssetCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssetCountAggregateOutputType> | number
+        }
+      }
+    }
     CisCheckTranslation: {
       payload: Prisma.$CisCheckTranslationPayload<ExtArgs>
       fields: Prisma.CisCheckTranslationFieldRefs
@@ -1417,6 +1492,26 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+export const AssetScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  seq: 'seq',
+  code: 'code',
+  type: 'type',
+  source: 'source',
+  external_id: 'external_id',
+  os: 'os',
+  status: 'status',
+  last_seen_at: 'last_seen_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  created_by: 'created_by',
+  updated_by: 'updated_by'
+} as const
+
+export type AssetScalarFieldEnum = (typeof AssetScalarFieldEnum)[keyof typeof AssetScalarFieldEnum]
+
+
 export const CisCheckTranslationScalarFieldEnum = {
   check_id: 'check_id',
   title_es: 'title_es',
@@ -1488,6 +1583,10 @@ export const ControlCheckScalarFieldEnum = {
   soc2_code: 'soc2_code',
   cis_code: 'cis_code',
   pci_dss_code: 'pci_dss_code',
+  soc2_code_inferred: 'soc2_code_inferred',
+  soc2_mapping_source: 'soc2_mapping_source',
+  soc2_mapping_confidence: 'soc2_mapping_confidence',
+  soc2_mapping_citation: 'soc2_mapping_citation',
   created_at: 'created_at'
 } as const
 
@@ -1676,6 +1775,76 @@ export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMod
 
 
 /**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'AssetType'
+ */
+export type EnumAssetTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssetType'>
+    
+
+
+/**
+ * Reference to a field of type 'AssetType[]'
+ */
+export type ListEnumAssetTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssetType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'AssetSource'
+ */
+export type EnumAssetSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssetSource'>
+    
+
+
+/**
+ * Reference to a field of type 'AssetSource[]'
+ */
+export type ListEnumAssetSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssetSource[]'>
+    
+
+
+/**
+ * Reference to a field of type 'ChecklistOs'
+ */
+export type EnumChecklistOsFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ChecklistOs'>
+    
+
+
+/**
+ * Reference to a field of type 'ChecklistOs[]'
+ */
+export type ListEnumChecklistOsFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ChecklistOs[]'>
+    
+
+
+/**
+ * Reference to a field of type 'AssetStatus'
+ */
+export type EnumAssetStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssetStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'AssetStatus[]'
+ */
+export type ListEnumAssetStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssetStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'DateTime'
  */
 export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
@@ -1700,20 +1869,6 @@ export type EnumClientDocumentTypeFieldRefInput<$PrismaModel> = FieldRefInputTyp
  * Reference to a field of type 'ClientDocumentType[]'
  */
 export type ListEnumClientDocumentTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ClientDocumentType[]'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -1749,20 +1904,6 @@ export type EnumControlTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$Pris
  * Reference to a field of type 'ControlType[]'
  */
 export type ListEnumControlTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ControlType[]'>
-    
-
-
-/**
- * Reference to a field of type 'ChecklistOs'
- */
-export type EnumChecklistOsFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ChecklistOs'>
-    
-
-
-/**
- * Reference to a field of type 'ChecklistOs[]'
- */
-export type ListEnumChecklistOsFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ChecklistOs[]'>
     
 
 
@@ -1916,6 +2057,7 @@ export type PrismaClientOptions = ({
   comments?: runtime.SqlCommenterPlugin[]
 }
 export type GlobalOmitConfig = {
+  asset?: Prisma.AssetOmit
   cisCheckTranslation?: Prisma.CisCheckTranslationOmit
   client?: Prisma.ClientOmit
   control?: Prisma.ControlOmit
