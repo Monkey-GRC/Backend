@@ -39,6 +39,9 @@ model User {
   evaluated_manual_checks ManualCheckItem[]     @relation("mnk_user_evaluated_manual_checks")
   uploaded_manual_check_evidence ManualCheckEvidence[] @relation("mnk_user_uploaded_manual_check_evidence")
 
+  created_assets Asset[] @relation("mnk_user_created_assets")
+  updated_assets Asset[] @relation("mnk_user_updated_assets")
+
   @@map("mnk_users")
 
   @@index([email])

@@ -27,8 +27,8 @@ export * from "./enums.js"
  * @example
  * ```
  * const prisma = new PrismaClient()
- * // Fetch zero or more CisCheckTranslations
- * const cisCheckTranslations = await prisma.cisCheckTranslation.findMany()
+ * // Fetch zero or more Assets
+ * const assets = await prisma.asset.findMany()
  * ```
  * 
  * Read more in our [docs](https://pris.ly/d/client).
@@ -37,6 +37,11 @@ export const PrismaClient = $Class.getPrismaClientClass()
 export type PrismaClient<LogOpts extends Prisma.LogLevel = never, OmitOpts extends Prisma.PrismaClientOptions["omit"] = Prisma.PrismaClientOptions["omit"], ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = $Class.PrismaClient<LogOpts, OmitOpts, ExtArgs>
 export { Prisma }
 
+/**
+ * Model Asset
+ * 
+ */
+export type Asset = Prisma.AssetModel
 /**
  * Model CisCheckTranslation
  * Traducción al español de los checks del catálogo CIS de Wazuh (tabla

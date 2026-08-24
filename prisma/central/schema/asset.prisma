@@ -1,0 +1,40 @@
+enum AssetType {
+    SERVER
+    DATABASE
+    CLOUD_RESOURCE
+    NETWORK_DEVICE
+}
+
+enum AssetSource {
+    WAZUH_AGENT
+    MANUAL
+}
+
+enum AssetStatus {
+    ACTIVE
+    INACTIVE
+}
+
+model Asset {
+    id           String      @id @default(uuid()) @db.Uuid
+    name         String
+    seq          Int         @unique @default(autoincrement())
+    code         String      @unique @db.VarChar(10)
+    type         AssetType
+    source       AssetSource @default(MANUAL)
+    external_id  String?
+    os           ChecklistOs?
+    status       AssetStatus @default(ACTIVE)
+    last_seen_at DateTime?
+    created_at   DateTime    @default(now())
+    updated_at   DateTime    @updatedAt
+    created_by      String?   @db.Uuid
+    created_by_user User?     @relation("mnk_user_created_assets", fields: [created_by], references: [id], onDelete: NoAction)
+    updated_by      String?   @db.Uuid
+    updated_by_user User?     @relation("mnk_user_updated_assets", fields: [updated_by], references: [id], onDelete: NoAction)
+
+    @@map("mnk_assets")
+    @@index([seq])
+    @@index([code])
+    @@unique([source, external_id])
+}

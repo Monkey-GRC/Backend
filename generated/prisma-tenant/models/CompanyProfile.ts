@@ -350,10 +350,6 @@ export type CompanyProfileSumOrderByAggregateInput = {
   server_count?: Prisma.SortOrder
 }
 
-export type StringFieldUpdateOperationsInput = {
-  set?: string
-}
-
 export type NullableEnumBusinessTypeFieldUpdateOperationsInput = {
   set?: $Enums.BusinessType | null
 }
@@ -364,10 +360,6 @@ export type NullableIntFieldUpdateOperationsInput = {
   decrement?: number
   multiply?: number
   divide?: number
-}
-
-export type DateTimeFieldUpdateOperationsInput = {
-  set?: Date | string
 }
 
 

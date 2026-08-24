@@ -8,6 +8,7 @@
  *
  * 🟢 You can import this file directly.
  */
+export type * from './models/Asset.js'
 export type * from './models/CisCheckTranslation.js'
 export type * from './models/Client.js'
 export type * from './models/Control.js'

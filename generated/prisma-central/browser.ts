@@ -18,6 +18,11 @@ export { Prisma }
 export * as $Enums from './enums.js'
 export * from './enums.js';
 /**
+ * Model Asset
+ * 
+ */
+export type Asset = Prisma.AssetModel
+/**
  * Model CisCheckTranslation
  * Traducción al español de los checks del catálogo CIS de Wazuh (tabla
  * externa `cis_checks`, en inglés — no la modificamos directamente porque es
