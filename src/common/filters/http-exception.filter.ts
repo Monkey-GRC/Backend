@@ -1,5 +1,3 @@
-// filters/http-exception.filter.ts
-// Hola Janner
 import {
   ExceptionFilter,
   Catch,
