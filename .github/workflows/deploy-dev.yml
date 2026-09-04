@@ -1,0 +1,36 @@
+name: Deploy dev (backend)
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copiar código al VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "."
+          target: "/home/ubuntu/monkey-dev/backend"
+          rm: true
+
+      - name: Escribir .env y (re)desplegar
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cat > /home/ubuntu/monkey-dev/.env << 'ENV_EOF'
+            ${{ secrets.ENV_FILE }}
+            ENV_EOF
+            cd /home/ubuntu/monkey-dev
+            docker compose build backend
+            docker compose up -d backend
