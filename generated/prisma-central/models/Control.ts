@@ -38,6 +38,7 @@ export type ControlMinAggregateOutputType = {
   id: string | null
   name: string | null
   description: string | null
+  source_ref: string | null
   seq: number | null
   type: $Enums.ControlType | null
   objective: string | null
@@ -52,6 +53,7 @@ export type ControlMaxAggregateOutputType = {
   id: string | null
   name: string | null
   description: string | null
+  source_ref: string | null
   seq: number | null
   type: $Enums.ControlType | null
   objective: string | null
@@ -66,6 +68,7 @@ export type ControlCountAggregateOutputType = {
   id: number
   name: number
   description: number
+  source_ref: number
   seq: number
   type: number
   objective: number
@@ -90,6 +93,7 @@ export type ControlMinAggregateInputType = {
   id?: true
   name?: true
   description?: true
+  source_ref?: true
   seq?: true
   type?: true
   objective?: true
@@ -104,6 +108,7 @@ export type ControlMaxAggregateInputType = {
   id?: true
   name?: true
   description?: true
+  source_ref?: true
   seq?: true
   type?: true
   objective?: true
@@ -118,6 +123,7 @@ export type ControlCountAggregateInputType = {
   id?: true
   name?: true
   description?: true
+  source_ref?: true
   seq?: true
   type?: true
   objective?: true
@@ -219,6 +225,7 @@ export type ControlGroupByOutputType = {
   id: string
   name: string
   description: string | null
+  source_ref: string | null
   seq: number
   type: $Enums.ControlType
   objective: string | null
@@ -256,6 +263,7 @@ export type ControlWhereInput = {
   id?: Prisma.UuidFilter<"Control"> | string
   name?: Prisma.StringFilter<"Control"> | string
   description?: Prisma.StringNullableFilter<"Control"> | string | null
+  source_ref?: Prisma.StringNullableFilter<"Control"> | string | null
   seq?: Prisma.IntFilter<"Control"> | number
   type?: Prisma.EnumControlTypeFilter<"Control"> | $Enums.ControlType
   objective?: Prisma.StringNullableFilter<"Control"> | string | null
@@ -269,12 +277,14 @@ export type ControlWhereInput = {
   checks?: Prisma.ControlCheckListRelationFilter
   manual_checks?: Prisma.ManualCheckItemListRelationFilter
   reasons?: Prisma.ReasonControlListRelationFilter
+  dimensions?: Prisma.ControlDimensionRequirementListRelationFilter
 }
 
 export type ControlOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
+  source_ref?: Prisma.SortOrderInput | Prisma.SortOrder
   seq?: Prisma.SortOrder
   type?: Prisma.SortOrder
   objective?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -288,6 +298,7 @@ export type ControlOrderByWithRelationInput = {
   checks?: Prisma.ControlCheckOrderByRelationAggregateInput
   manual_checks?: Prisma.ManualCheckItemOrderByRelationAggregateInput
   reasons?: Prisma.ReasonControlOrderByRelationAggregateInput
+  dimensions?: Prisma.ControlDimensionRequirementOrderByRelationAggregateInput
 }
 
 export type ControlWhereUniqueInput = Prisma.AtLeast<{
@@ -299,6 +310,7 @@ export type ControlWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.ControlWhereInput | Prisma.ControlWhereInput[]
   name?: Prisma.StringFilter<"Control"> | string
   description?: Prisma.StringNullableFilter<"Control"> | string | null
+  source_ref?: Prisma.StringNullableFilter<"Control"> | string | null
   type?: Prisma.EnumControlTypeFilter<"Control"> | $Enums.ControlType
   objective?: Prisma.StringNullableFilter<"Control"> | string | null
   created_at?: Prisma.DateTimeFilter<"Control"> | Date | string
@@ -310,12 +322,14 @@ export type ControlWhereUniqueInput = Prisma.AtLeast<{
   checks?: Prisma.ControlCheckListRelationFilter
   manual_checks?: Prisma.ManualCheckItemListRelationFilter
   reasons?: Prisma.ReasonControlListRelationFilter
+  dimensions?: Prisma.ControlDimensionRequirementListRelationFilter
 }, "id" | "seq" | "code">
 
 export type ControlOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
+  source_ref?: Prisma.SortOrderInput | Prisma.SortOrder
   seq?: Prisma.SortOrder
   type?: Prisma.SortOrder
   objective?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -338,6 +352,7 @@ export type ControlScalarWhereWithAggregatesInput = {
   id?: Prisma.UuidWithAggregatesFilter<"Control"> | string
   name?: Prisma.StringWithAggregatesFilter<"Control"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Control"> | string | null
+  source_ref?: Prisma.StringNullableWithAggregatesFilter<"Control"> | string | null
   seq?: Prisma.IntWithAggregatesFilter<"Control"> | number
   type?: Prisma.EnumControlTypeWithAggregatesFilter<"Control"> | $Enums.ControlType
   objective?: Prisma.StringNullableWithAggregatesFilter<"Control"> | string | null
@@ -352,6 +367,7 @@ export type ControlCreateInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -363,12 +379,14 @@ export type ControlCreateInput = {
   checks?: Prisma.ControlCheckCreateNestedManyWithoutControlInput
   manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutControlInput
   reasons?: Prisma.ReasonControlCreateNestedManyWithoutControlInput
+  dimensions?: Prisma.ControlDimensionRequirementCreateNestedManyWithoutControlInput
 }
 
 export type ControlUncheckedCreateInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -380,12 +398,14 @@ export type ControlUncheckedCreateInput = {
   checks?: Prisma.ControlCheckUncheckedCreateNestedManyWithoutControlInput
   manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutControlInput
   reasons?: Prisma.ReasonControlUncheckedCreateNestedManyWithoutControlInput
+  dimensions?: Prisma.ControlDimensionRequirementUncheckedCreateNestedManyWithoutControlInput
 }
 
 export type ControlUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   code?: Prisma.StringFieldUpdateOperationsInput | string
@@ -396,12 +416,14 @@ export type ControlUpdateInput = {
   checks?: Prisma.ControlCheckUpdateManyWithoutControlNestedInput
   manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutControlNestedInput
   reasons?: Prisma.ReasonControlUpdateManyWithoutControlNestedInput
+  dimensions?: Prisma.ControlDimensionRequirementUpdateManyWithoutControlNestedInput
 }
 
 export type ControlUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -413,12 +435,14 @@ export type ControlUncheckedUpdateInput = {
   checks?: Prisma.ControlCheckUncheckedUpdateManyWithoutControlNestedInput
   manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutControlNestedInput
   reasons?: Prisma.ReasonControlUncheckedUpdateManyWithoutControlNestedInput
+  dimensions?: Prisma.ControlDimensionRequirementUncheckedUpdateManyWithoutControlNestedInput
 }
 
 export type ControlCreateManyInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -433,6 +457,7 @@ export type ControlUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   code?: Prisma.StringFieldUpdateOperationsInput | string
@@ -444,6 +469,7 @@ export type ControlUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -458,6 +484,7 @@ export type ControlCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  source_ref?: Prisma.SortOrder
   seq?: Prisma.SortOrder
   type?: Prisma.SortOrder
   objective?: Prisma.SortOrder
@@ -476,6 +503,7 @@ export type ControlMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  source_ref?: Prisma.SortOrder
   seq?: Prisma.SortOrder
   type?: Prisma.SortOrder
   objective?: Prisma.SortOrder
@@ -490,6 +518,7 @@ export type ControlMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  source_ref?: Prisma.SortOrder
   seq?: Prisma.SortOrder
   type?: Prisma.SortOrder
   objective?: Prisma.SortOrder
@@ -521,6 +550,20 @@ export type ControlOrderByRelationAggregateInput = {
 
 export type EnumControlTypeFieldUpdateOperationsInput = {
   set?: $Enums.ControlType
+}
+
+export type ControlCreateNestedOneWithoutDimensionsInput = {
+  create?: Prisma.XOR<Prisma.ControlCreateWithoutDimensionsInput, Prisma.ControlUncheckedCreateWithoutDimensionsInput>
+  connectOrCreate?: Prisma.ControlCreateOrConnectWithoutDimensionsInput
+  connect?: Prisma.ControlWhereUniqueInput
+}
+
+export type ControlUpdateOneRequiredWithoutDimensionsNestedInput = {
+  create?: Prisma.XOR<Prisma.ControlCreateWithoutDimensionsInput, Prisma.ControlUncheckedCreateWithoutDimensionsInput>
+  connectOrCreate?: Prisma.ControlCreateOrConnectWithoutDimensionsInput
+  upsert?: Prisma.ControlUpsertWithoutDimensionsInput
+  connect?: Prisma.ControlWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ControlUpdateToOneWithWhereWithoutDimensionsInput, Prisma.ControlUpdateWithoutDimensionsInput>, Prisma.ControlUncheckedUpdateWithoutDimensionsInput>
 }
 
 export type ControlCreateNestedOneWithoutChecksInput = {
@@ -649,10 +692,98 @@ export type ControlUncheckedUpdateManyWithoutUpdated_by_userNestedInput = {
   deleteMany?: Prisma.ControlScalarWhereInput | Prisma.ControlScalarWhereInput[]
 }
 
+export type ControlCreateWithoutDimensionsInput = {
+  id?: string
+  name: string
+  description?: string | null
+  source_ref?: string | null
+  seq?: number
+  type?: $Enums.ControlType
+  objective?: string | null
+  code: string
+  created_at?: Date | string
+  updated_at?: Date | string
+  created_by_user?: Prisma.UserCreateNestedOneWithoutCreated_controlsInput
+  updated_by_user?: Prisma.UserCreateNestedOneWithoutUpdated_controlsInput
+  checks?: Prisma.ControlCheckCreateNestedManyWithoutControlInput
+  manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutControlInput
+  reasons?: Prisma.ReasonControlCreateNestedManyWithoutControlInput
+}
+
+export type ControlUncheckedCreateWithoutDimensionsInput = {
+  id?: string
+  name: string
+  description?: string | null
+  source_ref?: string | null
+  seq?: number
+  type?: $Enums.ControlType
+  objective?: string | null
+  code: string
+  created_at?: Date | string
+  updated_at?: Date | string
+  created_by?: string | null
+  updated_by?: string | null
+  checks?: Prisma.ControlCheckUncheckedCreateNestedManyWithoutControlInput
+  manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutControlInput
+  reasons?: Prisma.ReasonControlUncheckedCreateNestedManyWithoutControlInput
+}
+
+export type ControlCreateOrConnectWithoutDimensionsInput = {
+  where: Prisma.ControlWhereUniqueInput
+  create: Prisma.XOR<Prisma.ControlCreateWithoutDimensionsInput, Prisma.ControlUncheckedCreateWithoutDimensionsInput>
+}
+
+export type ControlUpsertWithoutDimensionsInput = {
+  update: Prisma.XOR<Prisma.ControlUpdateWithoutDimensionsInput, Prisma.ControlUncheckedUpdateWithoutDimensionsInput>
+  create: Prisma.XOR<Prisma.ControlCreateWithoutDimensionsInput, Prisma.ControlUncheckedCreateWithoutDimensionsInput>
+  where?: Prisma.ControlWhereInput
+}
+
+export type ControlUpdateToOneWithWhereWithoutDimensionsInput = {
+  where?: Prisma.ControlWhereInput
+  data: Prisma.XOR<Prisma.ControlUpdateWithoutDimensionsInput, Prisma.ControlUncheckedUpdateWithoutDimensionsInput>
+}
+
+export type ControlUpdateWithoutDimensionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
+  objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  created_by_user?: Prisma.UserUpdateOneWithoutCreated_controlsNestedInput
+  updated_by_user?: Prisma.UserUpdateOneWithoutUpdated_controlsNestedInput
+  checks?: Prisma.ControlCheckUpdateManyWithoutControlNestedInput
+  manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutControlNestedInput
+  reasons?: Prisma.ReasonControlUpdateManyWithoutControlNestedInput
+}
+
+export type ControlUncheckedUpdateWithoutDimensionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  seq?: Prisma.IntFieldUpdateOperationsInput | number
+  type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
+  objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  checks?: Prisma.ControlCheckUncheckedUpdateManyWithoutControlNestedInput
+  manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutControlNestedInput
+  reasons?: Prisma.ReasonControlUncheckedUpdateManyWithoutControlNestedInput
+}
+
 export type ControlCreateWithoutChecksInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -663,12 +794,14 @@ export type ControlCreateWithoutChecksInput = {
   updated_by_user?: Prisma.UserCreateNestedOneWithoutUpdated_controlsInput
   manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutControlInput
   reasons?: Prisma.ReasonControlCreateNestedManyWithoutControlInput
+  dimensions?: Prisma.ControlDimensionRequirementCreateNestedManyWithoutControlInput
 }
 
 export type ControlUncheckedCreateWithoutChecksInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -679,6 +812,7 @@ export type ControlUncheckedCreateWithoutChecksInput = {
   updated_by?: string | null
   manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutControlInput
   reasons?: Prisma.ReasonControlUncheckedCreateNestedManyWithoutControlInput
+  dimensions?: Prisma.ControlDimensionRequirementUncheckedCreateNestedManyWithoutControlInput
 }
 
 export type ControlCreateOrConnectWithoutChecksInput = {
@@ -701,6 +835,7 @@ export type ControlUpdateWithoutChecksInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   code?: Prisma.StringFieldUpdateOperationsInput | string
@@ -710,12 +845,14 @@ export type ControlUpdateWithoutChecksInput = {
   updated_by_user?: Prisma.UserUpdateOneWithoutUpdated_controlsNestedInput
   manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutControlNestedInput
   reasons?: Prisma.ReasonControlUpdateManyWithoutControlNestedInput
+  dimensions?: Prisma.ControlDimensionRequirementUpdateManyWithoutControlNestedInput
 }
 
 export type ControlUncheckedUpdateWithoutChecksInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -726,12 +863,14 @@ export type ControlUncheckedUpdateWithoutChecksInput = {
   updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutControlNestedInput
   reasons?: Prisma.ReasonControlUncheckedUpdateManyWithoutControlNestedInput
+  dimensions?: Prisma.ControlDimensionRequirementUncheckedUpdateManyWithoutControlNestedInput
 }
 
 export type ControlCreateWithoutManual_checksInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -742,12 +881,14 @@ export type ControlCreateWithoutManual_checksInput = {
   updated_by_user?: Prisma.UserCreateNestedOneWithoutUpdated_controlsInput
   checks?: Prisma.ControlCheckCreateNestedManyWithoutControlInput
   reasons?: Prisma.ReasonControlCreateNestedManyWithoutControlInput
+  dimensions?: Prisma.ControlDimensionRequirementCreateNestedManyWithoutControlInput
 }
 
 export type ControlUncheckedCreateWithoutManual_checksInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -758,6 +899,7 @@ export type ControlUncheckedCreateWithoutManual_checksInput = {
   updated_by?: string | null
   checks?: Prisma.ControlCheckUncheckedCreateNestedManyWithoutControlInput
   reasons?: Prisma.ReasonControlUncheckedCreateNestedManyWithoutControlInput
+  dimensions?: Prisma.ControlDimensionRequirementUncheckedCreateNestedManyWithoutControlInput
 }
 
 export type ControlCreateOrConnectWithoutManual_checksInput = {
@@ -780,6 +922,7 @@ export type ControlUpdateWithoutManual_checksInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   code?: Prisma.StringFieldUpdateOperationsInput | string
@@ -789,12 +932,14 @@ export type ControlUpdateWithoutManual_checksInput = {
   updated_by_user?: Prisma.UserUpdateOneWithoutUpdated_controlsNestedInput
   checks?: Prisma.ControlCheckUpdateManyWithoutControlNestedInput
   reasons?: Prisma.ReasonControlUpdateManyWithoutControlNestedInput
+  dimensions?: Prisma.ControlDimensionRequirementUpdateManyWithoutControlNestedInput
 }
 
 export type ControlUncheckedUpdateWithoutManual_checksInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -805,12 +950,14 @@ export type ControlUncheckedUpdateWithoutManual_checksInput = {
   updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checks?: Prisma.ControlCheckUncheckedUpdateManyWithoutControlNestedInput
   reasons?: Prisma.ReasonControlUncheckedUpdateManyWithoutControlNestedInput
+  dimensions?: Prisma.ControlDimensionRequirementUncheckedUpdateManyWithoutControlNestedInput
 }
 
 export type ControlCreateWithoutReasonsInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -821,12 +968,14 @@ export type ControlCreateWithoutReasonsInput = {
   updated_by_user?: Prisma.UserCreateNestedOneWithoutUpdated_controlsInput
   checks?: Prisma.ControlCheckCreateNestedManyWithoutControlInput
   manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutControlInput
+  dimensions?: Prisma.ControlDimensionRequirementCreateNestedManyWithoutControlInput
 }
 
 export type ControlUncheckedCreateWithoutReasonsInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -837,6 +986,7 @@ export type ControlUncheckedCreateWithoutReasonsInput = {
   updated_by?: string | null
   checks?: Prisma.ControlCheckUncheckedCreateNestedManyWithoutControlInput
   manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutControlInput
+  dimensions?: Prisma.ControlDimensionRequirementUncheckedCreateNestedManyWithoutControlInput
 }
 
 export type ControlCreateOrConnectWithoutReasonsInput = {
@@ -859,6 +1009,7 @@ export type ControlUpdateWithoutReasonsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   code?: Prisma.StringFieldUpdateOperationsInput | string
@@ -868,12 +1019,14 @@ export type ControlUpdateWithoutReasonsInput = {
   updated_by_user?: Prisma.UserUpdateOneWithoutUpdated_controlsNestedInput
   checks?: Prisma.ControlCheckUpdateManyWithoutControlNestedInput
   manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutControlNestedInput
+  dimensions?: Prisma.ControlDimensionRequirementUpdateManyWithoutControlNestedInput
 }
 
 export type ControlUncheckedUpdateWithoutReasonsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -884,12 +1037,14 @@ export type ControlUncheckedUpdateWithoutReasonsInput = {
   updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checks?: Prisma.ControlCheckUncheckedUpdateManyWithoutControlNestedInput
   manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutControlNestedInput
+  dimensions?: Prisma.ControlDimensionRequirementUncheckedUpdateManyWithoutControlNestedInput
 }
 
 export type ControlCreateWithoutCreated_by_userInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -900,12 +1055,14 @@ export type ControlCreateWithoutCreated_by_userInput = {
   checks?: Prisma.ControlCheckCreateNestedManyWithoutControlInput
   manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutControlInput
   reasons?: Prisma.ReasonControlCreateNestedManyWithoutControlInput
+  dimensions?: Prisma.ControlDimensionRequirementCreateNestedManyWithoutControlInput
 }
 
 export type ControlUncheckedCreateWithoutCreated_by_userInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -916,6 +1073,7 @@ export type ControlUncheckedCreateWithoutCreated_by_userInput = {
   checks?: Prisma.ControlCheckUncheckedCreateNestedManyWithoutControlInput
   manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutControlInput
   reasons?: Prisma.ReasonControlUncheckedCreateNestedManyWithoutControlInput
+  dimensions?: Prisma.ControlDimensionRequirementUncheckedCreateNestedManyWithoutControlInput
 }
 
 export type ControlCreateOrConnectWithoutCreated_by_userInput = {
@@ -932,6 +1090,7 @@ export type ControlCreateWithoutUpdated_by_userInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -942,12 +1101,14 @@ export type ControlCreateWithoutUpdated_by_userInput = {
   checks?: Prisma.ControlCheckCreateNestedManyWithoutControlInput
   manual_checks?: Prisma.ManualCheckItemCreateNestedManyWithoutControlInput
   reasons?: Prisma.ReasonControlCreateNestedManyWithoutControlInput
+  dimensions?: Prisma.ControlDimensionRequirementCreateNestedManyWithoutControlInput
 }
 
 export type ControlUncheckedCreateWithoutUpdated_by_userInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -958,6 +1119,7 @@ export type ControlUncheckedCreateWithoutUpdated_by_userInput = {
   checks?: Prisma.ControlCheckUncheckedCreateNestedManyWithoutControlInput
   manual_checks?: Prisma.ManualCheckItemUncheckedCreateNestedManyWithoutControlInput
   reasons?: Prisma.ReasonControlUncheckedCreateNestedManyWithoutControlInput
+  dimensions?: Prisma.ControlDimensionRequirementUncheckedCreateNestedManyWithoutControlInput
 }
 
 export type ControlCreateOrConnectWithoutUpdated_by_userInput = {
@@ -993,6 +1155,7 @@ export type ControlScalarWhereInput = {
   id?: Prisma.UuidFilter<"Control"> | string
   name?: Prisma.StringFilter<"Control"> | string
   description?: Prisma.StringNullableFilter<"Control"> | string | null
+  source_ref?: Prisma.StringNullableFilter<"Control"> | string | null
   seq?: Prisma.IntFilter<"Control"> | number
   type?: Prisma.EnumControlTypeFilter<"Control"> | $Enums.ControlType
   objective?: Prisma.StringNullableFilter<"Control"> | string | null
@@ -1023,6 +1186,7 @@ export type ControlCreateManyCreated_by_userInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -1036,6 +1200,7 @@ export type ControlCreateManyUpdated_by_userInput = {
   id?: string
   name: string
   description?: string | null
+  source_ref?: string | null
   seq?: number
   type?: $Enums.ControlType
   objective?: string | null
@@ -1049,6 +1214,7 @@ export type ControlUpdateWithoutCreated_by_userInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   code?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1058,12 +1224,14 @@ export type ControlUpdateWithoutCreated_by_userInput = {
   checks?: Prisma.ControlCheckUpdateManyWithoutControlNestedInput
   manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutControlNestedInput
   reasons?: Prisma.ReasonControlUpdateManyWithoutControlNestedInput
+  dimensions?: Prisma.ControlDimensionRequirementUpdateManyWithoutControlNestedInput
 }
 
 export type ControlUncheckedUpdateWithoutCreated_by_userInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1074,12 +1242,14 @@ export type ControlUncheckedUpdateWithoutCreated_by_userInput = {
   checks?: Prisma.ControlCheckUncheckedUpdateManyWithoutControlNestedInput
   manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutControlNestedInput
   reasons?: Prisma.ReasonControlUncheckedUpdateManyWithoutControlNestedInput
+  dimensions?: Prisma.ControlDimensionRequirementUncheckedUpdateManyWithoutControlNestedInput
 }
 
 export type ControlUncheckedUpdateManyWithoutCreated_by_userInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1093,6 +1263,7 @@ export type ControlUpdateWithoutUpdated_by_userInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   code?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1102,12 +1273,14 @@ export type ControlUpdateWithoutUpdated_by_userInput = {
   checks?: Prisma.ControlCheckUpdateManyWithoutControlNestedInput
   manual_checks?: Prisma.ManualCheckItemUpdateManyWithoutControlNestedInput
   reasons?: Prisma.ReasonControlUpdateManyWithoutControlNestedInput
+  dimensions?: Prisma.ControlDimensionRequirementUpdateManyWithoutControlNestedInput
 }
 
 export type ControlUncheckedUpdateWithoutUpdated_by_userInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1118,12 +1291,14 @@ export type ControlUncheckedUpdateWithoutUpdated_by_userInput = {
   checks?: Prisma.ControlCheckUncheckedUpdateManyWithoutControlNestedInput
   manual_checks?: Prisma.ManualCheckItemUncheckedUpdateManyWithoutControlNestedInput
   reasons?: Prisma.ReasonControlUncheckedUpdateManyWithoutControlNestedInput
+  dimensions?: Prisma.ControlDimensionRequirementUncheckedUpdateManyWithoutControlNestedInput
 }
 
 export type ControlUncheckedUpdateManyWithoutUpdated_by_userInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
   type?: Prisma.EnumControlTypeFieldUpdateOperationsInput | $Enums.ControlType
   objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1142,12 +1317,14 @@ export type ControlCountOutputType = {
   checks: number
   manual_checks: number
   reasons: number
+  dimensions: number
 }
 
 export type ControlCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   checks?: boolean | ControlCountOutputTypeCountChecksArgs
   manual_checks?: boolean | ControlCountOutputTypeCountManual_checksArgs
   reasons?: boolean | ControlCountOutputTypeCountReasonsArgs
+  dimensions?: boolean | ControlCountOutputTypeCountDimensionsArgs
 }
 
 /**
@@ -1181,11 +1358,19 @@ export type ControlCountOutputTypeCountReasonsArgs<ExtArgs extends runtime.Types
   where?: Prisma.ReasonControlWhereInput
 }
 
+/**
+ * ControlCountOutputType without action
+ */
+export type ControlCountOutputTypeCountDimensionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ControlDimensionRequirementWhereInput
+}
+
 
 export type ControlSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   name?: boolean
   description?: boolean
+  source_ref?: boolean
   seq?: boolean
   type?: boolean
   objective?: boolean
@@ -1199,6 +1384,7 @@ export type ControlSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   checks?: boolean | Prisma.Control$checksArgs<ExtArgs>
   manual_checks?: boolean | Prisma.Control$manual_checksArgs<ExtArgs>
   reasons?: boolean | Prisma.Control$reasonsArgs<ExtArgs>
+  dimensions?: boolean | Prisma.Control$dimensionsArgs<ExtArgs>
   _count?: boolean | Prisma.ControlCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["control"]>
 
@@ -1206,6 +1392,7 @@ export type ControlSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   id?: boolean
   name?: boolean
   description?: boolean
+  source_ref?: boolean
   seq?: boolean
   type?: boolean
   objective?: boolean
@@ -1222,6 +1409,7 @@ export type ControlSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   id?: boolean
   name?: boolean
   description?: boolean
+  source_ref?: boolean
   seq?: boolean
   type?: boolean
   objective?: boolean
@@ -1238,6 +1426,7 @@ export type ControlSelectScalar = {
   id?: boolean
   name?: boolean
   description?: boolean
+  source_ref?: boolean
   seq?: boolean
   type?: boolean
   objective?: boolean
@@ -1248,13 +1437,14 @@ export type ControlSelectScalar = {
   updated_by?: boolean
 }
 
-export type ControlOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "seq" | "type" | "objective" | "code" | "created_at" | "updated_at" | "created_by" | "updated_by", ExtArgs["result"]["control"]>
+export type ControlOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "source_ref" | "seq" | "type" | "objective" | "code" | "created_at" | "updated_at" | "created_by" | "updated_by", ExtArgs["result"]["control"]>
 export type ControlInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   created_by_user?: boolean | Prisma.Control$created_by_userArgs<ExtArgs>
   updated_by_user?: boolean | Prisma.Control$updated_by_userArgs<ExtArgs>
   checks?: boolean | Prisma.Control$checksArgs<ExtArgs>
   manual_checks?: boolean | Prisma.Control$manual_checksArgs<ExtArgs>
   reasons?: boolean | Prisma.Control$reasonsArgs<ExtArgs>
+  dimensions?: boolean | Prisma.Control$dimensionsArgs<ExtArgs>
   _count?: boolean | Prisma.ControlCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ControlIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1274,11 +1464,19 @@ export type $ControlPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     checks: Prisma.$ControlCheckPayload<ExtArgs>[]
     manual_checks: Prisma.$ManualCheckItemPayload<ExtArgs>[]
     reasons: Prisma.$ReasonControlPayload<ExtArgs>[]
+    dimensions: Prisma.$ControlDimensionRequirementPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     name: string
     description: string | null
+    /**
+     * Referencia interna al id de origen del catálogo importado (ej. "CAP-1"
+     * del Excel maestro) — nunca se muestra al usuario, solo sirve para que
+     * scripts de importación puedan re-matchear un control sin depender de
+     * texto embebido en `description`.
+     */
+    source_ref: string | null
     seq: number
     type: $Enums.ControlType
     objective: string | null
@@ -1686,6 +1884,7 @@ export interface Prisma__ControlClient<T, Null = never, ExtArgs extends runtime.
   checks<T extends Prisma.Control$checksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Control$checksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ControlCheckPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   manual_checks<T extends Prisma.Control$manual_checksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Control$manual_checksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ManualCheckItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   reasons<T extends Prisma.Control$reasonsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Control$reasonsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReasonControlPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  dimensions<T extends Prisma.Control$dimensionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Control$dimensionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ControlDimensionRequirementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1718,6 +1917,7 @@ export interface ControlFieldRefs {
   readonly id: Prisma.FieldRef<"Control", 'String'>
   readonly name: Prisma.FieldRef<"Control", 'String'>
   readonly description: Prisma.FieldRef<"Control", 'String'>
+  readonly source_ref: Prisma.FieldRef<"Control", 'String'>
   readonly seq: Prisma.FieldRef<"Control", 'Int'>
   readonly type: Prisma.FieldRef<"Control", 'ControlType'>
   readonly objective: Prisma.FieldRef<"Control", 'String'>
@@ -2229,6 +2429,30 @@ export type Control$reasonsArgs<ExtArgs extends runtime.Types.Extensions.Interna
   take?: number
   skip?: number
   distinct?: Prisma.ReasonControlScalarFieldEnum | Prisma.ReasonControlScalarFieldEnum[]
+}
+
+/**
+ * Control.dimensions
+ */
+export type Control$dimensionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ControlDimensionRequirement
+   */
+  select?: Prisma.ControlDimensionRequirementSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ControlDimensionRequirement
+   */
+  omit?: Prisma.ControlDimensionRequirementOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ControlDimensionRequirementInclude<ExtArgs> | null
+  where?: Prisma.ControlDimensionRequirementWhereInput
+  orderBy?: Prisma.ControlDimensionRequirementOrderByWithRelationInput | Prisma.ControlDimensionRequirementOrderByWithRelationInput[]
+  cursor?: Prisma.ControlDimensionRequirementWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ControlDimensionRequirementScalarFieldEnum | Prisma.ControlDimensionRequirementScalarFieldEnum[]
 }
 
 /**

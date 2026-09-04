@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ChecklistModule } from 'src/features/checklist/checklist.module';
 import { AssetModule } from 'src/features/asset/asset.module';
+import { TemplateRepository } from 'src/features/template/domain/repositories/template.repository';
+import { TemplatePrismaRepository } from 'src/features/template/infrastructure/repositories/template.prisma.repository';
 import { DashboardController } from './presentation/dashboard.controller';
 import { ControlComplianceRepository } from './domain/repositories/control-compliance.repository';
 import { ControlCompliancePrismaRepository } from './infrastructure/repositories/control-compliance.prisma.repository';
@@ -16,6 +18,10 @@ import { GetControlChecksDetailUseCase } from './application/use-cases/get-contr
     {
       provide: ControlComplianceRepository,
       useClass: ControlCompliancePrismaRepository,
+    },
+    {
+      provide: TemplateRepository,
+      useClass: TemplatePrismaRepository,
     },
     GetDashboardControlsUseCase,
     GetDashboardSummaryUseCase,

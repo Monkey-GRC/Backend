@@ -17,8 +17,8 @@ export class GetDashboardControlsUseCase {
         private readonly cisCheckRepository: CisCheckRepository,
     ) { }
 
-    async execute(): Promise<ControlCompliance[]> {
-        const controls = await this.controlRepository.findControlsWithChecks();
+    async execute(templateId: string): Promise<ControlCompliance[]> {
+        const controls = await this.controlRepository.findControlsWithChecks(templateId);
         const assets = await this.loadEvaluableAssets();
         const resultsByAssetId = await this.loadResultsByAsset(assets);
 
@@ -31,14 +31,15 @@ export class GetDashboardControlsUseCase {
         const assets = await this.assetRepository.findAll();
         return assets
             .filter((asset: any) => asset.source === 'WAZUH_AGENT' && asset.external_id && asset.os && asset.status === 'ACTIVE')
-            .map((asset: any) => ({ id: asset.id, externalId: asset.external_id, os: asset.os }));
+            .map((asset: any) => ({ id: asset.id, name: asset.name, externalId: asset.external_id, os: asset.os, policyId: asset.wazuh_policy_id ?? null }));
     }
 
     private async loadResultsByAsset(assets: EvaluableAsset[]): Promise<Map<string, Map<string, ScaCheckResult>>> {
         const resultsByAssetId = new Map<string, Map<string, ScaCheckResult>>();
 
         for (const asset of assets) {
-            const checks = await this.cisCheckRepository.findComplianceForAgent(asset.os, asset.externalId);
+            if (!asset.policyId) continue; // agente sin policy_id resuelto todavía (nunca escaneado) — no hay nada que consultar
+            const checks = await this.cisCheckRepository.findComplianceForAgent(asset.policyId, asset.externalId);
             const map = new Map<string, ScaCheckResult>();
             for (const check of checks) {
                 map.set(check.checkId, this.normalizeResult(check.result));

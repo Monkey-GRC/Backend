@@ -137,9 +137,15 @@ export class CisCheckPgRepository extends CisCheckRepository implements OnModule
         return rows.map((row) => toChecklistItem(row));
     }
 
-    async findComplianceForAgent(os: ChecklistOs, agentId: string): Promise<CisChecklistItem[]> {
-        const policyId = POLICY_ID_BY_OS[os];
+    async findPolicyIdForAgent(agentId: string): Promise<string | null> {
+        const { rows } = await this.pool.query<{ policy_id: string }>(
+            `SELECT DISTINCT policy_id FROM cis_check_results WHERE agent_id = $1 LIMIT 1`,
+            [agentId],
+        );
+        return rows[0]?.policy_id ?? null;
+    }
 
+    async findComplianceForAgent(policyId: string, agentId: string): Promise<CisChecklistItem[]> {
         const { rows } = await this.pool.query<CisCheckWithAgentResultRow>(
             `SELECT c.${CATALOG_COLUMNS.split(', ').join(', c.')}, r.result AS agent_result
              FROM cis_checks c

@@ -25,6 +25,15 @@ export class TemplatePrismaRepository extends TemplateRepository {
       : Promise.resolve(this.centralPrisma);
   }
 
+  async findContracted() {
+    const db = await this.db();
+    return db.template.findMany({
+      where: { source_template_id: { not: null } },
+      select: { id: true, name: true },
+      orderBy: { seq: 'asc' },
+    });
+  }
+
   async findAll() {
     const db = await this.db();
     return db.template.findMany({

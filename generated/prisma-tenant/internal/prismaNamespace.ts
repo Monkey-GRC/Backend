@@ -387,6 +387,7 @@ export const ModelName = {
   Asset: 'Asset',
   CompanyProfile: 'CompanyProfile',
   Control: 'Control',
+  ControlDimensionRequirement: 'ControlDimensionRequirement',
   ControlCheck: 'ControlCheck',
   ManualCheckItem: 'ManualCheckItem',
   ManualCheckEvidence: 'ManualCheckEvidence',
@@ -411,7 +412,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "asset" | "companyProfile" | "control" | "controlCheck" | "manualCheckItem" | "manualCheckEvidence" | "reason" | "riskReason" | "reasonControl" | "risk" | "template" | "user"
+    modelProps: "asset" | "companyProfile" | "control" | "controlDimensionRequirement" | "controlCheck" | "manualCheckItem" | "manualCheckEvidence" | "reason" | "riskReason" | "reasonControl" | "risk" | "template" | "user"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -634,6 +635,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ControlCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ControlCountAggregateOutputType> | number
+        }
+      }
+    }
+    ControlDimensionRequirement: {
+      payload: Prisma.$ControlDimensionRequirementPayload<ExtArgs>
+      fields: Prisma.ControlDimensionRequirementFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ControlDimensionRequirementFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ControlDimensionRequirementPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ControlDimensionRequirementFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ControlDimensionRequirementPayload>
+        }
+        findFirst: {
+          args: Prisma.ControlDimensionRequirementFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ControlDimensionRequirementPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ControlDimensionRequirementFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ControlDimensionRequirementPayload>
+        }
+        findMany: {
+          args: Prisma.ControlDimensionRequirementFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ControlDimensionRequirementPayload>[]
+        }
+        create: {
+          args: Prisma.ControlDimensionRequirementCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ControlDimensionRequirementPayload>
+        }
+        createMany: {
+          args: Prisma.ControlDimensionRequirementCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ControlDimensionRequirementCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ControlDimensionRequirementPayload>[]
+        }
+        delete: {
+          args: Prisma.ControlDimensionRequirementDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ControlDimensionRequirementPayload>
+        }
+        update: {
+          args: Prisma.ControlDimensionRequirementUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ControlDimensionRequirementPayload>
+        }
+        deleteMany: {
+          args: Prisma.ControlDimensionRequirementDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ControlDimensionRequirementUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ControlDimensionRequirementUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ControlDimensionRequirementPayload>[]
+        }
+        upsert: {
+          args: Prisma.ControlDimensionRequirementUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ControlDimensionRequirementPayload>
+        }
+        aggregate: {
+          args: Prisma.ControlDimensionRequirementAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateControlDimensionRequirement>
+        }
+        groupBy: {
+          args: Prisma.ControlDimensionRequirementGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ControlDimensionRequirementGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ControlDimensionRequirementCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ControlDimensionRequirementCountAggregateOutputType> | number
         }
       }
     }
@@ -1351,6 +1426,7 @@ export const AssetScalarFieldEnum = {
   source: 'source',
   external_id: 'external_id',
   os: 'os',
+  wazuh_policy_id: 'wazuh_policy_id',
   status: 'status',
   last_seen_at: 'last_seen_at',
   created_at: 'created_at',
@@ -1377,6 +1453,7 @@ export const ControlScalarFieldEnum = {
   id: 'id',
   name: 'name',
   description: 'description',
+  source_ref: 'source_ref',
   seq: 'seq',
   type: 'type',
   objective: 'objective',
@@ -1390,12 +1467,25 @@ export const ControlScalarFieldEnum = {
 export type ControlScalarFieldEnum = (typeof ControlScalarFieldEnum)[keyof typeof ControlScalarFieldEnum]
 
 
+export const ControlDimensionRequirementScalarFieldEnum = {
+  id: 'id',
+  control_id: 'control_id',
+  dimension: 'dimension',
+  type: 'type',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type ControlDimensionRequirementScalarFieldEnum = (typeof ControlDimensionRequirementScalarFieldEnum)[keyof typeof ControlDimensionRequirementScalarFieldEnum]
+
+
 export const ControlCheckScalarFieldEnum = {
   id: 'id',
   control_id: 'control_id',
   check_id: 'check_id',
   title: 'title',
   os: 'os',
+  dimension: 'dimension',
   soc2_code: 'soc2_code',
   cis_code: 'cis_code',
   pci_dss_code: 'pci_dss_code',
@@ -1414,8 +1504,10 @@ export const ManualCheckItemScalarFieldEnum = {
   control_id: 'control_id',
   title: 'title',
   description: 'description',
+  rationale: 'rationale',
   remediation: 'remediation',
   seq: 'seq',
+  dimension: 'dimension',
   status: 'status',
   notes: 'notes',
   evaluated_by: 'evaluated_by',
@@ -1695,6 +1787,20 @@ export type ListEnumControlTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$
 
 
 /**
+ * Reference to a field of type 'ControlDimension'
+ */
+export type EnumControlDimensionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ControlDimension'>
+    
+
+
+/**
+ * Reference to a field of type 'ControlDimension[]'
+ */
+export type ListEnumControlDimensionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ControlDimension[]'>
+    
+
+
+/**
  * Reference to a field of type 'ManualCheckStatus'
  */
 export type EnumManualCheckStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ManualCheckStatus'>
@@ -1854,6 +1960,7 @@ export type GlobalOmitConfig = {
   asset?: Prisma.AssetOmit
   companyProfile?: Prisma.CompanyProfileOmit
   control?: Prisma.ControlOmit
+  controlDimensionRequirement?: Prisma.ControlDimensionRequirementOmit
   controlCheck?: Prisma.ControlCheckOmit
   manualCheckItem?: Prisma.ManualCheckItemOmit
   manualCheckEvidence?: Prisma.ManualCheckEvidenceOmit

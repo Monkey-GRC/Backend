@@ -9,10 +9,25 @@ enum ChecklistOs {
     WINDOWS
 }
 
+/// Las 5 dimensiones en las que puede evaluarse un control. No todas
+/// aplican a todos los controles — ver ControlDimensionRequirement.
+enum ControlDimension {
+    POLICY
+    SERVER
+    DATABASE
+    CLOUD
+    APP
+}
+
 model Control {
     id          String   @id @default(uuid()) @db.Uuid
     name        String
     description String?
+    /// Referencia interna al id de origen del catálogo importado (ej. "CAP-1"
+    /// del Excel maestro) — nunca se muestra al usuario, solo sirve para que
+    /// scripts de importación puedan re-matchear un control sin depender de
+    /// texto embebido en `description`.
+    source_ref  String?
     seq         Int      @unique @default(autoincrement())
     type  ControlType  @default(MANUAL)
     objective   String?
@@ -26,11 +41,30 @@ model Control {
     checks          ControlCheck[]
     manual_checks   ManualCheckItem[]
     reasons         ReasonControl[]
+    dimensions      ControlDimensionRequirement[]
 
     @@map("mnk_controls")
     @@index([seq])
     @@index([code])
 
+}
+
+/// Qué dimensiones aplican a un control y de qué tipo es la evidencia en
+/// cada una (MANUAL/AUTOMATIC/HYBRID no es del control entero — es por
+/// dimensión). El % de cumplimiento del control es el promedio de las
+/// dimensiones aquí listadas, no un promedio de checks individuales.
+model ControlDimensionRequirement {
+    id         String            @id @default(uuid()) @db.Uuid
+    control_id String            @db.Uuid
+    control    Control           @relation(fields: [control_id], references: [id], onDelete: Cascade)
+    dimension  ControlDimension
+    type       ControlType
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    @@map("mnk_control_dimension_requirements")
+    @@unique([control_id, dimension])
 }
 
 model ControlCheck {
@@ -40,6 +74,11 @@ model ControlCheck {
     check_id     String
     title        String
     os           ChecklistOs
+    /// Dimensión a la que aporta este check — hoy todo lo que viene de
+    /// Wazuh es SERVER; el default deja el campo listo para cuando se
+    /// conecten benchmarks de BD (MySQL/PostgreSQL, ya soportados por
+    /// Wazuh pero sin desplegar) sin otro cambio de schema.
+    dimension    ControlDimension @default(SERVER)
     // Snapshot del mapeo a frameworks que Wazuh ya traia para este check en
     // el momento en que se agrego al control (catalogo cis_checks). Se
     // guarda aqui, no solo en el catalogo, para que el control conserve su

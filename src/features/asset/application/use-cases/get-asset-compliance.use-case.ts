@@ -17,9 +17,12 @@ export class GetAssetComplianceUseCase {
         if (!asset.os || !asset.external_id) {
             throw new BadRequestException('Este activo no tiene sistema operativo o identificador externo asociado, no se puede evaluar');
         }
+        if (!asset.wazuh_policy_id) {
+            throw new BadRequestException('Este activo todavía no tiene un policy_id de Wazuh resuelto (probablemente nunca se ha escaneado), no se puede evaluar');
+        }
 
         const [checks, agentInfo] = await Promise.all([
-            this.cisCheckRepository.findComplianceForAgent(asset.os, asset.external_id),
+            this.cisCheckRepository.findComplianceForAgent(asset.wazuh_policy_id, asset.external_id),
             this.cisCheckRepository.findAgentInfo(asset.external_id),
         ]);
 

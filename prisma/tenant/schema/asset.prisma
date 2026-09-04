@@ -24,6 +24,12 @@ model Asset {
     source       AssetSource @default(MANUAL)
     external_id  String?
     os           ChecklistOs?
+    /// policy_id real de Wazuh para este agente (ej. "cis_ubuntu22-04",
+    /// "cis_ubuntu14-04", "cis_win11_enterprise"), resuelto contra
+    /// wazuh_agents/cis_checks al crear el Asset. Reemplaza el mapeo
+    /// estático os -> policy_id (que dejaba cis_ubuntu14-04 inalcanzable
+    /// porque UBUNTU siempre resolvía a cis_ubuntu22-04).
+    wazuh_policy_id String?
     status       AssetStatus @default(ACTIVE)
     last_seen_at DateTime?
     created_at   DateTime    @default(now())

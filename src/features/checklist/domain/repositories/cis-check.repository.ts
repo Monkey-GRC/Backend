@@ -39,10 +39,19 @@ export abstract class CisCheckRepository {
   abstract findDetailsByCheckIds(
     checkIds: string[],
   ): Promise<Map<string, CisCheckDetail>>;
+  /** @param policyId el policy_id REAL de Wazuh para ese agente (ver findPolicyIdForAgent) — no un mapeo estático por SO. */
   abstract findComplianceForAgent(
-    os: ChecklistOs,
+    policyId: string,
     agentId: string,
   ): Promise<CisChecklistItem[]>;
+  /**
+   * Resuelve el policy_id real que corre un agente (ej. "cis_ubuntu14-04"),
+   * consultando sus resultados cacheados — reemplaza el mapeo estático
+   * os -> policy_id que dejaba sistemas operativos como Ubuntu 14.04
+   * inalcanzables. Null si el agente todavía no tiene ningún resultado
+   * cacheado (nunca escaneado).
+   */
+  abstract findPolicyIdForAgent(agentId: string): Promise<string | null>;
   abstract findAgentInfo(agentId: string): Promise<WazuhAgentInfo | null>;
   abstract findAgentInfoByIds(
     agentIds: string[],

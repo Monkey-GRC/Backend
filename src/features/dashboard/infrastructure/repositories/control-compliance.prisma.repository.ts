@@ -21,9 +21,12 @@ export class ControlCompliancePrismaRepository extends ControlComplianceReposito
     return tenantId ? this.tenantConnection.getClientFor(tenantId) : Promise.resolve(this.centralPrisma);
   }
 
-  async findControlsWithChecks(): Promise<ControlWithChecks[]> {
+  async findControlsWithChecks(templateId?: string): Promise<ControlWithChecks[]> {
     const db = await this.db();
     const controls = await db.control.findMany({
+      where: templateId
+        ? { reasons: { some: { reason: { risks: { some: { risk: { template_id: templateId } } } } } } }
+        : undefined,
       select: {
         id: true,
         code: true,
@@ -35,12 +38,20 @@ export class ControlCompliancePrismaRepository extends ControlComplianceReposito
             check_id: true,
             title: true,
             os: true,
+            dimension: true,
           },
         },
         manual_checks: {
           select: {
             id: true,
             status: true,
+            dimension: true,
+          },
+        },
+        dimensions: {
+          select: {
+            dimension: true,
+            type: true,
           },
         },
       },
@@ -57,10 +68,16 @@ export class ControlCompliancePrismaRepository extends ControlComplianceReposito
         checkId: check.check_id,
         title: check.title,
         os: check.os,
+        dimension: check.dimension,
       })),
       manualChecks: control.manual_checks.map((check: any) => ({
         id: check.id,
         status: check.status,
+        dimension: check.dimension,
+      })),
+      dimensionRequirements: control.dimensions.map((req: any) => ({
+        dimension: req.dimension,
+        type: req.type,
       })),
     }));
   }

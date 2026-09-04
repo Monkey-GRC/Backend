@@ -23,7 +23,7 @@ export async function cloneMasterTemplateIntoTenant(
                   controls: {
                     include: {
                       control: {
-                        include: { checks: true, manual_checks: true },
+                        include: { checks: true, manual_checks: true, dimensions: true },
                       },
                     },
                   },
@@ -111,6 +111,7 @@ export async function cloneMasterTemplateIntoTenant(
                       check_id: check.check_id,
                       title: check.title,
                       os: check.os,
+                      dimension: check.dimension,
                       soc2_code: check.soc2_code,
                       cis_code: check.cis_code,
                       pci_dss_code: check.pci_dss_code,
@@ -131,6 +132,17 @@ export async function cloneMasterTemplateIntoTenant(
                       title: check.title,
                       description: check.description,
                       remediation: check.remediation,
+                      dimension: check.dimension,
+                    })),
+                  });
+                }
+
+                if (masterControl.dimensions?.length) {
+                  await tx.controlDimensionRequirement.createMany({
+                    data: masterControl.dimensions.map((dim: any) => ({
+                      control_id: newControlId,
+                      dimension: dim.dimension,
+                      type: dim.type,
                     })),
                   });
                 }

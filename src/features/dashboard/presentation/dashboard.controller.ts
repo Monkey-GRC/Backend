@@ -4,6 +4,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -73,8 +74,9 @@ export class DashboardController {
     description: 'Compliance summary',
     ...responseEnvelope({ $ref: getSchemaPath(DashboardSummaryResponseDto) }),
   })
-  async getSummary() {
-    const data = await this.getDashboardSummaryUseCase.execute();
+  @ApiParam({ name: 'templateId', required: true, format: 'uuid', description: 'Template (framework) a resumir' })
+  async getSummary(@Query('templateId', ParseUUIDPipe) templateId: string) {
+    const data = await this.getDashboardSummaryUseCase.execute(templateId);
     return new ResponseDto({
       statusCode: HttpStatus.OK,
       message: 'Resumen de cumplimiento obtenido',
@@ -97,8 +99,9 @@ export class DashboardController {
       items: { $ref: getSchemaPath(ControlComplianceResponseDto) },
     }),
   })
-  async getControls() {
-    const data = await this.getDashboardControlsUseCase.execute();
+  @ApiParam({ name: 'templateId', required: true, format: 'uuid', description: 'Template (framework) a evaluar' })
+  async getControls(@Query('templateId', ParseUUIDPipe) templateId: string) {
+    const data = await this.getDashboardControlsUseCase.execute(templateId);
     return new ResponseDto({
       statusCode: HttpStatus.OK,
       message: 'Cumplimiento por control obtenido',
@@ -120,8 +123,9 @@ export class DashboardController {
       items: { $ref: getSchemaPath(ServerComplianceResponseDto) },
     }),
   })
-  async getServers() {
-    const data = await this.getDashboardServersUseCase.execute();
+  @ApiParam({ name: 'templateId', required: true, format: 'uuid', description: 'Template (framework) a evaluar' })
+  async getServers(@Query('templateId', ParseUUIDPipe) templateId: string) {
+    const data = await this.getDashboardServersUseCase.execute(templateId);
     return new ResponseDto({
       statusCode: HttpStatus.OK,
       message: 'Cumplimiento por servidor obtenido',

@@ -27,8 +27,8 @@ export class GetDashboardServersUseCase {
         private readonly cisCheckRepository: CisCheckRepository,
     ) { }
 
-    async execute(): Promise<ServerCompliance[]> {
-        const controls = await this.controlRepository.findControlsWithChecks();
+    async execute(templateId: string): Promise<ServerCompliance[]> {
+        const controls = await this.controlRepository.findControlsWithChecks(templateId);
         const relevantCheckIdsByOs = new Map<ChecklistOs, Set<string>>();
         for (const control of controls) {
             for (const check of control.checks) {
@@ -45,7 +45,8 @@ export class GetDashboardServersUseCase {
         const result: ServerCompliance[] = [];
 
         for (const asset of assets as any[]) {
-            const checks = await this.cisCheckRepository.findComplianceForAgent(asset.os, asset.external_id);
+            if (!asset.wazuh_policy_id) continue; // agente sin policy_id resuelto todavía (nunca escaneado)
+            const checks = await this.cisCheckRepository.findComplianceForAgent(asset.wazuh_policy_id, asset.external_id);
             const relevantIds = relevantCheckIdsByOs.get(asset.os) ?? new Set<string>();
             const scoped = checks.filter((check) => relevantIds.has(check.checkId));
 

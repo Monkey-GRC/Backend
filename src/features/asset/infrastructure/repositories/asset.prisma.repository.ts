@@ -30,6 +30,7 @@ export class AssetPrismaRepository extends AssetRepository {
                 source: true,
                 external_id: true,
                 os: true,
+                wazuh_policy_id: true,
                 status: true,
                 last_seen_at: true,
                 created_at: true,
@@ -51,6 +52,7 @@ export class AssetPrismaRepository extends AssetRepository {
                 source: true,
                 external_id: true,
                 os: true,
+                wazuh_policy_id: true,
                 status: true,
                 last_seen_at: true,
                 created_at: true,
@@ -69,6 +71,7 @@ export class AssetPrismaRepository extends AssetRepository {
                     source: input.source,
                     external_id: input.externalId,
                     os: input.os,
+                    wazuh_policy_id: input.wazuhPolicyId,
                     code: 'PENDING',
                     created_by_user: { connect: { id: input.userId } },
                 },
@@ -92,6 +95,7 @@ export class AssetPrismaRepository extends AssetRepository {
         if (input.status !== undefined) updateData['status'] = input.status;
         if (input.externalId !== undefined) updateData['external_id'] = input.externalId;
         if (input.os !== undefined) updateData['os'] = input.os;
+        if (input.wazuhPolicyId !== undefined) updateData['wazuh_policy_id'] = input.wazuhPolicyId;
         updateData['updated_by_user'] = { connect: { id: input.userId } };
 
         return db.asset.update({ where: { id }, data: updateData });

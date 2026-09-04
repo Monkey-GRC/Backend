@@ -16,8 +16,16 @@ model ManualCheckItem {
 
     title       String
     description String? @db.Text
+    /// Por qué importa este control (riesgo de negocio si no se cumple),
+    /// separado de `description` (qué se evalúa) y `remediation` (qué
+    /// evidencia/documento pedir).
+    rationale   String? @db.Text
     remediation String? @db.Text
     seq         Int     @unique @default(autoincrement())
+    /// A cuál de las 5 dimensiones pertenece esta evidencia manual (Política,
+    /// o Servidor/BD/Nube/App cuando esa dimensión todavía no tiene
+    /// automatización y se cubre con evidencia subida a mano).
+    dimension   ControlDimension @default(POLICY)
 
     status       ManualCheckStatus @default(PENDING)
     notes        String?           @db.Text

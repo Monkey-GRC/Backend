@@ -43,6 +43,7 @@ export type AssetMinAggregateOutputType = {
   source: $Enums.AssetSource | null
   external_id: string | null
   os: $Enums.ChecklistOs | null
+  wazuh_policy_id: string | null
   status: $Enums.AssetStatus | null
   last_seen_at: Date | null
   created_at: Date | null
@@ -60,6 +61,7 @@ export type AssetMaxAggregateOutputType = {
   source: $Enums.AssetSource | null
   external_id: string | null
   os: $Enums.ChecklistOs | null
+  wazuh_policy_id: string | null
   status: $Enums.AssetStatus | null
   last_seen_at: Date | null
   created_at: Date | null
@@ -77,6 +79,7 @@ export type AssetCountAggregateOutputType = {
   source: number
   external_id: number
   os: number
+  wazuh_policy_id: number
   status: number
   last_seen_at: number
   created_at: number
@@ -104,6 +107,7 @@ export type AssetMinAggregateInputType = {
   source?: true
   external_id?: true
   os?: true
+  wazuh_policy_id?: true
   status?: true
   last_seen_at?: true
   created_at?: true
@@ -121,6 +125,7 @@ export type AssetMaxAggregateInputType = {
   source?: true
   external_id?: true
   os?: true
+  wazuh_policy_id?: true
   status?: true
   last_seen_at?: true
   created_at?: true
@@ -138,6 +143,7 @@ export type AssetCountAggregateInputType = {
   source?: true
   external_id?: true
   os?: true
+  wazuh_policy_id?: true
   status?: true
   last_seen_at?: true
   created_at?: true
@@ -242,6 +248,7 @@ export type AssetGroupByOutputType = {
   source: $Enums.AssetSource
   external_id: string | null
   os: $Enums.ChecklistOs | null
+  wazuh_policy_id: string | null
   status: $Enums.AssetStatus
   last_seen_at: Date | null
   created_at: Date
@@ -282,6 +289,7 @@ export type AssetWhereInput = {
   source?: Prisma.EnumAssetSourceFilter<"Asset"> | $Enums.AssetSource
   external_id?: Prisma.StringNullableFilter<"Asset"> | string | null
   os?: Prisma.EnumChecklistOsNullableFilter<"Asset"> | $Enums.ChecklistOs | null
+  wazuh_policy_id?: Prisma.StringNullableFilter<"Asset"> | string | null
   status?: Prisma.EnumAssetStatusFilter<"Asset"> | $Enums.AssetStatus
   last_seen_at?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   created_at?: Prisma.DateTimeFilter<"Asset"> | Date | string
@@ -301,6 +309,7 @@ export type AssetOrderByWithRelationInput = {
   source?: Prisma.SortOrder
   external_id?: Prisma.SortOrderInput | Prisma.SortOrder
   os?: Prisma.SortOrderInput | Prisma.SortOrder
+  wazuh_policy_id?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   last_seen_at?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -324,6 +333,7 @@ export type AssetWhereUniqueInput = Prisma.AtLeast<{
   source?: Prisma.EnumAssetSourceFilter<"Asset"> | $Enums.AssetSource
   external_id?: Prisma.StringNullableFilter<"Asset"> | string | null
   os?: Prisma.EnumChecklistOsNullableFilter<"Asset"> | $Enums.ChecklistOs | null
+  wazuh_policy_id?: Prisma.StringNullableFilter<"Asset"> | string | null
   status?: Prisma.EnumAssetStatusFilter<"Asset"> | $Enums.AssetStatus
   last_seen_at?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   created_at?: Prisma.DateTimeFilter<"Asset"> | Date | string
@@ -343,6 +353,7 @@ export type AssetOrderByWithAggregationInput = {
   source?: Prisma.SortOrder
   external_id?: Prisma.SortOrderInput | Prisma.SortOrder
   os?: Prisma.SortOrderInput | Prisma.SortOrder
+  wazuh_policy_id?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   last_seen_at?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -368,6 +379,7 @@ export type AssetScalarWhereWithAggregatesInput = {
   source?: Prisma.EnumAssetSourceWithAggregatesFilter<"Asset"> | $Enums.AssetSource
   external_id?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   os?: Prisma.EnumChecklistOsNullableWithAggregatesFilter<"Asset"> | $Enums.ChecklistOs | null
+  wazuh_policy_id?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   status?: Prisma.EnumAssetStatusWithAggregatesFilter<"Asset"> | $Enums.AssetStatus
   last_seen_at?: Prisma.DateTimeNullableWithAggregatesFilter<"Asset"> | Date | string | null
   created_at?: Prisma.DateTimeWithAggregatesFilter<"Asset"> | Date | string
@@ -385,6 +397,7 @@ export type AssetCreateInput = {
   source?: $Enums.AssetSource
   external_id?: string | null
   os?: $Enums.ChecklistOs | null
+  wazuh_policy_id?: string | null
   status?: $Enums.AssetStatus
   last_seen_at?: Date | string | null
   created_at?: Date | string
@@ -402,6 +415,7 @@ export type AssetUncheckedCreateInput = {
   source?: $Enums.AssetSource
   external_id?: string | null
   os?: $Enums.ChecklistOs | null
+  wazuh_policy_id?: string | null
   status?: $Enums.AssetStatus
   last_seen_at?: Date | string | null
   created_at?: Date | string
@@ -418,6 +432,7 @@ export type AssetUpdateInput = {
   source?: Prisma.EnumAssetSourceFieldUpdateOperationsInput | $Enums.AssetSource
   external_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   os?: Prisma.NullableEnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs | null
+  wazuh_policy_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   last_seen_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -435,6 +450,7 @@ export type AssetUncheckedUpdateInput = {
   source?: Prisma.EnumAssetSourceFieldUpdateOperationsInput | $Enums.AssetSource
   external_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   os?: Prisma.NullableEnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs | null
+  wazuh_policy_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   last_seen_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -452,6 +468,7 @@ export type AssetCreateManyInput = {
   source?: $Enums.AssetSource
   external_id?: string | null
   os?: $Enums.ChecklistOs | null
+  wazuh_policy_id?: string | null
   status?: $Enums.AssetStatus
   last_seen_at?: Date | string | null
   created_at?: Date | string
@@ -468,6 +485,7 @@ export type AssetUpdateManyMutationInput = {
   source?: Prisma.EnumAssetSourceFieldUpdateOperationsInput | $Enums.AssetSource
   external_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   os?: Prisma.NullableEnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs | null
+  wazuh_policy_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   last_seen_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -483,6 +501,7 @@ export type AssetUncheckedUpdateManyInput = {
   source?: Prisma.EnumAssetSourceFieldUpdateOperationsInput | $Enums.AssetSource
   external_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   os?: Prisma.NullableEnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs | null
+  wazuh_policy_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   last_seen_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -505,6 +524,7 @@ export type AssetCountOrderByAggregateInput = {
   source?: Prisma.SortOrder
   external_id?: Prisma.SortOrder
   os?: Prisma.SortOrder
+  wazuh_policy_id?: Prisma.SortOrder
   status?: Prisma.SortOrder
   last_seen_at?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -526,6 +546,7 @@ export type AssetMaxOrderByAggregateInput = {
   source?: Prisma.SortOrder
   external_id?: Prisma.SortOrder
   os?: Prisma.SortOrder
+  wazuh_policy_id?: Prisma.SortOrder
   status?: Prisma.SortOrder
   last_seen_at?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -543,6 +564,7 @@ export type AssetMinOrderByAggregateInput = {
   source?: Prisma.SortOrder
   external_id?: Prisma.SortOrder
   os?: Prisma.SortOrder
+  wazuh_policy_id?: Prisma.SortOrder
   status?: Prisma.SortOrder
   last_seen_at?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
@@ -698,6 +720,7 @@ export type AssetCreateWithoutCreated_by_userInput = {
   source?: $Enums.AssetSource
   external_id?: string | null
   os?: $Enums.ChecklistOs | null
+  wazuh_policy_id?: string | null
   status?: $Enums.AssetStatus
   last_seen_at?: Date | string | null
   created_at?: Date | string
@@ -714,6 +737,7 @@ export type AssetUncheckedCreateWithoutCreated_by_userInput = {
   source?: $Enums.AssetSource
   external_id?: string | null
   os?: $Enums.ChecklistOs | null
+  wazuh_policy_id?: string | null
   status?: $Enums.AssetStatus
   last_seen_at?: Date | string | null
   created_at?: Date | string
@@ -740,6 +764,7 @@ export type AssetCreateWithoutUpdated_by_userInput = {
   source?: $Enums.AssetSource
   external_id?: string | null
   os?: $Enums.ChecklistOs | null
+  wazuh_policy_id?: string | null
   status?: $Enums.AssetStatus
   last_seen_at?: Date | string | null
   created_at?: Date | string
@@ -756,6 +781,7 @@ export type AssetUncheckedCreateWithoutUpdated_by_userInput = {
   source?: $Enums.AssetSource
   external_id?: string | null
   os?: $Enums.ChecklistOs | null
+  wazuh_policy_id?: string | null
   status?: $Enums.AssetStatus
   last_seen_at?: Date | string | null
   created_at?: Date | string
@@ -801,6 +827,7 @@ export type AssetScalarWhereInput = {
   source?: Prisma.EnumAssetSourceFilter<"Asset"> | $Enums.AssetSource
   external_id?: Prisma.StringNullableFilter<"Asset"> | string | null
   os?: Prisma.EnumChecklistOsNullableFilter<"Asset"> | $Enums.ChecklistOs | null
+  wazuh_policy_id?: Prisma.StringNullableFilter<"Asset"> | string | null
   status?: Prisma.EnumAssetStatusFilter<"Asset"> | $Enums.AssetStatus
   last_seen_at?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   created_at?: Prisma.DateTimeFilter<"Asset"> | Date | string
@@ -834,6 +861,7 @@ export type AssetCreateManyCreated_by_userInput = {
   source?: $Enums.AssetSource
   external_id?: string | null
   os?: $Enums.ChecklistOs | null
+  wazuh_policy_id?: string | null
   status?: $Enums.AssetStatus
   last_seen_at?: Date | string | null
   created_at?: Date | string
@@ -850,6 +878,7 @@ export type AssetCreateManyUpdated_by_userInput = {
   source?: $Enums.AssetSource
   external_id?: string | null
   os?: $Enums.ChecklistOs | null
+  wazuh_policy_id?: string | null
   status?: $Enums.AssetStatus
   last_seen_at?: Date | string | null
   created_at?: Date | string
@@ -865,6 +894,7 @@ export type AssetUpdateWithoutCreated_by_userInput = {
   source?: Prisma.EnumAssetSourceFieldUpdateOperationsInput | $Enums.AssetSource
   external_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   os?: Prisma.NullableEnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs | null
+  wazuh_policy_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   last_seen_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -881,6 +911,7 @@ export type AssetUncheckedUpdateWithoutCreated_by_userInput = {
   source?: Prisma.EnumAssetSourceFieldUpdateOperationsInput | $Enums.AssetSource
   external_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   os?: Prisma.NullableEnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs | null
+  wazuh_policy_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   last_seen_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -897,6 +928,7 @@ export type AssetUncheckedUpdateManyWithoutCreated_by_userInput = {
   source?: Prisma.EnumAssetSourceFieldUpdateOperationsInput | $Enums.AssetSource
   external_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   os?: Prisma.NullableEnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs | null
+  wazuh_policy_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   last_seen_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -912,6 +944,7 @@ export type AssetUpdateWithoutUpdated_by_userInput = {
   source?: Prisma.EnumAssetSourceFieldUpdateOperationsInput | $Enums.AssetSource
   external_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   os?: Prisma.NullableEnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs | null
+  wazuh_policy_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   last_seen_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -928,6 +961,7 @@ export type AssetUncheckedUpdateWithoutUpdated_by_userInput = {
   source?: Prisma.EnumAssetSourceFieldUpdateOperationsInput | $Enums.AssetSource
   external_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   os?: Prisma.NullableEnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs | null
+  wazuh_policy_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   last_seen_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -944,6 +978,7 @@ export type AssetUncheckedUpdateManyWithoutUpdated_by_userInput = {
   source?: Prisma.EnumAssetSourceFieldUpdateOperationsInput | $Enums.AssetSource
   external_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   os?: Prisma.NullableEnumChecklistOsFieldUpdateOperationsInput | $Enums.ChecklistOs | null
+  wazuh_policy_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   last_seen_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -962,6 +997,7 @@ export type AssetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   source?: boolean
   external_id?: boolean
   os?: boolean
+  wazuh_policy_id?: boolean
   status?: boolean
   last_seen_at?: boolean
   created_at?: boolean
@@ -981,6 +1017,7 @@ export type AssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   source?: boolean
   external_id?: boolean
   os?: boolean
+  wazuh_policy_id?: boolean
   status?: boolean
   last_seen_at?: boolean
   created_at?: boolean
@@ -1000,6 +1037,7 @@ export type AssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   source?: boolean
   external_id?: boolean
   os?: boolean
+  wazuh_policy_id?: boolean
   status?: boolean
   last_seen_at?: boolean
   created_at?: boolean
@@ -1019,6 +1057,7 @@ export type AssetSelectScalar = {
   source?: boolean
   external_id?: boolean
   os?: boolean
+  wazuh_policy_id?: boolean
   status?: boolean
   last_seen_at?: boolean
   created_at?: boolean
@@ -1027,7 +1066,7 @@ export type AssetSelectScalar = {
   updated_by?: boolean
 }
 
-export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "seq" | "code" | "type" | "source" | "external_id" | "os" | "status" | "last_seen_at" | "created_at" | "updated_at" | "created_by" | "updated_by", ExtArgs["result"]["asset"]>
+export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "seq" | "code" | "type" | "source" | "external_id" | "os" | "wazuh_policy_id" | "status" | "last_seen_at" | "created_at" | "updated_at" | "created_by" | "updated_by", ExtArgs["result"]["asset"]>
 export type AssetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   created_by_user?: boolean | Prisma.Asset$created_by_userArgs<ExtArgs>
   updated_by_user?: boolean | Prisma.Asset$updated_by_userArgs<ExtArgs>
@@ -1056,6 +1095,14 @@ export type $AssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     source: $Enums.AssetSource
     external_id: string | null
     os: $Enums.ChecklistOs | null
+    /**
+     * policy_id real de Wazuh para este agente (ej. "cis_ubuntu22-04",
+     * "cis_ubuntu14-04", "cis_win11_enterprise"), resuelto contra
+     * wazuh_agents/cis_checks al crear el Asset. Reemplaza el mapeo
+     * estático os -> policy_id (que dejaba cis_ubuntu14-04 inalcanzable
+     * porque UBUNTU siempre resolvía a cis_ubuntu22-04).
+     */
+    wazuh_policy_id: string | null
     status: $Enums.AssetStatus
     last_seen_at: Date | null
     created_at: Date
@@ -1495,6 +1542,7 @@ export interface AssetFieldRefs {
   readonly source: Prisma.FieldRef<"Asset", 'AssetSource'>
   readonly external_id: Prisma.FieldRef<"Asset", 'String'>
   readonly os: Prisma.FieldRef<"Asset", 'ChecklistOs'>
+  readonly wazuh_policy_id: Prisma.FieldRef<"Asset", 'String'>
   readonly status: Prisma.FieldRef<"Asset", 'AssetStatus'>
   readonly last_seen_at: Prisma.FieldRef<"Asset", 'DateTime'>
   readonly created_at: Prisma.FieldRef<"Asset", 'DateTime'>

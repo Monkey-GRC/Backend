@@ -6,6 +6,8 @@ export type CreateAssetInput = {
     source?: AssetSource;
     externalId?: string;
     os?: ChecklistOs;
+    /** policy_id real de Wazuh, resuelto por el use case (ver findPolicyIdForAgent) — no lo decide el usuario. */
+    wazuhPolicyId?: string | null;
     userId: string;
 };
 
@@ -15,6 +17,7 @@ export type UpdateAssetInput = {
     status?: AssetStatus;
     externalId?: string;
     os?: ChecklistOs;
+    wazuhPolicyId?: string | null;
     userId: string;
 };
 

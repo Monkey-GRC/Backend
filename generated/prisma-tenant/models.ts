@@ -11,6 +11,7 @@
 export type * from './models/Asset.js'
 export type * from './models/CompanyProfile.js'
 export type * from './models/Control.js'
+export type * from './models/ControlDimensionRequirement.js'
 export type * from './models/ControlCheck.js'
 export type * from './models/ManualCheckItem.js'
 export type * from './models/ManualCheckEvidence.js'
