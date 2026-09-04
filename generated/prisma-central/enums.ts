@@ -73,6 +73,17 @@ export const ChecklistOs = {
 export type ChecklistOs = (typeof ChecklistOs)[keyof typeof ChecklistOs]
 
 
+export const ControlDimension = {
+  POLICY: 'POLICY',
+  SERVER: 'SERVER',
+  DATABASE: 'DATABASE',
+  CLOUD: 'CLOUD',
+  APP: 'APP'
+} as const
+
+export type ControlDimension = (typeof ControlDimension)[keyof typeof ControlDimension]
+
+
 export const ManualCheckStatus = {
   PENDING: 'PENDING',
   PASSED: 'PASSED',

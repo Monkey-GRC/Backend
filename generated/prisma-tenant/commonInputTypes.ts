@@ -345,6 +345,23 @@ export type EnumControlTypeWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumControlTypeFilter<$PrismaModel>
 }
 
+export type EnumControlDimensionFilter<$PrismaModel = never> = {
+  equals?: $Enums.ControlDimension | Prisma.EnumControlDimensionFieldRefInput<$PrismaModel>
+  in?: $Enums.ControlDimension[] | Prisma.ListEnumControlDimensionFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ControlDimension[] | Prisma.ListEnumControlDimensionFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumControlDimensionFilter<$PrismaModel> | $Enums.ControlDimension
+}
+
+export type EnumControlDimensionWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.ControlDimension | Prisma.EnumControlDimensionFieldRefInput<$PrismaModel>
+  in?: $Enums.ControlDimension[] | Prisma.ListEnumControlDimensionFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ControlDimension[] | Prisma.ListEnumControlDimensionFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumControlDimensionWithAggregatesFilter<$PrismaModel> | $Enums.ControlDimension
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumControlDimensionFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumControlDimensionFilter<$PrismaModel>
+}
+
 export type EnumChecklistOsFilter<$PrismaModel = never> = {
   equals?: $Enums.ChecklistOs | Prisma.EnumChecklistOsFieldRefInput<$PrismaModel>
   in?: $Enums.ChecklistOs[] | Prisma.ListEnumChecklistOsFieldRefInput<$PrismaModel>
@@ -764,6 +781,23 @@ export type NestedEnumControlTypeWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumControlTypeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumControlTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumControlDimensionFilter<$PrismaModel = never> = {
+  equals?: $Enums.ControlDimension | Prisma.EnumControlDimensionFieldRefInput<$PrismaModel>
+  in?: $Enums.ControlDimension[] | Prisma.ListEnumControlDimensionFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ControlDimension[] | Prisma.ListEnumControlDimensionFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumControlDimensionFilter<$PrismaModel> | $Enums.ControlDimension
+}
+
+export type NestedEnumControlDimensionWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.ControlDimension | Prisma.EnumControlDimensionFieldRefInput<$PrismaModel>
+  in?: $Enums.ControlDimension[] | Prisma.ListEnumControlDimensionFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ControlDimension[] | Prisma.ListEnumControlDimensionFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumControlDimensionWithAggregatesFilter<$PrismaModel> | $Enums.ControlDimension
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumControlDimensionFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumControlDimensionFilter<$PrismaModel>
 }
 
 export type NestedEnumChecklistOsFilter<$PrismaModel = never> = {

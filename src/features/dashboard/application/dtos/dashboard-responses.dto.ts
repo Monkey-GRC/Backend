@@ -1,13 +1,40 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ChecklistOs, ControlType } from 'generated/prisma-tenant/browser';
-import { ControlCompliance } from '../compliance.calculator';
+import { ChecklistOs, ControlDimension, ControlType } from 'generated/prisma-tenant/browser';
+import { ControlCompliance, DimensionCompliance } from '../compliance.calculator';
 import type { ScaCheckResult } from '../compliance.calculator';
 import { DashboardSummary } from '../use-cases/get-dashboard-summary.use-case';
 import { ServerCompliance } from '../use-cases/get-dashboard-servers.use-case';
 import {
   ControlCheckDetail,
   ControlChecksDetail,
+  FailingAsset,
 } from '../use-cases/get-control-checks-detail.use-case';
+
+export class DimensionComplianceResponseDto implements DimensionCompliance {
+  @ApiProperty({ enum: ControlDimension, example: 'SERVER' })
+  dimension!: ControlDimension;
+
+  @ApiProperty({ enum: ControlType, example: 'AUTOMATIC' })
+  type!: ControlType;
+
+  @ApiProperty({
+    example: 90,
+    description: '% de cumplimiento de ESTA dimensión (pass / (pass+fail) de sus checks/evidencia). 0 si la dimensión aplica pero no tiene ninguna evidencia resuelta.',
+  })
+  compliance!: number;
+
+  @ApiProperty({ example: 45 })
+  checksPassed!: number;
+
+  @ApiProperty({ example: 5 })
+  checksFailed!: number;
+
+  @ApiProperty({ example: 0 })
+  checksNotApplicable!: number;
+
+  @ApiProperty({ example: 0 })
+  checksPending!: number;
+}
 
 export class ControlComplianceResponseDto implements ControlCompliance {
   @ApiProperty({
@@ -33,11 +60,14 @@ export class ControlComplianceResponseDto implements ControlCompliance {
 
   @ApiProperty({
     nullable: true,
-    example: 50,
+    example: 45,
     description:
-      'Percentage of passed checks over applicable checks (0-100). Null cuando el control no tiene ningún check evaluado todavía.',
+      'Promedio de las dimensiones aplicables (ver `dimensions`) — NO un promedio de checks individuales. Null solo si el control no tiene ninguna dimensión aplicable declarada todavía.',
   })
   compliance!: number | null;
+
+  @ApiProperty({ type: [DimensionComplianceResponseDto], description: 'Desglose por cada dimensión aplicable (Política/Servidor/BD/Nube/App). Las no aplicables no aparecen.' })
+  dimensions!: DimensionComplianceResponseDto[];
 
   @ApiProperty({ example: 4, description: 'Checks (automáticos, por cada servidor donde aplican, + manuales)' })
   checksTotal!: number;
@@ -73,6 +103,14 @@ export class ControlComplianceResponseDto implements ControlCompliance {
   serversEvaluated!: number;
 }
 
+export class FailingAssetResponseDto implements FailingAsset {
+  @ApiProperty({ format: 'uuid' })
+  assetId!: string;
+
+  @ApiProperty({ example: 'db-prod-03.acmecorp.local' })
+  name!: string;
+}
+
 export class ControlCheckDetailResponseDto implements ControlCheckDetail {
   @ApiProperty({ example: '26005', description: 'CIS check id in Wazuh' })
   checkId!: string;
@@ -85,11 +123,14 @@ export class ControlCheckDetailResponseDto implements ControlCheckDetail {
   @ApiProperty({ enum: ChecklistOs, example: 'WINDOWS' })
   os!: ChecklistOs;
 
+  @ApiProperty({ enum: ControlDimension, example: 'SERVER' })
+  dimension!: ControlDimension;
+
   @ApiProperty({
     enum: ['passed', 'failed', 'not_applicable'],
     example: 'failed',
     description:
-      'Resultado agregado entre los servidores registrados de ese sistema operativo (bool_and): pasa solo si pasa en todos.',
+      'Falla si falla en al menos uno de los servidores evaluados — ver `failingAssets` para saber exactamente cuáles.',
   })
   result!: ScaCheckResult;
 
@@ -104,6 +145,12 @@ export class ControlCheckDetailResponseDto implements ControlCheckDetail {
     description: 'Solución exacta a aplicar cuando result es "failed" (catálogo CIS)',
   })
   remediation!: string | null;
+
+  @ApiProperty({
+    type: [FailingAssetResponseDto],
+    description: 'Servidores específicos que incumplen este check. Vacío si result no es "failed".',
+  })
+  failingAssets!: FailingAssetResponseDto[];
 }
 
 export class ControlChecksDetailResponseDto implements ControlChecksDetail {
@@ -152,6 +199,25 @@ export class DashboardSummaryResponseDto implements DashboardSummary {
     description: 'Servidores registrados y activos (origen Wazuh) considerados en este resumen',
   })
   serversEvaluated!: number;
+
+  @ApiProperty({ example: 'Acme Corp SAS' })
+  companyName!: string;
+
+  @ApiProperty({ example: 5, description: 'Total de Asset registrados (sin filtrar por estado)' })
+  assetsCount!: number;
+
+  @ApiProperty({
+    description: 'Frameworks adoptados por este tenant, cada uno con su propio % de cumplimiento',
+    type: 'array',
+    items: {
+      properties: {
+        id: { type: 'string', format: 'uuid' },
+        name: { type: 'string', example: 'SOC 2' },
+        compliance: { type: 'number', nullable: true, example: 72.5 },
+      },
+    },
+  })
+  contractedTemplates!: { id: string; name: string; compliance: number | null }[];
 }
 
 export class ServerComplianceResponseDto implements ServerCompliance {

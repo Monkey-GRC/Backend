@@ -1,19 +1,32 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ChecklistOs } from 'generated/prisma-tenant/browser';
+import { ChecklistOs, ControlDimension } from 'generated/prisma-tenant/browser';
 import { AssetRepository } from 'src/features/asset/domain/repositories/asset.repository';
 import { CisCheckRepository } from 'src/features/checklist/domain/repositories/cis-check.repository';
 import { ControlComplianceRepository } from '../../domain/repositories/control-compliance.repository';
 import { EvaluableAsset, ScaCheckResult } from '../compliance.calculator';
 
+export type FailingAsset = {
+    assetId: string;
+    name: string;
+};
+
 export type ControlCheckDetail = {
     checkId: string;
     title: string;
     os: ChecklistOs;
+    dimension: ControlDimension;
     result: ScaCheckResult;
     description: string | null;
     rationale: string | null;
     /** Solo tiene sentido consultarla cuando result === 'failed'. */
     remediation: string | null;
+    /**
+     * Servidores específicos que incumplen este check — solo se listan los
+     * que fallan (filosofía de excepción, no cobertura completa). Vacío si
+     * result !== 'failed', o si el check falla pero por algún motivo no se
+     * pudo identificar el/los servidor(es) puntuales.
+     */
+    failingAssets: FailingAsset[];
 };
 
 export type ControlChecksDetail = {
@@ -40,7 +53,7 @@ export class GetControlChecksDetailUseCase {
         }
 
         const assets = await this.loadEvaluableAssets();
-        const resultsByOs = await this.loadAggregatedResultsByOs(
+        const resultsByCheckId = await this.loadResultsByCheck(
             new Set(control.checks.map((check) => check.os)),
             assets,
         );
@@ -55,6 +68,12 @@ export class GetControlChecksDetailUseCase {
             name: control.name,
             checks: control.checks.map((check) => {
                 const detail = cisDetails.get(check.checkId);
+                const perAsset = resultsByCheckId.get(check.checkId) ?? [];
+                const failingAssets = perAsset
+                    .filter((entry) => entry.result === 'failed')
+                    .map((entry) => ({ assetId: entry.assetId, name: entry.name }));
+                const result = this.summarizeResult(perAsset.map((entry) => entry.result));
+
                 return {
                     checkId: check.checkId,
                     // check.title es una copia congelada del catálogo CIS al momento de crear el
@@ -62,10 +81,12 @@ export class GetControlChecksDetailUseCase {
                     // vigente y solo se cae al título guardado si el catálogo no tiene ese check_id.
                     title: detail?.title ?? check.title,
                     os: check.os,
-                    result: resultsByOs.get(check.os)?.get(check.checkId) ?? 'not_applicable',
+                    dimension: check.dimension,
+                    result,
                     description: detail?.description ?? null,
                     rationale: detail?.rationale ?? null,
                     remediation: detail?.remediation ?? null,
+                    failingAssets,
                 };
             }),
         };
@@ -75,39 +96,48 @@ export class GetControlChecksDetailUseCase {
         const assets = await this.assetRepository.findAll();
         return assets
             .filter((asset: any) => asset.source === 'WAZUH_AGENT' && asset.external_id && asset.os && asset.status === 'ACTIVE')
-            .map((asset: any) => ({ id: asset.id, externalId: asset.external_id, os: asset.os }));
+            .map((asset: any) => ({
+                id: asset.id,
+                name: asset.name,
+                externalId: asset.external_id,
+                os: asset.os,
+                policyId: asset.wazuh_policy_id ?? null,
+            }));
     }
 
-    /** bool_and entre los servidores registrados que corren ese sistema operativo. */
-    private async loadAggregatedResultsByOs(
+    /**
+     * Resultado por check_id, con el detalle de CADA asset que lo evaluó
+     * (no un agregado bool_and) — así se conserva cuál servidor específico
+     * falla, en vez de perderlo al agregar por sistema operativo.
+     */
+    private async loadResultsByCheck(
         osList: Set<ChecklistOs>,
         assets: EvaluableAsset[],
-    ): Promise<Map<ChecklistOs, Map<string, ScaCheckResult>>> {
-        const resultsByOs = new Map<ChecklistOs, Map<string, ScaCheckResult>>();
+    ): Promise<Map<string, { assetId: string; name: string; result: ScaCheckResult }[]>> {
+        const resultsByCheckId = new Map<string, { assetId: string; name: string; result: ScaCheckResult }[]>();
 
         for (const os of osList) {
-            const matchingAssets = assets.filter((asset) => asset.os === os);
-            const aggregated = new Map<string, ScaCheckResult>();
+            const matchingAssets = assets.filter((asset) => asset.os === os && asset.policyId);
 
             for (const asset of matchingAssets) {
-                const checks = await this.cisCheckRepository.findComplianceForAgent(os, asset.externalId);
+                const checks = await this.cisCheckRepository.findComplianceForAgent(asset.policyId as string, asset.externalId);
                 for (const check of checks) {
                     const result = this.normalizeResult(check.result);
-                    const previous = aggregated.get(check.checkId);
-                    if (result === 'failed' || previous === 'failed') {
-                        aggregated.set(check.checkId, 'failed');
-                    } else if (result === 'passed' || previous === 'passed') {
-                        aggregated.set(check.checkId, 'passed');
-                    } else {
-                        aggregated.set(check.checkId, 'not_applicable');
-                    }
+                    const list = resultsByCheckId.get(check.checkId) ?? [];
+                    list.push({ assetId: asset.id, name: asset.name, result });
+                    resultsByCheckId.set(check.checkId, list);
                 }
             }
-
-            resultsByOs.set(os, aggregated);
         }
 
-        return resultsByOs;
+        return resultsByCheckId;
+    }
+
+    /** Un check del control falla si falla en AL MENOS uno de los servidores evaluados. */
+    private summarizeResult(results: ScaCheckResult[]): ScaCheckResult {
+        if (results.some((r) => r === 'failed')) return 'failed';
+        if (results.some((r) => r === 'passed')) return 'passed';
+        return 'not_applicable';
     }
 
     private normalizeResult(result?: string | null): ScaCheckResult {

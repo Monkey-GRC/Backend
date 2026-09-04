@@ -54,6 +54,14 @@ export type CompanyProfile = Prisma.CompanyProfileModel
  */
 export type Control = Prisma.ControlModel
 /**
+ * Model ControlDimensionRequirement
+ * Qué dimensiones aplican a un control y de qué tipo es la evidencia en
+ * cada una (MANUAL/AUTOMATIC/HYBRID no es del control entero — es por
+ * dimensión). El % de cumplimiento del control es el promedio de las
+ * dimensiones aquí listadas, no un promedio de checks individuales.
+ */
+export type ControlDimensionRequirement = Prisma.ControlDimensionRequirementModel
+/**
  * Model ControlCheck
  * 
  */

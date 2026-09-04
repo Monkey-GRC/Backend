@@ -55,6 +55,7 @@ export const ModelName = {
   CisCheckTranslation: 'CisCheckTranslation',
   Client: 'Client',
   Control: 'Control',
+  ControlDimensionRequirement: 'ControlDimensionRequirement',
   ControlCheck: 'ControlCheck',
   ManualCheckItem: 'ManualCheckItem',
   ManualCheckEvidence: 'ManualCheckEvidence',
@@ -152,6 +153,7 @@ export const ControlScalarFieldEnum = {
   id: 'id',
   name: 'name',
   description: 'description',
+  source_ref: 'source_ref',
   seq: 'seq',
   type: 'type',
   objective: 'objective',
@@ -165,12 +167,25 @@ export const ControlScalarFieldEnum = {
 export type ControlScalarFieldEnum = (typeof ControlScalarFieldEnum)[keyof typeof ControlScalarFieldEnum]
 
 
+export const ControlDimensionRequirementScalarFieldEnum = {
+  id: 'id',
+  control_id: 'control_id',
+  dimension: 'dimension',
+  type: 'type',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type ControlDimensionRequirementScalarFieldEnum = (typeof ControlDimensionRequirementScalarFieldEnum)[keyof typeof ControlDimensionRequirementScalarFieldEnum]
+
+
 export const ControlCheckScalarFieldEnum = {
   id: 'id',
   control_id: 'control_id',
   check_id: 'check_id',
   title: 'title',
   os: 'os',
+  dimension: 'dimension',
   soc2_code: 'soc2_code',
   cis_code: 'cis_code',
   pci_dss_code: 'pci_dss_code',
@@ -189,8 +204,10 @@ export const ManualCheckItemScalarFieldEnum = {
   control_id: 'control_id',
   title: 'title',
   description: 'description',
+  rationale: 'rationale',
   remediation: 'remediation',
   seq: 'seq',
+  dimension: 'dimension',
   status: 'status',
   notes: 'notes',
   evaluated_by: 'evaluated_by',

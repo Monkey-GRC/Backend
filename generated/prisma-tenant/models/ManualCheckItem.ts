@@ -42,8 +42,10 @@ export type ManualCheckItemMinAggregateOutputType = {
   control_id: string | null
   title: string | null
   description: string | null
+  rationale: string | null
   remediation: string | null
   seq: number | null
+  dimension: $Enums.ControlDimension | null
   status: $Enums.ManualCheckStatus | null
   notes: string | null
   evaluated_by: string | null
@@ -58,8 +60,10 @@ export type ManualCheckItemMaxAggregateOutputType = {
   control_id: string | null
   title: string | null
   description: string | null
+  rationale: string | null
   remediation: string | null
   seq: number | null
+  dimension: $Enums.ControlDimension | null
   status: $Enums.ManualCheckStatus | null
   notes: string | null
   evaluated_by: string | null
@@ -74,8 +78,10 @@ export type ManualCheckItemCountAggregateOutputType = {
   control_id: number
   title: number
   description: number
+  rationale: number
   remediation: number
   seq: number
+  dimension: number
   status: number
   notes: number
   evaluated_by: number
@@ -100,8 +106,10 @@ export type ManualCheckItemMinAggregateInputType = {
   control_id?: true
   title?: true
   description?: true
+  rationale?: true
   remediation?: true
   seq?: true
+  dimension?: true
   status?: true
   notes?: true
   evaluated_by?: true
@@ -116,8 +124,10 @@ export type ManualCheckItemMaxAggregateInputType = {
   control_id?: true
   title?: true
   description?: true
+  rationale?: true
   remediation?: true
   seq?: true
+  dimension?: true
   status?: true
   notes?: true
   evaluated_by?: true
@@ -132,8 +142,10 @@ export type ManualCheckItemCountAggregateInputType = {
   control_id?: true
   title?: true
   description?: true
+  rationale?: true
   remediation?: true
   seq?: true
+  dimension?: true
   status?: true
   notes?: true
   evaluated_by?: true
@@ -235,8 +247,10 @@ export type ManualCheckItemGroupByOutputType = {
   control_id: string
   title: string
   description: string | null
+  rationale: string | null
   remediation: string | null
   seq: number
+  dimension: $Enums.ControlDimension
   status: $Enums.ManualCheckStatus
   notes: string | null
   evaluated_by: string | null
@@ -274,8 +288,10 @@ export type ManualCheckItemWhereInput = {
   control_id?: Prisma.UuidFilter<"ManualCheckItem"> | string
   title?: Prisma.StringFilter<"ManualCheckItem"> | string
   description?: Prisma.StringNullableFilter<"ManualCheckItem"> | string | null
+  rationale?: Prisma.StringNullableFilter<"ManualCheckItem"> | string | null
   remediation?: Prisma.StringNullableFilter<"ManualCheckItem"> | string | null
   seq?: Prisma.IntFilter<"ManualCheckItem"> | number
+  dimension?: Prisma.EnumControlDimensionFilter<"ManualCheckItem"> | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFilter<"ManualCheckItem"> | $Enums.ManualCheckStatus
   notes?: Prisma.StringNullableFilter<"ManualCheckItem"> | string | null
   evaluated_by?: Prisma.UuidNullableFilter<"ManualCheckItem"> | string | null
@@ -294,8 +310,10 @@ export type ManualCheckItemOrderByWithRelationInput = {
   control_id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
+  rationale?: Prisma.SortOrderInput | Prisma.SortOrder
   remediation?: Prisma.SortOrderInput | Prisma.SortOrder
   seq?: Prisma.SortOrder
+  dimension?: Prisma.SortOrder
   status?: Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   evaluated_by?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -318,7 +336,9 @@ export type ManualCheckItemWhereUniqueInput = Prisma.AtLeast<{
   control_id?: Prisma.UuidFilter<"ManualCheckItem"> | string
   title?: Prisma.StringFilter<"ManualCheckItem"> | string
   description?: Prisma.StringNullableFilter<"ManualCheckItem"> | string | null
+  rationale?: Prisma.StringNullableFilter<"ManualCheckItem"> | string | null
   remediation?: Prisma.StringNullableFilter<"ManualCheckItem"> | string | null
+  dimension?: Prisma.EnumControlDimensionFilter<"ManualCheckItem"> | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFilter<"ManualCheckItem"> | $Enums.ManualCheckStatus
   notes?: Prisma.StringNullableFilter<"ManualCheckItem"> | string | null
   evaluated_by?: Prisma.UuidNullableFilter<"ManualCheckItem"> | string | null
@@ -337,8 +357,10 @@ export type ManualCheckItemOrderByWithAggregationInput = {
   control_id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
+  rationale?: Prisma.SortOrderInput | Prisma.SortOrder
   remediation?: Prisma.SortOrderInput | Prisma.SortOrder
   seq?: Prisma.SortOrder
+  dimension?: Prisma.SortOrder
   status?: Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   evaluated_by?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -361,8 +383,10 @@ export type ManualCheckItemScalarWhereWithAggregatesInput = {
   control_id?: Prisma.UuidWithAggregatesFilter<"ManualCheckItem"> | string
   title?: Prisma.StringWithAggregatesFilter<"ManualCheckItem"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"ManualCheckItem"> | string | null
+  rationale?: Prisma.StringNullableWithAggregatesFilter<"ManualCheckItem"> | string | null
   remediation?: Prisma.StringNullableWithAggregatesFilter<"ManualCheckItem"> | string | null
   seq?: Prisma.IntWithAggregatesFilter<"ManualCheckItem"> | number
+  dimension?: Prisma.EnumControlDimensionWithAggregatesFilter<"ManualCheckItem"> | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusWithAggregatesFilter<"ManualCheckItem"> | $Enums.ManualCheckStatus
   notes?: Prisma.StringNullableWithAggregatesFilter<"ManualCheckItem"> | string | null
   evaluated_by?: Prisma.UuidNullableWithAggregatesFilter<"ManualCheckItem"> | string | null
@@ -376,8 +400,10 @@ export type ManualCheckItemCreateInput = {
   id?: string
   title: string
   description?: string | null
+  rationale?: string | null
   remediation?: string | null
   seq?: number
+  dimension?: $Enums.ControlDimension
   status?: $Enums.ManualCheckStatus
   notes?: string | null
   evaluated_at?: Date | string | null
@@ -394,8 +420,10 @@ export type ManualCheckItemUncheckedCreateInput = {
   control_id: string
   title: string
   description?: string | null
+  rationale?: string | null
   remediation?: string | null
   seq?: number
+  dimension?: $Enums.ControlDimension
   status?: $Enums.ManualCheckStatus
   notes?: string | null
   evaluated_by?: string | null
@@ -410,7 +438,9 @@ export type ManualCheckItemUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -427,8 +457,10 @@ export type ManualCheckItemUncheckedUpdateInput = {
   control_id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -444,8 +476,10 @@ export type ManualCheckItemCreateManyInput = {
   control_id: string
   title: string
   description?: string | null
+  rationale?: string | null
   remediation?: string | null
   seq?: number
+  dimension?: $Enums.ControlDimension
   status?: $Enums.ManualCheckStatus
   notes?: string | null
   evaluated_by?: string | null
@@ -459,7 +493,9 @@ export type ManualCheckItemUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -472,8 +508,10 @@ export type ManualCheckItemUncheckedUpdateManyInput = {
   control_id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -498,8 +536,10 @@ export type ManualCheckItemCountOrderByAggregateInput = {
   control_id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  rationale?: Prisma.SortOrder
   remediation?: Prisma.SortOrder
   seq?: Prisma.SortOrder
+  dimension?: Prisma.SortOrder
   status?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   evaluated_by?: Prisma.SortOrder
@@ -518,8 +558,10 @@ export type ManualCheckItemMaxOrderByAggregateInput = {
   control_id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  rationale?: Prisma.SortOrder
   remediation?: Prisma.SortOrder
   seq?: Prisma.SortOrder
+  dimension?: Prisma.SortOrder
   status?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   evaluated_by?: Prisma.SortOrder
@@ -534,8 +576,10 @@ export type ManualCheckItemMinOrderByAggregateInput = {
   control_id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  rationale?: Prisma.SortOrder
   remediation?: Prisma.SortOrder
   seq?: Prisma.SortOrder
+  dimension?: Prisma.SortOrder
   status?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   evaluated_by?: Prisma.SortOrder
@@ -702,8 +746,10 @@ export type ManualCheckItemCreateWithoutControlInput = {
   id?: string
   title: string
   description?: string | null
+  rationale?: string | null
   remediation?: string | null
   seq?: number
+  dimension?: $Enums.ControlDimension
   status?: $Enums.ManualCheckStatus
   notes?: string | null
   evaluated_at?: Date | string | null
@@ -718,8 +764,10 @@ export type ManualCheckItemUncheckedCreateWithoutControlInput = {
   id?: string
   title: string
   description?: string | null
+  rationale?: string | null
   remediation?: string | null
   seq?: number
+  dimension?: $Enums.ControlDimension
   status?: $Enums.ManualCheckStatus
   notes?: string | null
   evaluated_by?: string | null
@@ -764,8 +812,10 @@ export type ManualCheckItemScalarWhereInput = {
   control_id?: Prisma.UuidFilter<"ManualCheckItem"> | string
   title?: Prisma.StringFilter<"ManualCheckItem"> | string
   description?: Prisma.StringNullableFilter<"ManualCheckItem"> | string | null
+  rationale?: Prisma.StringNullableFilter<"ManualCheckItem"> | string | null
   remediation?: Prisma.StringNullableFilter<"ManualCheckItem"> | string | null
   seq?: Prisma.IntFilter<"ManualCheckItem"> | number
+  dimension?: Prisma.EnumControlDimensionFilter<"ManualCheckItem"> | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFilter<"ManualCheckItem"> | $Enums.ManualCheckStatus
   notes?: Prisma.StringNullableFilter<"ManualCheckItem"> | string | null
   evaluated_by?: Prisma.UuidNullableFilter<"ManualCheckItem"> | string | null
@@ -779,8 +829,10 @@ export type ManualCheckItemCreateWithoutEvidenceInput = {
   id?: string
   title: string
   description?: string | null
+  rationale?: string | null
   remediation?: string | null
   seq?: number
+  dimension?: $Enums.ControlDimension
   status?: $Enums.ManualCheckStatus
   notes?: string | null
   evaluated_at?: Date | string | null
@@ -796,8 +848,10 @@ export type ManualCheckItemUncheckedCreateWithoutEvidenceInput = {
   control_id: string
   title: string
   description?: string | null
+  rationale?: string | null
   remediation?: string | null
   seq?: number
+  dimension?: $Enums.ControlDimension
   status?: $Enums.ManualCheckStatus
   notes?: string | null
   evaluated_by?: string | null
@@ -827,7 +881,9 @@ export type ManualCheckItemUpdateWithoutEvidenceInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -843,8 +899,10 @@ export type ManualCheckItemUncheckedUpdateWithoutEvidenceInput = {
   control_id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -858,8 +916,10 @@ export type ManualCheckItemCreateWithoutCreated_by_userInput = {
   id?: string
   title: string
   description?: string | null
+  rationale?: string | null
   remediation?: string | null
   seq?: number
+  dimension?: $Enums.ControlDimension
   status?: $Enums.ManualCheckStatus
   notes?: string | null
   evaluated_at?: Date | string | null
@@ -875,8 +935,10 @@ export type ManualCheckItemUncheckedCreateWithoutCreated_by_userInput = {
   control_id: string
   title: string
   description?: string | null
+  rationale?: string | null
   remediation?: string | null
   seq?: number
+  dimension?: $Enums.ControlDimension
   status?: $Enums.ManualCheckStatus
   notes?: string | null
   evaluated_by?: string | null
@@ -900,8 +962,10 @@ export type ManualCheckItemCreateWithoutEvaluated_by_userInput = {
   id?: string
   title: string
   description?: string | null
+  rationale?: string | null
   remediation?: string | null
   seq?: number
+  dimension?: $Enums.ControlDimension
   status?: $Enums.ManualCheckStatus
   notes?: string | null
   evaluated_at?: Date | string | null
@@ -917,8 +981,10 @@ export type ManualCheckItemUncheckedCreateWithoutEvaluated_by_userInput = {
   control_id: string
   title: string
   description?: string | null
+  rationale?: string | null
   remediation?: string | null
   seq?: number
+  dimension?: $Enums.ControlDimension
   status?: $Enums.ManualCheckStatus
   notes?: string | null
   evaluated_at?: Date | string | null
@@ -974,8 +1040,10 @@ export type ManualCheckItemCreateManyControlInput = {
   id?: string
   title: string
   description?: string | null
+  rationale?: string | null
   remediation?: string | null
   seq?: number
+  dimension?: $Enums.ControlDimension
   status?: $Enums.ManualCheckStatus
   notes?: string | null
   evaluated_by?: string | null
@@ -989,7 +1057,9 @@ export type ManualCheckItemUpdateWithoutControlInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1004,8 +1074,10 @@ export type ManualCheckItemUncheckedUpdateWithoutControlInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1020,8 +1092,10 @@ export type ManualCheckItemUncheckedUpdateManyWithoutControlInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1036,8 +1110,10 @@ export type ManualCheckItemCreateManyCreated_by_userInput = {
   control_id: string
   title: string
   description?: string | null
+  rationale?: string | null
   remediation?: string | null
   seq?: number
+  dimension?: $Enums.ControlDimension
   status?: $Enums.ManualCheckStatus
   notes?: string | null
   evaluated_by?: string | null
@@ -1051,8 +1127,10 @@ export type ManualCheckItemCreateManyEvaluated_by_userInput = {
   control_id: string
   title: string
   description?: string | null
+  rationale?: string | null
   remediation?: string | null
   seq?: number
+  dimension?: $Enums.ControlDimension
   status?: $Enums.ManualCheckStatus
   notes?: string | null
   evaluated_at?: Date | string | null
@@ -1065,7 +1143,9 @@ export type ManualCheckItemUpdateWithoutCreated_by_userInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1081,8 +1161,10 @@ export type ManualCheckItemUncheckedUpdateWithoutCreated_by_userInput = {
   control_id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1097,8 +1179,10 @@ export type ManualCheckItemUncheckedUpdateManyWithoutCreated_by_userInput = {
   control_id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1111,7 +1195,9 @@ export type ManualCheckItemUpdateWithoutEvaluated_by_userInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1127,8 +1213,10 @@ export type ManualCheckItemUncheckedUpdateWithoutEvaluated_by_userInput = {
   control_id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1143,8 +1231,10 @@ export type ManualCheckItemUncheckedUpdateManyWithoutEvaluated_by_userInput = {
   control_id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rationale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   remediation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   seq?: Prisma.IntFieldUpdateOperationsInput | number
+  dimension?: Prisma.EnumControlDimensionFieldUpdateOperationsInput | $Enums.ControlDimension
   status?: Prisma.EnumManualCheckStatusFieldUpdateOperationsInput | $Enums.ManualCheckStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   evaluated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1189,8 +1279,10 @@ export type ManualCheckItemSelect<ExtArgs extends runtime.Types.Extensions.Inter
   control_id?: boolean
   title?: boolean
   description?: boolean
+  rationale?: boolean
   remediation?: boolean
   seq?: boolean
+  dimension?: boolean
   status?: boolean
   notes?: boolean
   evaluated_by?: boolean
@@ -1210,8 +1302,10 @@ export type ManualCheckItemSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   control_id?: boolean
   title?: boolean
   description?: boolean
+  rationale?: boolean
   remediation?: boolean
   seq?: boolean
+  dimension?: boolean
   status?: boolean
   notes?: boolean
   evaluated_by?: boolean
@@ -1229,8 +1323,10 @@ export type ManualCheckItemSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   control_id?: boolean
   title?: boolean
   description?: boolean
+  rationale?: boolean
   remediation?: boolean
   seq?: boolean
+  dimension?: boolean
   status?: boolean
   notes?: boolean
   evaluated_by?: boolean
@@ -1248,8 +1344,10 @@ export type ManualCheckItemSelectScalar = {
   control_id?: boolean
   title?: boolean
   description?: boolean
+  rationale?: boolean
   remediation?: boolean
   seq?: boolean
+  dimension?: boolean
   status?: boolean
   notes?: boolean
   evaluated_by?: boolean
@@ -1259,7 +1357,7 @@ export type ManualCheckItemSelectScalar = {
   created_by?: boolean
 }
 
-export type ManualCheckItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "control_id" | "title" | "description" | "remediation" | "seq" | "status" | "notes" | "evaluated_by" | "evaluated_at" | "created_at" | "updated_at" | "created_by", ExtArgs["result"]["manualCheckItem"]>
+export type ManualCheckItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "control_id" | "title" | "description" | "rationale" | "remediation" | "seq" | "dimension" | "status" | "notes" | "evaluated_by" | "evaluated_at" | "created_at" | "updated_at" | "created_by", ExtArgs["result"]["manualCheckItem"]>
 export type ManualCheckItemInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   control?: boolean | Prisma.ControlDefaultArgs<ExtArgs>
   evaluated_by_user?: boolean | Prisma.ManualCheckItem$evaluated_by_userArgs<ExtArgs>
@@ -1291,8 +1389,20 @@ export type $ManualCheckItemPayload<ExtArgs extends runtime.Types.Extensions.Int
     control_id: string
     title: string
     description: string | null
+    /**
+     * Por qué importa este control (riesgo de negocio si no se cumple),
+     * separado de `description` (qué se evalúa) y `remediation` (qué
+     * evidencia/documento pedir).
+     */
+    rationale: string | null
     remediation: string | null
     seq: number
+    /**
+     * A cuál de las 5 dimensiones pertenece esta evidencia manual (Política,
+     * o Servidor/BD/Nube/App cuando esa dimensión todavía no tiene
+     * automatización y se cubre con evidencia subida a mano).
+     */
+    dimension: $Enums.ControlDimension
     status: $Enums.ManualCheckStatus
     notes: string | null
     evaluated_by: string | null
@@ -1731,8 +1841,10 @@ export interface ManualCheckItemFieldRefs {
   readonly control_id: Prisma.FieldRef<"ManualCheckItem", 'String'>
   readonly title: Prisma.FieldRef<"ManualCheckItem", 'String'>
   readonly description: Prisma.FieldRef<"ManualCheckItem", 'String'>
+  readonly rationale: Prisma.FieldRef<"ManualCheckItem", 'String'>
   readonly remediation: Prisma.FieldRef<"ManualCheckItem", 'String'>
   readonly seq: Prisma.FieldRef<"ManualCheckItem", 'Int'>
+  readonly dimension: Prisma.FieldRef<"ManualCheckItem", 'ControlDimension'>
   readonly status: Prisma.FieldRef<"ManualCheckItem", 'ManualCheckStatus'>
   readonly notes: Prisma.FieldRef<"ManualCheckItem", 'String'>
   readonly evaluated_by: Prisma.FieldRef<"ManualCheckItem", 'String'>
