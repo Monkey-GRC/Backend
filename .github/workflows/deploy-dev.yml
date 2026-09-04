@@ -30,12 +30,17 @@ jobs:
           # script_stop: si un comando del script falla, el step (y el job)
           # deben fallar de verdad — sin esto, appleboy/ssh-action reporta
           # "success" aunque el build de Docker truene por dentro.
+          #
+          # ENV_FILE va en base64 (no en un heredoc): con script_stop activo,
+          # drone-ssh (el motor de esta action) envuelve CADA LÍNEA del script
+          # con su propio chequeo de código de salida — si el script tiene un
+          # heredoc multilínea, ese chequeo se inyecta ENTRE las líneas del
+          # heredoc y corrompe el archivo que se está escribiendo. Una sola
+          # línea con base64 no tiene ese problema.
           script_stop: true
           script: |
             set -e
-            cat > /home/ubuntu/monkey-dev/.env << 'ENV_EOF'
-            ${{ secrets.ENV_FILE }}
-            ENV_EOF
+            echo '${{ secrets.ENV_FILE }}' | base64 -d > /home/ubuntu/monkey-dev/.env
             cd /home/ubuntu/monkey-dev
             docker compose build backend
             docker compose up -d backend
