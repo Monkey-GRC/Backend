@@ -1,15 +1,17 @@
 /**
- * Purga cualquier referencia a "Nelson"/"Vanta" (contexto interno de la
- * conversación con el cliente, nunca debe quedar en un dato de producto) de
- * `mnk_controls.description` y `mnk_templates.description`, en UNA base
- * (central o un tenant):
+ * Purga cualquier referencia interna de origen ("Nelson"/"Vanta" — nombres
+ * de contexto de la conversación con el cliente, nunca deben quedar en un
+ * dato de producto) de `mnk_controls.description`, `mnk_templates.description`
+ * y `mnk_risks.description`, en UNA base (central o un tenant):
  *
  *   - Control: `description` con formato "[Nelson {id} | TSC {codes}] {texto}"
  *     -> se extrae {id} a la columna oculta `source_ref` (para que scripts
  *     de importación futuros puedan re-matchear sin depender de texto
  *     visible) y `description` queda solo con {texto}.
- *   - Template: `description` que mencione "Nelson"/"Vanta" se reemplaza por
- *     un texto profesional genérico.
+ *   - Template: `description` que mencione la referencia interna se
+ *     reemplaza por un texto profesional genérico.
+ *   - Risk: mismo reemplazo genérico (todos los Risk de dominio comparten
+ *     el mismo texto placeholder).
  *
  * Idempotente — si ya se corrió antes, no encuentra nada que cambiar.
  *
@@ -23,6 +25,9 @@ import { Pool } from 'pg';
 
 const GENERIC_TEMPLATE_DESCRIPTION =
   'Marco SOC 2 (Trust Services Criteria), evaluado por control y por dimensión (Política, Servidor, Base de Datos, Nube, Aplicación).';
+
+const GENERIC_RISK_DESCRIPTION =
+  'Dominio del marco SOC 2. Impact/probability son PLACEHOLDER (2/2) — este catálogo cataloga controles, no evalúa riesgo; pendiente de evaluación real por el equipo.';
 
 const CONTROL_PATTERN = /^\[Nelson ([A-Z0-9-]+) \| TSC [^\]]*\]\s*(.*)$/s;
 
@@ -82,9 +87,21 @@ async function main() {
     }
   }
 
+  const risks = (await pool.query(
+    `SELECT id, name, description FROM mnk_risks WHERE description ILIKE '%nelson%'`,
+  )).rows;
+
+  console.log(`[${label}] Risks con "Nelson" en description: ${risks.length}`);
+  for (const r of risks) {
+    if (apply) {
+      await pool.query(`UPDATE mnk_risks SET description = $1 WHERE id = $2`, [GENERIC_RISK_DESCRIPTION, r.id]);
+    }
+  }
+
   console.log(`\n=== [${label}] ${apply ? 'APLICADO' : 'DRY-RUN'} ===`);
   console.log(`Controles corregidos: ${controlsFixed} | sin matchear (revisar a mano): ${controlsUnmatched}`);
   console.log(`Templates corregidos: ${templates.length}`);
+  console.log(`Risks corregidos: ${risks.length}`);
   if (!apply) console.log('\n[DRY-RUN] No se escribió nada. Corré con --apply para aplicar de verdad.');
 
   await pool.end();

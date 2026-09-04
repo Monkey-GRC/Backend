@@ -1,6 +1,6 @@
 /**
- * Completa la evaluabilidad de las 118 controles de Nelson en UNA base
- * (central o un tenant), usando el mapeo REAL que ya está curado en
+ * Completa la evaluabilidad de los 118 controles del catálogo SOC 2 en UNA
+ * base (central o un tenant), usando el mapeo REAL que ya está curado en
  * MONKEY_SOC2_CONTROLES_AMPLIADOS.xlsx (columna "SERVIDORES Check Wazuh",
  * con IDs reales de check por control) en vez de solo los 8 controles
  * migrados desde el catálogo viejo de 24:
@@ -22,9 +22,9 @@
  * como ya existentes (mismo check_id) y no se duplican.
  *
  * Uso:
- *   npx tsx scripts/wire-nelson-full-mapping.ts --db=central
- *   npx tsx scripts/wire-nelson-full-mapping.ts --db=central --apply
- *   npx tsx scripts/wire-nelson-full-mapping.ts --tenant-db-url="postgresql://..." --apply
+ *   npx tsx scripts/wire-soc2-check-mapping.ts --db=central
+ *   npx tsx scripts/wire-soc2-check-mapping.ts --db=central --apply
+ *   npx tsx scripts/wire-soc2-check-mapping.ts --tenant-db-url="postgresql://..." --apply
  */
 import 'dotenv/config';
 import * as XLSX from 'xlsx';
@@ -125,9 +125,9 @@ async function main() {
        JOIN mnk_reason_controls rc ON rc.control_id = ctl.id
        JOIN mnk_risk_reasons rr ON rr.reason_id = rc.reason_id
        JOIN mnk_risks r ON r.id = rr.risk_id
-       WHERE r.template_id = $1 AND ctl.description LIKE $2
+       WHERE r.template_id = $1 AND ctl.source_ref = $2
        LIMIT 1`,
-      [tpl.id, `%[Nelson ${row.monkeyId} |%`],
+      [tpl.id, row.monkeyId],
     );
     if (controlRes.rows.length === 0) {
       controlsNotFound++;

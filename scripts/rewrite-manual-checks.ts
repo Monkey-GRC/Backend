@@ -7,7 +7,7 @@
  *     negocio — no existía antes, se agregó en esta fase.
  *   - remediation: qué evidencia/documento concreto se debe cargar, a
  *     partir de la columna "GOBIERNO Evidencia requerida/indicada" del
- *     Excel de Nelson (reescrita en tono claro), o una sugerencia sensata
+ *     Excel maestro (reescrita en tono claro), o una sugerencia sensata
  *     cuando el Excel no traía nada.
  *
  * Se matchea por `Control.source_ref` (ej. "IAO-1"), no por nombre — ya no

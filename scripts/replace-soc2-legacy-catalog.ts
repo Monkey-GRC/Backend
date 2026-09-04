@@ -1,23 +1,23 @@
 /**
- * Reemplaza el template "SOC 2" (24 controles originales) por "SOC 2 (Nelson)"
- * (118 controles) en UNA base (central o de un tenant), dejando un solo
- * catálogo SOC 2, sin duplicados:
+ * Reemplaza el template "SOC 2" (24 controles originales) por "SOC 2
+ * (importación)" (118 controles) en UNA base (central o de un tenant),
+ * dejando un solo catálogo SOC 2, sin duplicados:
  *
  *   1. Migra los ControlCheck (checks reales de Wazuh) de los 8 controles
- *      AUTOMATIC originales hacia su control equivalente en el catálogo de
- *      Nelson (mapeo curado a mano, ver CONTROL_MAPPING).
+ *      AUTOMATIC originales hacia su control equivalente en el catálogo
+ *      nuevo (mapeo curado a mano, ver CONTROL_MAPPING).
  *   2. Verifica que ningún ManualCheckItem de los 24 controles originales
  *      tenga evidencia real o estado distinto de PENDING — si encuentra
  *      algo, SE DETIENE sin borrar nada (no se pierde trabajo real sin avisar).
  *   3. Borra Control/Reason/Risk/Template del "SOC 2" original (24 controles).
- *   4. Renombra "SOC 2 (Nelson)" -> nombre "SOC 2", slug "soc-2" — así el
- *      onboarding (que ya lista los templates de central para elegir) no
+ *   4. Renombra "SOC 2 (importación)" -> nombre "SOC 2", slug "soc-2" — así
+ *      el onboarding (que ya lista los templates de central para elegir) no
  *      necesita ningún cambio de código: solo va a quedar un "SOC 2".
  *
  * Uso (por base):
- *   npx tsx scripts/replace-soc2-with-nelson.ts --db=central
- *   npx tsx scripts/replace-soc2-with-nelson.ts --db=central --apply
- *   npx tsx scripts/replace-soc2-with-nelson.ts --tenant-db-url="postgresql://..." --apply
+ *   npx tsx scripts/replace-soc2-legacy-catalog.ts --db=central
+ *   npx tsx scripts/replace-soc2-legacy-catalog.ts --db=central --apply
+ *   npx tsx scripts/replace-soc2-legacy-catalog.ts --tenant-db-url="postgresql://..." --apply
  */
 import 'dotenv/config';
 import { Pool } from 'pg';
@@ -53,10 +53,10 @@ async function main() {
   const pool = new Pool({ connectionString });
 
   const oldTemplate = await pool.query(`SELECT id, name, slug FROM mnk_templates WHERE slug = 'soc-2-tsc'`);
-  // El template Nelson puede llamarse "soc-2-nelson" (antes de renombrar en central)
+  // El template nuevo puede llamarse "soc-2-import" (antes de renombrar en central)
   // o ya "soc-2" (si se clonó DESPUÉS de que central se renombró) — cualquiera de
   // los dos que exista y no sea el viejo "soc-2-tsc" es el correcto.
-  const newTemplate = await pool.query(`SELECT id, name, slug FROM mnk_templates WHERE slug IN ('soc-2-nelson', 'soc-2') AND slug != 'soc-2-tsc'`);
+  const newTemplate = await pool.query(`SELECT id, name, slug FROM mnk_templates WHERE slug IN ('soc-2-import', 'soc-2') AND slug != 'soc-2-tsc'`);
 
   if (oldTemplate.rows.length === 0) {
     console.log(`[${label}] No hay template "soc-2" original — nada que reemplazar aquí (¿ya se corrió antes?).`);
@@ -64,14 +64,14 @@ async function main() {
     return;
   }
   if (newTemplate.rows.length === 0) {
-    console.log(`[${label}] No existe "soc-2-nelson" en esta base todavía — hay que adoptarlo primero (POST /templates/master/:id/adopt).`);
+    console.log(`[${label}] No existe "soc-2-import" en esta base todavía — hay que adoptarlo primero (POST /templates/master/:id/adopt).`);
     await pool.end();
     return;
   }
 
   const oldTemplateId = oldTemplate.rows[0].id;
   const newTemplateId = newTemplate.rows[0].id;
-  console.log(`[${label}] Template viejo: ${oldTemplateId} | Template Nelson: ${newTemplateId}`);
+  console.log(`[${label}] Template viejo: ${oldTemplateId} | Template nuevo: ${newTemplateId}`);
 
   // --- Paso 1: mapear los 8 controles AUTOMATIC con sus checks ---
   const oldControls = await pool.query(`
@@ -107,7 +107,7 @@ async function main() {
       LIMIT 1
     `, [newTemplateId, targetName]);
     if (target.rows.length === 0) {
-      unmapped.push(`${row.name} -> "${targetName}" (NO ENCONTRADO en Nelson)`);
+      unmapped.push(`${row.name} -> "${targetName}" (NO ENCONTRADO en el catálogo nuevo)`);
       continue;
     }
     moves.push({ oldControlId: row.id, oldName: row.name, newControlId: target.rows[0].id, newName: targetName, checks });
@@ -179,7 +179,7 @@ async function main() {
 
   await pool.query(`DELETE FROM mnk_templates WHERE id = $1`, [oldTemplateId]);
 
-  console.log('Renombrando "SOC 2 (Nelson)" -> "SOC 2"...');
+  console.log('Renombrando "SOC 2 (importación)" -> "SOC 2"...');
   await pool.query(`UPDATE mnk_templates SET name = 'SOC 2', slug = 'soc-2' WHERE id = $1`, [newTemplateId]);
 
   console.log(`\n✅ [${label}] Listo: catálogo unificado, solo queda "SOC 2" con 118 controles.`);

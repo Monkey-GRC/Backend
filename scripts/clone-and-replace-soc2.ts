@@ -1,6 +1,6 @@
 /**
- * Para un tenant que TODAVÍA no tiene el template "SOC 2" (Nelson, 118
- * controles) clonado: lo clona desde central (mismo criterio que
+ * Para un tenant que TODAVÍA no tiene el template "SOC 2" (catálogo nuevo,
+ * 118 controles) clonado: lo clona desde central (mismo criterio que
  * cloneMasterTemplateIntoTenant, en SQL crudo para no depender del contexto
  * de Nest), y de una vez corre el reemplazo (migrar los 128 checks del "SOC 2"
  * de 24 controles y borrar el viejo) — deja al tenant con un solo "SOC 2" de
@@ -105,11 +105,11 @@ async function main() {
   const tenantPoolForCheck = new Pool({ connectionString: tenantUrl });
 
   const masterTpl = (await centralPool.query(`SELECT id FROM mnk_templates WHERE slug = 'soc-2'`)).rows[0];
-  if (!masterTpl) throw new Error('No existe el template "soc-2" en central — ¿ya se corrió replace-soc2-with-nelson.ts ahí?');
+  if (!masterTpl) throw new Error('No existe el template "soc-2" en central — ¿ya se corrió replace-soc2-legacy-catalog.ts ahí?');
 
   const already = (await tenantPoolForCheck.query(`SELECT id FROM mnk_templates WHERE source_template_id = $1`, [masterTpl.id])).rows[0];
   if (already) {
-    console.log('Este tenant ya tiene el template Nelson clonado (source_template_id coincide) — no se re-clona.');
+    console.log('Este tenant ya tiene el template clonado (source_template_id coincide) — no se re-clona.');
     await tenantPoolForCheck.end();
   } else if (!apply) {
     console.log('[DRY-RUN] Se clonaría el template central "soc-2" (118 controles) hacia este tenant. Corré con --apply.');
@@ -141,7 +141,7 @@ async function main() {
 
   console.log('\nCorriendo el reemplazo (migrar checks del SOC 2 viejo y borrarlo)...');
   const { execSync } = require('child_process');
-  execSync(`npx tsx scripts/replace-soc2-with-nelson.ts --tenant-db-url="${tenantUrl}" --apply`, { stdio: 'inherit', cwd: __dirname + '/..' });
+  execSync(`npx tsx scripts/replace-soc2-legacy-catalog.ts --tenant-db-url="${tenantUrl}" --apply`, { stdio: 'inherit', cwd: __dirname + '/..' });
 }
 
 main().catch((err) => {

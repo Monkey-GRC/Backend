@@ -1,15 +1,16 @@
 /**
- * Crea el Template "SOC 2 (Nelson)" completo — Template -> Risk -> Reason ->
+ * Crea el Template "SOC 2 (importación)" completo — Template -> Risk -> Reason ->
  * Control -> ControlDimensionRequirement — a partir de
  * MONKEY_SOC2_CONTROLES_AMPLIADOS.xlsx (hoja SOC2_Maestro, 118 filas),
- * respetando la agrupación que Nelson ya usa:
+ * respetando la agrupación que ya trae el catálogo de origen:
  *
  *   - Risk    = 1 por cada "Dominio" distinto (27) — placeholder de
- *               impact/probability/level porque Nelson no evalúa riesgo,
- *               solo cataloga controles (ver aviso en cada Risk creado).
+ *               impact/probability/level porque el catálogo de origen no
+ *               evalúa riesgo, solo cataloga controles (ver aviso en cada
+ *               Risk creado).
  *   - Reason  = 1 por cada código TSC distinto (~61-88) — su texto es el
- *               "Criterio SOC 2" (AICPA) real de Nelson para ese código,
- *               nunca inventado.
+ *               "Criterio SOC 2" (AICPA) real para ese código, nunca
+ *               inventado.
  *   - Control = 1 por fila (118), igual que seed-soc2-catalog.ts, con sus
  *               ControlDimensionRequirement (solo dimensiones "Sí...").
  *
@@ -120,7 +121,7 @@ async function main() {
   if (!apply) {
     console.log('\n[DRY-RUN] Ejemplo de la cadena completa para 1 control:');
     const ejemplo = parsed.find((r) => r.codes.length > 1) ?? parsed[0];
-    console.log(`  Template: SOC 2 (Nelson)`);
+    console.log(`  Template: SOC 2 (importación)`);
     console.log(`    Risk: "${ejemplo.dominio}" (impact=2, probability=2 -> level=MEDIUM, placeholder pendiente de evaluar)`);
     for (const code of ejemplo.codes) {
       console.log(`      Reason "${code}": "${ejemplo.criterioByCode.get(code)!.slice(0, 90)}..."`);
@@ -139,9 +140,9 @@ async function main() {
   console.log('\n[APPLY] Creando Template...');
   const templateCreated = await prisma.template.create({
     data: {
-      name: 'SOC 2 (Nelson)',
-      slug: 'soc-2-nelson',
-      description: 'Marco SOC 2 importado desde MONKEY_SOC2_CONTROLES_AMPLIADOS.xlsx (basado en el marco real de Nelson, extraído de Vanta), con dimensiones verificadas contra Wazuh.',
+      name: 'SOC 2 (importación)',
+      slug: 'soc-2-import',
+      description: 'Marco SOC 2 importado desde MONKEY_SOC2_CONTROLES_AMPLIADOS.xlsx, con dimensiones verificadas contra Wazuh.',
       objective: 'Cumplimiento SOC 2 (Trust Services Criteria) orientado a control, con evidencia por dimensión (Política/Servidor/BD/Nube/App).',
       code: 'PENDING',
     },
@@ -155,7 +156,7 @@ async function main() {
     const risk = await prisma.risk.create({
       data: {
         name: dominio,
-        description: `Dominio del marco SOC 2 de Nelson. Impact/probability son PLACEHOLDER (2/2) — Nelson cataloga controles, no evalúa riesgo; pendiente de evaluación real por el equipo.`,
+        description: `Dominio del marco SOC 2. Impact/probability son PLACEHOLDER (2/2) — este catálogo cataloga controles, no evalúa riesgo; pendiente de evaluación real por el equipo.`,
         code: 'PENDING',
         impact: 2,
         probability: 2,
@@ -199,7 +200,8 @@ async function main() {
     const control = await prisma.control.create({
       data: {
         name: row.name,
-        description: `[Nelson ${row.monkeyId} | TSC ${row.codes.join(', ')}] ${row.description}`,
+        description: row.description,
+        source_ref: row.monkeyId,
         type: row.dimensions.some((d) => d.type === ControlType.AUTOMATIC)
           ? (row.dimensions.every((d) => d.type === ControlType.AUTOMATIC) ? ControlType.AUTOMATIC : ControlType.HYBRID)
           : ControlType.MANUAL,
@@ -221,7 +223,7 @@ async function main() {
     creados++;
   }
 
-  console.log(`\n✅ Listo: Template "SOC 2 (Nelson)" con ${riskIdByDominio.size} Risk, ${reasonIdByCode.size} Reason y ${creados} Control (con sus dimensiones).`);
+  console.log(`\n✅ Listo: Template "SOC 2 (importación)" con ${riskIdByDominio.size} Risk, ${reasonIdByCode.size} Reason y ${creados} Control (con sus dimensiones).`);
   console.log('Recordatorio: no se crearon checks (ControlCheck) ni evidencia manual (ManualCheckItem) — pendiente de curaduría humana.');
 
   await prisma.$disconnect();
