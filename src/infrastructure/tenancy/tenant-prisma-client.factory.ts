@@ -4,7 +4,7 @@ import { RequestContext } from 'src/common/utils/request-context';
 
 // Solo estos modelos tienen columnas created_by/updated_by en el schema —
 // las tablas puente (RiskReason, ReasonControl, ControlCheck) y CompanyProfile no.
-const AUDITABLE_MODELS = new Set(['User', 'Template', 'Risk', 'Reason', 'Control']);
+const AUDITABLE_MODELS = new Set(['User', 'Risk', 'Reason', 'Control']);
 
 export function createTenantPrismaClient(connectionString: string) {
   const adapter = new PrismaPg({ connectionString });

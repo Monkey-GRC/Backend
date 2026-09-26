@@ -62,7 +62,6 @@ export const ModelName = {
   RiskReason: 'RiskReason',
   ReasonControl: 'ReasonControl',
   Risk: 'Risk',
-  Template: 'Template',
   User: 'User'
 } as const
 
@@ -247,31 +246,10 @@ export const RiskScalarFieldEnum = {
   probability: 'probability',
   level: 'level',
   created_by: 'created_by',
-  updated_by: 'updated_by',
-  template_id: 'template_id'
+  updated_by: 'updated_by'
 } as const
 
 export type RiskScalarFieldEnum = (typeof RiskScalarFieldEnum)[keyof typeof RiskScalarFieldEnum]
-
-
-export const TemplateScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  description: 'description',
-  objective: 'objective',
-  scope: 'scope',
-  slug: 'slug',
-  created_at: 'created_at',
-  seq: 'seq',
-  code: 'code',
-  updated_at: 'updated_at',
-  created_by: 'created_by',
-  updated_by: 'updated_by',
-  source_template_id: 'source_template_id',
-  adopted_at: 'adopted_at'
-} as const
-
-export type TemplateScalarFieldEnum = (typeof TemplateScalarFieldEnum)[keyof typeof TemplateScalarFieldEnum]
 
 
 export const UserScalarFieldEnum = {

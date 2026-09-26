@@ -93,11 +93,6 @@ export type ReasonControl = Prisma.ReasonControlModel
  */
 export type Risk = Prisma.RiskModel
 /**
- * Model Template
- * 
- */
-export type Template = Prisma.TemplateModel
-/**
  * Model TenantIdentifierDirectory
  * Directorio liviano identifier (email o username) -> tenant. NO es un
  * mecanismo de seguridad — no guarda contraseñas ni permite autenticarse

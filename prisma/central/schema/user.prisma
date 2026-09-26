@@ -23,8 +23,6 @@ model User {
   refresh_token_hash       String?   @db.Text
   refresh_token_expires_at DateTime?
 
-  created_templates Template[] @relation("mnk_user_created_templates")
-  updated_templates Template[] @relation("mnk_user_updated_templates")
 
   created_reasons Reason[] @relation("mnk_user_created_reasons")
   updated_reasons Reason[] @relation("mnk_user_updated_reasons")

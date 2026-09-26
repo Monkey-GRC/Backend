@@ -3,7 +3,6 @@ export type CreateRiskInput = {
     description?: string;
     impact: number;
     probability: number;
-    templateId?: string;
     userId: string;
 };
 
@@ -12,7 +11,6 @@ export type UpdateRiskInput = {
     description?: string;
     impact?: number;
     probability?: number;
-    templateId?: string | null;
     userId: string;
 };
 

@@ -33,9 +33,6 @@ export class RiskPrismaRepository extends RiskRepository {
                 impact: true,
                 probability: true,
                 level: true,
-                template: {
-                    select: { id: true, name: true, code: true },
-                },
                 created_by_user: {
                     select: {
                         id: true,
@@ -74,9 +71,6 @@ export class RiskPrismaRepository extends RiskRepository {
                 level: true,
                 created_at: true,
                 updated_at: true,
-                template: {
-                    select: { id: true, name: true, code: true },
-                },
                 reasons: {
                     select: {
                         reason: {
@@ -102,7 +96,6 @@ export class RiskPrismaRepository extends RiskRepository {
                     level,
                     code: 'PENDING',
                     created_by_user: { connect: { id: input.userId } },
-                    template: input.templateId ? { connect: { id: input.templateId } } : undefined,
                 },
             });
 
@@ -123,11 +116,6 @@ export class RiskPrismaRepository extends RiskRepository {
         if (input.description !== undefined) updateData['description'] = input.description;
         if (input.impact !== undefined) updateData['impact'] = input.impact;
         if (input.probability !== undefined) updateData['probability'] = input.probability;
-        if (input.templateId !== undefined) {
-            updateData['template'] = input.templateId
-                ? { connect: { id: input.templateId } }
-                : { disconnect: true };
-        }
         updateData['updated_by_user'] = { connect: { id: input.userId } };
 
         if (input.impact !== undefined || input.probability !== undefined) {
