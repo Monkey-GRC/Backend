@@ -395,7 +395,6 @@ export const ModelName = {
   RiskReason: 'RiskReason',
   ReasonControl: 'ReasonControl',
   Risk: 'Risk',
-  Template: 'Template',
   User: 'User'
 } as const
 
@@ -412,7 +411,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "asset" | "companyProfile" | "control" | "controlDimensionRequirement" | "controlCheck" | "manualCheckItem" | "manualCheckEvidence" | "reason" | "riskReason" | "reasonControl" | "risk" | "template" | "user"
+    modelProps: "asset" | "companyProfile" | "control" | "controlDimensionRequirement" | "controlCheck" | "manualCheckItem" | "manualCheckEvidence" | "reason" | "riskReason" | "reasonControl" | "risk" | "user"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1230,80 +1229,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    Template: {
-      payload: Prisma.$TemplatePayload<ExtArgs>
-      fields: Prisma.TemplateFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.TemplateFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.TemplateFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>
-        }
-        findFirst: {
-          args: Prisma.TemplateFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.TemplateFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>
-        }
-        findMany: {
-          args: Prisma.TemplateFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>[]
-        }
-        create: {
-          args: Prisma.TemplateCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>
-        }
-        createMany: {
-          args: Prisma.TemplateCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.TemplateCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>[]
-        }
-        delete: {
-          args: Prisma.TemplateDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>
-        }
-        update: {
-          args: Prisma.TemplateUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>
-        }
-        deleteMany: {
-          args: Prisma.TemplateDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.TemplateUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.TemplateUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>[]
-        }
-        upsert: {
-          args: Prisma.TemplateUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>
-        }
-        aggregate: {
-          args: Prisma.TemplateAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateTemplate>
-        }
-        groupBy: {
-          args: Prisma.TemplateGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TemplateGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.TemplateCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TemplateCountAggregateOutputType> | number
-        }
-      }
-    }
     User: {
       payload: Prisma.$UserPayload<ExtArgs>
       fields: Prisma.UserFieldRefs
@@ -1582,31 +1507,10 @@ export const RiskScalarFieldEnum = {
   probability: 'probability',
   level: 'level',
   created_by: 'created_by',
-  updated_by: 'updated_by',
-  template_id: 'template_id'
+  updated_by: 'updated_by'
 } as const
 
 export type RiskScalarFieldEnum = (typeof RiskScalarFieldEnum)[keyof typeof RiskScalarFieldEnum]
-
-
-export const TemplateScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  description: 'description',
-  objective: 'objective',
-  scope: 'scope',
-  slug: 'slug',
-  created_at: 'created_at',
-  seq: 'seq',
-  code: 'code',
-  updated_at: 'updated_at',
-  created_by: 'created_by',
-  updated_by: 'updated_by',
-  source_template_id: 'source_template_id',
-  adopted_at: 'adopted_at'
-} as const
-
-export type TemplateScalarFieldEnum = (typeof TemplateScalarFieldEnum)[keyof typeof TemplateScalarFieldEnum]
 
 
 export const UserScalarFieldEnum = {
@@ -1968,7 +1872,6 @@ export type GlobalOmitConfig = {
   riskReason?: Prisma.RiskReasonOmit
   reasonControl?: Prisma.ReasonControlOmit
   risk?: Prisma.RiskOmit
-  template?: Prisma.TemplateOmit
   user?: Prisma.UserOmit
 }
 

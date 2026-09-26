@@ -52,7 +52,6 @@ export type RiskMinAggregateOutputType = {
   level: $Enums.RiskLevel | null
   created_by: string | null
   updated_by: string | null
-  template_id: string | null
 }
 
 export type RiskMaxAggregateOutputType = {
@@ -69,7 +68,6 @@ export type RiskMaxAggregateOutputType = {
   level: $Enums.RiskLevel | null
   created_by: string | null
   updated_by: string | null
-  template_id: string | null
 }
 
 export type RiskCountAggregateOutputType = {
@@ -86,7 +84,6 @@ export type RiskCountAggregateOutputType = {
   level: number
   created_by: number
   updated_by: number
-  template_id: number
   _all: number
 }
 
@@ -117,7 +114,6 @@ export type RiskMinAggregateInputType = {
   level?: true
   created_by?: true
   updated_by?: true
-  template_id?: true
 }
 
 export type RiskMaxAggregateInputType = {
@@ -134,7 +130,6 @@ export type RiskMaxAggregateInputType = {
   level?: true
   created_by?: true
   updated_by?: true
-  template_id?: true
 }
 
 export type RiskCountAggregateInputType = {
@@ -151,7 +146,6 @@ export type RiskCountAggregateInputType = {
   level?: true
   created_by?: true
   updated_by?: true
-  template_id?: true
   _all?: true
 }
 
@@ -255,7 +249,6 @@ export type RiskGroupByOutputType = {
   level: $Enums.RiskLevel
   created_by: string | null
   updated_by: string | null
-  template_id: string | null
   _count: RiskCountAggregateOutputType | null
   _avg: RiskAvgAggregateOutputType | null
   _sum: RiskSumAggregateOutputType | null
@@ -295,10 +288,8 @@ export type RiskWhereInput = {
   level?: Prisma.EnumRiskLevelFilter<"Risk"> | $Enums.RiskLevel
   created_by?: Prisma.UuidNullableFilter<"Risk"> | string | null
   updated_by?: Prisma.UuidNullableFilter<"Risk"> | string | null
-  template_id?: Prisma.UuidNullableFilter<"Risk"> | string | null
   created_by_user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   updated_by_user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
-  template?: Prisma.XOR<Prisma.TemplateNullableScalarRelationFilter, Prisma.TemplateWhereInput> | null
   reasons?: Prisma.RiskReasonListRelationFilter
 }
 
@@ -316,10 +307,8 @@ export type RiskOrderByWithRelationInput = {
   level?: Prisma.SortOrder
   created_by?: Prisma.SortOrderInput | Prisma.SortOrder
   updated_by?: Prisma.SortOrderInput | Prisma.SortOrder
-  template_id?: Prisma.SortOrderInput | Prisma.SortOrder
   created_by_user?: Prisma.UserOrderByWithRelationInput
   updated_by_user?: Prisma.UserOrderByWithRelationInput
-  template?: Prisma.TemplateOrderByWithRelationInput
   reasons?: Prisma.RiskReasonOrderByRelationAggregateInput
 }
 
@@ -340,10 +329,8 @@ export type RiskWhereUniqueInput = Prisma.AtLeast<{
   level?: Prisma.EnumRiskLevelFilter<"Risk"> | $Enums.RiskLevel
   created_by?: Prisma.UuidNullableFilter<"Risk"> | string | null
   updated_by?: Prisma.UuidNullableFilter<"Risk"> | string | null
-  template_id?: Prisma.UuidNullableFilter<"Risk"> | string | null
   created_by_user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   updated_by_user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
-  template?: Prisma.XOR<Prisma.TemplateNullableScalarRelationFilter, Prisma.TemplateWhereInput> | null
   reasons?: Prisma.RiskReasonListRelationFilter
 }, "id" | "seq" | "code">
 
@@ -361,7 +348,6 @@ export type RiskOrderByWithAggregationInput = {
   level?: Prisma.SortOrder
   created_by?: Prisma.SortOrderInput | Prisma.SortOrder
   updated_by?: Prisma.SortOrderInput | Prisma.SortOrder
-  template_id?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.RiskCountOrderByAggregateInput
   _avg?: Prisma.RiskAvgOrderByAggregateInput
   _max?: Prisma.RiskMaxOrderByAggregateInput
@@ -386,7 +372,6 @@ export type RiskScalarWhereWithAggregatesInput = {
   level?: Prisma.EnumRiskLevelWithAggregatesFilter<"Risk"> | $Enums.RiskLevel
   created_by?: Prisma.UuidNullableWithAggregatesFilter<"Risk"> | string | null
   updated_by?: Prisma.UuidNullableWithAggregatesFilter<"Risk"> | string | null
-  template_id?: Prisma.UuidNullableWithAggregatesFilter<"Risk"> | string | null
 }
 
 export type RiskCreateInput = {
@@ -403,7 +388,6 @@ export type RiskCreateInput = {
   level: $Enums.RiskLevel
   created_by_user?: Prisma.UserCreateNestedOneWithoutCreated_risksInput
   updated_by_user?: Prisma.UserCreateNestedOneWithoutUpdated_risksInput
-  template?: Prisma.TemplateCreateNestedOneWithoutRisksInput
   reasons?: Prisma.RiskReasonCreateNestedManyWithoutRiskInput
 }
 
@@ -421,7 +405,6 @@ export type RiskUncheckedCreateInput = {
   level: $Enums.RiskLevel
   created_by?: string | null
   updated_by?: string | null
-  template_id?: string | null
   reasons?: Prisma.RiskReasonUncheckedCreateNestedManyWithoutRiskInput
 }
 
@@ -438,7 +421,6 @@ export type RiskUpdateInput = {
   level?: Prisma.EnumRiskLevelFieldUpdateOperationsInput | $Enums.RiskLevel
   created_by_user?: Prisma.UserUpdateOneWithoutCreated_risksNestedInput
   updated_by_user?: Prisma.UserUpdateOneWithoutUpdated_risksNestedInput
-  template?: Prisma.TemplateUpdateOneWithoutRisksNestedInput
   reasons?: Prisma.RiskReasonUpdateManyWithoutRiskNestedInput
 }
 
@@ -456,7 +438,6 @@ export type RiskUncheckedUpdateInput = {
   level?: Prisma.EnumRiskLevelFieldUpdateOperationsInput | $Enums.RiskLevel
   created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  template_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reasons?: Prisma.RiskReasonUncheckedUpdateManyWithoutRiskNestedInput
 }
 
@@ -474,7 +455,6 @@ export type RiskCreateManyInput = {
   level: $Enums.RiskLevel
   created_by?: string | null
   updated_by?: string | null
-  template_id?: string | null
 }
 
 export type RiskUpdateManyMutationInput = {
@@ -504,7 +484,6 @@ export type RiskUncheckedUpdateManyInput = {
   level?: Prisma.EnumRiskLevelFieldUpdateOperationsInput | $Enums.RiskLevel
   created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  template_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type RiskScalarRelationFilter = {
@@ -526,7 +505,6 @@ export type RiskCountOrderByAggregateInput = {
   level?: Prisma.SortOrder
   created_by?: Prisma.SortOrder
   updated_by?: Prisma.SortOrder
-  template_id?: Prisma.SortOrder
 }
 
 export type RiskAvgOrderByAggregateInput = {
@@ -549,7 +527,6 @@ export type RiskMaxOrderByAggregateInput = {
   level?: Prisma.SortOrder
   created_by?: Prisma.SortOrder
   updated_by?: Prisma.SortOrder
-  template_id?: Prisma.SortOrder
 }
 
 export type RiskMinOrderByAggregateInput = {
@@ -566,7 +543,6 @@ export type RiskMinOrderByAggregateInput = {
   level?: Prisma.SortOrder
   created_by?: Prisma.SortOrder
   updated_by?: Prisma.SortOrder
-  template_id?: Prisma.SortOrder
 }
 
 export type RiskSumOrderByAggregateInput = {
@@ -601,48 +577,6 @@ export type RiskUpdateOneRequiredWithoutReasonsNestedInput = {
 
 export type EnumRiskLevelFieldUpdateOperationsInput = {
   set?: $Enums.RiskLevel
-}
-
-export type RiskCreateNestedManyWithoutTemplateInput = {
-  create?: Prisma.XOR<Prisma.RiskCreateWithoutTemplateInput, Prisma.RiskUncheckedCreateWithoutTemplateInput> | Prisma.RiskCreateWithoutTemplateInput[] | Prisma.RiskUncheckedCreateWithoutTemplateInput[]
-  connectOrCreate?: Prisma.RiskCreateOrConnectWithoutTemplateInput | Prisma.RiskCreateOrConnectWithoutTemplateInput[]
-  createMany?: Prisma.RiskCreateManyTemplateInputEnvelope
-  connect?: Prisma.RiskWhereUniqueInput | Prisma.RiskWhereUniqueInput[]
-}
-
-export type RiskUncheckedCreateNestedManyWithoutTemplateInput = {
-  create?: Prisma.XOR<Prisma.RiskCreateWithoutTemplateInput, Prisma.RiskUncheckedCreateWithoutTemplateInput> | Prisma.RiskCreateWithoutTemplateInput[] | Prisma.RiskUncheckedCreateWithoutTemplateInput[]
-  connectOrCreate?: Prisma.RiskCreateOrConnectWithoutTemplateInput | Prisma.RiskCreateOrConnectWithoutTemplateInput[]
-  createMany?: Prisma.RiskCreateManyTemplateInputEnvelope
-  connect?: Prisma.RiskWhereUniqueInput | Prisma.RiskWhereUniqueInput[]
-}
-
-export type RiskUpdateManyWithoutTemplateNestedInput = {
-  create?: Prisma.XOR<Prisma.RiskCreateWithoutTemplateInput, Prisma.RiskUncheckedCreateWithoutTemplateInput> | Prisma.RiskCreateWithoutTemplateInput[] | Prisma.RiskUncheckedCreateWithoutTemplateInput[]
-  connectOrCreate?: Prisma.RiskCreateOrConnectWithoutTemplateInput | Prisma.RiskCreateOrConnectWithoutTemplateInput[]
-  upsert?: Prisma.RiskUpsertWithWhereUniqueWithoutTemplateInput | Prisma.RiskUpsertWithWhereUniqueWithoutTemplateInput[]
-  createMany?: Prisma.RiskCreateManyTemplateInputEnvelope
-  set?: Prisma.RiskWhereUniqueInput | Prisma.RiskWhereUniqueInput[]
-  disconnect?: Prisma.RiskWhereUniqueInput | Prisma.RiskWhereUniqueInput[]
-  delete?: Prisma.RiskWhereUniqueInput | Prisma.RiskWhereUniqueInput[]
-  connect?: Prisma.RiskWhereUniqueInput | Prisma.RiskWhereUniqueInput[]
-  update?: Prisma.RiskUpdateWithWhereUniqueWithoutTemplateInput | Prisma.RiskUpdateWithWhereUniqueWithoutTemplateInput[]
-  updateMany?: Prisma.RiskUpdateManyWithWhereWithoutTemplateInput | Prisma.RiskUpdateManyWithWhereWithoutTemplateInput[]
-  deleteMany?: Prisma.RiskScalarWhereInput | Prisma.RiskScalarWhereInput[]
-}
-
-export type RiskUncheckedUpdateManyWithoutTemplateNestedInput = {
-  create?: Prisma.XOR<Prisma.RiskCreateWithoutTemplateInput, Prisma.RiskUncheckedCreateWithoutTemplateInput> | Prisma.RiskCreateWithoutTemplateInput[] | Prisma.RiskUncheckedCreateWithoutTemplateInput[]
-  connectOrCreate?: Prisma.RiskCreateOrConnectWithoutTemplateInput | Prisma.RiskCreateOrConnectWithoutTemplateInput[]
-  upsert?: Prisma.RiskUpsertWithWhereUniqueWithoutTemplateInput | Prisma.RiskUpsertWithWhereUniqueWithoutTemplateInput[]
-  createMany?: Prisma.RiskCreateManyTemplateInputEnvelope
-  set?: Prisma.RiskWhereUniqueInput | Prisma.RiskWhereUniqueInput[]
-  disconnect?: Prisma.RiskWhereUniqueInput | Prisma.RiskWhereUniqueInput[]
-  delete?: Prisma.RiskWhereUniqueInput | Prisma.RiskWhereUniqueInput[]
-  connect?: Prisma.RiskWhereUniqueInput | Prisma.RiskWhereUniqueInput[]
-  update?: Prisma.RiskUpdateWithWhereUniqueWithoutTemplateInput | Prisma.RiskUpdateWithWhereUniqueWithoutTemplateInput[]
-  updateMany?: Prisma.RiskUpdateManyWithWhereWithoutTemplateInput | Prisma.RiskUpdateManyWithWhereWithoutTemplateInput[]
-  deleteMany?: Prisma.RiskScalarWhereInput | Prisma.RiskScalarWhereInput[]
 }
 
 export type RiskCreateNestedManyWithoutCreated_by_userInput = {
@@ -743,7 +677,6 @@ export type RiskCreateWithoutReasonsInput = {
   level: $Enums.RiskLevel
   created_by_user?: Prisma.UserCreateNestedOneWithoutCreated_risksInput
   updated_by_user?: Prisma.UserCreateNestedOneWithoutUpdated_risksInput
-  template?: Prisma.TemplateCreateNestedOneWithoutRisksInput
 }
 
 export type RiskUncheckedCreateWithoutReasonsInput = {
@@ -760,7 +693,6 @@ export type RiskUncheckedCreateWithoutReasonsInput = {
   level: $Enums.RiskLevel
   created_by?: string | null
   updated_by?: string | null
-  template_id?: string | null
 }
 
 export type RiskCreateOrConnectWithoutReasonsInput = {
@@ -792,7 +724,6 @@ export type RiskUpdateWithoutReasonsInput = {
   level?: Prisma.EnumRiskLevelFieldUpdateOperationsInput | $Enums.RiskLevel
   created_by_user?: Prisma.UserUpdateOneWithoutCreated_risksNestedInput
   updated_by_user?: Prisma.UserUpdateOneWithoutUpdated_risksNestedInput
-  template?: Prisma.TemplateUpdateOneWithoutRisksNestedInput
 }
 
 export type RiskUncheckedUpdateWithoutReasonsInput = {
@@ -809,87 +740,6 @@ export type RiskUncheckedUpdateWithoutReasonsInput = {
   level?: Prisma.EnumRiskLevelFieldUpdateOperationsInput | $Enums.RiskLevel
   created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  template_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-}
-
-export type RiskCreateWithoutTemplateInput = {
-  id?: string
-  name: string
-  description?: string | null
-  objective?: string | null
-  created_at?: Date | string
-  seq?: number
-  updated_at?: Date | string
-  code: string
-  impact: number
-  probability: number
-  level: $Enums.RiskLevel
-  created_by_user?: Prisma.UserCreateNestedOneWithoutCreated_risksInput
-  updated_by_user?: Prisma.UserCreateNestedOneWithoutUpdated_risksInput
-  reasons?: Prisma.RiskReasonCreateNestedManyWithoutRiskInput
-}
-
-export type RiskUncheckedCreateWithoutTemplateInput = {
-  id?: string
-  name: string
-  description?: string | null
-  objective?: string | null
-  created_at?: Date | string
-  seq?: number
-  updated_at?: Date | string
-  code: string
-  impact: number
-  probability: number
-  level: $Enums.RiskLevel
-  created_by?: string | null
-  updated_by?: string | null
-  reasons?: Prisma.RiskReasonUncheckedCreateNestedManyWithoutRiskInput
-}
-
-export type RiskCreateOrConnectWithoutTemplateInput = {
-  where: Prisma.RiskWhereUniqueInput
-  create: Prisma.XOR<Prisma.RiskCreateWithoutTemplateInput, Prisma.RiskUncheckedCreateWithoutTemplateInput>
-}
-
-export type RiskCreateManyTemplateInputEnvelope = {
-  data: Prisma.RiskCreateManyTemplateInput | Prisma.RiskCreateManyTemplateInput[]
-  skipDuplicates?: boolean
-}
-
-export type RiskUpsertWithWhereUniqueWithoutTemplateInput = {
-  where: Prisma.RiskWhereUniqueInput
-  update: Prisma.XOR<Prisma.RiskUpdateWithoutTemplateInput, Prisma.RiskUncheckedUpdateWithoutTemplateInput>
-  create: Prisma.XOR<Prisma.RiskCreateWithoutTemplateInput, Prisma.RiskUncheckedCreateWithoutTemplateInput>
-}
-
-export type RiskUpdateWithWhereUniqueWithoutTemplateInput = {
-  where: Prisma.RiskWhereUniqueInput
-  data: Prisma.XOR<Prisma.RiskUpdateWithoutTemplateInput, Prisma.RiskUncheckedUpdateWithoutTemplateInput>
-}
-
-export type RiskUpdateManyWithWhereWithoutTemplateInput = {
-  where: Prisma.RiskScalarWhereInput
-  data: Prisma.XOR<Prisma.RiskUpdateManyMutationInput, Prisma.RiskUncheckedUpdateManyWithoutTemplateInput>
-}
-
-export type RiskScalarWhereInput = {
-  AND?: Prisma.RiskScalarWhereInput | Prisma.RiskScalarWhereInput[]
-  OR?: Prisma.RiskScalarWhereInput[]
-  NOT?: Prisma.RiskScalarWhereInput | Prisma.RiskScalarWhereInput[]
-  id?: Prisma.UuidFilter<"Risk"> | string
-  name?: Prisma.StringFilter<"Risk"> | string
-  description?: Prisma.StringNullableFilter<"Risk"> | string | null
-  objective?: Prisma.StringNullableFilter<"Risk"> | string | null
-  created_at?: Prisma.DateTimeFilter<"Risk"> | Date | string
-  seq?: Prisma.IntFilter<"Risk"> | number
-  updated_at?: Prisma.DateTimeFilter<"Risk"> | Date | string
-  code?: Prisma.StringFilter<"Risk"> | string
-  impact?: Prisma.IntFilter<"Risk"> | number
-  probability?: Prisma.IntFilter<"Risk"> | number
-  level?: Prisma.EnumRiskLevelFilter<"Risk"> | $Enums.RiskLevel
-  created_by?: Prisma.UuidNullableFilter<"Risk"> | string | null
-  updated_by?: Prisma.UuidNullableFilter<"Risk"> | string | null
-  template_id?: Prisma.UuidNullableFilter<"Risk"> | string | null
 }
 
 export type RiskCreateWithoutCreated_by_userInput = {
@@ -905,7 +755,6 @@ export type RiskCreateWithoutCreated_by_userInput = {
   probability: number
   level: $Enums.RiskLevel
   updated_by_user?: Prisma.UserCreateNestedOneWithoutUpdated_risksInput
-  template?: Prisma.TemplateCreateNestedOneWithoutRisksInput
   reasons?: Prisma.RiskReasonCreateNestedManyWithoutRiskInput
 }
 
@@ -922,7 +771,6 @@ export type RiskUncheckedCreateWithoutCreated_by_userInput = {
   probability: number
   level: $Enums.RiskLevel
   updated_by?: string | null
-  template_id?: string | null
   reasons?: Prisma.RiskReasonUncheckedCreateNestedManyWithoutRiskInput
 }
 
@@ -949,7 +797,6 @@ export type RiskCreateWithoutUpdated_by_userInput = {
   probability: number
   level: $Enums.RiskLevel
   created_by_user?: Prisma.UserCreateNestedOneWithoutCreated_risksInput
-  template?: Prisma.TemplateCreateNestedOneWithoutRisksInput
   reasons?: Prisma.RiskReasonCreateNestedManyWithoutRiskInput
 }
 
@@ -966,7 +813,6 @@ export type RiskUncheckedCreateWithoutUpdated_by_userInput = {
   probability: number
   level: $Enums.RiskLevel
   created_by?: string | null
-  template_id?: string | null
   reasons?: Prisma.RiskReasonUncheckedCreateNestedManyWithoutRiskInput
 }
 
@@ -996,6 +842,25 @@ export type RiskUpdateManyWithWhereWithoutCreated_by_userInput = {
   data: Prisma.XOR<Prisma.RiskUpdateManyMutationInput, Prisma.RiskUncheckedUpdateManyWithoutCreated_by_userInput>
 }
 
+export type RiskScalarWhereInput = {
+  AND?: Prisma.RiskScalarWhereInput | Prisma.RiskScalarWhereInput[]
+  OR?: Prisma.RiskScalarWhereInput[]
+  NOT?: Prisma.RiskScalarWhereInput | Prisma.RiskScalarWhereInput[]
+  id?: Prisma.UuidFilter<"Risk"> | string
+  name?: Prisma.StringFilter<"Risk"> | string
+  description?: Prisma.StringNullableFilter<"Risk"> | string | null
+  objective?: Prisma.StringNullableFilter<"Risk"> | string | null
+  created_at?: Prisma.DateTimeFilter<"Risk"> | Date | string
+  seq?: Prisma.IntFilter<"Risk"> | number
+  updated_at?: Prisma.DateTimeFilter<"Risk"> | Date | string
+  code?: Prisma.StringFilter<"Risk"> | string
+  impact?: Prisma.IntFilter<"Risk"> | number
+  probability?: Prisma.IntFilter<"Risk"> | number
+  level?: Prisma.EnumRiskLevelFilter<"Risk"> | $Enums.RiskLevel
+  created_by?: Prisma.UuidNullableFilter<"Risk"> | string | null
+  updated_by?: Prisma.UuidNullableFilter<"Risk"> | string | null
+}
+
 export type RiskUpsertWithWhereUniqueWithoutUpdated_by_userInput = {
   where: Prisma.RiskWhereUniqueInput
   update: Prisma.XOR<Prisma.RiskUpdateWithoutUpdated_by_userInput, Prisma.RiskUncheckedUpdateWithoutUpdated_by_userInput>
@@ -1012,71 +877,6 @@ export type RiskUpdateManyWithWhereWithoutUpdated_by_userInput = {
   data: Prisma.XOR<Prisma.RiskUpdateManyMutationInput, Prisma.RiskUncheckedUpdateManyWithoutUpdated_by_userInput>
 }
 
-export type RiskCreateManyTemplateInput = {
-  id?: string
-  name: string
-  description?: string | null
-  objective?: string | null
-  created_at?: Date | string
-  seq?: number
-  updated_at?: Date | string
-  code: string
-  impact: number
-  probability: number
-  level: $Enums.RiskLevel
-  created_by?: string | null
-  updated_by?: string | null
-}
-
-export type RiskUpdateWithoutTemplateInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  code?: Prisma.StringFieldUpdateOperationsInput | string
-  impact?: Prisma.IntFieldUpdateOperationsInput | number
-  probability?: Prisma.IntFieldUpdateOperationsInput | number
-  level?: Prisma.EnumRiskLevelFieldUpdateOperationsInput | $Enums.RiskLevel
-  created_by_user?: Prisma.UserUpdateOneWithoutCreated_risksNestedInput
-  updated_by_user?: Prisma.UserUpdateOneWithoutUpdated_risksNestedInput
-  reasons?: Prisma.RiskReasonUpdateManyWithoutRiskNestedInput
-}
-
-export type RiskUncheckedUpdateWithoutTemplateInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  seq?: Prisma.IntFieldUpdateOperationsInput | number
-  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  code?: Prisma.StringFieldUpdateOperationsInput | string
-  impact?: Prisma.IntFieldUpdateOperationsInput | number
-  probability?: Prisma.IntFieldUpdateOperationsInput | number
-  level?: Prisma.EnumRiskLevelFieldUpdateOperationsInput | $Enums.RiskLevel
-  created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  reasons?: Prisma.RiskReasonUncheckedUpdateManyWithoutRiskNestedInput
-}
-
-export type RiskUncheckedUpdateManyWithoutTemplateInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  seq?: Prisma.IntFieldUpdateOperationsInput | number
-  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  code?: Prisma.StringFieldUpdateOperationsInput | string
-  impact?: Prisma.IntFieldUpdateOperationsInput | number
-  probability?: Prisma.IntFieldUpdateOperationsInput | number
-  level?: Prisma.EnumRiskLevelFieldUpdateOperationsInput | $Enums.RiskLevel
-  created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-}
-
 export type RiskCreateManyCreated_by_userInput = {
   id?: string
   name: string
@@ -1090,7 +890,6 @@ export type RiskCreateManyCreated_by_userInput = {
   probability: number
   level: $Enums.RiskLevel
   updated_by?: string | null
-  template_id?: string | null
 }
 
 export type RiskCreateManyUpdated_by_userInput = {
@@ -1106,7 +905,6 @@ export type RiskCreateManyUpdated_by_userInput = {
   probability: number
   level: $Enums.RiskLevel
   created_by?: string | null
-  template_id?: string | null
 }
 
 export type RiskUpdateWithoutCreated_by_userInput = {
@@ -1121,7 +919,6 @@ export type RiskUpdateWithoutCreated_by_userInput = {
   probability?: Prisma.IntFieldUpdateOperationsInput | number
   level?: Prisma.EnumRiskLevelFieldUpdateOperationsInput | $Enums.RiskLevel
   updated_by_user?: Prisma.UserUpdateOneWithoutUpdated_risksNestedInput
-  template?: Prisma.TemplateUpdateOneWithoutRisksNestedInput
   reasons?: Prisma.RiskReasonUpdateManyWithoutRiskNestedInput
 }
 
@@ -1138,7 +935,6 @@ export type RiskUncheckedUpdateWithoutCreated_by_userInput = {
   probability?: Prisma.IntFieldUpdateOperationsInput | number
   level?: Prisma.EnumRiskLevelFieldUpdateOperationsInput | $Enums.RiskLevel
   updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  template_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reasons?: Prisma.RiskReasonUncheckedUpdateManyWithoutRiskNestedInput
 }
 
@@ -1155,7 +951,6 @@ export type RiskUncheckedUpdateManyWithoutCreated_by_userInput = {
   probability?: Prisma.IntFieldUpdateOperationsInput | number
   level?: Prisma.EnumRiskLevelFieldUpdateOperationsInput | $Enums.RiskLevel
   updated_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  template_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type RiskUpdateWithoutUpdated_by_userInput = {
@@ -1170,7 +965,6 @@ export type RiskUpdateWithoutUpdated_by_userInput = {
   probability?: Prisma.IntFieldUpdateOperationsInput | number
   level?: Prisma.EnumRiskLevelFieldUpdateOperationsInput | $Enums.RiskLevel
   created_by_user?: Prisma.UserUpdateOneWithoutCreated_risksNestedInput
-  template?: Prisma.TemplateUpdateOneWithoutRisksNestedInput
   reasons?: Prisma.RiskReasonUpdateManyWithoutRiskNestedInput
 }
 
@@ -1187,7 +981,6 @@ export type RiskUncheckedUpdateWithoutUpdated_by_userInput = {
   probability?: Prisma.IntFieldUpdateOperationsInput | number
   level?: Prisma.EnumRiskLevelFieldUpdateOperationsInput | $Enums.RiskLevel
   created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  template_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reasons?: Prisma.RiskReasonUncheckedUpdateManyWithoutRiskNestedInput
 }
 
@@ -1204,7 +997,6 @@ export type RiskUncheckedUpdateManyWithoutUpdated_by_userInput = {
   probability?: Prisma.IntFieldUpdateOperationsInput | number
   level?: Prisma.EnumRiskLevelFieldUpdateOperationsInput | $Enums.RiskLevel
   created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  template_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -1252,10 +1044,8 @@ export type RiskSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   level?: boolean
   created_by?: boolean
   updated_by?: boolean
-  template_id?: boolean
   created_by_user?: boolean | Prisma.Risk$created_by_userArgs<ExtArgs>
   updated_by_user?: boolean | Prisma.Risk$updated_by_userArgs<ExtArgs>
-  template?: boolean | Prisma.Risk$templateArgs<ExtArgs>
   reasons?: boolean | Prisma.Risk$reasonsArgs<ExtArgs>
   _count?: boolean | Prisma.RiskCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["risk"]>
@@ -1274,10 +1064,8 @@ export type RiskSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   level?: boolean
   created_by?: boolean
   updated_by?: boolean
-  template_id?: boolean
   created_by_user?: boolean | Prisma.Risk$created_by_userArgs<ExtArgs>
   updated_by_user?: boolean | Prisma.Risk$updated_by_userArgs<ExtArgs>
-  template?: boolean | Prisma.Risk$templateArgs<ExtArgs>
 }, ExtArgs["result"]["risk"]>
 
 export type RiskSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1294,10 +1082,8 @@ export type RiskSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   level?: boolean
   created_by?: boolean
   updated_by?: boolean
-  template_id?: boolean
   created_by_user?: boolean | Prisma.Risk$created_by_userArgs<ExtArgs>
   updated_by_user?: boolean | Prisma.Risk$updated_by_userArgs<ExtArgs>
-  template?: boolean | Prisma.Risk$templateArgs<ExtArgs>
 }, ExtArgs["result"]["risk"]>
 
 export type RiskSelectScalar = {
@@ -1314,26 +1100,22 @@ export type RiskSelectScalar = {
   level?: boolean
   created_by?: boolean
   updated_by?: boolean
-  template_id?: boolean
 }
 
-export type RiskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "objective" | "created_at" | "seq" | "updated_at" | "code" | "impact" | "probability" | "level" | "created_by" | "updated_by" | "template_id", ExtArgs["result"]["risk"]>
+export type RiskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "objective" | "created_at" | "seq" | "updated_at" | "code" | "impact" | "probability" | "level" | "created_by" | "updated_by", ExtArgs["result"]["risk"]>
 export type RiskInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   created_by_user?: boolean | Prisma.Risk$created_by_userArgs<ExtArgs>
   updated_by_user?: boolean | Prisma.Risk$updated_by_userArgs<ExtArgs>
-  template?: boolean | Prisma.Risk$templateArgs<ExtArgs>
   reasons?: boolean | Prisma.Risk$reasonsArgs<ExtArgs>
   _count?: boolean | Prisma.RiskCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type RiskIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   created_by_user?: boolean | Prisma.Risk$created_by_userArgs<ExtArgs>
   updated_by_user?: boolean | Prisma.Risk$updated_by_userArgs<ExtArgs>
-  template?: boolean | Prisma.Risk$templateArgs<ExtArgs>
 }
 export type RiskIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   created_by_user?: boolean | Prisma.Risk$created_by_userArgs<ExtArgs>
   updated_by_user?: boolean | Prisma.Risk$updated_by_userArgs<ExtArgs>
-  template?: boolean | Prisma.Risk$templateArgs<ExtArgs>
 }
 
 export type $RiskPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1341,7 +1123,6 @@ export type $RiskPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   objects: {
     created_by_user: Prisma.$UserPayload<ExtArgs> | null
     updated_by_user: Prisma.$UserPayload<ExtArgs> | null
-    template: Prisma.$TemplatePayload<ExtArgs> | null
     reasons: Prisma.$RiskReasonPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1358,7 +1139,6 @@ export type $RiskPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     level: $Enums.RiskLevel
     created_by: string | null
     updated_by: string | null
-    template_id: string | null
   }, ExtArgs["result"]["risk"]>
   composites: {}
 }
@@ -1755,7 +1535,6 @@ export interface Prisma__RiskClient<T, Null = never, ExtArgs extends runtime.Typ
   readonly [Symbol.toStringTag]: "PrismaPromise"
   created_by_user<T extends Prisma.Risk$created_by_userArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Risk$created_by_userArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   updated_by_user<T extends Prisma.Risk$updated_by_userArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Risk$updated_by_userArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  template<T extends Prisma.Risk$templateArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Risk$templateArgs<ExtArgs>>): Prisma.Prisma__TemplateClient<runtime.Types.Result.GetResult<Prisma.$TemplatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   reasons<T extends Prisma.Risk$reasonsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Risk$reasonsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RiskReasonPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1799,7 +1578,6 @@ export interface RiskFieldRefs {
   readonly level: Prisma.FieldRef<"Risk", 'RiskLevel'>
   readonly created_by: Prisma.FieldRef<"Risk", 'String'>
   readonly updated_by: Prisma.FieldRef<"Risk", 'String'>
-  readonly template_id: Prisma.FieldRef<"Risk", 'String'>
 }
     
 
@@ -2231,25 +2009,6 @@ export type Risk$updated_by_userArgs<ExtArgs extends runtime.Types.Extensions.In
    */
   include?: Prisma.UserInclude<ExtArgs> | null
   where?: Prisma.UserWhereInput
-}
-
-/**
- * Risk.template
- */
-export type Risk$templateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Template
-   */
-  select?: Prisma.TemplateSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the Template
-   */
-  omit?: Prisma.TemplateOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.TemplateInclude<ExtArgs> | null
-  where?: Prisma.TemplateWhereInput
 }
 
 /**

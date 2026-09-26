@@ -82,11 +82,6 @@ export type ReasonControl = Prisma.ReasonControlModel
  */
 export type Risk = Prisma.RiskModel
 /**
- * Model Template
- * 
- */
-export type Template = Prisma.TemplateModel
-/**
  * Model User
  * 
  */

@@ -56,10 +56,4 @@ export class CreateRiskDto {
     @Max(5)
     probability!: number;
 
-    @ApiPropertyOptional({
-        description: 'ID del template al que pertenece este riesgo',
-    })
-    @IsOptional()
-    @IsUUID()
-    templateId?: string;
 }

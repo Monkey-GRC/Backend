@@ -11,11 +11,8 @@ import { RiskModule } from './features/risk/risk.module';
 import { ReasonModule } from './features/reason/reason.module';
 import { ControlModule } from './features/control/control.module';
 import { ChecklistModule } from './features/checklist/checklist.module';
-import { TemplateModule } from './features/template/template.module';
-import { DashboardModule } from './features/dashboard/dashboard.module';
 import { UserModule } from './features/user/user.module';
 import { ClientModule } from './features/client/client.module';
-import { OnboardingModule } from './features/onboarding/onboarding.module';
 import { ManualCheckModule } from './features/manual-check/manual-check.module';
 import { TranslationModule } from './features/translation/translation.module';
 import { AssetModule } from './features/asset/asset.module';
@@ -40,11 +37,8 @@ import { AssetModule } from './features/asset/asset.module';
     ReasonModule,
     ControlModule,
     ChecklistModule,
-    TemplateModule,
-    DashboardModule,
     UserModule,
     ClientModule,
-    OnboardingModule,
     ManualCheckModule,
     TranslationModule,
     AssetModule,
