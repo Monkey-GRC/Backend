@@ -1,0 +1,110 @@
+enum Dimension {
+  policy
+  server
+  database
+  app
+  cloud
+
+  @@schema("catalog")
+}
+
+enum ControlDimensionType {
+  manual
+  automated
+  hybrid
+  technical_manual
+
+  @@schema("catalog")
+}
+
+model Control {
+  id          String  @id @default(uuid()) @db.Uuid
+  code        String
+  name        String
+  description String  @db.Text
+  sourceRef   String? @map("source_ref")
+
+  pointOfFocusControls PointOfFocusControl[]
+  dimensions           ControlDimensionEntry[]
+  measurements         ControlMeasurement[]
+  controlPolicies      ControlPolicy[]
+  controlTests         ControlTest[]
+  testPlans            TestPlan[]
+  causeControl         CauseControl[]
+  clientControls        ClientControl[]
+  evidenceRequirements  EvidenceRequirement[]
+  evaluations           Evaluation[]
+
+  @@map("controls")
+  @@schema("catalog")
+}
+
+model PointOfFocusControl {
+  id             String @id @default(uuid()) @db.Uuid
+  pointOfFocusId String @map("point_of_focus_id") @db.Uuid
+  controlId      String @map("control_id") @db.Uuid
+
+  pointOfFocus PointOfFocus @relation(fields: [pointOfFocusId], references: [id])
+  control      Control      @relation(fields: [controlId], references: [id])
+
+  @@unique([pointOfFocusId, controlId])
+  @@map("point_of_focus_controls")
+  @@schema("catalog")
+}
+
+model ControlDimensionEntry {
+  id                            String               @id @default(uuid()) @db.Uuid
+  controlId                     String               @map("control_id") @db.Uuid
+  dimension                     Dimension
+  type                          ControlDimensionType
+  requiresProbe                 Boolean              @default(false) @map("requires_probe")
+  requiresAi                    Boolean              @default(false) @map("requires_ai")
+  requiresComplianceConfirmation Boolean             @default(false) @map("requires_compliance_confirmation")
+  reasonNotApplicable           String?              @map("reason_not_applicable") @db.Text
+
+  control Control @relation(fields: [controlId], references: [id])
+
+  @@unique([controlId, dimension])
+  @@map("control_dimensions")
+  @@schema("catalog")
+}
+
+model ControlMeasurement {
+  id        String    @id @default(uuid()) @db.Uuid
+  controlId String    @map("control_id") @db.Uuid
+  dimension Dimension
+  weight    Decimal   @default(1) @db.Decimal(5, 2)
+  formula   String
+
+  control Control @relation(fields: [controlId], references: [id])
+
+  @@unique([controlId, dimension])
+  @@map("control_measurements")
+  @@schema("catalog")
+}
+
+model Policy {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  approvalStatus String   @map("approval_status")
+  validUntil     DateTime @map("valid_until") @db.Date
+  version        String
+
+  controlPolicies ControlPolicy[]
+
+  @@map("policies")
+  @@schema("catalog")
+}
+
+model ControlPolicy {
+  id        String @id @default(uuid()) @db.Uuid
+  controlId String @map("control_id") @db.Uuid
+  policyId  String @map("policy_id") @db.Uuid
+
+  control Control @relation(fields: [controlId], references: [id])
+  policy  Policy  @relation(fields: [policyId], references: [id])
+
+  @@unique([controlId, policyId])
+  @@map("control_policies")
+  @@schema("catalog")
+}

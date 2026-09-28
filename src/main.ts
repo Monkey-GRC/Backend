@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { setupSwagger } from './swagger.config';
 import cookieParser from 'cookie-parser';
-import { UserContextInterceptor } from './common/interceptors/user-context.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,8 +9,6 @@ async function bootstrap() {
   app.setGlobalPrefix('v1');
 
   app.use(cookieParser());
-
-  app.useGlobalInterceptors(new UserContextInterceptor());
 
   // CORS config
   app.enableCors({
@@ -28,12 +25,4 @@ async function bootstrap() {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
-
-  // Swagger config
-  setupSwagger(app);
-
-  await app.listen(process.env.PORT || 3000);
-
-  console.log(`App corriendo en el puerto ${process.env.PORT}`);
 }
-bootstrap();

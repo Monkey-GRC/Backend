@@ -1,0 +1,105 @@
+enum ExecutionOrigin {
+  scheduled
+  manual
+
+  @@schema("tenant")
+}
+
+enum CheckResultStatus {
+  passed
+  failed
+  invalid
+  not_applicable
+  not_run
+
+  @@schema("tenant")
+}
+
+enum ExecutionLogLevel {
+  info
+  warn
+  error
+
+  @@schema("tenant")
+}
+
+model ScheduleRule {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  rule               String // "cada 6 horas"
+  appliesTo          String   @map("applies_to")
+  affectedAssetCount Int      @map("affected_asset_count")
+  nextRunAt          DateTime @map("next_run_at")
+
+  tenant Company @relation(fields: [tenantId], references: [id])
+
+  executions Execution[]
+
+  @@map("schedule_rules")
+  @@schema("tenant")
+}
+
+model Execution {
+  id                 String          @id @default(uuid()) @db.Uuid
+  tenantId           String          @map("tenant_id") @db.Uuid
+  assetId            String          @map("asset_id") @db.Uuid
+  scheduleRuleId     String?         @map("schedule_rule_id") @db.Uuid // null si es manual
+  retryOfId          String?         @map("retry_of_id") @db.Uuid
+  startedAt          DateTime        @map("started_at")
+  finishedAt         DateTime?       @map("finished_at")
+  status             String // TODO: enum — el ER no lista los valores
+  progressPercentage Int             @default(0) @map("progress_percentage")
+  origin             ExecutionOrigin
+
+  asset        Asset         @relation(fields: [assetId], references: [id])
+  scheduleRule ScheduleRule? @relation(fields: [scheduleRuleId], references: [id])
+  retryOf      Execution?    @relation("ExecutionRetries", fields: [retryOfId], references: [id])
+  retries      Execution[]   @relation("ExecutionRetries")
+  tenant       Company       @relation(fields: [tenantId], references: [id])
+
+  checkResults CheckResult[]
+  logs         ExecutionLog[]
+
+  @@index([assetId, startedAt])
+  @@map("executions")
+  @@schema("tenant")
+}
+
+// Dato crudo de una corrida de la sonda. La interpretación vive en evaluations.
+model CheckResult {
+  id          String            @id @default(uuid()) @db.Uuid
+  tenantId    String            @map("tenant_id") @db.Uuid
+  executionId String            @map("execution_id") @db.Uuid
+  checkId     String            @map("check_id") @db.Uuid
+  platform    String
+  policyId    String            @map("policy_id")
+  rawCheckId  String            @map("raw_check_id")
+  result      CheckResultStatus
+  evaluatedAt DateTime          @map("evaluated_at")
+
+  execution Execution @relation(fields: [executionId], references: [id])
+  check     Check     @relation(fields: [checkId], references: [id])
+  tenant    Company   @relation(fields: [tenantId], references: [id])
+
+  // Tabla de mayor volumen del sistema (miles de checks por activo por corrida)
+  @@index([executionId])
+  @@index([checkId])
+  @@map("check_results")
+  @@schema("tenant")
+}
+
+model ExecutionLog {
+  id          String            @id @default(uuid()) @db.Uuid
+  tenantId    String            @map("tenant_id") @db.Uuid
+  executionId String            @map("execution_id") @db.Uuid
+  loggedAt    DateTime          @map("logged_at")
+  level       ExecutionLogLevel
+  message     String            @db.Text
+
+  execution Execution @relation(fields: [executionId], references: [id])
+  tenant    Company   @relation(fields: [tenantId], references: [id])
+
+  @@index([executionId, loggedAt])
+  @@map("execution_logs")
+  @@schema("tenant")
+}

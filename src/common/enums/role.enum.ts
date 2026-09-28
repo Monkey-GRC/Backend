@@ -1,6 +1,0 @@
-export enum Role {
-  MONKEY_ADMIN = 'MONKEY_ADMIN',
-  CLIENT_ADMIN = 'CLIENT_ADMIN',
-  USER = 'USER',
-  VIEWER = 'VIEWER',
-}

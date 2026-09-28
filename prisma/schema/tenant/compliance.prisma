@@ -1,0 +1,274 @@
+enum EvaluationResult {
+  compliant
+  non_compliant
+  pending
+  not_applicable
+
+  @@schema("tenant")
+}
+
+enum RawProbeResult {
+  ok
+  fail
+
+  @@schema("tenant")
+}
+
+enum FindingStatus {
+  open
+  remediated
+  excluded
+
+  @@schema("tenant")
+}
+
+enum FindingOrigin {
+  system
+  auditor
+
+  @@schema("tenant")
+}
+
+enum RiskTreatmentDecision {
+  mitigate
+  accept
+  transfer
+  avoid
+
+  @@schema("tenant")
+}
+
+enum VulnerabilityStatus {
+  active
+  solved
+  mitigated
+
+  @@schema("tenant")
+}
+
+model ClientControl {
+  id                   String               @id @default(uuid()) @db.Uuid
+  tenantId             String               @map("tenant_id") @db.Uuid
+  controlId            String               @map("control_id") @db.Uuid
+  serviceId            String               @map("service_id") @db.Uuid
+  ownCode              String               @map("own_code") // "C01"
+  clientInterpretation String               @map("client_interpretation") @db.Text
+  type                 ControlDimensionType // manual|automated|hybrid|technical_manual
+  sourceRef            String?              @map("source_ref")
+
+  control Control @relation(fields: [controlId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+  tenant  Company @relation(fields: [tenantId], references: [id])
+
+  actionPlans           ActionPlan[]
+  userControlAssignments UserControlAssignment[]
+
+  @@unique([serviceId, ownCode])
+  @@map("client_controls")
+  @@schema("tenant")
+}
+
+model ActionPlan {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  clientControlId   String    @map("client_control_id") @db.Uuid
+  responsibleId     String    @map("responsible_id") @db.Uuid
+  actionDescription String    @map("action_description") @db.Text
+  dueDate           DateTime  @map("due_date") @db.Date
+  status            String    // TODO: enum — el ER no lista los valores
+
+  clientControl   ClientControl @relation(fields: [clientControlId], references: [id])
+  responsibleUser User          @relation(fields: [responsibleId], references: [id])
+  tenant          Company       @relation(fields: [tenantId], references: [id])
+
+  @@map("action_plans")
+  @@schema("tenant")
+}
+
+model Mitigation {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  causeId            String?  @map("cause_id") @db.Uuid
+  riskId             String?  @map("risk_id") @db.Uuid
+  responsePercentage Decimal  @map("response_percentage") @db.Decimal(5, 2)
+  calculatedAt       DateTime @map("calculated_at") @db.Date
+
+  cause  Cause?  @relation(fields: [causeId], references: [id])
+  risk   Risk?   @relation(fields: [riskId], references: [id])
+  tenant Company @relation(fields: [tenantId], references: [id])
+
+  @@map("mitigations")
+  @@schema("tenant")
+}
+
+model ResidualRisk {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  riskId        String   @map("risk_id") @db.Uuid
+  acceptedBy    String   @map("accepted_by") @db.Uuid
+  residualLevel String   @map("residual_level") // TODO: enum — el ER no lista los valores
+  justification String   @db.Text
+  acceptedAt    DateTime @map("accepted_at") @db.Date
+
+  risk           Risk    @relation(fields: [riskId], references: [id])
+  acceptedByUser User    @relation(fields: [acceptedBy], references: [id])
+  tenant         Company @relation(fields: [tenantId], references: [id])
+
+  @@map("residual_risks")
+  @@schema("tenant")
+}
+
+model RiskTreatment {
+  id            String                @id @default(uuid()) @db.Uuid
+  tenantId      String                @map("tenant_id") @db.Uuid
+  riskId        String                @map("risk_id") @db.Uuid
+  responsibleId String                @map("responsible_id") @db.Uuid
+  decision      RiskTreatmentDecision
+  dueDate       DateTime              @map("due_date") @db.Date
+
+  risk            Risk    @relation(fields: [riskId], references: [id])
+  responsibleUser User    @relation(fields: [responsibleId], references: [id])
+  tenant          Company @relation(fields: [tenantId], references: [id])
+
+  @@map("risk_treatments")
+  @@schema("tenant")
+}
+
+model EvidenceRequirement {
+  id                   String    @id @default(uuid()) @db.Uuid
+  tenantId             String    @map("tenant_id") @db.Uuid
+  controlId            String    @map("control_id") @db.Uuid
+  responsibleId        String?   @map("responsible_id") @db.Uuid // cargo, no persona (A1)
+  code                 String
+  sequence             Int
+  description          String    @db.Text
+  dimension            Dimension
+  validityWithinPeriod String    @map("validity_within_period")
+
+  control     Control                  @relation(fields: [controlId], references: [id])
+  responsible OrganizationResponsible? @relation(fields: [responsibleId], references: [id])
+  tenant      Company                  @relation(fields: [tenantId], references: [id])
+
+  submissions EvidenceSubmission[]
+
+  @@map("evidence_requirements")
+  @@schema("tenant")
+}
+
+model EvidenceSubmission {
+  id                     String   @id @default(uuid()) @db.Uuid
+  tenantId               String   @map("tenant_id") @db.Uuid
+  evidenceRequirementId  String   @map("evidence_requirement_id") @db.Uuid
+  submittedBy            String   @map("submitted_by") @db.Uuid
+  approvedBy             String?  @map("approved_by") @db.Uuid // solo admin_empresa
+  filePath               String   @map("file_path")
+  fileType               String   @map("file_type")
+  fileSize               Int      @map("file_size")
+  storageLocation        String   @map("storage_location")
+  integrityHash          String   @map("integrity_hash")
+  version                String
+  validationStatus       String   @map("validation_status") // TODO: enum — el ER no lista los valores
+  aiVerdict              String?  @map("ai_verdict") @db.Text // siempre etiquetado como generado por IA
+
+  evidenceRequirement EvidenceRequirement @relation(fields: [evidenceRequirementId], references: [id])
+  submittedByUser     User                @relation("EvidenceSubmittedBy", fields: [submittedBy], references: [id])
+  approvedByUser      User?               @relation("EvidenceApprovedBy", fields: [approvedBy], references: [id])
+  tenant              Company             @relation(fields: [tenantId], references: [id])
+
+  @@map("evidence_submissions")
+  @@schema("tenant")
+}
+
+model Exclusion {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  testId          String    @map("test_id") @db.Uuid
+  proposedBy      String    @map("proposed_by") @db.Uuid // consultor
+  approvedBy      String?   @map("approved_by") @db.Uuid // cliente; null mientras no la apruebe
+  excludedCheckId String    @map("excluded_check_id")
+  justification   String    @db.Text
+  validUntil      DateTime  @map("valid_until") @db.Date
+
+  test               Test    @relation(fields: [testId], references: [id])
+  proposedByUser     User    @relation("ExclusionProposedBy", fields: [proposedBy], references: [id])
+  approvedByUser     User?   @relation("ExclusionApprovedBy", fields: [approvedBy], references: [id])
+  tenant             Company @relation(fields: [tenantId], references: [id])
+
+  @@map("exclusions")
+  @@schema("tenant")
+}
+
+// Inmutable (§7.4): una evaluación nueva se agrega, nunca pisa la anterior. Por eso no lleva updatedAt.
+model Evaluation {
+  id                       String           @id @default(uuid()) @db.Uuid
+  tenantId                 String           @map("tenant_id") @db.Uuid
+  serviceId                String           @map("service_id") @db.Uuid
+  controlId                String           @map("control_id") @db.Uuid
+  assetId                  String           @map("asset_id") @db.Uuid
+  catalogVersionId         String           @map("catalog_version_id") @db.Uuid
+  confirmedBy              String?          @map("confirmed_by") @db.Uuid
+  evaluatedAt              DateTime         @map("evaluated_at") @db.Date
+  dimension                Dimension
+  result                   EvaluationResult
+  rawProbeResult           RawProbeResult?  @map("raw_probe_result")
+  diagnosticPercentage     Decimal?         @map("diagnostic_percentage") @db.Decimal(5, 2)
+  origin                   String           // TODO: enum — el ER no lista los valores
+  clientResponse           String?          @map("client_response") @db.Text
+  consultantAssessment     String?          @map("consultant_assessment") @db.Text
+  closureObservationReason String?          @map("closure_observation_reason") @db.Text
+  coveredPeriod            String?          @map("covered_period")
+
+  service        Service        @relation(fields: [serviceId], references: [id])
+  control        Control        @relation(fields: [controlId], references: [id])
+  asset          Asset          @relation(fields: [assetId], references: [id])
+  catalogVersion CatalogVersion @relation(fields: [catalogVersionId], references: [id])
+  confirmedByUser User?         @relation(fields: [confirmedBy], references: [id])
+  tenant         Company        @relation(fields: [tenantId], references: [id])
+
+  findings Finding[]
+
+  @@map("evaluations")
+  @@schema("tenant")
+}
+
+model Finding {
+  id                 String        @id @default(uuid()) @db.Uuid
+  tenantId           String        @map("tenant_id") @db.Uuid
+  evaluationId       String        @map("evaluation_id") @db.Uuid
+  assetId            String        @map("asset_id") @db.Uuid
+  reportedBy         String?       @map("reported_by") @db.Uuid // null si lo abrió el sistema
+  dimension          Dimension
+  failedTestOrCheck  String        @map("failed_test_or_check")
+  severity           String        // TODO: enum — el ER no lista los valores
+  status             FindingStatus @default(open)
+  origin             FindingOrigin
+  detectedAt         DateTime      @map("detected_at") @db.Date
+  closedAt           DateTime?     @map("closed_at") @db.Date
+
+  evaluation     Evaluation @relation(fields: [evaluationId], references: [id])
+  asset          Asset      @relation(fields: [assetId], references: [id])
+  reportedByUser User?      @relation(fields: [reportedBy], references: [id])
+  tenant         Company    @relation(fields: [tenantId], references: [id])
+
+  @@map("findings")
+  @@schema("tenant")
+}
+
+model Vulnerability {
+  id             String              @id @default(uuid()) @db.Uuid
+  tenantId       String              @map("tenant_id") @db.Uuid
+  assetId        String              @map("asset_id") @db.Uuid
+  cve            String
+  severity       String              // TODO: enum — el ER no lista los valores
+  packageName    String              @map("package_name")
+  packageVersion String              @map("package_version")
+  cvssScore      Decimal             @map("cvss_score") @db.Decimal(3, 1)
+  status         VulnerabilityStatus @default(active)
+  recommendation String              @db.Text
+
+  asset  Asset   @relation(fields: [assetId], references: [id])
+  tenant Company @relation(fields: [tenantId], references: [id])
+
+  @@map("vulnerabilities")
+  @@schema("tenant")
+}

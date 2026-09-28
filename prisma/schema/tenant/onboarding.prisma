@@ -1,0 +1,560 @@
+enum OrganizationSize {
+  from_10_to_50
+  from_51_to_200
+  from_201_to_500
+  from_501_to_1000
+  from_1001_to_2000
+  from_2001_to_5000
+  more_than_5000
+
+  @@schema("tenant")
+}
+
+enum Industry {
+  financial_banking
+  fintech
+  healthcare
+  technology_saas
+  bpo_outsourcing
+  telecommunications
+  retail_ecommerce
+  manufacturing
+  government
+  education
+  insurance
+  logistics
+  energy_utilities
+  other
+
+  @@schema("tenant")
+}
+
+enum BusinessModel {
+  bpo_kpo_ito
+  call_contact_center
+  data_center
+  ai_ml
+  service_desk
+  saas_paas_iaas
+  fintech_payments
+  banking
+  insurance
+  marketplace_ecommerce
+  software_factory
+  consulting
+  telecommunications
+  logistics
+  healthcare
+  edtech
+  manufacturing
+  government
+  other // TODO: lista incompleta a propósito — el comité debe entregar el resto de las "40+ opciones"
+
+  @@schema("tenant")
+}
+
+enum YearsInOperation {
+  less_than_1
+  from_1_to_3
+  from_3_to_5
+  from_5_to_10
+  more_than_10
+
+  @@schema("tenant")
+}
+
+enum IncorporationCountry {
+  co
+  mx
+  pe
+  cl
+  ar
+  br
+  ec
+  pa
+  cr
+  us
+  es
+  other
+
+  @@schema("tenant")
+}
+
+enum ClientCountry {
+  co
+  mx
+  pe
+  cl
+  ar
+  br
+  ec
+  pa
+  cr
+  us
+  es
+  eu
+  other
+
+  @@schema("tenant")
+}
+
+enum ComplianceMaturity {
+  none
+  initial_ad_hoc
+  implementing
+  defined
+  managed_certified
+
+  @@schema("tenant")
+}
+
+enum OrganizationResponsibleType {
+  coo
+  it
+  compliance
+  process
+  ciso
+  asset_owner
+
+  @@schema("tenant")
+}
+
+enum SubserviceProviderType {
+  aws
+  azure
+  gcp
+  on_premise
+  hybrid
+  mobile
+  other
+
+  @@schema("tenant")
+}
+
+model Organization {
+  id                     String               @id @default(uuid()) @db.Uuid
+  companyId              String               @unique @map("company_id") @db.Uuid
+  name                   String
+  description            String               @db.Text
+  size                   OrganizationSize
+  industry               Industry
+  businessModel          BusinessModel        @map("business_model")
+  yearsInOperation       YearsInOperation?    @map("years_in_operation")
+  incorporationCountries IncorporationCountry[] @map("incorporation_countries")
+  clientCountries        ClientCountry[]      @map("client_countries")
+  complianceMaturity     ComplianceMaturity   @map("compliance_maturity")
+  createdAt              DateTime             @default(now()) @map("created_at")
+  updatedAt              DateTime             @updatedAt @map("updated_at")
+
+  company      Company                   @relation(fields: [companyId], references: [id])
+  regulations  OrganizationRegulation[]
+  responsibles OrganizationResponsible[]
+  services     Service[]
+  assets       Asset[]
+
+  @@map("organizations")
+  @@schema("tenant")
+}
+
+model Regulation {
+  id           String @id @default(uuid()) @db.Uuid
+  code         String @unique // ley_1581_co, lfpdppp_mx, gdpr_eu... (14 valores, contracts/enums.md)
+  name         String
+  jurisdiction String
+
+  organizationRegulations OrganizationRegulation[]
+
+  // No se puntúa (D10). Mismo catálogo para todos los clientes → sin tenant_id, en catalog.
+  @@map("regulations")
+  @@schema("catalog")
+}
+
+model OrganizationRegulation {
+  id             String @id @default(uuid()) @db.Uuid
+  tenantId       String @map("tenant_id") @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  regulationId   String @map("regulation_id") @db.Uuid
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  regulation   Regulation   @relation(fields: [regulationId], references: [id])
+  tenant       Company      @relation(fields: [tenantId], references: [id])
+
+  @@unique([organizationId, regulationId])
+  @@map("organization_regulations")
+  @@schema("tenant")
+}
+
+model OrganizationResponsible {
+  id             String                      @id @default(uuid()) @db.Uuid
+  tenantId       String                      @map("tenant_id") @db.Uuid
+  organizationId String                      @map("organization_id") @db.Uuid
+  type           OrganizationResponsibleType
+  personName     String                      @map("person_name")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  tenant       Company      @relation(fields: [tenantId], references: [id])
+
+  assets Asset[]
+  evidenceRequirements EvidenceRequirement[]
+
+  @@map("organization_responsibles")
+  @@schema("tenant")
+}
+
+enum ServiceType {
+  saas
+  bpo
+  call_center
+  data_center
+  ai_services
+  specialized_with_data_intervention
+  service_desk
+  managed_services
+  consulting
+  development
+  other
+
+  @@schema("tenant")
+}
+
+enum ServedIndustry {
+  financial
+  healthcare
+  retail
+  technology
+  government
+  education
+  manufacturing
+  telecommunications
+  energy
+  logistics
+  other
+
+  @@schema("tenant")
+}
+
+enum ActiveClientCount {
+  from_1_to_10
+  from_11_to_50
+  from_51_to_200
+  from_201_to_1000
+  more_than_1000
+
+  @@schema("tenant")
+}
+
+enum ServiceCountry {
+  co
+  mx
+  pe
+  cl
+  ar
+  br
+  ec
+  uy
+  py
+  bo
+  ve
+  cr
+  pa
+  gt
+  us
+  ca
+  es
+  pt
+  gb
+  de
+  fr
+  eu
+  latam
+  global
+
+  @@schema("tenant")
+}
+
+enum DataType {
+  pii
+  payment
+  phi
+  business
+  files
+  logs
+  credentials
+  biometric
+
+  @@schema("tenant")
+}
+
+enum ExpectedAvailability {
+  h24x7 @map("24x7") // Prisma no permite identificadores que empiecen con dígito; el valor real en BD/wire es "24x7"
+  business_hours
+  on_demand
+  not_applicable
+
+  @@schema("tenant")
+}
+
+enum DeploymentScenario {
+  cloud_managed_only
+  cloud_with_servers
+  on_premise
+  hybrid
+
+  @@schema("tenant")
+}
+
+enum PreviousCertification {
+  soc2
+  soc1
+  iso27001
+  none
+
+  @@schema("tenant")
+}
+
+model Service {
+  id                    String    @id @default(uuid()) @db.Uuid
+  tenantId              String    @map("tenant_id") @db.Uuid
+  organizationId        String    @map("organization_id") @db.Uuid
+  name                  String
+  description           String    @db.Text
+  scopeStatement        String    @map("scope_statement") @db.Text
+  type                  ServiceType
+  industriesServed      ServedIndustry[]     @map("industries_served")
+  activeClientCount     ActiveClientCount?   @map("active_client_count")
+  countries             ServiceCountry[]
+  dataTypes             DataType[]           @map("data_types")
+  expectedAvailability  ExpectedAvailability @map("expected_availability")
+  deploymentScenario    DeploymentScenario   @map("deployment_scenario")
+  previousCertification PreviousCertification? @map("previous_certification")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  tenant       Company      @relation(fields: [tenantId], references: [id])
+
+  trustCriteria           ServiceTrustCriterion[]
+  frameworks              ServiceFramework[]
+  subserviceOrganizations SubserviceOrganization[]
+  cuecs                   Cuec[]
+  systemDescription       SystemDescription?
+  serviceRisks            ServiceRisk[]
+  scope                   Scope?
+  serviceAssets           ServiceAsset[]
+  clientControls ClientControl[]
+  evaluations    Evaluation[]
+
+  @@map("services")
+  @@schema("tenant")
+}
+
+model ServiceTrustCriterion {
+  id               String @id @default(uuid()) @db.Uuid
+  tenantId         String @map("tenant_id") @db.Uuid
+  serviceId        String @map("service_id") @db.Uuid
+  trustCriterionId String @map("trust_criterion_id") @db.Uuid
+
+  service        Service        @relation(fields: [serviceId], references: [id])
+  trustCriterion TrustCriterion @relation(fields: [trustCriterionId], references: [id])
+  tenant         Company        @relation(fields: [tenantId], references: [id])
+
+  @@unique([serviceId, trustCriterionId])
+  @@map("service_trust_criteria")
+  @@schema("tenant")
+}
+
+model ServiceFramework {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  frameworkId      String   @map("framework_id") @db.Uuid
+  serviceId        String   @map("service_id") @db.Uuid
+  catalogVersionId String   @map("catalog_version_id") @db.Uuid
+  contractedAt     DateTime @map("contracted_at") @db.Date
+  status           String   // TODO: enum — no está en contracts/enums.md, confirmar con el comité
+  evaluationPeriod String   @map("evaluation_period")
+
+  framework      Framework      @relation(fields: [frameworkId], references: [id])
+  service        Service        @relation(fields: [serviceId], references: [id])
+  catalogVersion CatalogVersion @relation(fields: [catalogVersionId], references: [id])
+  tenant         Company        @relation(fields: [tenantId], references: [id])
+
+  @@map("service_frameworks")
+  @@schema("tenant")
+}
+
+model SubserviceOrganization {
+  id              String                 @id @default(uuid()) @db.Uuid
+  tenantId        String                 @map("tenant_id") @db.Uuid
+  serviceId       String                 @map("service_id") @db.Uuid
+  provider        String
+  serviceProvided String                 @map("service_provided")
+  responsibility  String                 @db.Text
+  type            SubserviceProviderType
+
+  service Service @relation(fields: [serviceId], references: [id])
+  tenant  Company @relation(fields: [tenantId], references: [id])
+  csocs   Csoc[]
+
+  @@map("subservice_organizations")
+  @@schema("tenant")
+}
+
+model Csoc {
+  id                       String @id @default(uuid()) @db.Uuid
+  tenantId                 String @map("tenant_id") @db.Uuid
+  subserviceOrganizationId String @map("subservice_organization_id") @db.Uuid
+  expectedControl          String @map("expected_control") @db.Text
+
+  subserviceOrganization SubserviceOrganization @relation(fields: [subserviceOrganizationId], references: [id])
+  tenant                 Company                @relation(fields: [tenantId], references: [id])
+
+  @@map("csocs")
+  @@schema("tenant")
+}
+
+model Cuec {
+  id              String @id @default(uuid()) @db.Uuid
+  tenantId        String @map("tenant_id") @db.Uuid
+  serviceId       String @map("service_id") @db.Uuid
+  expectedControl String @map("expected_control") @db.Text
+
+  service Service @relation(fields: [serviceId], references: [id])
+  tenant  Company @relation(fields: [tenantId], references: [id])
+
+  @@map("cuecs")
+  @@schema("tenant")
+}
+
+model SystemDescription {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @map("tenant_id") @db.Uuid
+  serviceId String @unique @map("service_id") @db.Uuid
+  filePath  String @map("file_path")
+  sections  Json
+
+  service Service @relation(fields: [serviceId], references: [id])
+  tenant  Company @relation(fields: [tenantId], references: [id])
+
+  @@map("system_descriptions")
+  @@schema("tenant")
+}
+
+model ServiceRisk {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @map("tenant_id") @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
+  riskId    String @map("risk_id") @db.Uuid
+
+  service Service @relation(fields: [serviceId], references: [id])
+  risk    Risk    @relation(fields: [riskId], references: [id])
+  tenant  Company @relation(fields: [tenantId], references: [id])
+
+  @@unique([serviceId, riskId])
+  @@map("service_risks")
+  @@schema("tenant")
+}
+
+model Scope {
+  id            String @id @default(uuid()) @db.Uuid
+  tenantId      String @map("tenant_id") @db.Uuid
+  serviceId     String @unique @map("service_id") @db.Uuid
+  serverCount   Int    @map("server_count")
+  cloudCount    Int    @map("cloud_count")
+  appCount      Int    @map("app_count")
+  databaseCount Int    @map("database_count")
+  endpointCount Int    @map("endpoint_count")
+
+  service Service @relation(fields: [serviceId], references: [id])
+  tenant  Company @relation(fields: [tenantId], references: [id])
+
+  @@map("scopes")
+  @@schema("tenant")
+}
+
+enum AssetConnectionCategory {
+  ac_01
+  ac_02
+  ac_03
+  ac_04
+  ac_05
+  ac_06
+
+  @@schema("tenant")
+}
+
+enum AssetOperationalStatus {
+  operational
+  warning
+  error
+  not_monitored
+
+  @@schema("tenant")
+}
+
+model Asset {
+  id                 String                  @id @default(uuid()) @db.Uuid
+  tenantId           String                  @map("tenant_id") @db.Uuid
+  organizationId     String                  @map("organization_id") @db.Uuid
+  responsibleId      String?                 @map("responsible_id") @db.Uuid
+  code               String
+  connectionCategory AssetConnectionCategory @map("connection_category")
+  type               String                  // TODO: enum — gana application/documentation/endpoint (D5), no está en contracts/enums.md
+  name               String
+  platform           String
+  ipAddress          String?                 @map("ip_address")
+  location           String?
+  criticality        String                  // TODO: enum — no está en contracts/enums.md
+  tags               Json
+  origin             String                  // TODO: enum — no está en contracts/enums.md
+  status             String                  // TODO: enum — no está en contracts/enums.md
+  operationalStatus  AssetOperationalStatus  @default(not_monitored) @map("operational_status")
+  technicalCoverage  String                  @map("technical_coverage")
+
+  organization Organization             @relation(fields: [organizationId], references: [id])
+  responsible  OrganizationResponsible? @relation(fields: [responsibleId], references: [id])
+  tenant       Company                  @relation(fields: [tenantId], references: [id])
+
+  serviceAssets ServiceAsset[]
+  provisionings AssetProvisioning[]
+  evaluations     Evaluation[]
+  vulnerabilities Vulnerability[]
+  findings        Finding[]
+  executions Execution[]
+
+  @@map("assets")
+  @@schema("tenant")
+}
+
+model ServiceAsset {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @map("tenant_id") @db.Uuid
+  assetId   String @map("asset_id") @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
+
+  asset   Asset   @relation(fields: [assetId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+  tenant  Company @relation(fields: [tenantId], references: [id])
+
+  @@unique([assetId, serviceId])
+  @@map("service_assets")
+  @@schema("tenant")
+}
+
+model AssetProvisioning {
+  id                    String    @id @default(uuid()) @db.Uuid
+  tenantId              String    @map("tenant_id") @db.Uuid
+  assetId               String    @map("asset_id") @db.Uuid
+  automatedCapabilityId String    @map("automated_capability_id") @db.Uuid
+  connectionStatus      String    @map("connection_status") // TODO: enum — conectar→validar→activar→programar, no está en contracts/enums.md
+  lastValidatedAt       DateTime? @map("last_validated_at")
+  technicalCoverage     String    @map("technical_coverage")
+  encryptedCredentials  String    @map("encrypted_credentials") @db.Text
+  isActive              Boolean   @default(true) @map("is_active")
+
+  asset               Asset               @relation(fields: [assetId], references: [id])
+  automatedCapability AutomatedCapability @relation(fields: [automatedCapabilityId], references: [id])
+  tenant              Company             @relation(fields: [tenantId], references: [id])
+
+  @@map("asset_provisionings")
+  @@schema("tenant")
+}
