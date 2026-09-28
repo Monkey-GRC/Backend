@@ -1,0 +1,135 @@
+enum TestPlanOrigin {
+  predefined
+  custom
+
+  @@schema("catalog")
+}
+
+enum CheckOrigin {
+  cis_native
+  monkey_policy
+  auditor_criterion
+
+  @@schema("catalog")
+}
+
+model TestPlan {
+  id            String         @id @default(uuid()) @db.Uuid
+  controlId     String         @map("control_id") @db.Uuid
+  description   String         @db.Text
+  steps         Json
+  population    String
+  samplingRule  String         @map("sampling_rule")
+  origin        TestPlanOrigin
+
+  control Control @relation(fields: [controlId], references: [id])
+
+  @@map("test_plans")
+  @@schema("catalog")
+}
+
+model Test {
+  id                             String    @id @default(uuid()) @db.Uuid
+  code                           String    @unique
+  dimension                      Dimension
+  name                           String
+  objective                      String    @db.Text
+  type                           String
+  tool                           String
+  population                     String
+  period                         String
+  populationSize                 Int       @map("population_size")
+  suggestedSampleSize            Int       @map("suggested_sample_size")
+  selectionMethod                String    @map("selection_method")
+  evidenceToRequest              String    @map("evidence_to_request") @db.Text
+  prerequisites                  String    @db.Text
+  stepByStep                     Json      @map("step_by_step")
+  attributesToValidate           Json      @map("attributes_to_validate")
+  complianceCriterion            String    @map("compliance_criterion") @db.Text
+  exceptionsHandling             String    @map("exceptions_handling") @db.Text
+  evidenceToRetain               String    @map("evidence_to_retain") @db.Text
+  automatedCoverage              String    @map("automated_coverage") @db.Text
+  complementaryManualValidation  String    @map("complementary_manual_validation") @db.Text
+  limitations                    String    @db.Text
+
+  controlTests ControlTest[]
+  testChecks   TestCheck[]
+  exclusions Exclusion[]
+
+  @@map("tests")
+  @@schema("catalog")
+}
+
+model ControlTest {
+  id        String @id @default(uuid()) @db.Uuid
+  controlId String @map("control_id") @db.Uuid
+  testId    String @map("test_id") @db.Uuid
+
+  control Control @relation(fields: [controlId], references: [id])
+  test    Test    @relation(fields: [testId], references: [id])
+
+  @@unique([controlId, testId])
+  @@map("control_tests")
+  @@schema("catalog")
+}
+
+model Check {
+  id                 String      @id @default(uuid()) @db.Uuid
+  platform           String
+  policyId           String      @map("policy_id")
+  checkId            String      @map("check_id")
+  titleEs            String      @map("title_es")
+  titleEn            String      @map("title_en")
+  condition          String      @db.Text
+  remediation        String      @db.Text
+  verificationRule   String      @map("verification_rule") @db.Text
+  origin             CheckOrigin
+  mappingProvenance  String      @map("mapping_provenance")
+  mappingConfidence  String      @map("mapping_confidence")
+
+  testChecks     TestCheck[]
+  checkMappings  CheckMapping[]
+  checkResults CheckResult[]
+
+  @@unique([platform, policyId, checkId])
+  @@map("checks")
+  @@schema("catalog")
+}
+
+model TestCheck {
+  id      String @id @default(uuid()) @db.Uuid
+  testId  String @map("test_id") @db.Uuid
+  checkId String @map("check_id") @db.Uuid
+
+  test  Test  @relation(fields: [testId], references: [id])
+  check Check @relation(fields: [checkId], references: [id])
+
+  @@unique([testId, checkId])
+  @@map("test_checks")
+  @@schema("catalog")
+}
+
+model CheckMapping {
+  id               String @id @default(uuid()) @db.Uuid
+  checkId          String @map("check_id") @db.Uuid
+  frameworkCode    String @map("framework_code")
+  frameworkVersion String @map("framework_version")
+  requirementCode  String @map("requirement_code")
+
+  check Check @relation(fields: [checkId], references: [id])
+
+  @@map("check_mappings")
+  @@schema("catalog")
+}
+
+model ScaPolicy {
+  id         String @id @default(uuid()) @db.Uuid
+  platform   String
+  benchmark  String
+  scaId      String @unique @map("sca_id")
+  yamlFile   String @map("yaml_file")
+  checkCount Int    @map("check_count")
+
+  @@map("sca_policies")
+  @@schema("catalog")
+}

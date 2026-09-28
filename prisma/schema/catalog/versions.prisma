@@ -1,0 +1,17 @@
+model CatalogVersion {
+  id                      String   @id @default(uuid()) @db.Uuid
+  number                  Int
+  publishedAt             DateTime @map("published_at") @db.Date
+  changeSummary           String   @map("change_summary") @db.Text
+  publishedBy             String   @map("published_by") @db.Uuid
+  propagatedAutomatically Boolean  @map("propagated_automatically")
+  requiresAcceptance      Boolean  @map("requires_acceptance")
+
+  serviceFrameworks ServiceFramework[]
+  evaluations Evaluation[]
+
+  publisher   User     @relation(fields: [publishedBy], references: [id])
+
+  @@map("catalog_versions")
+  @@schema("catalog")
+}

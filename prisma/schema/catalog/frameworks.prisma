@@ -1,0 +1,86 @@
+enum TrustCriterionCode {
+  security
+  availability
+  confidentiality
+  integrity
+  privacy
+
+  @@schema("catalog")
+}
+
+model Framework {
+  id               String  @id @default(uuid()) @db.Uuid
+  code             String
+  name             String
+  version          String
+  // TODO: confirmar con el comité los valores válidos de "type" antes de
+  // convertir esto en un enum real (el ER no los especifica).
+  type             String
+  scopeDescription String  @map("scope_description")
+
+  requirements Requirement[]
+  serviceFrameworks ServiceFramework[]
+
+  @@map("frameworks")
+  @@schema("catalog")
+}
+
+model TrustCriterion {
+  id          String             @id @default(uuid()) @db.Uuid
+  criterion   TrustCriterionCode
+  isMandatory Boolean            @map("is_mandatory")
+
+  requirements Requirement[]
+  serviceTrustCriteria ServiceTrustCriterion[]
+
+  @@map("trust_criteria")
+  @@schema("catalog")
+}
+
+model Requirement {
+  id                String @id @default(uuid()) @db.Uuid
+  frameworkId       String @map("framework_id") @db.Uuid
+  trustCriterionId  String @map("trust_criterion_id") @db.Uuid
+  code              String
+  tscCategory       String @map("tsc_category")
+  domain            String
+  criterion         String @db.Text
+
+  framework      Framework      @relation(fields: [frameworkId], references: [id])
+  trustCriterion TrustCriterion @relation(fields: [trustCriterionId], references: [id])
+  pointsOfFocus  PointOfFocus[]
+
+  relationsAsSource  RequirementRelation[] @relation("RequirementRelationsAsSource")
+  relationsAsRelated RequirementRelation[] @relation("RequirementRelationsAsRelated")
+
+  // lado inverso de la N:M implícita con MonitoringDomain (catalog/technical-catalog.prisma)
+  monitoringDomains MonitoringDomain[]
+
+  @@map("requirements")
+  @@schema("catalog")
+}
+
+model PointOfFocus {
+  id            String @id @default(uuid()) @db.Uuid
+  requirementId String @map("requirement_id") @db.Uuid
+  number        Int // "POC #"
+  description   String @db.Text
+  pointOfFocusControls PointOfFocusControl[]
+
+  requirement Requirement @relation(fields: [requirementId], references: [id])
+
+  @@map("points_of_focus")
+  @@schema("catalog")
+}
+
+model RequirementRelation {
+  id                   String @id @default(uuid()) @db.Uuid
+  sourceRequirementId  String @map("source_requirement_id") @db.Uuid
+  relatedRequirementId String @map("related_requirement_id") @db.Uuid
+
+  sourceRequirement  Requirement @relation("RequirementRelationsAsSource", fields: [sourceRequirementId], references: [id])
+  relatedRequirement Requirement @relation("RequirementRelationsAsRelated", fields: [relatedRequirementId], references: [id])
+
+  @@map("requirement_relations")
+  @@schema("catalog")
+}

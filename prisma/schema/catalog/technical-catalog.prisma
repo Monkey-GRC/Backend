@@ -1,0 +1,34 @@
+model AutomatedCapability {
+  id                  String @id @default(uuid()) @db.Uuid
+  catalogCode         String @unique @map("catalog_code")
+  category            String
+  supportedPlatforms  Json   @map("supported_platforms")
+  method              String
+  requiredPermissions Json   @map("required_permissions")
+  provider            String
+  baseFrequency       String @map("base_frequency")
+  generatedEvidence   String @map("generated_evidence") @db.Text
+
+  monitoringDomainId String @map("monitoring_domain_id") @db.Uuid
+
+  monitoringDomain   MonitoringDomain  @relation(fields: [monitoringDomainId], references: [id])
+
+  assetProvisionings  AssetProvisioning[]
+
+  @@map("automated_capabilities")
+  @@schema("catalog")
+}
+
+model MonitoringDomain {
+  id               String @id @default(uuid()) @db.Uuid
+  name             String
+  monitoredScope   String @map("monitored_scope") @db.Text
+  coveredCriterion String @map("covered_criterion") @db.Text
+  generatedEvidence String @map("generated_evidence") @db.Text
+
+  requirements Requirement[]
+  capabilities AutomatedCapability[]
+
+  @@map("monitoring_domains")
+  @@schema("catalog")
+}

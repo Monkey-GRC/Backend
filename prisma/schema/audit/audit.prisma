@@ -1,0 +1,51 @@
+enum AuditResult {
+  success
+  error
+
+  @@schema("audit")
+}
+
+// Acciones sobre la plataforma: quién cambió qué en el sistema.
+model AuditLog {
+  id          String      @id @default(uuid()) @db.Uuid
+  // Nullable: acciones de admin_monkey a nivel plataforma (p. ej. crear una empresa)
+  // ocurren antes de que exista un tenant al cual atribuirlas.
+  tenantId    String?     @map("tenant_id") @db.Uuid
+  userId      String      @map("user_id") @db.Uuid
+  action      String
+  resource    String
+  beforeState Json?       @map("before_state")
+  afterState  Json?       @map("after_state")
+  ipAddress   String      @map("ip_address")
+  result      AuditResult
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  user   User     @relation(fields: [userId], references: [id])
+  tenant Company? @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+  @@schema("audit")
+}
+
+// Cambios en el estado de cumplimiento (distinto de audit_logs).
+model ComplianceEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  changedField  String   @map("changed_field")
+  // Nullable: el primer evento de un campo no tiene valor previo.
+  previousValue Json?    @map("previous_value")
+  newValue      Json     @map("new_value")
+  ipAddress     String   @map("ip_address")
+  userAgent     String   @map("user_agent")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user   User    @relation(fields: [userId], references: [id])
+  tenant Company @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@map("compliance_events")
+  @@schema("audit")
+}

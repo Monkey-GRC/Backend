@@ -1,0 +1,89 @@
+enum IsolationStrategy {
+  dedicated
+  shared
+
+  @@schema("platform")
+}
+
+enum CompanyStatus {
+  active
+  suspended
+
+  @@schema("platform")
+}
+
+enum AccessKeyStatus {
+  pending
+  used
+  expired
+  revoked
+
+  @@schema("platform")
+}
+
+model Company {
+  id                String            @id @default(uuid()) @db.Uuid
+  name              String
+  adminEmail        String            @map("admin_email")
+  isolationStrategy IsolationStrategy @default(shared) @map("isolation_strategy")
+  status            CompanyStatus     @default(active)
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  accessKeys AccessKey[]
+  users      User[]
+  customRoles CustomRole[]
+  apiKeys    ApiKey[]
+  auditorAssignments AuditorAssignment[]
+  organization              Organization?
+  organizationRegulations   OrganizationRegulation[]
+  organizationResponsibles  OrganizationResponsible[]
+  services                  Service[]
+  serviceTrustCriteria      ServiceTrustCriterion[]
+  serviceFrameworks         ServiceFramework[]
+  subserviceOrganizations   SubserviceOrganization[]
+  csocs                     Csoc[]
+  cuecs                     Cuec[]
+  systemDescriptions        SystemDescription[]
+  serviceRisks              ServiceRisk[]
+  scopes                    Scope[]
+  assets                    Asset[]
+  serviceAssets             ServiceAsset[]
+  assetProvisionings        AssetProvisioning[]
+  clientControls        ClientControl[]
+  actionPlans           ActionPlan[]
+  mitigations           Mitigation[]
+  residualRisks         ResidualRisk[]
+  riskTreatments        RiskTreatment[]
+  evidenceRequirements  EvidenceRequirement[]
+  evidenceSubmissions   EvidenceSubmission[]
+  exclusions            Exclusion[]
+  evaluations           Evaluation[]
+  findings              Finding[]
+  vulnerabilities       Vulnerability[]
+  scheduleRules  ScheduleRule[]
+  executions     Execution[]
+  checkResults   CheckResult[]
+  executionLogs  ExecutionLog[]
+  auditLogs        AuditLog[]
+  complianceEvents ComplianceEvent[]
+
+  @@map("companies")
+  @@schema("platform")
+}
+
+model AccessKey {
+  id        String          @id @default(uuid()) @db.Uuid
+  companyId String          @map("company_id") @db.Uuid
+  createdBy String          @map("created_by") @db.Uuid
+  codeHash  String          @map("code_hash")
+  status    AccessKeyStatus @default(pending)
+  expiresAt DateTime        @map("expires_at")
+  usedAt    DateTime?       @map("used_at")
+
+  company Company @relation(fields: [companyId], references: [id])
+  createdByUser User @relation(fields: [createdBy], references: [id])
+
+  @@map("access_keys")
+  @@schema("platform")
+}
