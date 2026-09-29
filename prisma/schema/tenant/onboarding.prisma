@@ -7,6 +7,8 @@ enum OrganizationSize {
   from_2001_to_5000
   more_than_5000
 
+  @@map("organization_size")
+
   @@schema("tenant")
 }
 
@@ -25,6 +27,8 @@ enum Industry {
   logistics
   energy_utilities
   other
+
+  @@map("industry")
 
   @@schema("tenant")
 }
@@ -48,7 +52,9 @@ enum BusinessModel {
   edtech
   manufacturing
   government
-  other // TODO: lista incompleta a propósito — el comité debe entregar el resto de las "40+ opciones"
+  other // 19 opciones literales del Excel, que a su vez dice "40+": el comité debe entregar el resto (P6). `other` cubre mientras tanto.
+
+  @@map("business_model")
 
   @@schema("tenant")
 }
@@ -59,6 +65,8 @@ enum YearsInOperation {
   from_3_to_5
   from_5_to_10
   more_than_10
+
+  @@map("years_in_operation")
 
   @@schema("tenant")
 }
@@ -76,6 +84,8 @@ enum IncorporationCountry {
   us
   es
   other
+
+  @@map("incorporation_country")
 
   @@schema("tenant")
 }
@@ -95,6 +105,8 @@ enum ClientCountry {
   eu
   other
 
+  @@map("client_country")
+
   @@schema("tenant")
 }
 
@@ -104,6 +116,8 @@ enum ComplianceMaturity {
   implementing
   defined
   managed_certified
+
+  @@map("compliance_maturity")
 
   @@schema("tenant")
 }
@@ -116,6 +130,8 @@ enum OrganizationResponsibleType {
   ciso
   asset_owner
 
+  @@map("organization_responsible_type")
+
   @@schema("tenant")
 }
 
@@ -127,6 +143,8 @@ enum SubserviceProviderType {
   hybrid
   mobile
   other
+
+  @@map("subservice_provider_type")
 
   @@schema("tenant")
 }
@@ -180,6 +198,8 @@ model OrganizationRegulation {
   tenant       Company      @relation(fields: [tenantId], references: [id])
 
   @@unique([organizationId, regulationId])
+  @@index([tenantId])
+  @@index([regulationId])
   @@map("organization_regulations")
   @@schema("tenant")
 }
@@ -197,6 +217,8 @@ model OrganizationResponsible {
   assets Asset[]
   evidenceRequirements EvidenceRequirement[]
 
+  @@index([tenantId])
+  @@index([organizationId])
   @@map("organization_responsibles")
   @@schema("tenant")
 }
@@ -214,6 +236,8 @@ enum ServiceType {
   development
   other
 
+  @@map("service_type")
+
   @@schema("tenant")
 }
 
@@ -230,6 +254,8 @@ enum ServedIndustry {
   logistics
   other
 
+  @@map("served_industry")
+
   @@schema("tenant")
 }
 
@@ -239,6 +265,8 @@ enum ActiveClientCount {
   from_51_to_200
   from_201_to_1000
   more_than_1000
+
+  @@map("active_client_count")
 
   @@schema("tenant")
 }
@@ -269,6 +297,8 @@ enum ServiceCountry {
   latam
   global
 
+  @@map("service_country")
+
   @@schema("tenant")
 }
 
@@ -282,6 +312,8 @@ enum DataType {
   credentials
   biometric
 
+  @@map("data_type")
+
   @@schema("tenant")
 }
 
@@ -290,6 +322,8 @@ enum ExpectedAvailability {
   business_hours
   on_demand
   not_applicable
+
+  @@map("expected_availability")
 
   @@schema("tenant")
 }
@@ -300,6 +334,8 @@ enum DeploymentScenario {
   on_premise
   hybrid
 
+  @@map("deployment_scenario")
+
   @@schema("tenant")
 }
 
@@ -308,6 +344,8 @@ enum PreviousCertification {
   soc1
   iso27001
   none
+
+  @@map("previous_certification")
 
   @@schema("tenant")
 }
@@ -338,12 +376,15 @@ model Service {
   subserviceOrganizations SubserviceOrganization[]
   cuecs                   Cuec[]
   systemDescription       SystemDescription?
-  serviceRisks            ServiceRisk[]
+  clientRisks             ClientRisk[]
+  clientCauses            ClientCause[]
   scope                   Scope?
   serviceAssets           ServiceAsset[]
   clientControls ClientControl[]
   evaluations    Evaluation[]
 
+  @@index([tenantId])
+  @@index([organizationId])
   @@map("services")
   @@schema("tenant")
 }
@@ -359,6 +400,8 @@ model ServiceTrustCriterion {
   tenant         Company        @relation(fields: [tenantId], references: [id])
 
   @@unique([serviceId, trustCriterionId])
+  @@index([tenantId])
+  @@index([trustCriterionId])
   @@map("service_trust_criteria")
   @@schema("tenant")
 }
@@ -370,7 +413,7 @@ model ServiceFramework {
   serviceId        String   @map("service_id") @db.Uuid
   catalogVersionId String   @map("catalog_version_id") @db.Uuid
   contractedAt     DateTime @map("contracted_at") @db.Date
-  status           String   // TODO: enum — no está en contracts/enums.md, confirmar con el comité
+  status           ServiceFrameworkStatus @default(active)
   evaluationPeriod String   @map("evaluation_period")
 
   framework      Framework      @relation(fields: [frameworkId], references: [id])
@@ -378,6 +421,10 @@ model ServiceFramework {
   catalogVersion CatalogVersion @relation(fields: [catalogVersionId], references: [id])
   tenant         Company        @relation(fields: [tenantId], references: [id])
 
+  @@unique([serviceId, frameworkId])
+  @@index([tenantId])
+  @@index([catalogVersionId])
+  @@index([frameworkId])
   @@map("service_frameworks")
   @@schema("tenant")
 }
@@ -395,6 +442,8 @@ model SubserviceOrganization {
   tenant  Company @relation(fields: [tenantId], references: [id])
   csocs   Csoc[]
 
+  @@index([tenantId])
+  @@index([serviceId])
   @@map("subservice_organizations")
   @@schema("tenant")
 }
@@ -411,6 +460,8 @@ model Csoc {
   subserviceOrganization SubserviceOrganization @relation(fields: [subserviceOrganizationId], references: [id])
   tenant                 Company                @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
+  @@index([subserviceOrganizationId])
   @@map("csocs")
   @@schema("tenant")
 }
@@ -425,6 +476,8 @@ model Cuec {
   service Service @relation(fields: [serviceId], references: [id])
   tenant  Company @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
+  @@index([serviceId])
   @@map("cuecs")
   @@schema("tenant")
 }
@@ -439,22 +492,9 @@ model SystemDescription {
   service Service @relation(fields: [serviceId], references: [id])
   tenant  Company @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
+
   @@map("system_descriptions")
-  @@schema("tenant")
-}
-
-model ServiceRisk {
-  id        String @id @default(uuid()) @db.Uuid
-  tenantId  String @map("tenant_id") @db.Uuid
-  serviceId String @map("service_id") @db.Uuid
-  riskId    String @map("risk_id") @db.Uuid
-
-  service Service @relation(fields: [serviceId], references: [id])
-  risk    Risk    @relation(fields: [riskId], references: [id])
-  tenant  Company @relation(fields: [tenantId], references: [id])
-
-  @@unique([serviceId, riskId])
-  @@map("service_risks")
   @@schema("tenant")
 }
 
@@ -471,6 +511,8 @@ model Scope {
   service Service @relation(fields: [serviceId], references: [id])
   tenant  Company @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
+
   @@map("scopes")
   @@schema("tenant")
 }
@@ -483,6 +525,8 @@ enum AssetConnectionCategory {
   ac_05
   ac_06
 
+  @@map("asset_connection_category")
+
   @@schema("tenant")
 }
 
@@ -492,6 +536,70 @@ enum AssetOperationalStatus {
   error
   not_monitored
 
+  @@map("asset_operational_status")
+
+  @@schema("tenant")
+}
+
+enum ServiceFrameworkStatus {
+  active
+  paused
+  finished
+
+  @@map("service_framework_status")
+  @@schema("tenant")
+}
+
+// endpoint y network_device se monitorean pero no son dimensiones (D5); application y documentation las agregó el comité.
+enum AssetType {
+  server
+  database
+  cloud_service
+  application
+  endpoint
+  network_device
+  documentation
+
+  @@map("asset_type")
+  @@schema("tenant")
+}
+
+enum AssetCriticality {
+  low
+  medium
+  high
+  critical
+
+  @@map("asset_criticality")
+  @@schema("tenant")
+}
+
+// declared: lo que el cliente dijo · discovered: lo que apareció al conectar.
+enum AssetOrigin {
+  declared
+  discovered
+
+  @@map("asset_origin")
+  @@schema("tenant")
+}
+
+enum AssetStatus {
+  active
+  inactive
+
+  @@map("asset_status")
+  @@schema("tenant")
+}
+
+// Flujo de una conexión: conectar → validar → activar → programar (§6.3). failed = la validación no conectó.
+enum ProvisioningStatus {
+  pending
+  validated
+  active
+  scheduled
+  failed
+
+  @@map("provisioning_status")
   @@schema("tenant")
 }
 
@@ -502,15 +610,15 @@ model Asset {
   responsibleId      String?                 @map("responsible_id") @db.Uuid
   code               String
   connectionCategory AssetConnectionCategory @map("connection_category")
-  type               String                  // TODO: enum — gana application/documentation/endpoint (D5), no está en contracts/enums.md
+  type               AssetType
   name               String
   platform           String
   ipAddress          String?                 @map("ip_address")
   location           String?
-  criticality        String                  // TODO: enum — no está en contracts/enums.md
+  criticality        AssetCriticality
   tags               Json
-  origin             String                  // TODO: enum — no está en contracts/enums.md
-  status             String                  // TODO: enum — no está en contracts/enums.md
+  origin             AssetOrigin
+  status             AssetStatus             @default(active)
   operationalStatus  AssetOperationalStatus  @default(not_monitored) @map("operational_status")
   technicalCoverage  String                  @map("technical_coverage")
 
@@ -525,6 +633,9 @@ model Asset {
   findings        Finding[]
   executions Execution[]
 
+  @@unique([organizationId, code])
+  @@index([tenantId])
+  @@index([responsibleId])
   @@map("assets")
   @@schema("tenant")
 }
@@ -540,6 +651,8 @@ model ServiceAsset {
   tenant  Company @relation(fields: [tenantId], references: [id])
 
   @@unique([assetId, serviceId])
+  @@index([tenantId])
+  @@index([serviceId])
   @@map("service_assets")
   @@schema("tenant")
 }
@@ -549,16 +662,22 @@ model AssetProvisioning {
   tenantId              String    @map("tenant_id") @db.Uuid
   assetId               String    @map("asset_id") @db.Uuid
   automatedCapabilityId String    @map("automated_capability_id") @db.Uuid
-  connectionStatus      String    @map("connection_status") // TODO: enum — conectar→validar→activar→programar, no está en contracts/enums.md
+  connectionStatus      ProvisioningStatus @default(pending) @map("connection_status")
   lastValidatedAt       DateTime? @map("last_validated_at")
   technicalCoverage     String    @map("technical_coverage")
-  encryptedCredentials  String    @map("encrypted_credentials") @db.Text
-  isActive              Boolean   @default(true) @map("is_active")
+  // Nullable: el flujo es conectar → validar → activar → programar, y las conexiones
+  // agentless (ac_02) no guardan credenciales.
+  encryptedCredentials  String?   @map("encrypted_credentials") @db.Text
+  // false al crear: un aprovisionamiento no está activo hasta que se valida la conexión.
+  isActive              Boolean   @default(false) @map("is_active")
 
   asset               Asset               @relation(fields: [assetId], references: [id])
   automatedCapability AutomatedCapability @relation(fields: [automatedCapabilityId], references: [id])
   tenant              Company             @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
+  @@index([assetId])
+  @@index([automatedCapabilityId])
   @@map("asset_provisionings")
   @@schema("tenant")
 }

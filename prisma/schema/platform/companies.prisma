@@ -2,12 +2,16 @@ enum IsolationStrategy {
   dedicated
   shared
 
+  @@map("isolation_strategy")
+
   @@schema("platform")
 }
 
 enum CompanyStatus {
   active
   suspended
+
+  @@map("company_status")
 
   @@schema("platform")
 }
@@ -17,6 +21,8 @@ enum AccessKeyStatus {
   used
   expired
   revoked
+
+  @@map("access_key_status")
 
   @@schema("platform")
 }
@@ -46,7 +52,10 @@ model Company {
   csocs                     Csoc[]
   cuecs                     Cuec[]
   systemDescriptions        SystemDescription[]
-  serviceRisks              ServiceRisk[]
+  clientRisks               ClientRisk[]
+  clientCauses              ClientCause[]
+  clientRiskCauses          ClientRiskCause[]
+  clientCauseControls       ClientCauseControl[]
   scopes                    Scope[]
   assets                    Asset[]
   serviceAssets             ServiceAsset[]
@@ -78,7 +87,7 @@ model AccessKey {
   id        String          @id @default(uuid()) @db.Uuid
   companyId String          @map("company_id") @db.Uuid
   createdBy String          @map("created_by") @db.Uuid
-  codeHash  String          @map("code_hash")
+  codeHash  String          @unique @map("code_hash") // se busca por hash al canjear la clave
   status    AccessKeyStatus @default(pending)
   expiresAt DateTime        @map("expires_at")
   usedAt    DateTime?       @map("used_at")
@@ -86,6 +95,7 @@ model AccessKey {
   company Company @relation(fields: [companyId], references: [id])
   createdByUser User @relation(fields: [createdBy], references: [id])
 
+  @@index([companyId])
   @@map("access_keys")
   @@schema("platform")
 }

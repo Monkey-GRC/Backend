@@ -5,6 +5,8 @@ enum Dimension {
   app
   cloud
 
+  @@map("dimension")
+
   @@schema("catalog")
 }
 
@@ -14,12 +16,14 @@ enum ControlDimensionType {
   hybrid
   technical_manual
 
+  @@map("control_dimension_type")
+
   @@schema("catalog")
 }
 
 model Control {
   id          String  @id @default(uuid()) @db.Uuid
-  code        String
+  code        String  @unique // CAP-1, GOV-11: el prefijo es el dominio
   name        String
   description String  @db.Text
   sourceRef   String? @map("source_ref")
@@ -48,6 +52,7 @@ model PointOfFocusControl {
   control      Control      @relation(fields: [controlId], references: [id])
 
   @@unique([pointOfFocusId, controlId])
+  @@index([controlId])
   @@map("point_of_focus_controls")
   @@schema("catalog")
 }
@@ -83,10 +88,19 @@ model ControlMeasurement {
   @@schema("catalog")
 }
 
+enum PolicyApprovalStatus {
+  draft
+  pending_approval
+  approved
+
+  @@map("policy_approval_status")
+  @@schema("catalog")
+}
+
 model Policy {
   id             String   @id @default(uuid()) @db.Uuid
   name           String
-  approvalStatus String   @map("approval_status")
+  approvalStatus PolicyApprovalStatus @map("approval_status")
   validUntil     DateTime @map("valid_until") @db.Date
   version        String
 
@@ -105,6 +119,7 @@ model ControlPolicy {
   policy  Policy  @relation(fields: [policyId], references: [id])
 
   @@unique([controlId, policyId])
+  @@index([policyId])
   @@map("control_policies")
   @@schema("catalog")
 }

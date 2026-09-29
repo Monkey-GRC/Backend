@@ -4,12 +4,16 @@ enum EvaluationResult {
   pending
   not_applicable
 
+  @@map("evaluation_result")
+
   @@schema("tenant")
 }
 
 enum RawProbeResult {
   ok
   fail
+
+  @@map("raw_probe_result")
 
   @@schema("tenant")
 }
@@ -19,12 +23,16 @@ enum FindingStatus {
   remediated
   excluded
 
+  @@map("finding_status")
+
   @@schema("tenant")
 }
 
 enum FindingOrigin {
   system
   auditor
+
+  @@map("finding_origin")
 
   @@schema("tenant")
 }
@@ -35,6 +43,8 @@ enum RiskTreatmentDecision {
   transfer
   avoid
 
+  @@map("risk_treatment_decision")
+
   @@schema("tenant")
 }
 
@@ -43,6 +53,50 @@ enum VulnerabilityStatus {
   solved
   mitigated
 
+  @@map("vulnerability_status")
+
+  @@schema("tenant")
+}
+
+// Plan de acción sobre un control incumplido (§7.1). El vencimiento no es un estado: se deriva de due_date.
+enum ActionPlanStatus {
+  open
+  in_progress
+  done
+  cancelled
+
+  @@map("action_plan_status")
+  @@schema("tenant")
+}
+
+// Solo admin_empresa aprueba o rechaza (§7.3). La IA sugiere ai_verdict pero no cambia este estado.
+enum EvidenceValidationStatus {
+  pending
+  approved
+  rejected
+
+  @@map("evidence_validation_status")
+  @@schema("tenant")
+}
+
+// Quién produjo la evaluación: la sonda (R-04), el consultor con evidencia (R-03) o la revisión documental con IA (§2, dimensión policy).
+enum EvaluationOrigin {
+  automated
+  manual
+  ai_assisted
+
+  @@map("evaluation_origin")
+  @@schema("tenant")
+}
+
+// Severidad de un hallazgo o de una vulnerabilidad (CVSS: 0.1-3.9 low, 4.0-6.9 medium, 7.0-8.9 high, 9.0-10 critical).
+enum Severity {
+  low
+  medium
+  high
+  critical
+
+  @@map("severity")
   @@schema("tenant")
 }
 
@@ -62,8 +116,11 @@ model ClientControl {
 
   actionPlans           ActionPlan[]
   userControlAssignments UserControlAssignment[]
+  clientCauseControls   ClientCauseControl[]
 
   @@unique([serviceId, ownCode])
+  @@index([tenantId])
+  @@index([controlId])
   @@map("client_controls")
   @@schema("tenant")
 }
@@ -75,12 +132,15 @@ model ActionPlan {
   responsibleId     String    @map("responsible_id") @db.Uuid
   actionDescription String    @map("action_description") @db.Text
   dueDate           DateTime  @map("due_date") @db.Date
-  status            String    // TODO: enum — el ER no lista los valores
+  status            ActionPlanStatus
 
   clientControl   ClientControl @relation(fields: [clientControlId], references: [id])
   responsibleUser User          @relation(fields: [responsibleId], references: [id])
   tenant          Company       @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
+  @@index([clientControlId])
+  @@index([responsibleId])
   @@map("action_plans")
   @@schema("tenant")
 }
@@ -88,15 +148,20 @@ model ActionPlan {
 model Mitigation {
   id                 String   @id @default(uuid()) @db.Uuid
   tenantId           String   @map("tenant_id") @db.Uuid
-  causeId            String?  @map("cause_id") @db.Uuid
-  riskId             String?  @map("risk_id") @db.Uuid
+  // Exactamente uno de los dos es no nulo (CHECK en la migración).
+  clientCauseId      String?  @map("client_cause_id") @db.Uuid
+  clientRiskId       String?  @map("client_risk_id") @db.Uuid
   responsePercentage Decimal  @map("response_percentage") @db.Decimal(5, 2)
   calculatedAt       DateTime @map("calculated_at") @db.Date
 
-  cause  Cause?  @relation(fields: [causeId], references: [id])
-  risk   Risk?   @relation(fields: [riskId], references: [id])
-  tenant Company @relation(fields: [tenantId], references: [id])
+  // Restrict: con el CHECK "exactamente uno", un SET NULL dejaría la fila inválida.
+  clientCause ClientCause? @relation(fields: [clientCauseId], references: [id], onDelete: Restrict)
+  clientRisk  ClientRisk?  @relation(fields: [clientRiskId], references: [id], onDelete: Restrict)
+  tenant      Company      @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
+  @@index([clientCauseId])
+  @@index([clientRiskId])
   @@map("mitigations")
   @@schema("tenant")
 }
@@ -104,16 +169,18 @@ model Mitigation {
 model ResidualRisk {
   id            String   @id @default(uuid()) @db.Uuid
   tenantId      String   @map("tenant_id") @db.Uuid
-  riskId        String   @map("risk_id") @db.Uuid
+  clientRiskId  String   @map("client_risk_id") @db.Uuid
   acceptedBy    String   @map("accepted_by") @db.Uuid
-  residualLevel String   @map("residual_level") // TODO: enum — el ER no lista los valores
+  residualLevel RiskLevel @map("residual_level")
   justification String   @db.Text
   acceptedAt    DateTime @map("accepted_at") @db.Date
 
-  risk           Risk    @relation(fields: [riskId], references: [id])
+  clientRisk     ClientRisk @relation(fields: [clientRiskId], references: [id])
   acceptedByUser User    @relation(fields: [acceptedBy], references: [id])
   tenant         Company @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
+  @@index([clientRiskId])
   @@map("residual_risks")
   @@schema("tenant")
 }
@@ -121,15 +188,18 @@ model ResidualRisk {
 model RiskTreatment {
   id            String                @id @default(uuid()) @db.Uuid
   tenantId      String                @map("tenant_id") @db.Uuid
-  riskId        String                @map("risk_id") @db.Uuid
+  clientRiskId  String                @map("client_risk_id") @db.Uuid
   responsibleId String                @map("responsible_id") @db.Uuid
   decision      RiskTreatmentDecision
   dueDate       DateTime              @map("due_date") @db.Date
 
-  risk            Risk    @relation(fields: [riskId], references: [id])
-  responsibleUser User    @relation(fields: [responsibleId], references: [id])
-  tenant          Company @relation(fields: [tenantId], references: [id])
+  clientRisk      ClientRisk @relation(fields: [clientRiskId], references: [id])
+  responsibleUser User       @relation(fields: [responsibleId], references: [id])
+  tenant          Company    @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
+  @@index([clientRiskId])
+  @@index([responsibleId])
   @@map("risk_treatments")
   @@schema("tenant")
 }
@@ -144,6 +214,7 @@ model EvidenceRequirement {
   description          String    @db.Text
   dimension            Dimension
   validityWithinPeriod String    @map("validity_within_period")
+  sourceRef            String?   @map("source_ref") // rastro al requisito del catálogo del que se clonó (§3.5)
 
   control     Control                  @relation(fields: [controlId], references: [id])
   responsible OrganizationResponsible? @relation(fields: [responsibleId], references: [id])
@@ -151,6 +222,9 @@ model EvidenceRequirement {
 
   submissions EvidenceSubmission[]
 
+  @@index([tenantId])
+  @@index([controlId])
+  @@index([responsibleId])
   @@map("evidence_requirements")
   @@schema("tenant")
 }
@@ -167,14 +241,16 @@ model EvidenceSubmission {
   storageLocation        String   @map("storage_location")
   integrityHash          String   @map("integrity_hash")
   version                String
-  validationStatus       String   @map("validation_status") // TODO: enum — el ER no lista los valores
+  validationStatus       EvidenceValidationStatus @default(pending) @map("validation_status")
   aiVerdict              String?  @map("ai_verdict") @db.Text // siempre etiquetado como generado por IA
 
   evidenceRequirement EvidenceRequirement @relation(fields: [evidenceRequirementId], references: [id])
   submittedByUser     User                @relation("EvidenceSubmittedBy", fields: [submittedBy], references: [id])
-  approvedByUser      User?               @relation("EvidenceApprovedBy", fields: [approvedBy], references: [id])
+  approvedByUser      User?               @relation("EvidenceApprovedBy", fields: [approvedBy], references: [id], onDelete: Restrict)
   tenant              Company             @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
+  @@index([evidenceRequirementId])
   @@map("evidence_submissions")
   @@schema("tenant")
 }
@@ -191,28 +267,38 @@ model Exclusion {
 
   test               Test    @relation(fields: [testId], references: [id])
   proposedByUser     User    @relation("ExclusionProposedBy", fields: [proposedBy], references: [id])
-  approvedByUser     User?   @relation("ExclusionApprovedBy", fields: [approvedBy], references: [id])
+  approvedByUser     User?   @relation("ExclusionApprovedBy", fields: [approvedBy], references: [id], onDelete: Restrict)
   tenant             Company @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
+  @@index([testId])
   @@map("exclusions")
   @@schema("tenant")
 }
 
 // Inmutable (§7.4): una evaluación nueva se agrega, nunca pisa la anterior. Por eso no lleva updatedAt.
+// El rol de la app solo puede UPDATE de `confirmed_by` y `closure_observation_reason` (el cierre
+// humano de §7.5) y no puede DELETE: se impone con GRANT por columna, ver la migración de RLS.
 model Evaluation {
   id                       String           @id @default(uuid()) @db.Uuid
   tenantId                 String           @map("tenant_id") @db.Uuid
   serviceId                String           @map("service_id") @db.Uuid
   controlId                String           @map("control_id") @db.Uuid
+  // Qué se evaluó: el test (siempre) y, si lo midió la sonda, el check exacto. Sin esto
+  // no se puede señalar "el activo y el check exactos" de una falla (§9) ni aplicar
+  // exclusiones (que son por test + check).
+  testId                   String           @map("test_id") @db.Uuid
+  checkId                  String?          @map("check_id") @db.Uuid
   assetId                  String           @map("asset_id") @db.Uuid
   catalogVersionId         String           @map("catalog_version_id") @db.Uuid
   confirmedBy              String?          @map("confirmed_by") @db.Uuid
-  evaluatedAt              DateTime         @map("evaluated_at") @db.Date
+  // Instante, no día: la sonda corre cada 6 h y "la última evaluación" tiene que ser inequívoca.
+  evaluatedAt              DateTime         @default(now()) @map("evaluated_at")
   dimension                Dimension
   result                   EvaluationResult
   rawProbeResult           RawProbeResult?  @map("raw_probe_result")
   diagnosticPercentage     Decimal?         @map("diagnostic_percentage") @db.Decimal(5, 2)
-  origin                   String           // TODO: enum — el ER no lista los valores
+  origin                   EvaluationOrigin
   clientResponse           String?          @map("client_response") @db.Text
   consultantAssessment     String?          @map("consultant_assessment") @db.Text
   closureObservationReason String?          @map("closure_observation_reason") @db.Text
@@ -220,13 +306,22 @@ model Evaluation {
 
   service        Service        @relation(fields: [serviceId], references: [id])
   control        Control        @relation(fields: [controlId], references: [id])
+  test           Test           @relation(fields: [testId], references: [id])
+  check          Check?         @relation(fields: [checkId], references: [id])
   asset          Asset          @relation(fields: [assetId], references: [id])
   catalogVersion CatalogVersion @relation(fields: [catalogVersionId], references: [id])
-  confirmedByUser User?         @relation(fields: [confirmedBy], references: [id])
+  confirmedByUser User?         @relation(fields: [confirmedBy], references: [id], onDelete: Restrict)
   tenant         Company        @relation(fields: [tenantId], references: [id])
 
   findings Finding[]
 
+  @@index([serviceId, controlId, evaluatedAt])
+  @@index([assetId])
+  @@index([tenantId])
+  @@index([catalogVersionId])
+  @@index([checkId])
+  @@index([controlId])
+  @@index([testId])
   @@map("evaluations")
   @@schema("tenant")
 }
@@ -239,7 +334,7 @@ model Finding {
   reportedBy         String?       @map("reported_by") @db.Uuid // null si lo abrió el sistema
   dimension          Dimension
   failedTestOrCheck  String        @map("failed_test_or_check")
-  severity           String        // TODO: enum — el ER no lista los valores
+  severity           Severity
   status             FindingStatus @default(open)
   origin             FindingOrigin
   detectedAt         DateTime      @map("detected_at") @db.Date
@@ -247,9 +342,12 @@ model Finding {
 
   evaluation     Evaluation @relation(fields: [evaluationId], references: [id])
   asset          Asset      @relation(fields: [assetId], references: [id])
-  reportedByUser User?      @relation(fields: [reportedBy], references: [id])
+  reportedByUser User?      @relation(fields: [reportedBy], references: [id], onDelete: Restrict)
   tenant         Company    @relation(fields: [tenantId], references: [id])
 
+  @@index([evaluationId])
+  @@index([assetId])
+  @@index([tenantId])
   @@map("findings")
   @@schema("tenant")
 }
@@ -259,7 +357,7 @@ model Vulnerability {
   tenantId       String              @map("tenant_id") @db.Uuid
   assetId        String              @map("asset_id") @db.Uuid
   cve            String
-  severity       String              // TODO: enum — el ER no lista los valores
+  severity       Severity
   packageName    String              @map("package_name")
   packageVersion String              @map("package_version")
   cvssScore      Decimal             @map("cvss_score") @db.Decimal(3, 1)
@@ -269,6 +367,114 @@ model Vulnerability {
   asset  Asset   @relation(fields: [assetId], references: [id])
   tenant Company @relation(fields: [tenantId], references: [id])
 
+  @@unique([assetId, cve, packageName])
+  @@index([tenantId])
   @@map("vulnerabilities")
+  @@schema("tenant")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Riesgos y causas DEL CLIENTE (D28). El catálogo (catalog.risks / catalog.causes) es solo la
+// plantilla: al contratar un marco se copian aquí, por servicio, y el cliente las edita, agrega o
+// elimina sin que el catálogo ni otro cliente se enteren. `riskId` / `causeId` guardan la
+// plantilla de origen y son null en lo que el cliente creó desde cero.
+// ---------------------------------------------------------------------------------------------
+model ClientRisk {
+  id                String             @id @default(uuid()) @db.Uuid
+  tenantId          String             @map("tenant_id") @db.Uuid
+  serviceId         String             @map("service_id") @db.Uuid
+  riskId            String?            @map("risk_id") @db.Uuid
+  code              String
+  name              String
+  description       String             @db.Text
+  trustCriterion    RiskCriterion      @map("trust_criterion")
+  potentialImpact   Json               @map("potential_impact")
+  // Los llena el cliente al evaluar el riesgo en la matriz 5×5 (el catálogo los trae vacíos).
+  likelihood        Int?
+  impact            Int?
+  inherentRiskValue Int?               @map("inherent_risk_value")
+  inherentRiskLevel RiskLevel?         @map("inherent_risk_level")
+  isActive          Boolean            @default(true) @map("is_active")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  service Service @relation(fields: [serviceId], references: [id])
+  risk    Risk?   @relation(fields: [riskId], references: [id])
+  tenant  Company @relation(fields: [tenantId], references: [id])
+
+  riskCauses     ClientRiskCause[]
+  mitigations    Mitigation[]
+  residualRisks  ResidualRisk[]
+  riskTreatments RiskTreatment[]
+
+  @@unique([serviceId, code])
+  @@unique([serviceId, riskId])
+  @@index([tenantId])
+  @@index([riskId])
+  @@map("client_risks")
+  @@schema("tenant")
+}
+
+model ClientCause {
+  id              String          @id @default(uuid()) @db.Uuid
+  tenantId        String          @map("tenant_id") @db.Uuid
+  serviceId       String          @map("service_id") @db.Uuid
+  causeId         String?         @map("cause_id") @db.Uuid
+  code            String
+  name            String
+  failureCategory FailureCategory @map("failure_category")
+  description     String          @db.Text
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  service Service @relation(fields: [serviceId], references: [id])
+  cause   Cause?  @relation(fields: [causeId], references: [id])
+  tenant  Company @relation(fields: [tenantId], references: [id])
+
+  riskCauses    ClientRiskCause[]
+  causeControls ClientCauseControl[]
+  mitigations   Mitigation[]
+
+  @@unique([serviceId, code])
+  @@unique([serviceId, causeId])
+  @@index([tenantId])
+  @@index([causeId])
+  @@map("client_causes")
+  @@schema("tenant")
+}
+
+model ClientRiskCause {
+  id            String @id @default(uuid()) @db.Uuid
+  tenantId      String @map("tenant_id") @db.Uuid
+  clientRiskId  String @map("client_risk_id") @db.Uuid
+  clientCauseId String @map("client_cause_id") @db.Uuid
+
+  clientRisk  ClientRisk  @relation(fields: [clientRiskId], references: [id])
+  clientCause ClientCause @relation(fields: [clientCauseId], references: [id])
+  tenant      Company     @relation(fields: [tenantId], references: [id])
+
+  @@unique([clientRiskId, clientCauseId])
+  @@index([tenantId])
+  @@index([clientCauseId])
+  @@map("client_risk_causes")
+  @@schema("tenant")
+}
+
+// Replica cause_controls, pero apuntando al control DEL CLIENTE (client_controls), que es el que
+// él particulariza.
+model ClientCauseControl {
+  id              String @id @default(uuid()) @db.Uuid
+  tenantId        String @map("tenant_id") @db.Uuid
+  clientCauseId   String @map("client_cause_id") @db.Uuid
+  clientControlId String @map("client_control_id") @db.Uuid
+
+  clientCause   ClientCause   @relation(fields: [clientCauseId], references: [id])
+  clientControl ClientControl @relation(fields: [clientControlId], references: [id])
+  tenant        Company       @relation(fields: [tenantId], references: [id])
+
+  @@unique([clientCauseId, clientControlId])
+  @@index([tenantId])
+  @@index([clientControlId])
+  @@map("client_cause_controls")
   @@schema("tenant")
 }

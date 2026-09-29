@@ -4,6 +4,8 @@ enum UserRole {
   funcional
   auditor
 
+  @@map("user_role")
+
   @@schema("platform")
 }
 
@@ -12,12 +14,16 @@ enum UserStatus {
   inactive
   suspended
 
+  @@map("user_status")
+
   @@schema("platform")
 }
 
 enum ApiKeyStatus {
   active
   revoked
+
+  @@map("api_key_status")
 
   @@schema("platform")
 }
@@ -26,7 +32,9 @@ model User {
   id             String      @id @default(uuid()) @db.Uuid
   companyId      String      @map("company_id") @db.Uuid
   customRoleId   String?     @map("custom_role_id") @db.Uuid
-  email          String
+  // Único global (no por empresa): el login recibe solo el email y un auditor es un solo
+  // usuario que audita varias empresas. Siempre en minúsculas (CHECK en la migración).
+  email          String      @unique
   name           String
   lastName       String      @map("last_name")
   passwordHash   String      @map("password_hash")
@@ -34,6 +42,12 @@ model User {
   status         UserStatus  @default(active)
   isMfaEnabled   Boolean     @default(false) @map("is_mfa_enabled")
   lastLoginAt    DateTime?   @map("last_login_at")
+  // Políticas de §5.3: bloqueo tras 5 intentos por 15 min, contraseña vence a los 90 días,
+  // secreto TOTP cifrado en reposo (el segundo factor entra con MD-94).
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  passwordChangedAt   DateTime  @default(now()) @map("password_changed_at")
+  mfaSecretEncrypted  String?   @map("mfa_secret_encrypted") @db.Text
   createdAt      DateTime    @default(now()) @map("created_at")
 
   company    Company     @relation(fields: [companyId], references: [id])
@@ -59,7 +73,8 @@ model User {
   auditLogs        AuditLog[]
   complianceEvents ComplianceEvent[]
 
-  @@unique([companyId, email])
+  @@index([companyId])
+  @@index([customRoleId])
   @@map("users")
   @@schema("platform")
 }
@@ -74,6 +89,7 @@ model CustomRole {
   company Company @relation(fields: [companyId], references: [id])
   users   User[]
 
+  @@index([companyId])
   @@map("custom_roles")
   @@schema("platform")
 }
@@ -91,6 +107,9 @@ model UserControlAssignment {
   clientControl ClientControl @relation(fields: [clientControlId], references: [id])
   company        Company       @relation(fields: [companyId], references: [id])
 
+  @@unique([userId, clientControlId])
+  @@index([companyId])
+  @@index([clientControlId])
   @@map("user_control_assignments")
   @@schema("platform")
 }
@@ -107,6 +126,8 @@ model AuditorAssignment {
   assignedByUser User    @relation("AuditorAssignedByUser", fields: [assignedBy], references: [id])
   company        Company @relation(fields: [companyId], references: [id])
 
+  @@unique([auditorUserId, companyId])
+  @@index([companyId])
   @@map("auditor_assignments")
   @@schema("platform")
 }
@@ -115,7 +136,7 @@ model Session {
   id                String    @id @default(uuid()) @db.Uuid
   companyId        String    @map("company_id") @db.Uuid
   userId            String    @map("user_id") @db.Uuid
-  refreshTokenHash  String    @map("refresh_token_hash")
+  refreshTokenHash  String    @unique @map("refresh_token_hash")
   ipAddress         String    @map("ip_address")
   userAgent         String    @map("user_agent")
   expiresAt         DateTime  @map("expires_at")
@@ -124,6 +145,8 @@ model Session {
   user User @relation(fields: [userId], references: [id])
   company Company @relation(fields: [companyId], references: [id])
 
+  @@index([companyId])
+  @@index([userId])
   @@map("sessions")
   @@schema("platform")
 }
@@ -133,13 +156,14 @@ model ApiKey {
   companyId     String       @map("company_id") @db.Uuid
   createdBy     String       @map("created_by") @db.Uuid
   name          String
-  keyHash       String       @map("key_hash")
+  keyHash       String       @unique @map("key_hash")
   status        ApiKeyStatus @default(active)
   lastRotatedAt DateTime     @map("last_rotated_at") // rotación máx. 90 días
 
   company     Company @relation(fields: [companyId], references: [id])
   createdByUser User  @relation(fields: [createdBy], references: [id])
 
+  @@index([companyId])
   @@map("api_keys")
   @@schema("platform")
 }
