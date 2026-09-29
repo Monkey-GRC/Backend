@@ -1,6 +1,41 @@
+// Las 6 categorías de la hoja Causas del Excel del comité (Categoria_Falla).
 enum FailureCategory {
-  human_resource
-  infrastructure
+  human_resource        // Recurso Humano
+  processes             // Procesos
+  information_technology // Tecnología de Información
+  infrastructure        // Infraestructura
+  external              // Externos
+  governance            // Gobierno
+  @@map("failure_category")
+  @@schema("catalog")
+}
+
+// Lista desplegable "Criterio" de la hoja Riesgos. NO es el de los TSC: incluye Cumplimiento,
+// Continuidad, Fraude, Terceros, Reputación y Operación, que no son criterios de confianza.
+enum RiskCriterion {
+  confidentiality
+  integrity
+  availability
+  privacy
+  compliance
+  security
+  continuity
+  third_parties
+  fraud
+  reputation
+  operations
+  @@map("risk_criterion")
+  @@schema("catalog")
+}
+
+// Niveles de la matriz 5×5 (P×I): Bajo 1-4, Moderado 5-9, Alto 10-16, Crítico 17-25. Sirve al riesgo
+// inherente (client_risks) y al residual (residual_risks).
+enum RiskLevel {
+  low
+  moderate
+  high
+  critical
+  @@map("risk_level")
   @@schema("catalog")
 }
 
@@ -9,19 +44,18 @@ model Risk {
   code               String  @unique
   name               String
   description        String  @db.Text
-  trustCriterion     String  @map("trust_criterion")
+  trustCriterion     RiskCriterion @map("trust_criterion")
   potentialImpact    Json    @map("potential_impact")
-  likelihood         Int
-  impact             Int
-  inherentRiskValue  Int     @map("inherent_risk_value")
-  inherentRiskLevel  String  @map("inherent_risk_level")
+  // El catálogo trae los 10 riesgos SIN probabilidad ni impacto (el Excel los deja vacíos): los
+  // evalúa cada cliente sobre la matriz 5×5 en su copia (client_risks). Por eso son nullable.
+  likelihood         Int?
+  impact             Int?
+  inherentRiskValue  Int?    @map("inherent_risk_value")
+  inherentRiskLevel  RiskLevel? @map("inherent_risk_level")
   isActive           Boolean @default(true) @map("is_active")
 
-  riskCauses     RiskCause[]
-  serviceRisks ServiceRisk[]
-  residualRisks  ResidualRisk[]
-  riskTreatments RiskTreatment[]
-  mitigations    Mitigation[]
+  riskCauses  RiskCause[]
+  clientRisks ClientRisk[] // copias que cada cliente particulariza (tenant.client_risks)
 
   @@map("risks")
   @@schema("catalog")
@@ -34,9 +68,9 @@ model Cause {
   failureCategory FailureCategory @map("failure_category")
   description     String          @db.Text
 
-  riskCauses     RiskCause[]
-  causeControls  CauseControl[]
-  mitigations Mitigation[]
+  riskCauses    RiskCause[]
+  causeControls CauseControl[]
+  clientCauses  ClientCause[] // copias que cada cliente particulariza (tenant.client_causes)
 
   @@map("causes")
   @@schema("catalog")
@@ -52,6 +86,7 @@ model RiskCause {
   cause Cause @relation(fields: [causeId], references: [id])
 
   @@unique([riskId, causeId])
+  @@index([causeId])
   @@map("risk_causes")
   @@schema("catalog")
 }
@@ -65,6 +100,7 @@ model CauseControl {
   control Control @relation(fields: [controlId], references: [id])
 
   @@unique([causeId, controlId])
+  @@index([controlId])
   @@map("cause_controls")
   @@schema("catalog")
 }

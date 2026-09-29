@@ -27,7 +27,11 @@ cp .env.example .env
 Variables requeridas:
 
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/monkey"
+# Migraciones (rol dueño; solo Prisma CLI y deploy) y runtime (rol monkey_app, sujeto a RLS).
+# La app nunca se conecta como el rol dueño. Ver .env.example.
+DATABASE_URL="postgresql://postgres:password@localhost:5432/monkey"
+SHADOW_DATABASE_URL="postgresql://postgres:password@localhost:5432/monkey_shadow"
+APP_DATABASE_URL="postgresql://monkey_app:password@localhost:5432/monkey"
 JWT_SECRET="tu-secreto-de-acceso"
 JWT_REFRESH_SECRET="tu-secreto-de-refresh"
 JWT_EXPIRES_IN=7200

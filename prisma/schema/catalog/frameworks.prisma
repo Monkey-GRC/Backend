@@ -5,6 +5,19 @@ enum TrustCriterionCode {
   integrity
   privacy
 
+  @@map("trust_criterion_code")
+
+  @@schema("catalog")
+}
+
+// attestation: SOC 1 / SOC 2 (informe de un auditor) · certification: ISO 27001 · standard: PCI DSS, NIST CSF, CIS · regulation: HIPAA y afines.
+enum FrameworkType {
+  attestation
+  certification
+  standard
+  regulation
+
+  @@map("framework_type")
   @@schema("catalog")
 }
 
@@ -13,21 +26,20 @@ model Framework {
   code             String
   name             String
   version          String
-  // TODO: confirmar con el comité los valores válidos de "type" antes de
-  // convertir esto en un enum real (el ER no los especifica).
-  type             String
+  type             FrameworkType
   scopeDescription String  @map("scope_description")
 
   requirements Requirement[]
   serviceFrameworks ServiceFramework[]
 
+  @@unique([code, version])
   @@map("frameworks")
   @@schema("catalog")
 }
 
 model TrustCriterion {
   id          String             @id @default(uuid()) @db.Uuid
-  criterion   TrustCriterionCode
+  criterion   TrustCriterionCode @unique
   isMandatory Boolean            @map("is_mandatory")
 
   requirements Requirement[]
@@ -53,9 +65,10 @@ model Requirement {
   relationsAsSource  RequirementRelation[] @relation("RequirementRelationsAsSource")
   relationsAsRelated RequirementRelation[] @relation("RequirementRelationsAsRelated")
 
-  // lado inverso de la N:M implícita con MonitoringDomain (catalog/technical-catalog.prisma)
-  monitoringDomains MonitoringDomain[]
+  monitoringDomains MonitoringDomainRequirement[]
 
+  @@unique([frameworkId, code])
+  @@index([trustCriterionId])
   @@map("requirements")
   @@schema("catalog")
 }
@@ -69,6 +82,7 @@ model PointOfFocus {
 
   requirement Requirement @relation(fields: [requirementId], references: [id])
 
+  @@unique([requirementId, number])
   @@map("points_of_focus")
   @@schema("catalog")
 }
@@ -81,6 +95,8 @@ model RequirementRelation {
   sourceRequirement  Requirement @relation("RequirementRelationsAsSource", fields: [sourceRequirementId], references: [id])
   relatedRequirement Requirement @relation("RequirementRelationsAsRelated", fields: [relatedRequirementId], references: [id])
 
+  @@unique([sourceRequirementId, relatedRequirementId])
+  @@index([relatedRequirementId])
   @@map("requirement_relations")
   @@schema("catalog")
 }

@@ -2,6 +2,8 @@ enum ExecutionOrigin {
   scheduled
   manual
 
+  @@map("execution_origin")
+
   @@schema("tenant")
 }
 
@@ -12,6 +14,8 @@ enum CheckResultStatus {
   not_applicable
   not_run
 
+  @@map("check_result_status")
+
   @@schema("tenant")
 }
 
@@ -19,6 +23,8 @@ enum ExecutionLogLevel {
   info
   warn
   error
+
+  @@map("execution_log_level")
 
   @@schema("tenant")
 }
@@ -35,7 +41,21 @@ model ScheduleRule {
 
   executions Execution[]
 
+  @@index([tenantId])
+
   @@map("schedule_rules")
+  @@schema("tenant")
+}
+
+// Una ejecución fallida es un problema de conexión, no un incumplimiento (§8).
+enum ExecutionStatus {
+  queued
+  running
+  completed
+  failed
+  cancelled
+
+  @@map("execution_status")
   @@schema("tenant")
 }
 
@@ -47,7 +67,7 @@ model Execution {
   retryOfId          String?         @map("retry_of_id") @db.Uuid
   startedAt          DateTime        @map("started_at")
   finishedAt         DateTime?       @map("finished_at")
-  status             String // TODO: enum — el ER no lista los valores
+  status             ExecutionStatus
   progressPercentage Int             @default(0) @map("progress_percentage")
   origin             ExecutionOrigin
 
@@ -61,6 +81,9 @@ model Execution {
   logs         ExecutionLog[]
 
   @@index([assetId, startedAt])
+  @@index([tenantId])
+  @@index([retryOfId])
+  @@index([scheduleRuleId])
   @@map("executions")
   @@schema("tenant")
 }
@@ -84,6 +107,7 @@ model CheckResult {
   // Tabla de mayor volumen del sistema (miles de checks por activo por corrida)
   @@index([executionId])
   @@index([checkId])
+  @@index([tenantId])
   @@map("check_results")
   @@schema("tenant")
 }
@@ -100,6 +124,7 @@ model ExecutionLog {
   tenant    Company   @relation(fields: [tenantId], references: [id])
 
   @@index([executionId, loggedAt])
+  @@index([tenantId])
   @@map("execution_logs")
   @@schema("tenant")
 }

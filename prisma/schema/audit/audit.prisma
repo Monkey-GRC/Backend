@@ -2,6 +2,8 @@ enum AuditResult {
   success
   error
 
+  @@map("audit_result")
+
   @@schema("audit")
 }
 
@@ -11,16 +13,21 @@ model AuditLog {
   // Nullable: acciones de admin_monkey a nivel plataforma (p. ej. crear una empresa)
   // ocurren antes de que exista un tenant al cual atribuirlas.
   tenantId    String?     @map("tenant_id") @db.Uuid
-  userId      String      @map("user_id") @db.Uuid
+  // Nullable: un intento de login con un email que no existe (CC7.2) no tiene usuario
+  // al cual atribuirlo; en ese caso queda `attemptedEmail`.
+  userId      String?     @map("user_id") @db.Uuid
+  attemptedEmail String?  @map("attempted_email")
   action      String
   resource    String
   beforeState Json?       @map("before_state")
   afterState  Json?       @map("after_state")
   ipAddress   String      @map("ip_address")
+  userAgent   String      @map("user_agent")
   result      AuditResult
   createdAt   DateTime    @default(now()) @map("created_at")
 
-  user   User     @relation(fields: [userId], references: [id])
+  // Restrict: el audit trail es inmutable, no puede perder la atribución si se toca un usuario.
+  user   User?    @relation(fields: [userId], references: [id], onDelete: Restrict)
   tenant Company? @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, createdAt])
@@ -46,6 +53,7 @@ model ComplianceEvent {
   tenant Company @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, createdAt])
+  @@index([userId])
   @@map("compliance_events")
   @@schema("audit")
 }

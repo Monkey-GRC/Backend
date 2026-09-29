@@ -9,11 +9,8 @@ model AutomatedCapability {
   baseFrequency       String @map("base_frequency")
   generatedEvidence   String @map("generated_evidence") @db.Text
 
-  monitoringDomainId String @map("monitoring_domain_id") @db.Uuid
-
-  monitoringDomain   MonitoringDomain  @relation(fields: [monitoringDomainId], references: [id])
-
-  assetProvisionings  AssetProvisioning[]
+  monitoringDomains  MonitoringDomainCapability[]
+  assetProvisionings AssetProvisioning[]
 
   @@map("automated_capabilities")
   @@schema("catalog")
@@ -26,9 +23,42 @@ model MonitoringDomain {
   coveredCriterion String @map("covered_criterion") @db.Text
   generatedEvidence String @map("generated_evidence") @db.Text
 
-  requirements Requirement[]
-  capabilities AutomatedCapability[]
+  requirements MonitoringDomainRequirement[]
+  capabilities MonitoringDomainCapability[]
 
   @@map("monitoring_domains")
+  @@schema("catalog")
+}
+
+// N:M explícita (monitoring_domains }o--o{ requirements): la implícita de Prisma crea
+// una tabla `_MonitoringDomainToRequirement` con columnas A/B y sin `id`, contra la
+// convención de tablas puente de modelo-datos.md.
+model MonitoringDomainRequirement {
+  id                 String @id @default(uuid()) @db.Uuid
+  monitoringDomainId String @map("monitoring_domain_id") @db.Uuid
+  requirementId      String @map("requirement_id") @db.Uuid
+
+  monitoringDomain MonitoringDomain @relation(fields: [monitoringDomainId], references: [id])
+  requirement      Requirement      @relation(fields: [requirementId], references: [id])
+
+  @@unique([monitoringDomainId, requirementId])
+  @@index([requirementId])
+  @@map("monitoring_domain_requirements")
+  @@schema("catalog")
+}
+
+// N:M (monitoring_domains }o--o{ automated_capabilities): un dominio se apoya en varias
+// capacidades y una capacidad puede servir a varios dominios.
+model MonitoringDomainCapability {
+  id                    String @id @default(uuid()) @db.Uuid
+  monitoringDomainId    String @map("monitoring_domain_id") @db.Uuid
+  automatedCapabilityId String @map("automated_capability_id") @db.Uuid
+
+  monitoringDomain    MonitoringDomain    @relation(fields: [monitoringDomainId], references: [id])
+  automatedCapability AutomatedCapability @relation(fields: [automatedCapabilityId], references: [id])
+
+  @@unique([monitoringDomainId, automatedCapabilityId])
+  @@index([automatedCapabilityId])
+  @@map("monitoring_domain_capabilities")
   @@schema("catalog")
 }
