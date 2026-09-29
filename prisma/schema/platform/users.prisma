@@ -80,6 +80,7 @@ model CustomRole {
 
 model UserControlAssignment {
   id       String   @id @default(uuid()) @db.Uuid
+  companyId       String @map("company_id") @db.Uuid
   userId   String   @map("user_id") @db.Uuid
   clientControlId String @map("client_control_id") @db.Uuid
   assignedBy String   @map("assigned_by") @db.Uuid
@@ -88,6 +89,7 @@ model UserControlAssignment {
   user          User @relation("AssignedUser", fields: [userId], references: [id])
   assignedByUser User @relation("AssignedByUser", fields: [assignedBy], references: [id])
   clientControl ClientControl @relation(fields: [clientControlId], references: [id])
+  company        Company       @relation(fields: [companyId], references: [id])
 
   @@map("user_control_assignments")
   @@schema("platform")
@@ -111,6 +113,7 @@ model AuditorAssignment {
 
 model Session {
   id                String    @id @default(uuid()) @db.Uuid
+  companyId        String    @map("company_id") @db.Uuid
   userId            String    @map("user_id") @db.Uuid
   refreshTokenHash  String    @map("refresh_token_hash")
   ipAddress         String    @map("ip_address")
@@ -119,6 +122,7 @@ model Session {
   revokedAt         DateTime? @map("revoked_at")
 
   user User @relation(fields: [userId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 
   @@map("sessions")
   @@schema("platform")

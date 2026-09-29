@@ -399,6 +399,9 @@ model SubserviceOrganization {
   @@schema("tenant")
 }
 
+// No medibles por Monkey (decisión D11): salen de las secciones 7 y 8 de la
+// Descripción del Sistema. Existen porque el auditor las pide, no porque
+// Monkey las evalúe — por eso no tienen relación hacia evaluations.
 model Csoc {
   id                       String @id @default(uuid()) @db.Uuid
   tenantId                 String @map("tenant_id") @db.Uuid
@@ -412,6 +415,7 @@ model Csoc {
   @@schema("tenant")
 }
 
+// No medibles por Monkey (decisión D11) — ver el comentario en Csoc.
 model Cuec {
   id              String @id @default(uuid()) @db.Uuid
   tenantId        String @map("tenant_id") @db.Uuid
