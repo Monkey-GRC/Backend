@@ -1,6 +1,8 @@
 generator client {
   provider = "prisma-client"
   output   = "../../generated/prisma"
+  // El build de Nest es CommonJS: sin esto el cliente usa import.meta y no carga en runtime.
+  moduleFormat = "cjs"
 }
 
 datasource db {
