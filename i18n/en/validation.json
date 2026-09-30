@@ -1,0 +1,22 @@
+{
+    "failed":  "Please check the submitted data.",
+    "required":  "This field is required.",
+    "email_invalid":  "The email is not valid.",
+    "string_invalid":  "Must be text.",
+    "string_max":  "The text is too long.",
+    "string_min":  "The text is too short.",
+    "enum_invalid":  "The value is not one of the allowed options.",
+    "boolean_invalid":  "Must be true or false.",
+    "uuid_invalid":  "The identifier is not valid.",
+    "array_min":  "Select at least one option.",
+    "field_not_allowed":  "This field is not allowed.",
+    "invalid":  "The value is not valid.",
+    "number_invalid":  "Must be a whole number.",
+    "number_max":  "The value is too high.",
+    "number_min":  "The value is too low.",
+    "password_weak":  "The password must have at least 12 characters, with uppercase, lowercase, a number and a symbol.",
+    "regulation_none_exclusive":  "«None» can\u0027t be combined with other options.",
+    "field_not_editable":  "The legal name was set when the company was registered and can\u0027t be changed.",
+    "array_invalid":  "Must be a list of options.",
+    "array_unique":  "Don\u0027t repeat options."
+}

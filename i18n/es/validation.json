@@ -1,0 +1,22 @@
+{
+    "failed":  "Revisa los datos enviados.",
+    "required":  "Este campo es obligatorio.",
+    "email_invalid":  "El correo no es válido.",
+    "string_invalid":  "Debe ser texto.",
+    "string_max":  "El texto es demasiado largo.",
+    "string_min":  "El texto es demasiado corto.",
+    "enum_invalid":  "El valor no está entre las opciones permitidas.",
+    "boolean_invalid":  "Debe ser verdadero o falso.",
+    "uuid_invalid":  "El identificador no es válido.",
+    "array_min":  "Selecciona al menos una opción.",
+    "field_not_allowed":  "Este campo no está permitido.",
+    "invalid":  "El valor no es válido.",
+    "number_invalid":  "Debe ser un número entero.",
+    "number_max":  "El valor es demasiado alto.",
+    "number_min":  "El valor es demasiado bajo.",
+    "password_weak":  "La contraseña debe tener al menos 12 caracteres, con mayúscula, minúscula, número y símbolo.",
+    "regulation_none_exclusive":  "«Ninguna» no puede combinarse con otras opciones.",
+    "field_not_editable":  "La razón social se fijó al registrar la empresa y no se puede cambiar.",
+    "array_invalid":  "Debe ser una lista de opciones.",
+    "array_unique":  "No repitas opciones."
+}
