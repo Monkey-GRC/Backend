@@ -1,0 +1,81 @@
+{
+  "size": {
+    "from_10_to_50": "10-50",
+    "from_51_to_200": "51-200",
+    "from_201_to_500": "201-500",
+    "from_501_to_1000": "501-1000",
+    "from_1001_to_2000": "1001-2000",
+    "from_2001_to_5000": "2001-5000",
+    "more_than_5000": "More than 5000"
+  },
+  "industry": {
+    "financial_banking": "Financial/Banking",
+    "fintech": "Fintech",
+    "healthcare": "Healthcare",
+    "technology_saas": "Technology/SaaS",
+    "bpo_outsourcing": "BPO/Outsourcing",
+    "telecommunications": "Telecommunications",
+    "retail_ecommerce": "Retail/E-commerce",
+    "manufacturing": "Manufacturing",
+    "government": "Government",
+    "education": "Education",
+    "insurance": "Insurance",
+    "logistics": "Logistics",
+    "energy_utilities": "Energy/Utilities",
+    "other": "Other"
+  },
+  "business_model": {
+    "bpo_kpo_ito": "BPO/KPO/ITO",
+    "call_contact_center": "Call/Contact Center",
+    "data_center": "Data Center",
+    "ai_ml": "AI/ML",
+    "service_desk": "Service desk",
+    "saas_paas_iaas": "SaaS/PaaS/IaaS",
+    "fintech_payments": "Fintech/Payments",
+    "banking": "Banking",
+    "insurance": "Insurance",
+    "marketplace_ecommerce": "Marketplace/E-commerce",
+    "software_factory": "Software factory",
+    "consulting": "Consulting",
+    "telecommunications": "Telecommunications",
+    "logistics": "Logistics",
+    "healthcare": "Healthcare",
+    "edtech": "EdTech",
+    "manufacturing": "Manufacturing",
+    "government": "Government",
+    "other": "Other"
+  },
+  "years_in_operation": {
+    "less_than_1": "Less than 1",
+    "from_1_to_3": "1-3",
+    "from_3_to_5": "3-5",
+    "from_5_to_10": "5-10",
+    "more_than_10": "More than 10"
+  },
+  "country": {
+    "co": "Colombia",
+    "mx": "Mexico",
+    "pe": "Peru",
+    "cl": "Chile",
+    "ar": "Argentina",
+    "br": "Brazil",
+    "ec": "Ecuador",
+    "pa": "Panama",
+    "cr": "Costa Rica",
+    "us": "USA",
+    "es": "Spain",
+    "eu": "European Union",
+    "other": "Other"
+  },
+  "compliance_maturity": {
+    "none": "None",
+    "initial_ad_hoc": "Initial/Ad-hoc",
+    "implementing": "Implementing",
+    "defined": "Defined",
+    "managed_certified": "Managed/Certified"
+  },
+  "regulation": {
+    "none": "None",
+    "other": "Other"
+  }
+}

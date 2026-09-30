@@ -1,9 +1,16 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { I18nModule, AcceptLanguageResolver } from 'nestjs-i18n';
-import path from 'path';
 import { APP_FILTER } from '@nestjs/core';
+import { AcceptLanguageResolver, I18nModule } from 'nestjs-i18n';
+import path from 'path';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { AuthModule } from './features/auth/auth.module';
+import { CatalogsModule } from './features/catalogs/catalogs.module';
+import { CompaniesModule } from './features/companies/companies.module';
+import { OnboardingModule } from './features/onboarding/onboarding.module';
+import { AuditModule } from './infrastructure/audit/audit.module';
 import { DatabaseModule } from './infrastructure/database/database.module';
+import { SecurityModule } from './infrastructure/security/security.module';
 
 @Module({
   imports: [
@@ -17,7 +24,13 @@ import { DatabaseModule } from './infrastructure/database/database.module';
       resolvers: [AcceptLanguageResolver],
     }),
     DatabaseModule,
+    AuditModule,
+    SecurityModule,
+    AuthModule,
+    CompaniesModule,
+    CatalogsModule,
+    OnboardingModule,
   ],
-  controllers: [],
+  providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],
 })
 export class AppModule {}
