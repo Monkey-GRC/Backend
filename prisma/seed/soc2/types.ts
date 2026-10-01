@@ -13,6 +13,8 @@ export type TrustCriterion =
 
 export type Dimension = 'policy' | 'server' | 'database' | 'app' | 'cloud';
 
+export type ControlDimensionType = 'manual' | 'automated' | 'hybrid' | 'technical_manual';
+
 export type RiskCriterion =
   | 'confidentiality' | 'integrity' | 'availability' | 'privacy' | 'compliance' | 'security'
   | 'continuity' | 'third_parties' | 'fraud' | 'reputation' | 'operations';
@@ -100,6 +102,18 @@ export interface Soc2Catalog {
   // Plantillas de evidencia: los documentos que el comité vincula a cada control.
   evidenceTemplates: { code: string; description: string; dimension: Dimension }[];
   controlEvidenceTemplates: { controlCode: string; templateCode: string; sequence: number }[];
+  // Políticas: plantillas del catálogo (solo el nombre, D39) y su vínculo con los controles que dependen de ellas.
+  policies: { name: string }[];
+  controlPolicies: { controlCode: string; policyName: string; requiresEmployeeAcceptance: boolean }[];
+  // Dimensiones de cada control (D39, cierra P10): DERIVADAS de las pruebas, no vienen en el Excel.
+  controlDimensions: {
+    controlCode: string;
+    dimension: Dimension;
+    type: ControlDimensionType;
+    requiresProbe: boolean;
+    requiresAi: boolean;
+    requiresComplianceConfirmation: boolean;
+  }[];
 }
 
 export interface Counts {
@@ -117,6 +131,9 @@ export interface Counts {
   controlTests: number;
   evidenceTemplates: number;
   controlEvidenceTemplates: number;
+  policies: number;
+  controlPolicies: number;
+  controlDimensions: number;
 }
 
 // Cifras del archivo del comité, medidas sobre los datos crudos de las hojas (no sobre `Resumen`,
@@ -139,6 +156,11 @@ export const EXPECTED_COUNTS: Counts = {
   // 89 vínculos entre 67 controles y 50 documentos distintos.
   evidenceTemplates: 50,
   controlEvidenceTemplates: 89,
+  // 16 vínculos control ↔ política entre 15 controles y 10 políticas distintas (hoja Tabla controles SOC 2).
+  policies: 10,
+  controlPolicies: 16,
+  // Derivadas de las pruebas (D39): 118 documentales + 43 de servidores + 18 de BD + 31 de nube + 0 de aplicación.
+  controlDimensions: 210,
 };
 
 // CPL-1 es "SOC 2 - Descripción del Sistema": existe en el catálogo pero no se vincula a ningún

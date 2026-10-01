@@ -91,21 +91,11 @@ model ControlMeasurement {
   @@schema("catalog")
 }
 
-enum PolicyApprovalStatus {
-  draft
-  pending_approval
-  approved
-
-  @@map("policy_approval_status")
-  @@schema("catalog")
-}
-
+// Plantilla de política del catálogo (D39): solo el nombre. La aprobación, la vigencia y la versión son
+// estado del CLIENTE, no de una plantilla global, y viven en la evidencia que él entrega.
 model Policy {
-  id             String   @id @default(uuid()) @db.Uuid
-  name           String
-  approvalStatus PolicyApprovalStatus @map("approval_status")
-  validUntil     DateTime @map("valid_until") @db.Date
-  version        String
+  id   String @id @default(uuid()) @db.Uuid
+  name String @unique
 
   controlPolicies ControlPolicy[]
 
@@ -117,6 +107,8 @@ model ControlPolicy {
   id        String @id @default(uuid()) @db.Uuid
   controlId String @map("control_id") @db.Uuid
   policyId  String @map("policy_id") @db.Uuid
+  // El Excel lo distingue: "depende de la aprobación de la política" o además "y la aceptación del empleado".
+  requiresEmployeeAcceptance Boolean @default(false) @map("requires_employee_acceptance")
 
   control Control @relation(fields: [controlId], references: [id])
   policy  Policy  @relation(fields: [policyId], references: [id])

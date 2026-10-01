@@ -51,6 +51,9 @@ async function main() {
     const ctrlTestDb = await prisma.controlTest.findMany({ include: { control: true, test: true } });
     const tplDb = await prisma.evidenceTemplate.findMany();
     const ctrlTplDb = await prisma.controlEvidenceTemplate.findMany({ include: { control: true, evidenceTemplate: true } });
+    const polDb = await prisma.policy.findMany();
+    const ctrlPolDb = await prisma.controlPolicy.findMany({ include: { control: true, policy: true } });
+    const dimDb = await prisma.controlDimensionEntry.findMany({ include: { control: true } });
     const versions = await prisma.catalogVersion.count();
 
     // ---- 2. Diff contra la fuente ---------------------------------------------------------
@@ -102,6 +105,11 @@ async function main() {
     const ctMissing = diff('control↔prueba', cat.controlTests, ctrlTestDb, (r) => `${r.controlCode}#${r.testCode}`, (r) => `${r.control.code}#${r.test.code}`, () => ({}));
     const tplMissing = diff('plantilla de evidencia', cat.evidenceTemplates, tplDb, (t) => t.code, (t) => t.code, (d, s) => ({ description: [d.description, s.description], dimension: [d.dimension, s.dimension] }));
     const cetMissing = diff('control↔plantilla', cat.controlEvidenceTemplates, ctrlTplDb, (r) => `${r.controlCode}#${r.templateCode}`, (r) => `${r.control.code}#${r.evidenceTemplate.code}`, (d, s) => ({ sequence: [d.sequence, s.sequence] }));
+    const polMissing = diff('política', cat.policies, polDb, (p) => p.name, (p) => p.name, () => ({}));
+    const cpMissing = diff('control↔política', cat.controlPolicies, ctrlPolDb, (r) => `${r.controlCode}#${r.policyName}`, (r) => `${r.control.code}#${r.policy.name}`, (d, s) => ({ requiresEmployeeAcceptance: [d.requiresEmployeeAcceptance, s.requiresEmployeeAcceptance] }));
+    const dimMissing = diff('dimensión del control', cat.controlDimensions, dimDb, (r) => `${r.controlCode}#${r.dimension}`, (r) => `${r.control.code}#${r.dimension}`, (d, s) => ({
+      type: [d.type, s.type], requiresProbe: [d.requiresProbe, s.requiresProbe], requiresAi: [d.requiresAi, s.requiresAi], requiresComplianceConfirmation: [d.requiresComplianceConfirmation, s.requiresComplianceConfirmation],
+    }));
 
     // ---- 3. Resumen --------------------------------------------------------------------
     const rows: [string, number, number][] = [
@@ -119,6 +127,9 @@ async function main() {
       ['control_tests', cat.controlTests.length, ctMissing.length],
       ['evidence_templates', cat.evidenceTemplates.length, tplMissing.length],
       ['control_evidence_templates', cat.controlEvidenceTemplates.length, cetMissing.length],
+      ['policies', cat.policies.length, polMissing.length],
+      ['control_policies', cat.controlPolicies.length, cpMissing.length],
+      ['control_dimensions', cat.controlDimensions.length, dimMissing.length],
       ['catalog_versions', 1, versions === 0 ? 1 : 0],
     ];
     console.log('\ntabla                        fuente   a insertar');
@@ -184,6 +195,14 @@ async function main() {
         const tplId = new Map((await tx.evidenceTemplate.findMany()).map((t) => [t.code, t.id]));
         await tx.controlEvidenceTemplate.createMany({ data: cetMissing.map((r) => ({ controlId: ctrlId.get(r.controlCode)!, evidenceTemplateId: tplId.get(r.templateCode)!, sequence: r.sequence })) });
 
+        // Políticas (plantillas) y dimensiones de cada control (D39)
+        await tx.policy.createMany({ data: polMissing.map((p) => ({ name: p.name })) });
+        const polId = new Map((await tx.policy.findMany()).map((p) => [p.name, p.id]));
+        await tx.controlPolicy.createMany({ data: cpMissing.map((r) => ({ controlId: ctrlId.get(r.controlCode)!, policyId: polId.get(r.policyName)!, requiresEmployeeAcceptance: r.requiresEmployeeAcceptance })) });
+        await tx.controlDimensionEntry.createMany({
+          data: dimMissing.map((r) => ({ controlId: ctrlId.get(r.controlCode)!, dimension: r.dimension, type: r.type, requiresProbe: r.requiresProbe, requiresAi: r.requiresAi, requiresComplianceConfirmation: r.requiresComplianceConfirmation })),
+        });
+
         if ((await tx.catalogVersion.count()) === 0) {
           const c = cat.meta.counts;
           await tx.catalogVersion.create({
@@ -197,7 +216,7 @@ async function main() {
                 `Carga inicial del catálogo maestro de SOC 2 (prisma/seed/load-soc2.ts): ${c.requirements} requisitos, ${c.pointsOfFocus} puntos de enfoque, ` +
                 `${c.controls} controles (${c.assignedControls} asignados), ${c.pointOfFocusControls} relaciones; ${c.risks} riesgos, ${c.causes} causas y ` +
                 `${c.riskCauses} relaciones riesgo↔causa; ${c.tests} pruebas con ${c.controlTests} asignaciones; ${c.evidenceTemplates} plantillas de evidencia ` +
-                `y ${c.controlEvidenceTemplates} vínculos. Fuente: ${cat.meta.sourceFile} (sha256 ${cat.meta.sourceSha256}). ` +
+                `con ${c.controlEvidenceTemplates} vínculos; ${c.policies} políticas con ${c.controlPolicies} vínculos y ${c.controlDimensions} dimensiones por control. Fuente: ${cat.meta.sourceFile} (sha256 ${cat.meta.sourceSha256}). ` +
                 cat.meta.sourceNotes.join(' '),
             },
           });

@@ -24,7 +24,10 @@
     "prisma:studio": "prisma studio",
     "catalog:extract": "tsx prisma/seed/extract-soc2.ts",
     "catalog:load": "tsx prisma/seed/load-soc2.ts",
-    "catalog:verify": "tsx prisma/seed/verify-soc2.ts"
+    "catalog:verify": "tsx prisma/seed/verify-soc2.ts",
+    "reference:load": "tsx prisma/seed/seed-reference.ts",
+    "reference:verify": "tsx prisma/seed/seed-reference.ts --verify",
+    "bootstrap:admin": "tsx prisma/seed/bootstrap-admin.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1106.0",

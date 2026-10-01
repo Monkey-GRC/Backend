@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
 import {
+  ControlDimensionType,
   Counts,
+  Dimension,
   FRAMEWORK,
   SOURCE_DIMENSION,
   SOURCE_FAILURE_CATEGORY,
@@ -171,6 +173,9 @@ export function buildCatalog(rows: SourceRows, meta: SourceMeta): { catalog: Soc
     controlTests: [],
     evidenceTemplates: [],
     controlEvidenceTemplates: [],
+    policies: [],
+    controlPolicies: [],
+    controlDimensions: [],
   };
   buildExtras(rows, catalog, err);
   catalog.meta.counts = countsOf(catalog);
@@ -181,7 +186,7 @@ export function zeroCounts(): Counts {
   return {
     trustCriteria: 0, requirements: 0, pointsOfFocus: 0, controls: 0, assignedControls: 0, pointOfFocusControls: 0,
     risks: 0, causes: 0, riskCauses: 0, causeControls: 0, tests: 0, controlTests: 0, evidenceTemplates: 0,
-    controlEvidenceTemplates: 0,
+    controlEvidenceTemplates: 0, policies: 0, controlPolicies: 0, controlDimensions: 0,
   };
 }
 
@@ -201,6 +206,9 @@ export function countsOf(c: Soc2Catalog): Counts {
     controlTests: c.controlTests.length,
     evidenceTemplates: c.evidenceTemplates.length,
     controlEvidenceTemplates: c.controlEvidenceTemplates.length,
+    policies: c.policies.length,
+    controlPolicies: c.controlPolicies.length,
+    controlDimensions: c.controlDimensions.length,
   };
 }
 
@@ -210,7 +218,7 @@ function emptyCatalog(meta: SourceMeta): Soc2Catalog {
     framework: { ...FRAMEWORK },
     trustCriteria: [], requirements: [], pointsOfFocus: [], controls: [], pointOfFocusControls: [],
     risks: [], causes: [], riskCauses: [], causeControls: [], tests: [], controlTests: [],
-    evidenceTemplates: [], controlEvidenceTemplates: [],
+    evidenceTemplates: [], controlEvidenceTemplates: [], policies: [], controlPolicies: [], controlDimensions: [],
   };
 }
 
@@ -260,6 +268,67 @@ export function splitAttributes(text: string): string[] {
   const s = norm(text);
   const parts = /\r?\n/.test(s) ? s.split(/\r?\n/) : s.split(';');
   return parts.map((p) => norm(p.replace(/^[-•]\s*/, '')).replace(/\.$/, '')).filter(Boolean);
+}
+
+
+/**
+ * Tipo de una prueba según el texto de su columna "TIPO DE PRUEBA" (D39). Falla en vez de adivinar si
+ * aparece un texto que no reconoce. Las documentales son manuales (modelo-datos.md §2: revisión
+ * documental, sin automatización posible).
+ */
+export function testKind(t: Pick<TestRow, 'code' | 'dimension' | 'type'>): ControlDimensionType {
+  if (t.dimension === 'policy') return 'manual';
+  const s = t.type.normalize('NFC').trim();
+  if (/^Técnica$/i.test(s)) return 'technical_manual'; // "pruebas técnicas-manuales (SQL/consola)", D4
+  if (/^Manual$/i.test(s)) return 'manual';
+  if (/^Mixta$/i.test(s)) return 'hybrid';
+  if (/automatizado/i.test(s)) return /manual/i.test(s) ? 'hybrid' : 'automated';
+  throw new Error(`la prueba ${t.code} tiene un tipo que no se puede clasificar: "${s.slice(0, 80)}"`);
+}
+
+const DIMENSION_ORDER: Dimension[] = ['policy', 'server', 'database', 'app', 'cloud'];
+
+/**
+ * Dimensiones de cada control (D39, P10): una dimensión APLICA a un control si tiene al menos una prueba de
+ * esa dimensión. El tipo sale de los tipos de sus pruebas (si no coinciden, `hybrid`) y las banderas de
+ * ahí y de la dimensión:
+ *  - requires_probe: la dimensión no es documental y su tipo es automático o mixto.
+ *  - requires_ai: solo la documental (revisión documental con IA, §2).
+ *  - requires_compliance_confirmation: todo menos lo puramente automático (R-03: en lo manual el
+ *    consultor evalúa; la IA no certifica).
+ */
+export function deriveControlDimensions(
+  tests: Pick<TestRow, 'code' | 'dimension' | 'type'>[],
+  controlTests: { controlCode: string; testCode: string }[],
+): Soc2Catalog['controlDimensions'] {
+  const byCode = new Map(tests.map((t) => [t.code, t]));
+  const kinds = new Map<string, Set<ControlDimensionType>>();
+  for (const r of controlTests) {
+    const t = byCode.get(r.testCode);
+    if (!t) continue;
+    const k = `${r.controlCode}|${t.dimension}`;
+    kinds.set(k, (kinds.get(k) ?? new Set()).add(testKind(t)));
+  }
+  return [...kinds.entries()]
+    .map(([k, set]) => {
+      const [controlCode, dimension] = k.split('|') as [string, Dimension];
+      const type: ControlDimensionType = set.size === 1 ? [...set][0] : 'hybrid';
+      return {
+        controlCode,
+        dimension,
+        type,
+        requiresProbe: dimension !== 'policy' && (type === 'automated' || type === 'hybrid'),
+        requiresAi: dimension === 'policy',
+        requiresComplianceConfirmation: type !== 'automated',
+      };
+    })
+    .sort((a, b) => codeOrder(a.controlCode, b.controlCode) || DIMENSION_ORDER.indexOf(a.dimension) - DIMENSION_ORDER.indexOf(b.dimension));
+}
+
+/** "Política de X — El control depende de la aprobación de la política [y la aceptación del empleado]". */
+export function parsePolicyLine(text: string): { name: string; requiresEmployeeAcceptance: boolean } | null {
+  const m = /^(.+?)\s+—\s+El control depende de la aprobación de la política( y la aceptación del empleado)?\.?$/.exec(norm(text));
+  return m ? { name: norm(m[1]), requiresEmployeeAcceptance: Boolean(m[2]) } : null;
 }
 
 function buildExtras(rows: SourceRows, c: Soc2Catalog, err: (m: string) => void) {
@@ -375,6 +444,34 @@ function buildExtras(rows: SourceRows, c: Soc2Catalog, err: (m: string) => void)
     .map((t) => ({ ...t, dimension: 'policy' as const }));
   c.controlEvidenceTemplates.sort((a, b) => codeOrder(a.controlCode, b.controlCode) || a.sequence - b.sequence);
 
+
+  // ---- Políticas (plantillas) y su vínculo con los controles --------------------------------
+  const policyNames = new Set<string>();
+  for (const r of rows.controls) {
+    const controlCode = str(r['ID']);
+    const items = numberedLines(r['Políticas vinculadas (todas)']);
+    const declared = Number(str(r['N.º de políticas']) || 0);
+    if (declared !== items.length) err(`el control ${controlCode} declara ${declared} políticas y se leyeron ${items.length}`);
+    for (const it of items) {
+      const parsed = parsePolicyLine(it.text);
+      if (!parsed) {
+        err(`el control ${controlCode}: la política "${it.text}" no sigue el formato "Nombre — El control depende de la aprobación de la política…"`);
+        continue;
+      }
+      policyNames.add(parsed.name);
+      c.controlPolicies.push({ controlCode, policyName: parsed.name, requiresEmployeeAcceptance: parsed.requiresEmployeeAcceptance });
+    }
+  }
+  c.policies = [...policyNames].sort((a, b) => a.localeCompare(b, 'es')).map((name) => ({ name }));
+  c.controlPolicies.sort((a, b) => codeOrder(a.controlCode, b.controlCode) || a.policyName.localeCompare(b.policyName, 'es'));
+
+  // ---- Dimensiones de cada control (derivadas de las pruebas, D39) -------------------------
+  try {
+    c.controlDimensions = deriveControlDimensions(c.tests, c.controlTests);
+  } catch (e) {
+    err((e as Error).message);
+  }
+
   // ---- Constancia de lo que el Excel dice y los datos no confirman ----------------------
   const defined = new Set(c.tests.map((t) => t.code));
   const matrixPairs = new Set<string>();
@@ -401,6 +498,16 @@ function buildExtras(rows: SourceRows, c: Soc2Catalog, err: (m: string) => void)
   );
   c.meta.sourceNotes.push(
     `Plantillas de evidencia: ${declaredDocs} vínculos documento ↔ control entre ${new Set(c.controlEvidenceTemplates.map((x) => x.controlCode)).size} controles y ${c.evidenceTemplates.length} documentos distintos.`,
+  );
+  c.meta.sourceNotes.push(
+    `Políticas: ${c.controlPolicies.length} vínculos control ↔ política entre ${new Set(c.controlPolicies.map((x) => x.controlCode)).size} controles y ${c.policies.length} políticas distintas; ` +
+      'se siembran como plantillas (solo el nombre, D39) y la aprobación es del cliente.',
+  );
+  const dimCount = (d: Dimension) => c.controlDimensions.filter((x) => x.dimension === d).length;
+  c.meta.sourceNotes.push(
+    `Dimensiones por control: el Excel no trae el tipo ni las banderas (P10). Se derivan de las pruebas (D39): ${c.controlDimensions.length} filas ` +
+      `(documental ${dimCount('policy')}, servidores ${dimCount('server')}, BD ${dimCount('database')}, nube ${dimCount('cloud')}, aplicación ${dimCount('app')}). ` +
+      'Regla pendiente de ratificar con el comité.',
   );
   c.meta.sourceNotes.push(
     'La hoja "Resumen" declara 658 relaciones punto de enfoque ↔ control y está desactualizada: los datos crudos traen ' +
