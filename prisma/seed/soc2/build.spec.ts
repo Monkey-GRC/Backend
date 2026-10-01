@@ -1,4 +1,4 @@
-import { buildCatalog, numberedLines, Row, SourceMeta, splitAttributes, splitSteps } from './build';
+import { buildCatalog, deriveControlDimensions, numberedLines, parsePolicyLine, Row, SourceMeta, splitAttributes, splitSteps, testKind } from './build';
 
 const meta: SourceMeta = {
   sourceFile: 'x.xlsx',
@@ -109,5 +109,55 @@ describe('analizadores de texto del Excel', () => {
   it('splitAttributes acepta viñetas por línea o frases separadas por ";"', () => {
     expect(splitAttributes('- Cobertura por host.\r\n- Umbrales definidos.')).toEqual(['Cobertura por host', 'Umbrales definidos']);
     expect(splitAttributes('Existencia; código/versión; vigencia.')).toEqual(['Existencia', 'código/versión', 'vigencia']);
+  });
+});
+
+describe('políticas y dimensiones (D39)', () => {
+  it('lee el nombre de la política y si exige la aceptación del empleado', () => {
+    expect(parsePolicyLine('Política de Gestión de Activos — El control depende de la aprobación de la política')).toEqual({ name: 'Política de Gestión de Activos', requiresEmployeeAcceptance: false });
+    expect(parsePolicyLine('Código de Conducta — El control depende de la aprobación de la política y la aceptación del empleado')).toEqual({ name: 'Código de Conducta', requiresEmployeeAcceptance: true });
+    expect(parsePolicyLine('Algo sin el formato esperado')).toBeNull();
+  });
+
+  it('clasifica el tipo de una prueba por su texto y falla si no lo reconoce', () => {
+    const t = (dimension: 'policy' | 'server', type: string) => ({ code: 'T-X-1', dimension, type });
+    expect(testKind(t('policy', 'Prueba de diseño (control detectivo, dependiente de TI)'))).toBe('manual');
+    expect(testKind(t('server', 'Manual'))).toBe('manual');
+    expect(testKind(t('server', 'Mixta'))).toBe('hybrid');
+    expect(testKind(t('server', 'Técnica'))).toBe('technical_manual');
+    expect(testKind(t('server', 'Prueba de implementación y efectividad operativa (control detectivo, automatizado)'))).toBe('automated');
+    expect(testKind(t('server', 'Prueba de implementación y efectividad operativa (control correctivo, automatizado + manual)'))).toBe('hybrid');
+    expect(() => testKind(t('server', 'Otra cosa'))).toThrow(/no se puede clasificar/);
+  });
+
+  const tests = [
+    { code: 'T-DOC-1', dimension: 'policy' as const, type: 'Manual' },
+    { code: 'T-SRV-1', dimension: 'server' as const, type: 'Mixta' },
+    { code: 'T-SRV-2', dimension: 'server' as const, type: 'Manual' },
+    { code: 'T-SRV-3', dimension: 'server' as const, type: 'Prueba de implementación (control detectivo, automatizado)' },
+  ];
+
+  it('una dimensión aplica solo si el control tiene una prueba de esa dimensión', () => {
+    const dims = deriveControlDimensions(tests, [
+      { controlCode: 'GOV-1', testCode: 'T-DOC-1' },
+      { controlCode: 'GOV-2', testCode: 'T-DOC-1' },
+      { controlCode: 'GOV-2', testCode: 'T-SRV-1' },
+    ]);
+    expect(dims.map((d) => `${d.controlCode}/${d.dimension}`)).toEqual(['GOV-1/policy', 'GOV-2/policy', 'GOV-2/server']);
+  });
+
+  it('la dimensión documental es manual, con IA y con confirmación humana, sin sonda', () => {
+    const [d] = deriveControlDimensions(tests, [{ controlCode: 'GOV-1', testCode: 'T-DOC-1' }]);
+    expect(d).toMatchObject({ type: 'manual', requiresProbe: false, requiresAi: true, requiresComplianceConfirmation: true });
+  });
+
+  it('pruebas de tipos distintos en una misma dimensión dan una dimensión mixta que pide sonda', () => {
+    const [d] = deriveControlDimensions(tests, [{ controlCode: 'A-1', testCode: 'T-SRV-2' }, { controlCode: 'A-1', testCode: 'T-SRV-3' }]);
+    expect(d).toMatchObject({ type: 'hybrid', requiresProbe: true, requiresAi: false, requiresComplianceConfirmation: true });
+  });
+
+  it('solo lo puramente automático cierra sin confirmación humana', () => {
+    const [d] = deriveControlDimensions(tests, [{ controlCode: 'A-1', testCode: 'T-SRV-3' }]);
+    expect(d).toMatchObject({ type: 'automated', requiresProbe: true, requiresComplianceConfirmation: false });
   });
 });

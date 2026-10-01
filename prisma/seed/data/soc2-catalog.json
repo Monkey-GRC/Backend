@@ -24,12 +24,17 @@
       "tests": 61,
       "controlTests": 284,
       "evidenceTemplates": 50,
-      "controlEvidenceTemplates": 89
+      "controlEvidenceTemplates": 89,
+      "policies": 10,
+      "controlPolicies": 16,
+      "controlDimensions": 210
     },
     "sourceNotes": [
       "Asignaciones control ↔ prueba: la matriz \"Análisis TEST x Control\" trae 248; 27 citan pruebas que no existen (T-APP-001, T-APP-002, T-APP-003, T-APP-004, T-APP-005, T-APP-006) y la propia hoja marca \"FALTAN 6\". Se usa la hoja \"Pruebas\" (CONTROL(ES) RELACIONADO(S)): 284 asignaciones, 61 de 61 pruebas y 118 controles cubiertos; incluye las 221 asignaciones resolubles de la matriz. No se asume ninguna equivalencia entre los códigos T-APP-00x y las pruebas definidas.",
       "Riesgos y causas: 92 relaciones riesgo↔causa cubren 46 de 56 causas; 10 (F003, F004, F016, F020, F026, F034, F042, F045, F053, F054) no están asociadas a ningún riesgo y se cargan tal cual, sin asociar. 209 aristas causa→control (118 controles distintos).",
       "Plantillas de evidencia: 89 vínculos documento ↔ control entre 67 controles y 50 documentos distintos.",
+      "Políticas: 16 vínculos control ↔ política entre 15 controles y 10 políticas distintas; se siembran como plantillas (solo el nombre, D39) y la aprobación es del cliente.",
+      "Dimensiones por control: el Excel no trae el tipo ni las banderas (P10). Se derivan de las pruebas (D39): 210 filas (documental 118, servidores 43, BD 18, nube 31, aplicación 0). Regla pendiente de ratificar con el comité.",
       "La hoja \"Resumen\" declara 658 relaciones punto de enfoque ↔ control y está desactualizada: los datos crudos traen 729."
     ]
   },
@@ -12284,6 +12289,1802 @@
       "controlCode": "VPM-2",
       "templateCode": "DOC-4160fe15",
       "sequence": 2
+    }
+  ],
+  "policies": [
+    {
+      "name": "Código de Conducta"
+    },
+    {
+      "name": "Plan de Continuidad del Negocio y Recuperación ante Desastres"
+    },
+    {
+      "name": "Política de Control de Acceso"
+    },
+    {
+      "name": "Política de Gestión de Activos"
+    },
+    {
+      "name": "Política de Gestión de Datos"
+    },
+    {
+      "name": "Política de Gestión de Riesgos"
+    },
+    {
+      "name": "Política de Gestión de Terceros"
+    },
+    {
+      "name": "Política de Seguridad de la Información (AUP)"
+    },
+    {
+      "name": "Política de Seguridad de Operaciones"
+    },
+    {
+      "name": "Política de Seguridad en Recursos Humanos"
+    }
+  ],
+  "controlPolicies": [
+    {
+      "controlCode": "AST-1",
+      "policyName": "Política de Gestión de Activos",
+      "requiresEmployeeAcceptance": true
+    },
+    {
+      "controlCode": "AST-2",
+      "policyName": "Política de Gestión de Datos",
+      "requiresEmployeeAcceptance": true
+    },
+    {
+      "controlCode": "BCD-1",
+      "policyName": "Plan de Continuidad del Negocio y Recuperación ante Desastres",
+      "requiresEmployeeAcceptance": true
+    },
+    {
+      "controlCode": "CAP-1",
+      "policyName": "Política de Seguridad de Operaciones",
+      "requiresEmployeeAcceptance": false
+    },
+    {
+      "controlCode": "CPL-2",
+      "policyName": "Política de Seguridad de la Información (AUP)",
+      "requiresEmployeeAcceptance": false
+    },
+    {
+      "controlCode": "DCH-2",
+      "policyName": "Política de Gestión de Datos",
+      "requiresEmployeeAcceptance": true
+    },
+    {
+      "controlCode": "DCH-10",
+      "policyName": "Política de Gestión de Datos",
+      "requiresEmployeeAcceptance": false
+    },
+    {
+      "controlCode": "HRS-1",
+      "policyName": "Política de Seguridad en Recursos Humanos",
+      "requiresEmployeeAcceptance": false
+    },
+    {
+      "controlCode": "HRS-3",
+      "policyName": "Código de Conducta",
+      "requiresEmployeeAcceptance": true
+    },
+    {
+      "controlCode": "HRS-3",
+      "policyName": "Política de Seguridad en Recursos Humanos",
+      "requiresEmployeeAcceptance": true
+    },
+    {
+      "controlCode": "IAC-5",
+      "policyName": "Política de Control de Acceso",
+      "requiresEmployeeAcceptance": false
+    },
+    {
+      "controlCode": "PRI-17",
+      "policyName": "Política de Gestión de Terceros",
+      "requiresEmployeeAcceptance": false
+    },
+    {
+      "controlCode": "RSK-1",
+      "policyName": "Política de Gestión de Riesgos",
+      "requiresEmployeeAcceptance": false
+    },
+    {
+      "controlCode": "RSK-3",
+      "policyName": "Política de Gestión de Riesgos",
+      "requiresEmployeeAcceptance": true
+    },
+    {
+      "controlCode": "SAT-1",
+      "policyName": "Política de Seguridad en Recursos Humanos",
+      "requiresEmployeeAcceptance": false
+    },
+    {
+      "controlCode": "TPM-2",
+      "policyName": "Política de Gestión de Terceros",
+      "requiresEmployeeAcceptance": true
+    }
+  ],
+  "controlDimensions": [
+    {
+      "controlCode": "AST-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "AST-1",
+      "dimension": "database",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "AST-1",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "AST-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "AST-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "AST-3",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "BCD-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "BCD-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "BCD-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "BCD-4",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "BCD-4",
+      "dimension": "database",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "BCD-4",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "BCD-5",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "BCD-5",
+      "dimension": "database",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "BCD-5",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "BCD-6",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "BCD-6",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CAP-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CAP-1",
+      "dimension": "server",
+      "type": "automated",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": false
+    },
+    {
+      "controlCode": "CAP-1",
+      "dimension": "database",
+      "type": "automated",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": false
+    },
+    {
+      "controlCode": "CAP-1",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CFG-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CFG-1",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CFG-1",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CHG-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CHG-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CHG-2",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CHG-2",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CHG-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CPL-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CRY-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CRY-1",
+      "dimension": "database",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CRY-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CRY-2",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CRY-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CRY-3",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CRY-4",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CRY-4",
+      "dimension": "database",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CRY-4",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CRY-5",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CRY-5",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "CRY-5",
+      "dimension": "database",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-1",
+      "dimension": "database",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-2",
+      "dimension": "database",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-3",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-4",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-4",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-5",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-6",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-6",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-7",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-8",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-8",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-9",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-9",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-10",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-10",
+      "dimension": "database",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-11",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "DCH-11",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "END-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "END-1",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-4",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-5",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-5",
+      "dimension": "database",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-5",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-6",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-7",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-8",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-9",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-9",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-10",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-11",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-12",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-12",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "GOV-13",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "HRS-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "HRS-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "HRS-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "HRS-4",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "HRS-5",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "HRS-6",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-1",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-3",
+      "dimension": "database",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-4",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-4",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-4",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-5",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-5",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-6",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-6",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-7",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-7",
+      "dimension": "server",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-8",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-8",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-9",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-9",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-10",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-10",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-10",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-11",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-11",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-11",
+      "dimension": "database",
+      "type": "technical_manual",
+      "requiresProbe": false,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-11",
+      "dimension": "cloud",
+      "type": "technical_manual",
+      "requiresProbe": false,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-12",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-12",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-12",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-13",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-13",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAC-13",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAO-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IAO-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IRO-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IRO-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IRO-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "IRO-4",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "MDM-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "MDM-1",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "MON-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "MON-1",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "MON-1",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "MON-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "MON-2",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "MON-2",
+      "dimension": "database",
+      "type": "automated",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": false
+    },
+    {
+      "controlCode": "MON-2",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "MON-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "MON-3",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "MON-3",
+      "dimension": "database",
+      "type": "automated",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": false
+    },
+    {
+      "controlCode": "MON-4",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "MON-4",
+      "dimension": "server",
+      "type": "automated",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": false
+    },
+    {
+      "controlCode": "MON-4",
+      "dimension": "database",
+      "type": "automated",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": false
+    },
+    {
+      "controlCode": "MON-4",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "NET-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "NET-1",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "NET-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "NET-2",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "NET-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "NET-3",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "NET-4",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "NET-4",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "NET-4",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "NET-5",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "NET-5",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "NET-5",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "OPS-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "OPS-1",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "OPS-1",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PES-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PES-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PES-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PES-4",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PES-5",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-2",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-4",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-5",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-6",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-7",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-8",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-8",
+      "dimension": "database",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-9",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-9",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-10",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-10",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-11",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-11",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-12",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-12",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-13",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-14",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-15",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-16",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRI-17",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRM-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRM-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRM-2",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "PRM-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "RSK-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "RSK-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "RSK-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "SAT-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "TDA-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "TDA-1",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "TDA-1",
+      "dimension": "database",
+      "type": "technical_manual",
+      "requiresProbe": false,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "TDA-1",
+      "dimension": "cloud",
+      "type": "technical_manual",
+      "requiresProbe": false,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "TDA-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "TDA-2",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "TDA-2",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "TDA-3",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "TDA-3",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "TDA-4",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "TDA-4",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "TPM-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "TPM-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "VPM-1",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "VPM-1",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "VPM-1",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "VPM-2",
+      "dimension": "policy",
+      "type": "manual",
+      "requiresProbe": false,
+      "requiresAi": true,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "VPM-2",
+      "dimension": "server",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
+    },
+    {
+      "controlCode": "VPM-2",
+      "dimension": "cloud",
+      "type": "hybrid",
+      "requiresProbe": true,
+      "requiresAi": false,
+      "requiresComplianceConfirmation": true
     }
   ]
 }

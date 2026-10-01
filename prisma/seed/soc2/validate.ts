@@ -234,5 +234,31 @@ function validateExtras(c: Soc2Catalog): string[] {
   for (const [k, seqs] of seqByControl) {
     if (seqs.slice().sort((a, b) => a - b).some((n, i) => n !== i + 1)) err('estructura', `las plantillas del control ${k} no están numeradas 1..N: [${seqs.join(', ')}]`);
   }
+  // políticas y dimensiones (D39) ---------------------------------------------------------------
+  for (const d of duplicates(c.policies, (r) => r.name)) err('unicidad', `política repetida: ${d}`);
+  for (const d of duplicates(c.controlPolicies, (r) => `${r.controlCode}#${r.policyName}`)) err('unicidad', `par control↔política repetido: ${d}`);
+  for (const d of duplicates(c.controlDimensions, (r) => `${r.controlCode}#${r.dimension}`)) err('unicidad', `dimensión repetida en un control: ${d}`);
+  c.policies.forEach((p) => {
+    if (blank(p.name)) err('campos', 'política con nombre vacío o con espacios');
+  });
+  const policyNames = new Set(c.policies.map((p) => p.name));
+  for (const r of c.controlPolicies) {
+    if (!ctrlCodes.has(r.controlCode)) err('referencias', `control↔política: control inexistente ${r.controlCode}`);
+    if (!policyNames.has(r.policyName)) err('referencias', `control↔política: política inexistente ${r.policyName}`);
+  }
+  const withControl = new Set(c.controlPolicies.map((r) => r.policyName));
+  for (const p of c.policies) if (!withControl.has(p.name)) err('estructura', `la política ${p.name} no está ligada a ningún control`);
+  const testDim = new Map(c.tests.map((t) => [t.code, t.dimension]));
+  const expectedDims = new Set(c.controlTests.map((r) => `${r.controlCode}#${testDim.get(r.testCode)}`));
+  const gotDims = new Set(c.controlDimensions.map((r) => `${r.controlCode}#${r.dimension}`));
+  for (const k of expectedDims) if (!gotDims.has(k)) err('estructura', `al control ${k.split('#')[0]} le falta su dimensión ${k.split('#')[1]}: tiene pruebas de esa dimensión`);
+  for (const r of c.controlDimensions) {
+    if (!ctrlCodes.has(r.controlCode)) err('referencias', `dimensión: control inexistente ${r.controlCode}`);
+    if (!expectedDims.has(`${r.controlCode}#${r.dimension}`)) err('estructura', `el control ${r.controlCode} declara la dimensión ${r.dimension} sin ninguna prueba de esa dimensión`);
+    if (r.requiresProbe && (r.dimension === 'policy' || r.type === 'manual' || r.type === 'technical_manual')) err('estructura', `${r.controlCode}/${r.dimension}: requires_probe no cuadra con el tipo ${r.type}`);
+    if (r.requiresAi !== (r.dimension === 'policy')) err('estructura', `${r.controlCode}/${r.dimension}: requires_ai solo aplica a la dimensión documental`);
+    if (r.requiresComplianceConfirmation === (r.type === 'automated')) err('estructura', `${r.controlCode}/${r.dimension}: el gate de confirmación no cuadra con el tipo ${r.type}`);
+  }
+  if (c.controlDimensions.some((r) => r.dimension === 'app')) err('estructura', 'hay una dimensión de aplicación: no hay ninguna prueba T-APP definida (P9)');
   return e;
 }

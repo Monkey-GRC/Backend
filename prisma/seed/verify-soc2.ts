@@ -71,6 +71,7 @@ async function main() {
       risks: await prisma.risk.count(), causes: await prisma.cause.count(), riskCauses: await prisma.riskCause.count(), causeControls: await prisma.causeControl.count(),
       tests: await prisma.test.count(), controlTests: await prisma.controlTest.count(),
       tpl: await prisma.evidenceTemplate.count(), cet: await prisma.controlEvidenceTemplate.count(),
+      pol: await prisma.policy.count(), cpol: await prisma.controlPolicy.count(), dim: await prisma.controlDimensionEntry.count(),
     };
     check(n.risks === c.risks, `risks = ${c.risks}`, `risks: ${n.risks} ≠ ${c.risks}`);
     check(n.causes === c.causes, `causes = ${c.causes}`, `causes: ${n.causes} ≠ ${c.causes}`);
@@ -80,6 +81,9 @@ async function main() {
     check(n.controlTests === c.controlTests, `control_tests = ${c.controlTests}`, `control_tests: ${n.controlTests} ≠ ${c.controlTests}`);
     check(n.tpl === c.evidenceTemplates, `evidence_templates = ${c.evidenceTemplates}`, `evidence_templates: ${n.tpl} ≠ ${c.evidenceTemplates}`);
     check(n.cet === c.controlEvidenceTemplates, `control_evidence_templates = ${c.controlEvidenceTemplates}`, `control_evidence_templates: ${n.cet} ≠ ${c.controlEvidenceTemplates}`);
+    check(n.pol === c.policies, `policies = ${c.policies}`, `policies: ${n.pol} ≠ ${c.policies}`);
+    check(n.cpol === c.controlPolicies, `control_policies = ${c.controlPolicies}`, `control_policies: ${n.cpol} ≠ ${c.controlPolicies}`);
+    check(n.dim === c.controlDimensions, `control_dimensions = ${c.controlDimensions}`, `control_dimensions: ${n.dim} ≠ ${c.controlDimensions}`);
 
     console.log('\n2. Comparación fila a fila BD ↔ fuente');
     const tcDb = await prisma.trustCriterion.findMany();
@@ -111,6 +115,13 @@ async function main() {
     compareSets('evidence_templates', tplDb.map((t) => `${t.code}|${t.description}|${t.dimension}`), cat.evidenceTemplates.map((t) => `${t.code}|${t.description}|${t.dimension}`));
     const cetDb = await prisma.controlEvidenceTemplate.findMany({ include: { control: true, evidenceTemplate: true } });
     compareSets('control_evidence_templates', cetDb.map((r) => `${r.control.code}#${r.evidenceTemplate.code}#${r.sequence}`), cat.controlEvidenceTemplates.map((r) => `${r.controlCode}#${r.templateCode}#${r.sequence}`));
+    const polDb = await prisma.policy.findMany();
+    compareSets('policies', polDb.map((p) => p.name), cat.policies.map((p) => p.name));
+    const cpolDb = await prisma.controlPolicy.findMany({ include: { control: true, policy: true } });
+    compareSets('control_policies', cpolDb.map((r) => `${r.control.code}#${r.policy.name}#${r.requiresEmployeeAcceptance}`), cat.controlPolicies.map((r) => `${r.controlCode}#${r.policyName}#${r.requiresEmployeeAcceptance}`));
+    const dimDb = await prisma.controlDimensionEntry.findMany({ include: { control: true } });
+    const df = (code: string, d: string, t: string, a: boolean, b: boolean, g: boolean) => `${code}#${d}|${t}|${a}|${b}|${g}`;
+    compareSets('control_dimensions', dimDb.map((r) => df(r.control.code, r.dimension, r.type, r.requiresProbe, r.requiresAi, r.requiresComplianceConfirmation)), cat.controlDimensions.map((r) => df(r.controlCode, r.dimension, r.type, r.requiresProbe, r.requiresAi, r.requiresComplianceConfirmation)));
 
     console.log('\n3. Reglas estructurales sobre la BD');
     const pofByReq = new Map<string, number[]>();
@@ -154,6 +165,14 @@ async function main() {
     cetDb.forEach((r) => seqs.set(r.control.code, [...(seqs.get(r.control.code) ?? []), r.sequence]));
     const badSeq = [...seqs].filter(([, s]) => s.slice().sort((a, b) => a - b).some((v, i) => v !== i + 1)).map(([k]) => k);
     check(badSeq.length === 0, 'secuencias de plantillas contiguas desde 1 en cada control', `secuencias no contiguas en: ${badSeq.join(', ')}`);
+    const dimsOf = new Map<string, Set<string>>();
+    dimDb.forEach((r) => dimsOf.set(r.control.code, (dimsOf.get(r.control.code) ?? new Set()).add(r.dimension)));
+    const ctrlNoDim = ctrlDb.filter((k) => !dimsOf.has(k.code)).map((k) => k.code).sort();
+    check(JSON.stringify(ctrlNoDim) === '["CPL-1"]', 'todo control tiene dimensiones salvo CPL-1', `controles sin dimensión: ${ctrlNoDim.join(', ')}`);
+    check(!dimDb.some((r) => r.dimension === 'app'), 'ningún control declara la dimensión aplicación (0 pruebas T-APP, P9)', 'hay dimensiones de aplicación');
+    check(dimDb.every((r) => r.reasonNotApplicable === null), 'las dimensiones del catálogo son todas aplicables (reason_not_applicable nulo)', 'hay dimensiones del catálogo con reason_not_applicable');
+    const polWithCtrl = new Set(cpolDb.map((r) => r.policyId));
+    check(polDb.every((p) => polWithCtrl.has(p.id)), 'toda política está ligada a un control', 'hay políticas sin control');
 
     console.log('\n4. RLS con el rol de la app (D31)');
     const appUrl = process.env.APP_DATABASE_URL;
