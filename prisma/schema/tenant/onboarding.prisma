@@ -181,6 +181,7 @@ model Regulation {
   jurisdiction String
 
   organizationRegulations OrganizationRegulation[]
+  serviceRegulations      ServiceRegulation[]
 
   // No se puntúa (D10). Mismo catálogo para todos los clientes → sin tenant_id, en catalog.
   @@map("regulations")
@@ -363,7 +364,8 @@ model Service {
   countries             ServiceCountry[]
   dataTypes             DataType[]           @map("data_types")
   expectedAvailability  ExpectedAvailability @map("expected_availability")
-  deploymentScenario    DeploymentScenario   @map("deployment_scenario")
+  // Nullable: se captura en el Componente 3 (control técnico), después de declarar el servicio.
+  deploymentScenario    DeploymentScenario?  @map("deployment_scenario")
   previousCertification PreviousCertification? @map("previous_certification")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
@@ -372,6 +374,7 @@ model Service {
   tenant       Company      @relation(fields: [tenantId], references: [id])
 
   trustCriteria           ServiceTrustCriterion[]
+  regulations             ServiceRegulation[]
   frameworks              ServiceFramework[]
   subserviceOrganizations SubserviceOrganization[]
   cuecs                   Cuec[]
@@ -406,6 +409,25 @@ model ServiceTrustCriterion {
   @@schema("tenant")
 }
 
+// Regulaciones de privacidad que aplican a UN servicio (no se puntúan, D10). Es la versión por
+// servicio de organization_regulations: el contrato las pide en el request del servicio.
+model ServiceRegulation {
+  id           String @id @default(uuid()) @db.Uuid
+  tenantId     String @map("tenant_id") @db.Uuid
+  serviceId    String @map("service_id") @db.Uuid
+  regulationId String @map("regulation_id") @db.Uuid
+
+  service    Service    @relation(fields: [serviceId], references: [id])
+  regulation Regulation @relation(fields: [regulationId], references: [id])
+  tenant     Company    @relation(fields: [tenantId], references: [id])
+
+  @@unique([serviceId, regulationId])
+  @@index([tenantId])
+  @@index([regulationId])
+  @@map("service_regulations")
+  @@schema("tenant")
+}
+
 model ServiceFramework {
   id               String   @id @default(uuid()) @db.Uuid
   tenantId         String   @map("tenant_id") @db.Uuid
@@ -433,9 +455,10 @@ model SubserviceOrganization {
   id              String                 @id @default(uuid()) @db.Uuid
   tenantId        String                 @map("tenant_id") @db.Uuid
   serviceId       String                 @map("service_id") @db.Uuid
-  provider        String
-  serviceProvided String                 @map("service_provided")
-  responsibility  String                 @db.Text
+  // Opcionales: el "detalle" del Excel lo es; solo el tipo es obligatorio (contracts onboarding-service-context).
+  provider        String?
+  serviceProvided String?                @map("service_provided")
+  responsibility  String?                @db.Text
   type            SubserviceProviderType
 
   service Service @relation(fields: [serviceId], references: [id])
