@@ -3,14 +3,15 @@ model CatalogVersion {
   number                  Int
   publishedAt             DateTime @map("published_at") @db.Date
   changeSummary           String   @map("change_summary") @db.Text
-  publishedBy             String   @map("published_by") @db.Uuid
+  // Opcional: la carga inicial del catálogo la hace un script, sin publicador humano (D35).
+  publishedBy             String?  @map("published_by") @db.Uuid
   propagatedAutomatically Boolean  @map("propagated_automatically")
   requiresAcceptance      Boolean  @map("requires_acceptance")
 
   serviceFrameworks ServiceFramework[]
   evaluations Evaluation[]
 
-  publisher   User     @relation(fields: [publishedBy], references: [id])
+  publisher   User?    @relation(fields: [publishedBy], references: [id], onDelete: Restrict)
 
   @@map("catalog_versions")
   @@schema("catalog")

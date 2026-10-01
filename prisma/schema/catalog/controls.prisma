@@ -23,7 +23,11 @@ enum ControlDimensionType {
 
 model Control {
   id          String  @id @default(uuid()) @db.Uuid
-  code        String  @unique // CAP-1, GOV-11: el prefijo es el dominio
+  code        String  @unique // CAP-1, GOV-11
+  // Uno de los 27 dominios del catálogo ("Gestión de Activos", "Monitoreo Continuo"…). Es del CONTROL,
+  // no del requisito: en el Excel del comité cambia dentro de un mismo requisito (41 de 61). No se
+  // deriva del prefijo del código (AST tiene dos dominios): se guarda el valor literal.
+  domain      String
   name        String
   description String  @db.Text
   sourceRef   String? @map("source_ref")
@@ -35,9 +39,8 @@ model Control {
   controlTests         ControlTest[]
   testPlans            TestPlan[]
   causeControl         CauseControl[]
-  clientControls        ClientControl[]
-  evidenceRequirements  EvidenceRequirement[]
-  evaluations           Evaluation[]
+  clientControls        ClientControl[] // copias que cada cliente particulariza (tenant.client_controls)
+  evidenceTemplates     ControlEvidenceTemplate[]
 
   @@map("controls")
   @@schema("catalog")
@@ -121,5 +124,37 @@ model ControlPolicy {
   @@unique([controlId, policyId])
   @@index([policyId])
   @@map("control_policies")
+  @@schema("catalog")
+}
+
+// Plantillas de evidencia (documentos que el comité vincula a cada control: 67 de 119 controles, 89
+// vínculos, ~55 documentos distintos; uno sirve a varios controles). Al contratar un marco se clonan a
+// tenant.evidence_requirements, por control del cliente (D36).
+model EvidenceTemplate {
+  id          String    @id @default(uuid()) @db.Uuid
+  code        String    @unique // DOC-001…
+  description String    @db.Text
+  // El Excel no trae dimensión: son documentos, así que `policy` (documental).
+  dimension   Dimension @default(policy)
+
+  controls ControlEvidenceTemplate[]
+
+  @@map("evidence_templates")
+  @@schema("catalog")
+}
+
+model ControlEvidenceTemplate {
+  id                 String @id @default(uuid()) @db.Uuid
+  controlId          String @map("control_id") @db.Uuid
+  evidenceTemplateId String @map("evidence_template_id") @db.Uuid
+  sequence           Int // orden en que el comité lista los documentos del control
+
+  control          Control          @relation(fields: [controlId], references: [id])
+  evidenceTemplate EvidenceTemplate @relation(fields: [evidenceTemplateId], references: [id])
+
+  @@unique([controlId, evidenceTemplateId])
+  @@unique([controlId, sequence])
+  @@index([evidenceTemplateId])
+  @@map("control_evidence_templates")
   @@schema("catalog")
 }

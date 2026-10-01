@@ -43,6 +43,9 @@ model TestPlan {
   @@schema("catalog")
 }
 
+// ⚠️ Texto interno. Las pruebas del comité nombran al proveedor del motor de monitoreo en 15 de sus 23
+// columnas (tool, automated_coverage, limitations, prerequisites, step_by_step…) e incluso en 4 nombres:
+// ninguno de estos textos sale tal cual a la UI, a un reporte ni a un texto generado por IA.
 model Test {
   id                             String    @id @default(uuid()) @db.Uuid
   code                           String    @unique
@@ -55,14 +58,20 @@ model Test {
   tool                           String
   population                     String
   period                         String
-  populationSize                 Int       @map("population_size")
-  suggestedSampleSize            Int       @map("suggested_sample_size")
+  // TEXTO, no enteros: en la hoja Pruebas son frases ("Por determinar con base en el inventario de
+  // proveedores", "N<5 → 100%; si no, 10% de la población (mín. 5, máx. 25)"). D8: el muestreo se guarda
+  // como dato ahora y el cálculo de la muestra concreta se construye después.
+  populationSize                 String    @map("population_size") @db.Text
+  suggestedSampleSize            String    @map("suggested_sample_size") @db.Text
   selectionMethod                String    @map("selection_method")
   evidenceToRequest              String    @map("evidence_to_request") @db.Text
   prerequisites                  String    @db.Text
   stepByStep                     Json      @map("step_by_step")
   attributesToValidate           Json      @map("attributes_to_validate")
   complianceCriterion            String    @map("compliance_criterion") @db.Text
+  // "EXCEPCIONES / DESVIACIONES": qué se considera excepción. Es distinta de exceptions_handling
+  // ("TRATAMIENTO DE EXCEPCIONES"): la hoja trae las dos y el schema solo guardaba una.
+  exceptions                     String    @db.Text
   exceptionsHandling             String    @map("exceptions_handling") @db.Text
   evidenceToRetain               String    @map("evidence_to_retain") @db.Text
   automatedCoverage              String    @map("automated_coverage") @db.Text
@@ -73,6 +82,7 @@ model Test {
   testChecks   TestCheck[]
   exclusions Exclusion[]
   evaluations Evaluation[]
+  clientControlTests ClientControlTest[]
 
   @@map("tests")
   @@schema("catalog")
