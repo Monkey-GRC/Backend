@@ -8,6 +8,7 @@ import { AuthModule } from './features/auth/auth.module';
 import { CatalogsModule } from './features/catalogs/catalogs.module';
 import { CompaniesModule } from './features/companies/companies.module';
 import { OnboardingModule } from './features/onboarding/onboarding.module';
+import { ServicesModule } from './features/services/services.module';
 import { AuditModule } from './infrastructure/audit/audit.module';
 import { DatabaseModule } from './infrastructure/database/database.module';
 import { SecurityModule } from './infrastructure/security/security.module';
@@ -30,6 +31,7 @@ import { SecurityModule } from './infrastructure/security/security.module';
     CompaniesModule,
     CatalogsModule,
     OnboardingModule,
+    ServicesModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],
 })

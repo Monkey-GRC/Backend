@@ -15,4 +15,17 @@ export class OnboardingProgressPrismaReader extends OnboardingProgressReader {
     );
     return count > 0;
   }
+
+  async hasDeclaredService(scope: TenantScope): Promise<boolean> {
+    const count = await this.prisma.withScope(scope, (tx) =>
+      tx.service.count({
+        where: {
+          organization: { companyId: scope.companyId },
+          frameworks: { some: { status: 'active' } },
+          systemDescription: { isNot: null },
+        },
+      }),
+    );
+    return count > 0;
+  }
 }

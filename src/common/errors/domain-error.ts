@@ -15,7 +15,11 @@ export type DomainErrorCode =
   | 'EMAIL_TAKEN'
   | 'COMPANY_NAME_TAKEN'
   | 'ADMIN_EMAIL_TAKEN'
-  | 'DEDICATED_DATABASE_NOT_AVAILABLE';
+  | 'DEDICATED_DATABASE_NOT_AVAILABLE'
+  // Componente 2 (contracts/modules/onboarding-service-context.md).
+  | 'ORGANIZATION_NOT_DECLARED'
+  | 'SERVICE_NAME_TAKEN'
+  | 'SERVICE_HAS_EVALUATIONS';
 
 export class DomainError extends Error {
   constructor(

@@ -21,6 +21,7 @@ const CONSTRAINT_CODES: Record<string, string> = {
   isStrongPassword: 'password.weak',
   isArray: 'array.invalid',
   arrayUnique: 'array.unique',
+  isUrl: 'url.invalid',
   isEmpty: 'field.not_editable',
   whitelistValidation: 'field.not_allowed',
 };

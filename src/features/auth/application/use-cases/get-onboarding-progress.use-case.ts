@@ -11,9 +11,10 @@ export type OnboardingProgress = {
 
 // El onboarding es del cliente: solo el admin_empresa lo recorre. Para el resto no aplica (null).
 //
-// Hoy solo se puede derivar el Componente 1 (existe la organización). Los pasos 2 y 3 se suman a
-// `completed_steps` cuando esos componentes existan (MD-78, MD-85); mientras tanto, terminado el 1,
-// el siguiente es el 2.
+// Se derivan de lo que existe en la base: el Componente 1 (existe la organización) y el 2 (existe al
+// menos un servicio completo). El 3 se suma a `completed_steps` cuando exista (MD-85); mientras
+// tanto, terminado el 2, el siguiente es el 3. Los pasos se recorren en orden: un servicio sin
+// organización no cuenta (no puede existir, pero el orden es parte del contrato).
 @Injectable()
 export class GetOnboardingProgressUseCase {
   constructor(private readonly progress: OnboardingProgressReader) {}
@@ -27,7 +28,10 @@ export class GetOnboardingProgressUseCase {
 
     const scope = { companyId: user.companyId, userId: user.id, role: user.role };
     const completed: OnboardingStep[] = [];
-    if (await this.progress.hasOrganizationalContext(scope)) completed.push('organizational_context');
+    if (await this.progress.hasOrganizationalContext(scope)) {
+      completed.push('organizational_context');
+      if (await this.progress.hasDeclaredService(scope)) completed.push('service_context');
+    }
 
     const all: OnboardingStep[] = ['organizational_context', 'service_context', 'technical_control'];
     return {

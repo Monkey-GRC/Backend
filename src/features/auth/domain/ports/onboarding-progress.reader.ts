@@ -5,4 +5,6 @@ import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 export abstract class OnboardingProgressReader {
   // Componente 1: existe ya la organización de esta empresa.
   abstract hasOrganizationalContext(scope: TenantScope): Promise<boolean>;
+  // Componente 2: la empresa ya declaró al menos un servicio completo (con marco y descripción).
+  abstract hasDeclaredService(scope: TenantScope): Promise<boolean>;
 }

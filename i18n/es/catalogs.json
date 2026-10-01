@@ -74,6 +74,103 @@
     "defined": "Definida",
     "managed_certified": "Gestionada/Certificada"
   },
+  "service_type": {
+    "saas": "Software como servicio (SaaS)",
+    "bpo": "Tercerización de procesos (BPO)",
+    "call_center": "Contact center",
+    "data_center": "Centro de datos",
+    "ai_services": "Servicios de IA",
+    "specialized_with_data_intervention": "Servicio especializado con manejo de datos",
+    "service_desk": "Mesa de servicio",
+    "managed_services": "Servicios administrados",
+    "consulting": "Consultoría",
+    "development": "Desarrollo de software",
+    "other": "Otro"
+  },
+  "served_industry": {
+    "financial": "Financiero",
+    "healthcare": "Salud",
+    "retail": "Retail",
+    "technology": "Tecnología",
+    "government": "Gobierno",
+    "education": "Educación",
+    "manufacturing": "Manufactura",
+    "telecommunications": "Telecomunicaciones",
+    "energy": "Energía",
+    "logistics": "Logística",
+    "other": "Otro"
+  },
+  "active_client_count": {
+    "from_1_to_10": "1-10",
+    "from_11_to_50": "11-50",
+    "from_51_to_200": "51-200",
+    "from_201_to_1000": "201-1000",
+    "more_than_1000": "Más de 1000"
+  },
+  "service_country": {
+    "co": "Colombia",
+    "mx": "México",
+    "pe": "Perú",
+    "cl": "Chile",
+    "ar": "Argentina",
+    "br": "Brasil",
+    "ec": "Ecuador",
+    "uy": "Uruguay",
+    "py": "Paraguay",
+    "bo": "Bolivia",
+    "ve": "Venezuela",
+    "cr": "Costa Rica",
+    "pa": "Panamá",
+    "gt": "Guatemala",
+    "us": "Estados Unidos",
+    "ca": "Canadá",
+    "es": "España",
+    "pt": "Portugal",
+    "gb": "Reino Unido",
+    "de": "Alemania",
+    "fr": "Francia",
+    "eu": "Unión Europea",
+    "latam": "Latinoamérica",
+    "global": "Global"
+  },
+  "data_type": {
+    "pii": "Datos personales (PII)",
+    "payment": "Datos de pago",
+    "phi": "Datos de salud (PHI)",
+    "business": "Información del negocio",
+    "files": "Archivos y documentos",
+    "logs": "Registros y logs",
+    "credentials": "Credenciales",
+    "biometric": "Datos biométricos"
+  },
+  "trust_criterion": {
+    "security": "Seguridad",
+    "availability": "Disponibilidad",
+    "confidentiality": "Confidencialidad",
+    "integrity": "Integridad del procesamiento",
+    "privacy": "Privacidad"
+  },
+  "subservice_type": {
+    "aws": "Amazon Web Services (AWS)",
+    "azure": "Microsoft Azure",
+    "gcp": "Google Cloud (GCP)",
+    "on_premise": "Centro de datos propio (on-premise)",
+    "hybrid": "Híbrido",
+    "mobile": "Móvil",
+    "other": "Otro"
+  },
+  "expected_availability": {
+    "24x7": "24x7 (siempre disponible)",
+    "business_hours": "Horario laboral",
+    "on_demand": "Bajo demanda",
+    "not_applicable": "No aplica"
+  },
+  "previous_certification": {
+    "soc2": "SOC 2",
+    "soc1": "SOC 1",
+    "iso27001": "ISO 27001",
+    "none": "Ninguna"
+  },
   "regulation": {
     "none": "Ninguna",
     "other": "Otra"

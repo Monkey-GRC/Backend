@@ -5,6 +5,18 @@
 // Es dato de referencia compartido: lo validan los DTOs de onboarding y lo sirve la feature
 // `catalogs`. Los valores coinciden con los enums de Postgres del schema (tenant.*).
 
+import {
+  ACTIVE_CLIENT_COUNT_VALUES,
+  DATA_TYPE_VALUES,
+  EXPECTED_AVAILABILITY_VALUES,
+  PREVIOUS_CERTIFICATION_VALUES,
+  SERVED_INDUSTRY_VALUES,
+  SERVICE_COUNTRY_VALUES,
+  SERVICE_TYPE_VALUES,
+  SUBSERVICE_TYPE_VALUES,
+  TRUST_CRITERION_VALUES,
+} from './service-catalogs';
+
 export const SIZE_VALUES = [
   'from_10_to_50',
   'from_51_to_200',
@@ -120,7 +132,8 @@ export const REGULATION_SEED: { code: (typeof REGULATION_CODES)[number]; name: s
   { code: 'other', name: 'Otra', jurisdiction: 'n/a' },
 ];
 
-// Nombre de catálogo en la URL (GET /v1/catalogs/:name) → sus valores.
+// Nombre de catálogo en la URL (GET /v1/catalogs/:name) → sus valores. Los de la empresa
+// (Componente 1) van aquí; los del servicio (Componente 2) vienen de service-catalogs.ts.
 export const ENUM_CATALOGS = {
   size: SIZE_VALUES,
   industry: INDUSTRY_VALUES,
@@ -129,6 +142,15 @@ export const ENUM_CATALOGS = {
   incorporation_country: INCORPORATION_COUNTRY_VALUES,
   client_country: CLIENT_COUNTRY_VALUES,
   compliance_maturity: COMPLIANCE_MATURITY_VALUES,
+  service_type: SERVICE_TYPE_VALUES,
+  served_industry: SERVED_INDUSTRY_VALUES,
+  active_client_count: ACTIVE_CLIENT_COUNT_VALUES,
+  service_country: SERVICE_COUNTRY_VALUES,
+  data_type: DATA_TYPE_VALUES,
+  trust_criterion: TRUST_CRITERION_VALUES,
+  subservice_type: SUBSERVICE_TYPE_VALUES,
+  expected_availability: EXPECTED_AVAILABILITY_VALUES,
+  previous_certification: PREVIOUS_CERTIFICATION_VALUES,
 } as const;
 
 export type EnumCatalogName = keyof typeof ENUM_CATALOGS;

@@ -74,6 +74,103 @@
     "defined": "Defined",
     "managed_certified": "Managed/Certified"
   },
+  "service_type": {
+    "saas": "Software as a service (SaaS)",
+    "bpo": "Business process outsourcing (BPO)",
+    "call_center": "Contact center",
+    "data_center": "Data center",
+    "ai_services": "AI services",
+    "specialized_with_data_intervention": "Specialized service handling data",
+    "service_desk": "Service desk",
+    "managed_services": "Managed services",
+    "consulting": "Consulting",
+    "development": "Software development",
+    "other": "Other"
+  },
+  "served_industry": {
+    "financial": "Financial",
+    "healthcare": "Healthcare",
+    "retail": "Retail",
+    "technology": "Technology",
+    "government": "Government",
+    "education": "Education",
+    "manufacturing": "Manufacturing",
+    "telecommunications": "Telecommunications",
+    "energy": "Energy",
+    "logistics": "Logistics",
+    "other": "Other"
+  },
+  "active_client_count": {
+    "from_1_to_10": "1-10",
+    "from_11_to_50": "11-50",
+    "from_51_to_200": "51-200",
+    "from_201_to_1000": "201-1000",
+    "more_than_1000": "More than 1000"
+  },
+  "service_country": {
+    "co": "Colombia",
+    "mx": "Mexico",
+    "pe": "Peru",
+    "cl": "Chile",
+    "ar": "Argentina",
+    "br": "Brazil",
+    "ec": "Ecuador",
+    "uy": "Uruguay",
+    "py": "Paraguay",
+    "bo": "Bolivia",
+    "ve": "Venezuela",
+    "cr": "Costa Rica",
+    "pa": "Panama",
+    "gt": "Guatemala",
+    "us": "United States",
+    "ca": "Canada",
+    "es": "Spain",
+    "pt": "Portugal",
+    "gb": "United Kingdom",
+    "de": "Germany",
+    "fr": "France",
+    "eu": "European Union",
+    "latam": "Latin America",
+    "global": "Global"
+  },
+  "data_type": {
+    "pii": "Personal data (PII)",
+    "payment": "Payment data",
+    "phi": "Health data (PHI)",
+    "business": "Business information",
+    "files": "Files and documents",
+    "logs": "Records and logs",
+    "credentials": "Credentials",
+    "biometric": "Biometric data"
+  },
+  "trust_criterion": {
+    "security": "Security",
+    "availability": "Availability",
+    "confidentiality": "Confidentiality",
+    "integrity": "Processing integrity",
+    "privacy": "Privacy"
+  },
+  "subservice_type": {
+    "aws": "Amazon Web Services (AWS)",
+    "azure": "Microsoft Azure",
+    "gcp": "Google Cloud (GCP)",
+    "on_premise": "Own data center (on-premise)",
+    "hybrid": "Hybrid",
+    "mobile": "Mobile",
+    "other": "Other"
+  },
+  "expected_availability": {
+    "24x7": "24x7 (always available)",
+    "business_hours": "Business hours",
+    "on_demand": "On demand",
+    "not_applicable": "Not applicable"
+  },
+  "previous_certification": {
+    "soc2": "SOC 2",
+    "soc1": "SOC 1",
+    "iso27001": "ISO 27001",
+    "none": "None"
+  },
   "regulation": {
     "none": "None",
     "other": "Other"

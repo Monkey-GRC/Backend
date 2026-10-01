@@ -18,5 +18,6 @@
     "regulation_none_exclusive":  "«Ninguna» no puede combinarse con otras opciones.",
     "field_not_editable":  "La razón social se fijó al registrar la empresa y no se puede cambiar.",
     "array_invalid":  "Debe ser una lista de opciones.",
-    "array_unique":  "No repitas opciones."
+    "array_unique":  "No repitas opciones.",
+    "url_invalid":  "Escribe un enlace válido que empiece por http:// o https://."
 }

@@ -30,14 +30,24 @@ export class PrismaService
   // Ejecuta `work` dentro de una transacción con las variables de sesión que leen las políticas
   // RLS. set_config(..., true) las acota a ESTA transacción: nunca se filtran a otra petición
   // que reutilice la conexión del pool (modelo-datos.md §4.4).
-  withScope<T>(scope: TenantScope, work: (tx: TransactionClient) => Promise<T>): Promise<T> {
-    return this.$transaction(async (tx) => {
-      await tx.$queryRaw`
-        SELECT set_config('app.tenant_id', ${scope.companyId}, true),
-               set_config('app.user_id', ${scope.userId ?? ''}, true),
-               set_config('app.user_role', ${scope.role ?? ''}, true)
-      `;
-      return work(tx);
-    });
+  //
+  // `timeoutMs` sube el límite de la transacción (5 s por defecto en Prisma) para trabajos largos
+  // como el clonado del catálogo, que escribe cientos de filas de una sola vez.
+  withScope<T>(
+    scope: TenantScope,
+    work: (tx: TransactionClient) => Promise<T>,
+    options: { timeoutMs?: number } = {},
+  ): Promise<T> {
+    return this.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`
+          SELECT set_config('app.tenant_id', ${scope.companyId}, true),
+                 set_config('app.user_id', ${scope.userId ?? ''}, true),
+                 set_config('app.user_role', ${scope.role ?? ''}, true)
+        `;
+        return work(tx);
+      },
+      options.timeoutMs ? { timeout: options.timeoutMs, maxWait: 10_000 } : undefined,
+    );
   }
 }

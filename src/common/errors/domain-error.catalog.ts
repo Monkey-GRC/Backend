@@ -29,4 +29,8 @@ export const DOMAIN_ERROR_CATALOG: Record<
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     messageKey: 'company.dedicated_not_available',
   },
+  // Componente 2 (contracts/modules/onboarding-service-context.md).
+  ORGANIZATION_NOT_DECLARED: { status: HttpStatus.CONFLICT, messageKey: 'organization.not_declared' },
+  SERVICE_NAME_TAKEN: { status: HttpStatus.CONFLICT, messageKey: 'service.name_taken' },
+  SERVICE_HAS_EVALUATIONS: { status: HttpStatus.CONFLICT, messageKey: 'service.has_evaluations' },
 };
