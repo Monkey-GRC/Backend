@@ -33,4 +33,16 @@ export const DOMAIN_ERROR_CATALOG: Record<
   ORGANIZATION_NOT_DECLARED: { status: HttpStatus.CONFLICT, messageKey: 'organization.not_declared' },
   SERVICE_NAME_TAKEN: { status: HttpStatus.CONFLICT, messageKey: 'service.name_taken' },
   SERVICE_HAS_EVALUATIONS: { status: HttpStatus.CONFLICT, messageKey: 'service.has_evaluations' },
+  // Componente 3 (contracts/modules/onboarding-technical-control.md).
+  DEPLOYMENT_SCENARIO_NOT_SET: { status: HttpStatus.CONFLICT, messageKey: 'deployment_scenario.not_set' },
+  CAPABILITY_NOT_APPLICABLE: { status: HttpStatus.CONFLICT, messageKey: 'capability.not_applicable' },
+  ASSET_NOT_VALIDATED: { status: HttpStatus.CONFLICT, messageKey: 'asset.not_validated' },
+  ASSET_ALREADY_ACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'asset.already_active' },
+  ASSET_NOT_ACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'asset.not_active' },
+  FREQUENCY_NOT_SUPPORTED: {
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    messageKey: 'frequency.not_supported',
+  },
+  // Esta instalación aún no puede comprobar conexiones (sin sonda). No es un fallo del cliente.
+  CONNECTION_UNAVAILABLE: { status: HttpStatus.SERVICE_UNAVAILABLE, messageKey: 'connection.unavailable' },
 };

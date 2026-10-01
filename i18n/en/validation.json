@@ -19,5 +19,9 @@
   "field_not_editable": "The legal name was set when the company was registered and can't be changed.",
   "array_invalid": "Must be a list of options.",
   "array_unique": "Don't repeat options.",
-  "url_invalid": "Enter a valid link starting with http:// or https://."
+  "url_invalid": "Enter a valid link starting with http:// or https://.",
+  "connection_permission_denied": "The user does not have enough permissions for automatic evaluation.",
+  "ip_invalid": "Enter a valid IP address.",
+  "object_invalid": "The format is not valid.",
+  "array_max": "You selected too many options."
 }

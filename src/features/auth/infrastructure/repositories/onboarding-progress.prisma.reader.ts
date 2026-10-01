@@ -28,4 +28,17 @@ export class OnboardingProgressPrismaReader extends OnboardingProgressReader {
     );
     return count > 0;
   }
+
+  async hasTechnicalControl(scope: TenantScope): Promise<boolean> {
+    const count = await this.prisma.withScope(scope, (tx) =>
+      tx.service.count({
+        where: {
+          organization: { companyId: scope.companyId },
+          deploymentScenario: { not: null },
+          scope: { isNot: null },
+        },
+      }),
+    );
+    return count > 0;
+  }
 }

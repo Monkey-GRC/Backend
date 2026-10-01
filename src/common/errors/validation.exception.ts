@@ -22,13 +22,23 @@ const CONSTRAINT_CODES: Record<string, string> = {
   isArray: 'array.invalid',
   arrayUnique: 'array.unique',
   isUrl: 'url.invalid',
+  isIp: 'ip.invalid',
+  isObject: 'object.invalid',
+  arrayMaxSize: 'array.max',
   isEmpty: 'field.not_editable',
   whitelistValidation: 'field.not_allowed',
 };
 
+// Un 422 con errores por campo normalmente es VALIDATION_FAILED; algunos casos del contrato usan
+// su propio código (p. ej. CONNECTION_FAILED) con el mismo formato de `error.fields`.
+export type ValidationOverride = { code: string; messageKey: string };
+
 export class ValidationException extends UnprocessableEntityException {
-  constructor(public readonly fields: FieldError[]) {
-    super('VALIDATION_FAILED');
+  constructor(
+    public readonly fields: FieldError[],
+    public readonly override?: ValidationOverride,
+  ) {
+    super(override?.code ?? 'VALIDATION_FAILED');
   }
 
   // Devuelve TODOS los errores a la vez, con notación de punto/corchete para lo anidado.

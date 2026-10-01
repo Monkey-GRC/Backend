@@ -18,6 +18,17 @@ const serviceCountryGroup = (value: string): 'country' | 'region' =>
   SERVICE_COUNTRY_REGIONS.includes(value) ? 'region' : 'country';
 
 function toItems(catalog: Catalog) {
+  if (catalog.kind === 'capabilities') {
+    return catalog.items.map((c) => ({
+      catalog_code: c.catalogCode,
+      category: c.category,
+      method: c.method,
+      required_permissions: c.requiredPermissions,
+      base_frequency: c.baseFrequency,
+      supported_platforms: c.supportedPlatforms,
+      generated_evidence: c.generatedEvidence,
+    }));
+  }
   if (catalog.kind === 'regulations') {
     return catalog.items.map((r) => ({
       code: r.code,

@@ -19,7 +19,15 @@ export type DomainErrorCode =
   // Componente 2 (contracts/modules/onboarding-service-context.md).
   | 'ORGANIZATION_NOT_DECLARED'
   | 'SERVICE_NAME_TAKEN'
-  | 'SERVICE_HAS_EVALUATIONS';
+  | 'SERVICE_HAS_EVALUATIONS'
+  // Componente 3 (contracts/modules/onboarding-technical-control.md).
+  | 'DEPLOYMENT_SCENARIO_NOT_SET'
+  | 'CAPABILITY_NOT_APPLICABLE'
+  | 'ASSET_NOT_VALIDATED'
+  | 'ASSET_ALREADY_ACTIVE'
+  | 'ASSET_NOT_ACTIVE'
+  | 'FREQUENCY_NOT_SUPPORTED'
+  | 'CONNECTION_UNAVAILABLE';
 
 export class DomainError extends Error {
   constructor(

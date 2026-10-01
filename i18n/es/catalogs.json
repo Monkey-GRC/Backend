@@ -171,6 +171,23 @@
     "iso27001": "ISO 27001",
     "none": "Ninguna"
   },
+  "deployment_scenario": {
+    "cloud_managed_only": "Solo en la nube (servicios gestionados)",
+    "cloud_with_servers": "En la nube, con servidores y bases de datos",
+    "on_premise": "En mis propias instalaciones",
+    "hybrid": "Mixto: nube y mis propias instalaciones"
+  },
+  "asset_criticality": {
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "critical": "Crítica"
+  },
+  "schedule_frequency": {
+    "continuous": "Continua",
+    "every_6h": "Cada 6 horas",
+    "every_24h": "Cada 24 horas"
+  },
   "regulation": {
     "none": "Ninguna",
     "other": "Otra"

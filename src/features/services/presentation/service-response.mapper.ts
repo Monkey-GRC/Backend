@@ -43,8 +43,19 @@ export function toServiceResponse(service: ServiceDetail, catalogMessage = 'cata
     },
     completion: service.completion,
     is_complete: service.isComplete,
+    technical_control: toTechnicalControlSummary(service),
     created_at: d.createdAt.toISOString(),
     updated_at: d.updatedAt.toISOString(),
+  };
+}
+
+// Lo mínimo del Componente 3 para decidir qué mostrar; el detalle vive en
+// GET /v1/services/{id}/technical-control.
+function toTechnicalControlSummary(service: ServiceDetail) {
+  return {
+    deployment_scenario: service.data.deploymentScenario,
+    has_scope: service.data.hasScope,
+    is_complete: service.technicalControlDone,
   };
 }
 
@@ -58,6 +69,7 @@ export function toServiceListItem(service: ServiceDetail) {
     is_complete: service.isComplete,
     frameworks: d.frameworks.map((f) => ({ code: f.code, status: f.status })),
     catalog: { status: d.catalog.status, cloned_controls: d.catalog.clonedControls },
+    technical_control: toTechnicalControlSummary(service),
     created_at: d.createdAt.toISOString(),
   };
 }

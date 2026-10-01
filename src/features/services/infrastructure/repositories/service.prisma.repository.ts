@@ -456,6 +456,7 @@ export class ServicePrismaRepository extends ServiceRepository {
         frameworks: { include: { framework: true, catalogVersion: true } },
         subserviceOrganizations: true,
         systemDescription: true,
+        scope: { select: { id: true } },
       },
     });
     if (!row) return null;
@@ -519,6 +520,8 @@ export class ServicePrismaRepository extends ServiceRepository {
           }
         : null,
       catalog: { status: 'ready', applicableRequirements, clonedControls },
+      deploymentScenario: row.deploymentScenario,
+      hasScope: row.scope !== null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };

@@ -88,6 +88,9 @@ export type ServiceData = {
   expectedAvailability: ExpectedAvailability;
   systemDescription: SystemDescriptionView | null;
   catalog: CatalogSummary;
+  // Componente 3 (control técnico): solo lo que la lista necesita para decir si ya se hizo.
+  deploymentScenario: string | null;
+  hasScope: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -133,6 +136,12 @@ export class ServiceDetail {
 
   get isComplete(): boolean {
     return this.completion.required_filled === this.completion.required_total;
+  }
+
+  // El paso 3 se da por hecho con el escenario y el scope declarados (D42); conectar sistemas se
+  // recomienda pero se puede dejar para después.
+  get technicalControlDone(): boolean {
+    return this.data.deploymentScenario !== null && this.data.hasScope;
   }
 
   // Forma para el audit trail (estado antes/después, CC9.2).

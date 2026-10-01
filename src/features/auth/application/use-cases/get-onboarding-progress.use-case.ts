@@ -30,7 +30,10 @@ export class GetOnboardingProgressUseCase {
     const completed: OnboardingStep[] = [];
     if (await this.progress.hasOrganizationalContext(scope)) {
       completed.push('organizational_context');
-      if (await this.progress.hasDeclaredService(scope)) completed.push('service_context');
+      if (await this.progress.hasDeclaredService(scope)) {
+        completed.push('service_context');
+        if (await this.progress.hasTechnicalControl(scope)) completed.push('technical_control');
+      }
     }
 
     const all: OnboardingStep[] = ['organizational_context', 'service_context', 'technical_control'];

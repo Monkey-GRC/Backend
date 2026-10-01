@@ -7,4 +7,6 @@ export abstract class OnboardingProgressReader {
   abstract hasOrganizationalContext(scope: TenantScope): Promise<boolean>;
   // Componente 2: la empresa ya declaró al menos un servicio completo (con marco y descripción).
   abstract hasDeclaredService(scope: TenantScope): Promise<boolean>;
+  // Componente 3: algún servicio ya tiene su escenario de despliegue y su scope declarados.
+  abstract hasTechnicalControl(scope: TenantScope): Promise<boolean>;
 }

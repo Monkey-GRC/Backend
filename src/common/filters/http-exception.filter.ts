@@ -45,8 +45,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       Object.assign(error, exception.details);
     } else if (exception instanceof ValidationException) {
       status = HttpStatus.UNPROCESSABLE_ENTITY;
-      code = 'VALIDATION_FAILED';
-      messageKey = 'validation.failed';
+      code = exception.override?.code ?? 'VALIDATION_FAILED';
+      messageKey = exception.override?.messageKey ?? 'validation.failed';
       error.fields = exception.fields.map((f) => ({
         ...f,
         message: t(`validation.${f.code.replace('.', '_')}`),

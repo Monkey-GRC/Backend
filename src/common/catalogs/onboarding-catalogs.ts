@@ -16,6 +16,11 @@ import {
   SUBSERVICE_TYPE_VALUES,
   TRUST_CRITERION_VALUES,
 } from './service-catalogs';
+import {
+  ASSET_CRITICALITY_VALUES,
+  DEPLOYMENT_SCENARIO_VALUES,
+  SCHEDULE_FREQUENCY_VALUES,
+} from './technical-catalogs';
 
 export const SIZE_VALUES = [
   'from_10_to_50',
@@ -151,6 +156,10 @@ export const ENUM_CATALOGS = {
   subservice_type: SUBSERVICE_TYPE_VALUES,
   expected_availability: EXPECTED_AVAILABILITY_VALUES,
   previous_certification: PREVIOUS_CERTIFICATION_VALUES,
+  // Componente 3 — el control técnico
+  deployment_scenario: DEPLOYMENT_SCENARIO_VALUES,
+  asset_criticality: ASSET_CRITICALITY_VALUES,
+  schedule_frequency: SCHEDULE_FREQUENCY_VALUES,
 } as const;
 
 export type EnumCatalogName = keyof typeof ENUM_CATALOGS;
