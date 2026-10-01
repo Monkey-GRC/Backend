@@ -103,21 +103,32 @@ enum Severity {
 model ClientControl {
   id                   String               @id @default(uuid()) @db.Uuid
   tenantId             String               @map("tenant_id") @db.Uuid
-  controlId            String               @map("control_id") @db.Uuid
+  // Plantilla de origen (catalog.controls). Null en un control que el cliente creó desde cero (D36):
+  // por eso evaluations y evidence_requirements cuelgan de ESTA tabla, no del catálogo.
+  controlId            String?              @map("control_id") @db.Uuid
   serviceId            String               @map("service_id") @db.Uuid
   ownCode              String               @map("own_code") // "C01"
   clientInterpretation String               @map("client_interpretation") @db.Text
   type                 ControlDimensionType // manual|automated|hybrid|technical_manual
   sourceRef            String?              @map("source_ref")
+  // Eliminar es dar de baja, no borrar: las evaluaciones son inmutables y las FK son RESTRICT.
+  isActive             Boolean              @default(true) @map("is_active")
 
-  control Control @relation(fields: [controlId], references: [id])
-  service Service @relation(fields: [serviceId], references: [id])
+  control Control? @relation(fields: [controlId], references: [id], onDelete: Restrict)
+  service Service  @relation(fields: [serviceId], references: [id])
   tenant  Company @relation(fields: [tenantId], references: [id])
 
   actionPlans           ActionPlan[]
   userControlAssignments UserControlAssignment[]
   clientCauseControls   ClientCauseControl[]
+  evaluations           Evaluation[]
+  evidenceRequirements  EvidenceRequirement[]
+  dimensions            ClientControlDimension[]
+  tests                 ClientControlTest[]
 
+  // Un control del catálogo se clona una sola vez por servicio (idempotencia del clonado, MD-80).
+  // Los propios (control_id nulo) no chocan entre sí: en Postgres los nulos son distintos.
+  @@unique([serviceId, controlId])
   @@unique([serviceId, ownCode])
   @@index([tenantId])
   @@index([controlId])
@@ -207,23 +218,24 @@ model RiskTreatment {
 model EvidenceRequirement {
   id                   String    @id @default(uuid()) @db.Uuid
   tenantId             String    @map("tenant_id") @db.Uuid
-  controlId            String    @map("control_id") @db.Uuid
+  clientControlId      String    @map("client_control_id") @db.Uuid
   responsibleId        String?   @map("responsible_id") @db.Uuid // cargo, no persona (A1)
   code                 String
   sequence             Int
   description          String    @db.Text
   dimension            Dimension
   validityWithinPeriod String    @map("validity_within_period")
-  sourceRef            String?   @map("source_ref") // rastro al requisito del catálogo del que se clonó (§3.5)
+  sourceRef            String?   @map("source_ref") // código de la plantilla (catalog.evidence_templates); null si la creó el cliente
 
-  control     Control                  @relation(fields: [controlId], references: [id])
+  clientControl ClientControl          @relation(fields: [clientControlId], references: [id])
   responsible OrganizationResponsible? @relation(fields: [responsibleId], references: [id])
   tenant      Company                  @relation(fields: [tenantId], references: [id])
 
   submissions EvidenceSubmission[]
 
+  @@unique([clientControlId, code])
   @@index([tenantId])
-  @@index([controlId])
+  @@index([clientControlId])
   @@index([responsibleId])
   @@map("evidence_requirements")
   @@schema("tenant")
@@ -283,7 +295,8 @@ model Evaluation {
   id                       String           @id @default(uuid()) @db.Uuid
   tenantId                 String           @map("tenant_id") @db.Uuid
   serviceId                String           @map("service_id") @db.Uuid
-  controlId                String           @map("control_id") @db.Uuid
+  // El control DEL CLIENTE que se evaluó (D36). Su service_id debe ser el de esta fila: regla de aplicación.
+  clientControlId          String           @map("client_control_id") @db.Uuid
   // Qué se evaluó: el test (siempre) y, si lo midió la sonda, el check exacto. Sin esto
   // no se puede señalar "el activo y el check exactos" de una falla (§9) ni aplicar
   // exclusiones (que son por test + check).
@@ -305,7 +318,7 @@ model Evaluation {
   coveredPeriod            String?          @map("covered_period")
 
   service        Service        @relation(fields: [serviceId], references: [id])
-  control        Control        @relation(fields: [controlId], references: [id])
+  clientControl  ClientControl  @relation(fields: [clientControlId], references: [id])
   test           Test           @relation(fields: [testId], references: [id])
   check          Check?         @relation(fields: [checkId], references: [id])
   asset          Asset          @relation(fields: [assetId], references: [id])
@@ -315,12 +328,12 @@ model Evaluation {
 
   findings Finding[]
 
-  @@index([serviceId, controlId, evaluatedAt])
+  @@index([serviceId, clientControlId, evaluatedAt])
   @@index([assetId])
   @@index([tenantId])
   @@index([catalogVersionId])
   @@index([checkId])
-  @@index([controlId])
+  @@index([clientControlId])
   @@index([testId])
   @@map("evaluations")
   @@schema("tenant")
@@ -424,6 +437,7 @@ model ClientCause {
   name            String
   failureCategory FailureCategory @map("failure_category")
   description     String          @db.Text
+  isActive        Boolean         @default(true) @map("is_active") // baja lógica, como client_risks
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
 
@@ -476,5 +490,46 @@ model ClientCauseControl {
   @@index([tenantId])
   @@index([clientControlId])
   @@map("client_cause_controls")
+  @@schema("tenant")
+}
+
+
+// Copia por cliente de control_dimensions (D36): qué dimensiones aplica su control, con qué tipo y
+// banderas, y la razón si una no aplica. Un control propio declara las suyas aquí.
+model ClientControlDimension {
+  id                             String               @id @default(uuid()) @db.Uuid
+  tenantId                       String               @map("tenant_id") @db.Uuid
+  clientControlId                String               @map("client_control_id") @db.Uuid
+  dimension                      Dimension
+  type                           ControlDimensionType
+  requiresProbe                  Boolean              @default(false) @map("requires_probe")
+  requiresAi                     Boolean              @default(false) @map("requires_ai")
+  requiresComplianceConfirmation Boolean              @default(false) @map("requires_compliance_confirmation")
+  reasonNotApplicable            String?              @map("reason_not_applicable") @db.Text
+
+  clientControl ClientControl @relation(fields: [clientControlId], references: [id])
+  tenant        Company       @relation(fields: [tenantId], references: [id])
+
+  @@unique([clientControlId, dimension])
+  @@index([tenantId])
+  @@map("client_control_dimensions")
+  @@schema("tenant")
+}
+
+// Copia por cliente del vínculo control ↔ test (D36). Los tests en sí NO se clonan: se referencian.
+model ClientControlTest {
+  id              String @id @default(uuid()) @db.Uuid
+  tenantId        String @map("tenant_id") @db.Uuid
+  clientControlId String @map("client_control_id") @db.Uuid
+  testId          String @map("test_id") @db.Uuid
+
+  clientControl ClientControl @relation(fields: [clientControlId], references: [id])
+  test          Test          @relation(fields: [testId], references: [id])
+  tenant        Company       @relation(fields: [tenantId], references: [id])
+
+  @@unique([clientControlId, testId])
+  @@index([tenantId])
+  @@index([testId])
+  @@map("client_control_tests")
   @@schema("tenant")
 }
