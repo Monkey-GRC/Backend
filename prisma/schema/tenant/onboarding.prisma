@@ -680,6 +680,17 @@ model ServiceAsset {
   @@schema("tenant")
 }
 
+// Cada cuánto corre la evaluación automática de una conexión (paso "programar", §6.3).
+// ac_01 admite every_6h y every_24h; ac_02 a ac_06 son continuous.
+enum ScheduleFrequency {
+  continuous
+  every_6h
+  every_24h
+
+  @@map("schedule_frequency")
+  @@schema("tenant")
+}
+
 model AssetProvisioning {
   id                    String    @id @default(uuid()) @db.Uuid
   tenantId              String    @map("tenant_id") @db.Uuid
@@ -693,8 +704,10 @@ model AssetProvisioning {
   encryptedCredentials  String?   @map("encrypted_credentials") @db.Text
   // false al crear: un aprovisionamiento no está activo hasta que se valida la conexión.
   isActive              Boolean   @default(false) @map("is_active")
+  // Null hasta el paso "programar".
+  scheduleFrequency     ScheduleFrequency? @map("schedule_frequency")
 
-  asset               Asset               @relation(fields: [assetId], references: [id])
+  asset               Asset              @relation(fields: [assetId], references: [id])
   automatedCapability AutomatedCapability @relation(fields: [automatedCapabilityId], references: [id])
   tenant              Company             @relation(fields: [tenantId], references: [id])
 

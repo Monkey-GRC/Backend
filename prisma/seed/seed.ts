@@ -11,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaClient } from '../../generated/prisma/client';
 import { REGULATION_SEED } from '../../src/common/catalogs/onboarding-catalogs';
 import { meetsPasswordPolicy } from '../../src/common/security/password-policy';
+import { CAPABILITY_SEED } from './capabilities';
 
 const required = (key: string): string => {
   const value = process.env[key]?.trim();
@@ -47,6 +48,16 @@ async function main() {
       });
     }
     console.log(`Regulaciones sembradas: ${REGULATION_SEED.length}`);
+
+    // Capacidades automáticas ac_01 a ac_06 (Componente 3). Idempotente y sin pisar ajustes.
+    for (const capability of CAPABILITY_SEED) {
+      await prisma.automatedCapability.upsert({
+        where: { catalogCode: capability.catalogCode },
+        update: {},
+        create: capability,
+      });
+    }
+    console.log(`Capacidades automáticas sembradas: ${CAPABILITY_SEED.length}`);
 
     await prisma.$transaction(async (tx) => {
       let company = await tx.company.findFirst({
