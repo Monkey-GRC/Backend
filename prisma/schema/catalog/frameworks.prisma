@@ -55,7 +55,6 @@ model Requirement {
   trustCriterionId  String @map("trust_criterion_id") @db.Uuid
   code              String
   tscCategory       String @map("tsc_category")
-  domain            String
   criterion         String @db.Text
 
   framework      Framework      @relation(fields: [frameworkId], references: [id])
