@@ -1,6 +1,8 @@
 generator client {
   provider = "prisma-client"
   output   = "../../generated/prisma"
+  // Nest compila a CommonJS: sin esto el cliente se genera como ESM (import.meta) y el backend no arranca.
+  moduleFormat = "cjs"
 }
 
 datasource db {

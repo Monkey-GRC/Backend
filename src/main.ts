@@ -25,4 +25,10 @@ async function bootstrap() {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
+
+  setupSwagger(app);
+
+  await app.listen(process.env.PORT ?? 3000);
 }
+
+void bootstrap();
