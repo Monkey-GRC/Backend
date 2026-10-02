@@ -28,7 +28,8 @@
     "reference:load": "tsx prisma/seed/seed-reference.ts",
     "reference:verify": "tsx prisma/seed/seed-reference.ts --verify",
     "bootstrap:admin": "tsx prisma/seed/bootstrap-admin.ts",
-    "clone:verify": "tsx scripts/verify-clone-catalog.ts"
+    "clone:verify": "tsx scripts/verify-clone-catalog.ts",
+    "audit:verify": "tsx scripts/verify-audit-append-only.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1106.0",
