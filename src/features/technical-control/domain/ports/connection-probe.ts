@@ -15,7 +15,7 @@ export type ProbeResult =
   | { ok: false; fields: ProbeFieldError[] };
 
 // Quien comprueba que Monkey puede evaluar un sistema del cliente (la "sonda"). Hoy no hay
-// conectores productivos (D42): existen dos adaptadores y el que corre lo decide PROBE_MODE.
+// conectores productivos (D46): existen dos adaptadores y el que corre lo decide PROBE_MODE.
 // Cuando haya uno real, se agrega un tercero sin tocar los casos de uso.
 export abstract class ConnectionProbe {
   abstract readonly mode: ProbeMode;

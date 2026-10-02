@@ -45,7 +45,7 @@ export class ScopeDto {
   @ApiProperty({ example: 45 }) @Type(() => Number) @IsInt() @Min(0) @Max(SCOPE_MAX) endpoint_count!: number;
 }
 
-// POST /v1/assets — registrar y conectar. El tipo del activo se deduce de la conexión (D42).
+// POST /v1/assets — registrar y conectar. El tipo del activo se deduce de la conexión (D46).
 export class CreateAssetDto {
   @ApiProperty({ example: 'srv-app-prod-01' })
   @Transform(trim)

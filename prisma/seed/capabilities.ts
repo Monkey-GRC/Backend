@@ -1,7 +1,7 @@
 // Catálogo de capacidades automáticas ac_01 a ac_06 (modelo-datos.md §6.3, contracts/enums.md).
 // ac_01 a ac_03 salen tal cual del contrato de onboarding-technical-control.md. ac_04 a ac_06 no
 // tienen ficha completa en el brain: se completaron por analogía con sus equivalentes en nube y
-// quedan marcadas «por revisar con el comité» en deuda-tecnica.md (D42).
+// quedan marcadas «por revisar con el comité» en deuda-tecnica.md (D46).
 //
 // `provider` es INTERNO y confidencial: existe en la tabla porque el modelo lo pide, vive solo en
 // este seed y nunca sale en un response, un log ni una pantalla. No va en `src/`.

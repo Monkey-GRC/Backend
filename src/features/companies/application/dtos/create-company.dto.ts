@@ -15,7 +15,7 @@ import {
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 
-// contracts/modules/monkey-admin.md — el comité fija 3 campos (modelo-datos.md §4.2) y D43 añade el
+// contracts/modules/monkey-admin.md — el comité fija 3 campos (modelo-datos.md §4.2) y D47 añade el
 // marco que se contrata para la empresa.
 export class CreateCompanyDto {
   @ApiProperty({ example: 'Next Audit & Consulting S.A.S.', description: 'Razón social' })

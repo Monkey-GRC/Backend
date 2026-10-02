@@ -5,6 +5,6 @@ import { FrameworkItem } from '../entities/catalog-item';
 export abstract class FrameworkCatalogRepository {
   abstract findAll(): Promise<FrameworkItem[]>;
 
-  // Solo los marcos que Monkey Admin contrató para la empresa del que consulta (D43).
+  // Solo los marcos que Monkey Admin contrató para la empresa del que consulta (D47).
   abstract findContracted(scope: TenantScope): Promise<FrameworkItem[]>;
 }

@@ -17,7 +17,7 @@ export type SubserviceInput = {
   responsibility: string | null;
 };
 
-// Por ahora la Descripción del Sistema es un enlace; la carga de archivo queda pendiente (D41).
+// Por ahora la Descripción del Sistema es un enlace; la carga de archivo queda pendiente (D45).
 export type SystemDescriptionInput = { kind: 'link'; url: string };
 
 // Los 15 campos del request de POST /v1/services (16 del Excel: el subservicio colapsa en un array).
@@ -138,7 +138,7 @@ export class ServiceDetail {
     return this.completion.required_filled === this.completion.required_total;
   }
 
-  // El paso 3 se da por hecho con el escenario y el scope declarados (D42); conectar sistemas se
+  // El paso 3 se da por hecho con el escenario y el scope declarados (D46); conectar sistemas se
   // recomienda pero se puede dejar para después.
   get technicalControlDone(): boolean {
     return this.data.deploymentScenario !== null && this.data.hasScope;

@@ -8,7 +8,7 @@ export type NewCompany = {
   name: string;
   adminEmail: string;
   isolationStrategy: IsolationStrategy;
-  // Marcos que se contratan al registrar la empresa (D43). Ya validados contra el catálogo.
+  // Marcos que se contratan al registrar la empresa (D47). Ya validados contra el catálogo.
   frameworkCodes: string[];
 };
 

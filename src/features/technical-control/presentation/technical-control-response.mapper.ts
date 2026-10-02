@@ -32,7 +32,7 @@ export function toDeploymentScenarioResponse(state: TechnicalControlState) {
   };
 }
 
-// El paso 3 se da por hecho cuando ya están el escenario y el scope (D42): conectar sistemas se
+// El paso 3 se da por hecho cuando ya están el escenario y el scope (D46): conectar sistemas se
 // recomienda pero se puede dejar para después.
 export function toTechnicalControlResponse(state: TechnicalControlState, probeMode: string) {
   return {

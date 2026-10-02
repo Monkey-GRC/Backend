@@ -116,7 +116,7 @@ export class CompanyPrismaRepository extends CompanyRepository {
         },
       });
 
-      // Contrato de marcos (D43): la versión vigente de cada marco. platform.company_frameworks
+      // Contrato de marcos (D47): la versión vigente de cada marco. platform.company_frameworks
       // solo admite escritura de admin_monkey (RLS), que es quien registra la empresa.
       const today = startOfDayUtc(new Date());
       for (const code of data.frameworkCodes) {

@@ -1,4 +1,4 @@
-// Reglas del Componente 3 (Control Técnico) que el contrato fija o que D42 cierra: qué conexiones
+// Reglas del Componente 3 (Control Técnico) que el contrato fija o que D46 cierra: qué conexiones
 // ofrece cada escenario, de qué tipo es el activo según la conexión, con qué frecuencia corre cada
 // una y qué credenciales pide. Es dato de referencia compartido por la aplicación; los valores
 // coinciden con los enums de Postgres del schema (tenant.*).
@@ -18,7 +18,7 @@ export const CONNECTION_CATEGORY_VALUES = ['ac_01', 'ac_02', 'ac_03', 'ac_04', '
 export type ConnectionCategory = (typeof CONNECTION_CATEGORY_VALUES)[number];
 
 // Qué conexiones se le ofrecen al cliente según el escenario de su servicio. «Híbrido» ofrece las
-// seis y el cliente usa las que le sirvan (D42): así no se le pide clasificarse.
+// seis y el cliente usa las que le sirvan (D46): así no se le pide clasificarse.
 export const SCENARIO_CAPABILITIES: Record<DeploymentScenarioValue, readonly ConnectionCategory[]> = {
   cloud_managed_only: ['ac_01'],
   cloud_with_servers: ['ac_01', 'ac_02', 'ac_03'],
@@ -43,7 +43,7 @@ export const FREQUENCIES_BY_CATEGORY: Record<ConnectionCategory, readonly Schedu
 };
 
 // El tipo del activo se deduce de la conexión que se usa para registrarlo: el cliente elige
-// «qué quiere conectar» y no tiene que clasificarlo dos veces (D42).
+// «qué quiere conectar» y no tiene que clasificarlo dos veces (D46).
 export type AssetTypeValue =
   | 'server'
   | 'database'
@@ -62,7 +62,7 @@ export const ASSET_TYPE_BY_CATEGORY: Record<ConnectionCategory, AssetTypeValue> 
 };
 
 // Los cinco contadores del scope declarado y el tipo de activo que los llena al conectar.
-// `network_device` y `documentation` no se cuentan: no son lo que el cliente declara (D42).
+// `network_device` y `documentation` no se cuentan: no son lo que el cliente declara (D46).
 export const SCOPE_KEYS = ['server_count', 'cloud_count', 'app_count', 'database_count', 'endpoint_count'] as const;
 export type ScopeKey = (typeof SCOPE_KEYS)[number];
 export const SCOPE_KEY_BY_ASSET_TYPE: Partial<Record<AssetTypeValue, ScopeKey>> = {

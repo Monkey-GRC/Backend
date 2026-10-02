@@ -87,7 +87,7 @@ model Company {
   @@schema("platform")
 }
 
-// Los marcos que Monkey Admin contrató para una empresa al registrarla (D43). Solo admin_monkey
+// Los marcos que Monkey Admin contrató para una empresa al registrarla (D47). Solo admin_monkey
 // escribe; la empresa lo lee. Al declarar un servicio, el cliente solo puede elegir entre estos
 // (service_frameworks sigue guardando qué marco persigue cada servicio y desde qué versión).
 model CompanyFramework {

@@ -20,7 +20,7 @@ export type RegisterCompanyInput = {
   name: string;
   requiresDedicatedDatabase: boolean;
   adminEmail: string;
-  // Marcos que se contratan para la empresa (D43).
+  // Marcos que se contratan para la empresa (D47).
   frameworkCodes: string[];
 };
 

@@ -37,7 +37,7 @@ export async function assertServiceInput(
 
   if (errors.length > 0) throw new ValidationException(errors);
 
-  // El cliente solo puede perseguir marcos que Monkey Admin contrató para su empresa (D43).
+  // El cliente solo puede perseguir marcos que Monkey Admin contrató para su empresa (D47).
   if (input.frameworkCodes) {
     const contracted = new Set(await services.contractedFrameworkCodes(scope));
     const missing = input.frameworkCodes.filter((code) => !contracted.has(code));

@@ -16,7 +16,7 @@ export abstract class ServiceRepository {
   abstract existingFrameworkCodes(codes: string[]): Promise<string[]>;
   abstract existingRegulationCodes(codes: string[]): Promise<string[]>;
 
-  // Los marcos que Monkey Admin contrató para ESTA empresa (platform.company_frameworks, D43).
+  // Los marcos que Monkey Admin contrató para ESTA empresa (platform.company_frameworks, D47).
   abstract contractedFrameworkCodes(scope: TenantScope): Promise<string[]>;
 
   // Declara el servicio y clona el catálogo de sus marcos, todo en una sola transacción.

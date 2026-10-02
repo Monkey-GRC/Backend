@@ -1,7 +1,7 @@
 import { AccessKey } from './access-key.entity';
 import { Company } from './company.entity';
 
-// Un marco contratado para la empresa (D43).
+// Un marco contratado para la empresa (D47).
 export type ContractedFramework = {
   code: string;
   name: string;

@@ -14,7 +14,7 @@ export type NormalizedCredentials = {
 
 const isText = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0;
 
-// Cada conexión pide credenciales distintas (D42). Se validan aquí, con el mismo formato de error
+// Cada conexión pide credenciales distintas (D46). Se validan aquí, con el mismo formato de error
 // por campo que el resto (`credentials.ssh_user: required`), y se devuelve solo lo que se guarda.
 export function normalizeCredentials(category: ConnectionCategory, raw: unknown): NormalizedCredentials {
   const spec = CREDENTIAL_SPECS[category];
