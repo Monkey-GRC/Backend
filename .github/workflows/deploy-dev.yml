@@ -21,9 +21,15 @@ jobs:
           target: "/home/ubuntu/monkey-dev/backend"
           rm: true
 
-      - name: Escribir .env y (re)desplegar
+      - name: Migrar la base, escribir .env y (re)desplegar
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          # Rol DUEÑO de la base de staging, solo para migrar. NO va en el .env del backend (que solo lleva
+          # APP_DATABASE_URL, el rol monkey_app). Formato: postgresql://postgres:<clave>@postgres-staging:5432/monkey
+          # (la clave con caracteres especiales va codificada como URL).
+          MIGRATE_DATABASE_URL: ${{ secrets.MIGRATE_DATABASE_URL }}
         with:
+          envs: MIGRATE_DATABASE_URL
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
@@ -41,6 +47,10 @@ jobs:
           script: |
             set -e
             echo '${{ secrets.ENV_FILE }}' | base64 -d > /home/ubuntu/monkey-dev/.env
+            # 1) Migrar ANTES de levantar el backend nuevo. Si falla (set -e + script_stop), el deploy se
+            #    aborta y el backend anterior sigue corriendo. Respalda antes de tocar la base: ver
+            #    backend/scripts/deploy/migrate.sh y schema-implementacion.md §7 (reversa).
+            bash /home/ubuntu/monkey-dev/backend/scripts/deploy/migrate.sh
             cd /home/ubuntu/monkey-dev
             docker compose build backend
             docker compose up -d backend

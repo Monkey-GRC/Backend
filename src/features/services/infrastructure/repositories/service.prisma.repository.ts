@@ -17,7 +17,7 @@ import {
   SystemDescriptionInput,
 } from '../../domain/entities/service.entity';
 import { Change, ServiceRepository } from '../../domain/repositories/service.repository';
-import { CatalogCloner } from '../catalog-cloner';
+import { CloneCatalogService } from '../../../onboarding/application/clone-catalog.service';
 
 // Crear o ampliar un servicio clona el catálogo en la misma transacción: escribe unos cientos de
 // filas contra la base, así que necesita más de los 5 s que Prisma da por defecto.
@@ -37,7 +37,7 @@ const toDbAvailability = (value: ExpectedAvailability): never =>
 const fromDbAvailability = (value: string): ExpectedAvailability =>
   (value === 'h24x7' ? '24x7' : value) as ExpectedAvailability;
 
-const subserviceKey =(s: SubserviceInput): string =>
+const subserviceKey = (s: SubserviceInput): string =>
   JSON.stringify([s.type, s.provider, s.serviceProvided, s.responsibility]);
 
 const withMandatory = (criteria: TrustCriterionValue[]): TrustCriterionValue[] =>
@@ -45,9 +45,10 @@ const withMandatory = (criteria: TrustCriterionValue[]): TrustCriterionValue[] =
 
 @Injectable()
 export class ServicePrismaRepository extends ServiceRepository {
-  private readonly cloner = new CatalogCloner();
-
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cloneCatalog: CloneCatalogService,
+  ) {
     super();
   }
 
@@ -110,7 +111,7 @@ export class ServicePrismaRepository extends ServiceRepository {
       await this.syncSubservices(tx, scope.companyId, service.id, input.subserviceOrganizations);
       await this.upsertSystemDescription(tx, scope.companyId, service.id, input.systemDescription);
       await this.syncFrameworks(tx, scope.companyId, service.id, input.frameworkCodes);
-      await this.cloneContractedFrameworks(tx, scope.companyId, service.id);
+      await this.cloneContractedFrameworks(tx, service.id);
 
       return this.read(tx, service.id);
     }, CLONING_TRANSACTION);
@@ -182,7 +183,7 @@ export class ServicePrismaRepository extends ServiceRepository {
       // Ampliar criterios o marcos recalcula los requisitos aplicables y clona lo que falte. Nunca
       // borra ni pisa: lo que el cliente ya tiene (y editó) se queda como está.
       if (patch.trustCriteria || patch.frameworkCodes) {
-        await this.cloneContractedFrameworks(tx, scope.companyId, id);
+        await this.cloneContractedFrameworks(tx, id);
       }
 
       return { before, after: await this.read(tx, id) };
@@ -428,25 +429,15 @@ export class ServicePrismaRepository extends ServiceRepository {
     }
   }
 
-  // Elegir marco dispara el clonado sin acción manual (MD-80, criterio de aceptación del sprint).
-  private async cloneContractedFrameworks(
-    tx: TransactionClient,
-    tenantId: string,
-    serviceId: string,
-  ): Promise<void> {
-    const [frameworks, criteria] = await Promise.all([
-      tx.serviceFramework.findMany({ where: { serviceId, status: 'active' } }),
-      tx.serviceTrustCriterion.findMany({ where: { serviceId }, select: { trustCriterionId: true } }),
-    ]);
-    for (const f of frameworks) {
-      await this.cloner.cloneFramework(tx, {
-        tenantId,
-        serviceId,
-        frameworkId: f.frameworkId,
-        trustCriterionIds: criteria.map((c) => c.trustCriterionId),
-        evaluationPeriod: f.evaluationPeriod,
-      });
-    }
+  // Elegir marco dispara el clonado sin acción manual (MD-80, criterio de aceptación del sprint). El
+  // clonado es el de `CloneCatalogService` (D40): idempotente, respeta lo que el cliente personalizó y
+  // corre en esta misma transacción, con el tenant ya fijado.
+  private async cloneContractedFrameworks(tx: TransactionClient, serviceId: string): Promise<void> {
+    const frameworks = await tx.serviceFramework.findMany({
+      where: { serviceId, status: 'active' },
+      select: { id: true },
+    });
+    for (const f of frameworks) await this.cloneCatalog.cloneForServiceFramework(tx, f.id);
   }
 
   // --- lectura ---------------------------------------------------------------------------------

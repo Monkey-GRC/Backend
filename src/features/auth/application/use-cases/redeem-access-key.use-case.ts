@@ -128,7 +128,7 @@ export class RedeemAccessKeyUseCase {
       tenantId,
       userId,
       attemptedEmail,
-      action: 'auth.redeem',
+      action: 'access_key.redeem',
       resource: 'access_key',
       result,
       ipAddress: meta.ipAddress,

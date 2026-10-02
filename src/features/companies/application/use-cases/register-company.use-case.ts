@@ -94,7 +94,7 @@ export class RegisterCompanyUseCase {
     await this.audit.write({
       tenantId: null,
       userId: principal.userId,
-      action: 'company.create',
+      action: 'company.register',
       resource: 'company',
       result: 'success',
       ipAddress: meta.ipAddress,

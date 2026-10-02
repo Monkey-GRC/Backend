@@ -84,11 +84,14 @@ export class LoginUseCase {
     afterState: Record<string, unknown>,
     attemptedEmail?: string,
   ): Promise<void> {
+    // Convención de auditoría (contracts/conventions.md): un acceso correcto es `auth.login` en su
+    // empresa; uno fallido es `auth.login_failed` sin tenant (CC7.2), porque el correo puede no existir.
+    const failed = result === 'error';
     return this.audit.write({
-      tenantId,
+      tenantId: failed ? null : tenantId,
       userId,
       attemptedEmail,
-      action: 'auth.login',
+      action: failed ? 'auth.login_failed' : 'auth.login',
       resource: 'session',
       result,
       ipAddress: meta.ipAddress,

@@ -119,23 +119,8 @@ export const REGULATION_CODES = [
 
 export const REGULATION_NONE = 'none';
 
-// Nombre y jurisdicción con que se siembra catalog.regulations. No se puntúan (D10).
-export const REGULATION_SEED: { code: (typeof REGULATION_CODES)[number]; name: string; jurisdiction: string }[] = [
-  { code: 'ley_1581_co', name: 'Ley 1581', jurisdiction: 'CO' },
-  { code: 'lfpdppp_mx', name: 'LFPDPPP', jurisdiction: 'MX' },
-  { code: 'ley_29733_pe', name: 'Ley 29733', jurisdiction: 'PE' },
-  { code: 'ley_19628_cl', name: 'Ley 19628', jurisdiction: 'CL' },
-  { code: 'ley_25326_ar', name: 'Ley 25326', jurisdiction: 'AR' },
-  { code: 'lgpd_br', name: 'LGPD', jurisdiction: 'BR' },
-  { code: 'gdpr_eu', name: 'GDPR', jurisdiction: 'EU' },
-  { code: 'lopdgdd_es', name: 'LOPDGDD', jurisdiction: 'ES' },
-  { code: 'hipaa_us', name: 'HIPAA', jurisdiction: 'US' },
-  { code: 'ccpa_cpra_us', name: 'CCPA/CPRA', jurisdiction: 'US' },
-  { code: 'glba_us', name: 'GLBA', jurisdiction: 'US' },
-  { code: 'pci_dss', name: 'PCI DSS', jurisdiction: 'global' },
-  { code: 'none', name: 'Ninguna', jurisdiction: 'n/a' },
-  { code: 'other', name: 'Otra', jurisdiction: 'n/a' },
-];
+// El catálogo de regulaciones (nombre y jurisdicción) se siembra desde prisma/seed/reference/data.ts
+// (npm run reference:load); aquí solo viven los códigos que valida la API. No se puntúan (D10).
 
 // Nombre de catálogo en la URL (GET /v1/catalogs/:name) → sus valores. Los de la empresa
 // (Componente 1) van aquí; los del servicio (Componente 2) vienen de service-catalogs.ts.
