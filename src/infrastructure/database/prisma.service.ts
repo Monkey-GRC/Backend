@@ -6,6 +6,8 @@ import { TenantScope } from '../../common/tenancy/tenant-scope';
 
 export type TransactionClient = Prisma.TransactionClient;
 
+const QUEUE_WAIT_MS = 10_000;
+
 @Injectable()
 export class PrismaService
   extends PrismaClient
@@ -47,7 +49,12 @@ export class PrismaService
         `;
         return work(tx);
       },
-      options.timeoutMs ? { timeout: options.timeoutMs, maxWait: 10_000 } : undefined,
+      // `maxWait` es cuánto espera una petición por una conexión libre del pool. Con el valor por
+      // defecto (2 s) una ráfaga de peticiones paralelas terminaba en 500 aunque la base estuviera
+      // sana; aquí se encolan.
+      options.timeoutMs
+        ? { timeout: options.timeoutMs, maxWait: QUEUE_WAIT_MS }
+        : { maxWait: QUEUE_WAIT_MS },
     );
   }
 }
