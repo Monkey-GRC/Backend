@@ -1,0 +1,195 @@
+{
+  "size": {
+    "from_10_to_50": "10-50",
+    "from_51_to_200": "51-200",
+    "from_201_to_500": "201-500",
+    "from_501_to_1000": "501-1000",
+    "from_1001_to_2000": "1001-2000",
+    "from_2001_to_5000": "2001-5000",
+    "more_than_5000": "Más de 5000"
+  },
+  "industry": {
+    "financial_banking": "Financiero/Banca",
+    "fintech": "Fintech",
+    "healthcare": "Salud",
+    "technology_saas": "Tecnología/SaaS",
+    "bpo_outsourcing": "BPO/Tercerización",
+    "telecommunications": "Telecomunicaciones",
+    "retail_ecommerce": "Retail/E-commerce",
+    "manufacturing": "Manufactura",
+    "government": "Gobierno",
+    "education": "Educación",
+    "insurance": "Seguros",
+    "logistics": "Logística",
+    "energy_utilities": "Energía/Utilities",
+    "other": "Otro"
+  },
+  "business_model": {
+    "bpo_kpo_ito": "BPO/KPO/ITO",
+    "call_contact_center": "Call/Contact Center",
+    "data_center": "Data Center",
+    "ai_ml": "IA/ML",
+    "service_desk": "Mesa de servicio",
+    "saas_paas_iaas": "SaaS/PaaS/IaaS",
+    "fintech_payments": "Fintech/Pagos",
+    "banking": "Banca",
+    "insurance": "Seguros",
+    "marketplace_ecommerce": "Marketplace/E-commerce",
+    "software_factory": "Fábrica de software",
+    "consulting": "Consultoría",
+    "telecommunications": "Telecomunicaciones",
+    "logistics": "Logística",
+    "healthcare": "Salud",
+    "edtech": "EdTech",
+    "manufacturing": "Manufactura",
+    "government": "Gobierno",
+    "other": "Otro"
+  },
+  "years_in_operation": {
+    "less_than_1": "Menos de 1",
+    "from_1_to_3": "1-3",
+    "from_3_to_5": "3-5",
+    "from_5_to_10": "5-10",
+    "more_than_10": "Más de 10"
+  },
+  "country": {
+    "co": "Colombia",
+    "mx": "México",
+    "pe": "Perú",
+    "cl": "Chile",
+    "ar": "Argentina",
+    "br": "Brasil",
+    "ec": "Ecuador",
+    "pa": "Panamá",
+    "cr": "Costa Rica",
+    "us": "USA",
+    "es": "España",
+    "eu": "Unión Europea",
+    "other": "Otro"
+  },
+  "compliance_maturity": {
+    "none": "Ninguna",
+    "initial_ad_hoc": "Inicial/Ad-hoc",
+    "implementing": "En implementación",
+    "defined": "Definida",
+    "managed_certified": "Gestionada/Certificada"
+  },
+  "service_type": {
+    "saas": "Software como servicio (SaaS)",
+    "bpo": "Tercerización de procesos (BPO)",
+    "call_center": "Contact center",
+    "data_center": "Centro de datos",
+    "ai_services": "Servicios de IA",
+    "specialized_with_data_intervention": "Servicio especializado con manejo de datos",
+    "service_desk": "Mesa de servicio",
+    "managed_services": "Servicios administrados",
+    "consulting": "Consultoría",
+    "development": "Desarrollo de software",
+    "other": "Otro"
+  },
+  "served_industry": {
+    "financial": "Financiero",
+    "healthcare": "Salud",
+    "retail": "Retail",
+    "technology": "Tecnología",
+    "government": "Gobierno",
+    "education": "Educación",
+    "manufacturing": "Manufactura",
+    "telecommunications": "Telecomunicaciones",
+    "energy": "Energía",
+    "logistics": "Logística",
+    "other": "Otro"
+  },
+  "active_client_count": {
+    "from_1_to_10": "1-10",
+    "from_11_to_50": "11-50",
+    "from_51_to_200": "51-200",
+    "from_201_to_1000": "201-1000",
+    "more_than_1000": "Más de 1000"
+  },
+  "service_country": {
+    "co": "Colombia",
+    "mx": "México",
+    "pe": "Perú",
+    "cl": "Chile",
+    "ar": "Argentina",
+    "br": "Brasil",
+    "ec": "Ecuador",
+    "uy": "Uruguay",
+    "py": "Paraguay",
+    "bo": "Bolivia",
+    "ve": "Venezuela",
+    "cr": "Costa Rica",
+    "pa": "Panamá",
+    "gt": "Guatemala",
+    "us": "Estados Unidos",
+    "ca": "Canadá",
+    "es": "España",
+    "pt": "Portugal",
+    "gb": "Reino Unido",
+    "de": "Alemania",
+    "fr": "Francia",
+    "eu": "Unión Europea",
+    "latam": "Latinoamérica",
+    "global": "Global"
+  },
+  "data_type": {
+    "pii": "Datos personales (PII)",
+    "payment": "Datos de pago",
+    "phi": "Datos de salud (PHI)",
+    "business": "Información del negocio",
+    "files": "Archivos y documentos",
+    "logs": "Registros y logs",
+    "credentials": "Credenciales",
+    "biometric": "Datos biométricos"
+  },
+  "trust_criterion": {
+    "security": "Seguridad",
+    "availability": "Disponibilidad",
+    "confidentiality": "Confidencialidad",
+    "integrity": "Integridad del procesamiento",
+    "privacy": "Privacidad"
+  },
+  "subservice_type": {
+    "aws": "Amazon Web Services (AWS)",
+    "azure": "Microsoft Azure",
+    "gcp": "Google Cloud (GCP)",
+    "on_premise": "Centro de datos propio (on-premise)",
+    "hybrid": "Híbrido",
+    "mobile": "Móvil",
+    "other": "Otro"
+  },
+  "expected_availability": {
+    "24x7": "24x7 (siempre disponible)",
+    "business_hours": "Horario laboral",
+    "on_demand": "Bajo demanda",
+    "not_applicable": "No aplica"
+  },
+  "previous_certification": {
+    "soc2": "SOC 2",
+    "soc1": "SOC 1",
+    "iso27001": "ISO 27001",
+    "none": "Ninguna"
+  },
+  "deployment_scenario": {
+    "cloud_managed_only": "Solo en la nube (servicios gestionados)",
+    "cloud_with_servers": "En la nube, con servidores y bases de datos",
+    "on_premise": "En mis propias instalaciones",
+    "hybrid": "Mixto: nube y mis propias instalaciones"
+  },
+  "asset_criticality": {
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "critical": "Crítica"
+  },
+  "schedule_frequency": {
+    "continuous": "Continua",
+    "every_6h": "Cada 6 horas",
+    "every_24h": "Cada 24 horas"
+  },
+  "regulation": {
+    "none": "Ninguna",
+    "other": "Otra"
+  }
+}

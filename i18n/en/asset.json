@@ -1,0 +1,12 @@
+{
+  "created": "Done, we registered the system. Now let's check the connection.",
+  "list": "Your company's systems.",
+  "detail": "System detail.",
+  "validated": "The connection works.",
+  "activated": "Done, automatic evaluation is now active.",
+  "scheduled": "Done, we scheduled the automatic evaluation.",
+  "connection_failed": "We couldn't connect to the system. Check the details and try again.",
+  "not_validated": "Check the connection first so you can activate it.",
+  "already_active": "This connection is already active.",
+  "not_active": "Activate the connection first so you can schedule it."
+}

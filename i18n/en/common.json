@@ -1,0 +1,9 @@
+{
+  "bad_request": "Bad request.",
+  "unauthenticated": "You must sign in.",
+  "forbidden": "You don't have permission for this action.",
+  "not_found": "Resource not found.",
+  "conflict": "The request conflicts with the current state.",
+  "rate_limited": "Too many requests. Try again shortly.",
+  "internal_error": "Internal server error."
+}

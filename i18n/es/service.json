@@ -1,0 +1,10 @@
+{
+  "created": "Listo, declaramos tu servicio y preparamos tu catálogo.",
+  "list": "Servicios de tu empresa.",
+  "detail": "Detalle del servicio.",
+  "updated": "Listo, actualizamos tu servicio.",
+  "deleted": "Servicio eliminado.",
+  "name_taken": "Ya tienes un servicio con ese nombre.",
+  "has_evaluations": "Este servicio ya tiene evaluaciones o evidencias registradas, por eso no se puede eliminar.",
+  "system_description_saved": "Guardamos la descripción del sistema."
+}

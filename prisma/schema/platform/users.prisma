@@ -60,6 +60,7 @@ model User {
   sessions                  Session[]
   apiKeysCreated            ApiKey[]
   accessKeysCreated         AccessKey[]
+  frameworksContracted      CompanyFramework[]
   catalogVersionsPublished  CatalogVersion[]
   actionPlansResponsible    ActionPlan[]
   residualRisksAccepted     ResidualRisk[]
@@ -141,6 +142,10 @@ model Session {
   userAgent         String    @map("user_agent")
   expiresAt         DateTime  @map("expires_at")
   revokedAt         DateTime? @map("revoked_at")
+  // Política de §5.3: la sesión muere a los 30 min sin actividad (last_activity_at) y a las
+  // 8 h de creada (created_at), aunque siga activa.
+  createdAt         DateTime  @default(now()) @map("created_at")
+  lastActivityAt    DateTime  @default(now()) @map("last_activity_at")
 
   user User @relation(fields: [userId], references: [id])
   company Company @relation(fields: [companyId], references: [id])

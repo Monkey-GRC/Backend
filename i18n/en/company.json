@@ -1,0 +1,8 @@
+{
+  "created": "Company registered. Copy the access key: it won't be shown again.",
+  "list": "Registered companies.",
+  "detail": "Company detail.",
+  "name_taken": "An active company with that legal name already exists.",
+  "admin_email_taken": "That email is already the administrative contact of another company.",
+  "dedicated_not_available": "Dedicated databases are not available yet. Register the company without one for now."
+}
