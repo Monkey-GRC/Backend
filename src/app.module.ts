@@ -4,6 +4,7 @@ import { I18nModule, AcceptLanguageResolver } from 'nestjs-i18n';
 import path from 'path';
 import { APP_FILTER } from '@nestjs/core';
 import { DatabaseModule } from './infrastructure/database/database.module';
+import { OnboardingModule } from './features/onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { DatabaseModule } from './infrastructure/database/database.module';
       resolvers: [AcceptLanguageResolver],
     }),
     DatabaseModule,
+    OnboardingModule,
   ],
   controllers: [],
 })
