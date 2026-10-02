@@ -87,6 +87,9 @@ export const EXPECTED_AVAILABILITY_VALUES = [
   'not_applicable',
 ] as const;
 
+// Marcos que Monkey Admin contrata al registrar una empresa si no se indica otro: hoy solo SOC 2 (D37, D43).
+export const DEFAULT_CONTRACTED_FRAMEWORKS: readonly string[] = ['soc2'];
+
 export const PREVIOUS_CERTIFICATION_VALUES = ['soc2', 'soc1', 'iso27001', 'none'] as const;
 
 export type ServiceType = (typeof SERVICE_TYPE_VALUES)[number];

@@ -16,6 +16,7 @@ import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { DEFAULT_CONTRACTED_FRAMEWORKS } from '../../../common/catalogs/service-catalogs';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { toPageResponse } from '../../../common/pagination/page';
 import { CreateCompanyDto } from '../application/dtos/create-company.dto';
@@ -57,6 +58,7 @@ export class CompaniesController {
         name: dto.name,
         requiresDedicatedDatabase: dto.requires_dedicated_database,
         adminEmail: dto.admin_email,
+        frameworkCodes: dto.framework_codes ?? [...DEFAULT_CONTRACTED_FRAMEWORKS],
       },
       { ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' },
     );

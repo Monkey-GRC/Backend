@@ -28,6 +28,11 @@ import {
 import { TechnicalControlRepository } from '../../domain/repositories/technical-control.repository';
 
 const ASSET_PREFIX = 'AST-';
+
+// Las altas de una misma empresa se ponen en fila por el candado del código AST-####: con varias a
+// la vez, la última espera a las demás y puede pasar de los 5 s que Prisma da por defecto a una
+// transacción. Margen explícito para que ninguna alta legítima se pierda.
+const ASSET_CREATION_TRANSACTION = { timeoutMs: 30_000 };
 // Una conexión ya comprobada cuenta como «conectada» frente a lo que el cliente declaró.
 const CONNECTED_STATUSES = ['validated', 'active', 'scheduled'] as const;
 
@@ -200,7 +205,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
         },
       });
       return this.readAsset(tx, asset.id);
-    });
+    }, ASSET_CREATION_TRANSACTION);
   }
 
   listAssets(scope: TenantScope, filters: AssetFilters, page: PageRequest): Promise<Page<Asset>> {

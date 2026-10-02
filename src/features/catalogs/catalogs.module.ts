@@ -4,6 +4,7 @@ import { FrameworkCatalogRepository } from './domain/repositories/framework-cata
 import { CapabilityCatalogPrismaRepository } from './infrastructure/repositories/capability-catalog.prisma.repository';
 import { RegulationCatalogRepository } from './domain/repositories/regulation-catalog.repository';
 import { GetCatalogUseCase } from './application/use-cases/get-catalog.use-case';
+import { GetContractedFrameworksUseCase } from './application/use-cases/get-contracted-frameworks.use-case';
 import { FrameworkCatalogPrismaRepository } from './infrastructure/repositories/framework-catalog.prisma.repository';
 import { RegulationCatalogPrismaRepository } from './infrastructure/repositories/regulation-catalog.prisma.repository';
 import { CatalogsController } from './presentation/catalogs.controller';
@@ -15,6 +16,7 @@ import { CatalogsController } from './presentation/catalogs.controller';
     { provide: FrameworkCatalogRepository, useClass: FrameworkCatalogPrismaRepository },
     { provide: CapabilityCatalogRepository, useClass: CapabilityCatalogPrismaRepository },
     GetCatalogUseCase,
+    GetContractedFrameworksUseCase,
   ],
 })
 export class CatalogsModule {}

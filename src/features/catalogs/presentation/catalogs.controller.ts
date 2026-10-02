@@ -2,8 +2,12 @@ import { Controller, Get, HttpStatus, Param } from '@nestjs/common';
 import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 import { I18nContext } from 'nestjs-i18n';
 import { SERVICE_COUNTRY_REGIONS } from '../../../common/catalogs/service-catalogs';
+import type { Principal } from '../../../common/auth/principal';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { Roles } from '../../../common/decorators/roles.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { GetCatalogUseCase } from '../application/use-cases/get-catalog.use-case';
+import { GetContractedFrameworksUseCase } from '../application/use-cases/get-contracted-frameworks.use-case';
 import { Catalog } from '../domain/entities/catalog-item';
 
 const t = (key: string): string =>
@@ -61,7 +65,20 @@ function toItems(catalog: Catalog) {
 @ApiCookieAuth()
 @Controller('catalogs')
 export class CatalogsController {
-  constructor(private readonly getCatalog: GetCatalogUseCase) {}
+  constructor(
+    private readonly getCatalog: GetCatalogUseCase,
+    private readonly getContracted: GetContractedFrameworksUseCase,
+  ) {}
+
+  // Va antes de `:name` para que no se confunda con un catálogo. Solo el cliente: es lo suyo.
+  @Get('contracted-frameworks')
+  @Roles('admin_empresa')
+  async contracted(@CurrentUser() principal: Principal) {
+    const items = await this.getContracted.execute(principal);
+    return new ResponseDto(HttpStatus.OK, t('framework.contracted'), {
+      items: toItems({ kind: 'frameworks', items }),
+    });
+  }
 
   @Get(':name')
   async get(@Param('name') name: string) {

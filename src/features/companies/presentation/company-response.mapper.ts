@@ -1,5 +1,9 @@
 import { AccessKey } from '../domain/entities/access-key.entity';
-import { CompanyDetail, CompanyOverview } from '../domain/entities/company-overview';
+import {
+  CompanyDetail,
+  CompanyOverview,
+  ContractedFramework,
+} from '../domain/entities/company-overview';
 import { Company } from '../domain/entities/company.entity';
 import { RegisterCompanyResult } from '../application/use-cases/register-company.use-case';
 
@@ -17,10 +21,14 @@ const companyFields = (c: Company) => ({
   created_at: c.createdAt.toISOString(),
 });
 
+const frameworksField = (frameworks: ContractedFramework[]) =>
+  frameworks.map((f) => ({ code: f.code, name: f.name, contracted_at: f.contractedAt }));
+
 export function toRegisteredCompanyResponse(result: RegisterCompanyResult) {
   const now = new Date();
   return {
     ...companyFields(result.company),
+    frameworks: frameworksField(result.frameworks),
     updated_at: result.company.updatedAt.toISOString(),
     access_key: {
       id: result.accessKey.id,
@@ -35,6 +43,7 @@ export function toCompanyListItem(overview: CompanyOverview, now = new Date()) {
   const key = overview.currentAccessKey;
   return {
     ...companyFields(overview.company),
+    frameworks: frameworksField(overview.frameworks),
     access_key_status: key?.statusAt(now) ?? null,
     access_key_expires_at: iso(key?.expiresAt ?? null),
     onboarding_completed: overview.onboardingCompleted,

@@ -20,6 +20,8 @@ export type DomainErrorCode =
   | 'ORGANIZATION_NOT_DECLARED'
   | 'SERVICE_NAME_TAKEN'
   | 'SERVICE_HAS_EVALUATIONS'
+  // D43: el marco no está entre los que Monkey Admin contrató para la empresa.
+  | 'FRAMEWORK_NOT_CONTRACTED'
   // Componente 3 (contracts/modules/onboarding-technical-control.md).
   | 'DEPLOYMENT_SCENARIO_NOT_SET'
   | 'CAPABILITY_NOT_APPLICABLE'

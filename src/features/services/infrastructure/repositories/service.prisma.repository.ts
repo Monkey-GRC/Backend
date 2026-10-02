@@ -68,6 +68,16 @@ export class ServicePrismaRepository extends ServiceRepository {
     return rows.map((r) => r.code);
   }
 
+  contractedFrameworkCodes(scope: TenantScope): Promise<string[]> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const rows = await tx.companyFramework.findMany({
+        where: { companyId: scope.companyId },
+        select: { framework: { select: { code: true } } },
+      });
+      return [...new Set(rows.map((r) => r.framework.code))];
+    });
+  }
+
   create(scope: TenantScope, input: ServiceInput): Promise<ServiceDetail> {
     return this.prisma.withScope(scope, async (tx) => {
       const organization = await tx.organization.findUnique({

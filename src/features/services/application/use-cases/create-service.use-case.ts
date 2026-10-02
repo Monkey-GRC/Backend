@@ -14,12 +14,10 @@ export class CreateServiceUseCase {
   ) {}
 
   async execute(principal: Principal, input: ServiceInput, meta: RequestMeta): Promise<ServiceDetail> {
-    await assertServiceInput(this.services, input);
+    const scope = { companyId: principal.companyId, userId: principal.userId, role: principal.role };
+    await assertServiceInput(this.services, scope, input);
 
-    const created = await this.services.create(
-      { companyId: principal.companyId, userId: principal.userId, role: principal.role },
-      input,
-    );
+    const created = await this.services.create(scope, input);
 
     // CC9.2 (gestión de cambios): quién declaró el servicio y con qué datos.
     await this.audit.write({

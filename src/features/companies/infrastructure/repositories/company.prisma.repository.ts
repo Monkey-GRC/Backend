@@ -3,7 +3,11 @@ import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { AccessKey } from '../../domain/entities/access-key.entity';
-import { CompanyDetail, CompanyOverview } from '../../domain/entities/company-overview';
+import {
+  CompanyDetail,
+  CompanyOverview,
+  ContractedFramework,
+} from '../../domain/entities/company-overview';
 import { Company } from '../../domain/entities/company.entity';
 import {
   CompanyListQuery,
@@ -36,6 +40,22 @@ const toCompany = (r: CompanyRow) =>
 const toAccessKey = (r: AccessKeyRow) =>
   new AccessKey(r.id, r.companyId, r.status, r.expiresAt, r.usedAt);
 
+type FrameworkRow = { contractedAt: Date; framework: { code: string; name: string } };
+
+const toContracted = (rows: FrameworkRow[]): ContractedFramework[] =>
+  rows
+    .map((r) => ({
+      code: r.framework.code,
+      name: r.framework.name,
+      contractedAt: r.contractedAt.toISOString().slice(0, 10),
+    }))
+    .sort((a, b) => a.code.localeCompare(b.code));
+
+const FRAMEWORKS_INCLUDE = { include: { framework: { select: { code: true, name: true } } } } as const;
+
+const startOfDayUtc = (date: Date): Date =>
+  new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+
 // access_keys no tiene created_at: la clave vigente es la que vence más tarde (cada regeneración
 // emite una con vencimiento posterior).
 const CURRENT_KEY_ORDER = { expiresAt: 'desc' } as const;
@@ -64,11 +84,21 @@ export class CompanyPrismaRepository extends CompanyRepository {
     );
   }
 
+  async existingFrameworkCodes(codes: string[]): Promise<string[]> {
+    // catalog.*: lectura libre, no necesita tenant.
+    const rows = await this.prisma.framework.findMany({
+      where: { code: { in: codes } },
+      select: { code: true },
+      distinct: ['code'],
+    });
+    return rows.map((r) => r.code);
+  }
+
   createWithAccessKey(
     scope: TenantScope,
     data: NewCompany,
     key: NewAccessKey,
-  ): Promise<{ company: Company; accessKey: AccessKey }> {
+  ): Promise<{ company: Company; accessKey: AccessKey; frameworks: ContractedFramework[] }> {
     return this.prisma.withScope(scope, async (tx) => {
       const company = await tx.company.create({
         data: {
@@ -85,7 +115,34 @@ export class CompanyPrismaRepository extends CompanyRepository {
           expiresAt: key.expiresAt,
         },
       });
-      return { company: toCompany(company), accessKey: toAccessKey(accessKey) };
+
+      // Contrato de marcos (D43): la versión vigente de cada marco. platform.company_frameworks
+      // solo admite escritura de admin_monkey (RLS), que es quien registra la empresa.
+      const today = startOfDayUtc(new Date());
+      for (const code of data.frameworkCodes) {
+        const framework = await tx.framework.findFirstOrThrow({
+          where: { code },
+          orderBy: { version: 'desc' },
+          select: { id: true },
+        });
+        await tx.companyFramework.create({
+          data: {
+            companyId: company.id,
+            frameworkId: framework.id,
+            contractedBy: key.createdBy,
+            contractedAt: today,
+          },
+        });
+      }
+      const contracted = await tx.companyFramework.findMany({
+        where: { companyId: company.id },
+        ...FRAMEWORKS_INCLUDE,
+      });
+      return {
+        company: toCompany(company),
+        accessKey: toAccessKey(accessKey),
+        frameworks: toContracted(contracted),
+      };
     });
   }
 
@@ -104,7 +161,10 @@ export class CompanyPrismaRepository extends CompanyRepository {
           orderBy: { [field]: direction },
           skip: (query.page - 1) * query.pageSize,
           take: query.pageSize,
-          include: { accessKeys: { orderBy: CURRENT_KEY_ORDER, take: 1 } },
+          include: {
+            accessKeys: { orderBy: CURRENT_KEY_ORDER, take: 1 },
+            frameworks: FRAMEWORKS_INCLUDE,
+          },
         }),
         tx.company.count({ where }),
       ]);
@@ -114,6 +174,7 @@ export class CompanyPrismaRepository extends CompanyRepository {
         items: rows.map((row) => ({
           company: toCompany(row),
           currentAccessKey: row.accessKeys[0] ? toAccessKey(row.accessKeys[0]) : null,
+          frameworks: toContracted(row.frameworks),
           onboardingCompleted: onboarded.has(row.id),
         })),
         total,
@@ -132,7 +193,7 @@ export class CompanyPrismaRepository extends CompanyRepository {
     return this.prisma.withScope(scope, async (tx) => {
       const row = await tx.company.findUnique({
         where: { id: companyId },
-        include: { accessKeys: { orderBy: CURRENT_KEY_ORDER } },
+        include: { accessKeys: { orderBy: CURRENT_KEY_ORDER }, frameworks: FRAMEWORKS_INCLUDE },
       });
       if (!row) return null;
 
@@ -141,6 +202,7 @@ export class CompanyPrismaRepository extends CompanyRepository {
       return {
         company: toCompany(row),
         currentAccessKey: accessKeys[0] ?? null,
+        frameworks: toContracted(row.frameworks),
         onboardingCompleted: onboarded.has(row.id),
         accessKeys,
       };

@@ -33,6 +33,7 @@ export const DOMAIN_ERROR_CATALOG: Record<
   ORGANIZATION_NOT_DECLARED: { status: HttpStatus.CONFLICT, messageKey: 'organization.not_declared' },
   SERVICE_NAME_TAKEN: { status: HttpStatus.CONFLICT, messageKey: 'service.name_taken' },
   SERVICE_HAS_EVALUATIONS: { status: HttpStatus.CONFLICT, messageKey: 'service.has_evaluations' },
+  FRAMEWORK_NOT_CONTRACTED: { status: HttpStatus.CONFLICT, messageKey: 'framework.not_contracted' },
   // Componente 3 (contracts/modules/onboarding-technical-control.md).
   DEPLOYMENT_SCENARIO_NOT_SET: { status: HttpStatus.CONFLICT, messageKey: 'deployment_scenario.not_set' },
   CAPABILITY_NOT_APPLICABLE: { status: HttpStatus.CONFLICT, messageKey: 'capability.not_applicable' },

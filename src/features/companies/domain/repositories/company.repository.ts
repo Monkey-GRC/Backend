@@ -1,13 +1,15 @@
 import { Page, PageRequest } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { AccessKey } from '../entities/access-key.entity';
-import { CompanyDetail, CompanyOverview } from '../entities/company-overview';
+import { CompanyDetail, CompanyOverview, ContractedFramework } from '../entities/company-overview';
 import { Company, CompanyStatus, IsolationStrategy } from '../entities/company.entity';
 
 export type NewCompany = {
   name: string;
   adminEmail: string;
   isolationStrategy: IsolationStrategy;
+  // Marcos que se contratan al registrar la empresa (D43). Ya validados contra el catálogo.
+  frameworkCodes: string[];
 };
 
 export type NewAccessKey = {
@@ -30,12 +32,16 @@ export abstract class CompanyRepository {
 
   abstract existsWithAdminEmail(scope: TenantScope, adminEmail: string): Promise<boolean>;
 
-  // Empresa y clave en la misma transacción: nunca queda una empresa sin forma de entrar.
+  // catalog.frameworks: lectura libre. Devuelve cuáles de estos códigos existen en el catálogo.
+  abstract existingFrameworkCodes(codes: string[]): Promise<string[]>;
+
+  // Empresa, clave y marcos contratados en la misma transacción: nunca queda una empresa sin forma
+  // de entrar ni sin su contrato.
   abstract createWithAccessKey(
     scope: TenantScope,
     company: NewCompany,
     accessKey: NewAccessKey,
-  ): Promise<{ company: Company; accessKey: AccessKey }>;
+  ): Promise<{ company: Company; accessKey: AccessKey; frameworks: ContractedFramework[] }>;
 
   abstract list(scope: TenantScope, query: CompanyListQuery): Promise<Page<CompanyOverview>>;
 

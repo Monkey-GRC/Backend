@@ -20,13 +20,10 @@ export class UpdateServiceUseCase {
     patch: ServicePatch,
     meta: RequestMeta,
   ): Promise<ServiceDetail> {
-    await assertServiceInput(this.services, patch);
+    const scope = { companyId: principal.companyId, userId: principal.userId, role: principal.role };
+    await assertServiceInput(this.services, scope, patch);
 
-    const change = await this.services.update(
-      { companyId: principal.companyId, userId: principal.userId, role: principal.role },
-      id,
-      patch,
-    );
+    const change = await this.services.update(scope, id, patch);
     if (!change) throw new DomainError('NOT_FOUND');
 
     await this.audit.write({

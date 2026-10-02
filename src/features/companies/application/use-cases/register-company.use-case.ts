@@ -10,7 +10,9 @@ import {
 import { TokenHasher } from '../../../../common/security/token-hasher';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { AccessKey } from '../../domain/entities/access-key.entity';
+import { ContractedFramework } from '../../domain/entities/company-overview';
 import { Company } from '../../domain/entities/company.entity';
+import { ValidationException } from '../../../../common/errors/validation.exception';
 import { CompanyRepository } from '../../domain/repositories/company.repository';
 import { ACCESS_KEY_TTL_HOURS } from '../access-key-policy.token';
 
@@ -18,11 +20,14 @@ export type RegisterCompanyInput = {
   name: string;
   requiresDedicatedDatabase: boolean;
   adminEmail: string;
+  // Marcos que se contratan para la empresa (D43).
+  frameworkCodes: string[];
 };
 
 export type RegisterCompanyResult = {
   company: Company;
   accessKey: AccessKey;
+  frameworks: ContractedFramework[];
   // En claro solo aquí, una vez: no se guarda ni se puede volver a consultar.
   accessKeyCode: string;
 };
@@ -62,10 +67,21 @@ export class RegisterCompanyUseCase {
       throw new DomainError('ADMIN_EMAIL_TAKEN');
     }
 
+    // Hoy solo existe SOC 2 en el catálogo (D37): cualquier otro código no es una opción.
+    const existing = new Set(await this.companies.existingFrameworkCodes(input.frameworkCodes));
+    if (input.frameworkCodes.some((code) => !existing.has(code))) {
+      throw new ValidationException([{ field: 'framework_codes', code: 'enum.invalid' }]);
+    }
+
     const accessKeyCode = generateAccessKeyCode();
-    const { company, accessKey } = await this.companies.createWithAccessKey(
+    const { company, accessKey, frameworks } = await this.companies.createWithAccessKey(
       scope,
-      { name, adminEmail, isolationStrategy: Company.isolationFor(input.requiresDedicatedDatabase) },
+      {
+        name,
+        adminEmail,
+        isolationStrategy: Company.isolationFor(input.requiresDedicatedDatabase),
+        frameworkCodes: input.frameworkCodes,
+      },
       {
         codeHash: this.tokens.hash(normalizeAccessKeyCode(accessKeyCode)),
         expiresAt: new Date(Date.now() + this.accessKeyTtlHours * 3_600_000),
@@ -88,11 +104,12 @@ export class RegisterCompanyUseCase {
         name: company.name,
         admin_email: company.adminEmail,
         isolation_strategy: company.isolationStrategy,
+        framework_codes: frameworks.map((f) => f.code),
         access_key_id: accessKey.id,
         access_key_expires_at: accessKey.expiresAt.toISOString(),
       },
     });
 
-    return { company, accessKey, accessKeyCode };
+    return { company, accessKey, frameworks, accessKeyCode };
   }
 }
