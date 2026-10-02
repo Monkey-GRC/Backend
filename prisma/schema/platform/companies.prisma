@@ -37,6 +37,7 @@ model Company {
   updatedAt         DateTime          @updatedAt @map("updated_at")
 
   accessKeys AccessKey[]
+  frameworks CompanyFramework[]
   users      User[]
   customRoles CustomRole[]
   apiKeys    ApiKey[]
@@ -83,6 +84,27 @@ model Company {
   complianceEvents ComplianceEvent[]
 
   @@map("companies")
+  @@schema("platform")
+}
+
+// Los marcos que Monkey Admin contrató para una empresa al registrarla (D43). Solo admin_monkey
+// escribe; la empresa lo lee. Al declarar un servicio, el cliente solo puede elegir entre estos
+// (service_frameworks sigue guardando qué marco persigue cada servicio y desde qué versión).
+model CompanyFramework {
+  id           String   @id @default(uuid()) @db.Uuid
+  companyId    String   @map("company_id") @db.Uuid
+  frameworkId  String   @map("framework_id") @db.Uuid
+  contractedBy String   @map("contracted_by") @db.Uuid
+  contractedAt DateTime @map("contracted_at") @db.Date
+
+  company          Company   @relation(fields: [companyId], references: [id])
+  framework        Framework @relation(fields: [frameworkId], references: [id])
+  contractedByUser User      @relation(fields: [contractedBy], references: [id])
+
+  @@unique([companyId, frameworkId])
+  @@index([frameworkId])
+  @@index([contractedBy])
+  @@map("company_frameworks")
   @@schema("platform")
 }
 

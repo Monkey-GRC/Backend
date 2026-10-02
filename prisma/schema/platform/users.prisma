@@ -60,6 +60,7 @@ model User {
   sessions                  Session[]
   apiKeysCreated            ApiKey[]
   accessKeysCreated         AccessKey[]
+  frameworksContracted      CompanyFramework[]
   catalogVersionsPublished  CatalogVersion[]
   actionPlansResponsible    ActionPlan[]
   residualRisksAccepted     ResidualRisk[]

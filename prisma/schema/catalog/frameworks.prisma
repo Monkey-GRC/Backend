@@ -31,6 +31,7 @@ model Framework {
 
   requirements Requirement[]
   serviceFrameworks ServiceFramework[]
+  companyFrameworks CompanyFramework[]
 
   @@unique([code, version])
   @@map("frameworks")
