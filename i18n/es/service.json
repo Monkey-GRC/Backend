@@ -6,5 +6,6 @@
   "deleted": "Servicio eliminado.",
   "name_taken": "Ya tienes un servicio con ese nombre.",
   "has_evaluations": "Este servicio ya tiene evaluaciones o evidencias registradas, por eso no se puede eliminar.",
-  "system_description_saved": "Guardamos la descripción del sistema."
+  "system_description_saved": "Guardamos la descripción del sistema.",
+  "system_description_file": "Enlace temporal para descargar la descripción del sistema."
 }

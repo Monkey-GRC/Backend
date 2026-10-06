@@ -5,11 +5,13 @@ export type RegulationItem = {
   jurisdiction: string;
 };
 
-// Un marco que se puede contratar (catalog.frameworks). Hoy solo SOC 2 (D37).
+// Un marco que Monkey ofrece (catalog.frameworks). `availability` dice si ya tiene catálogo y se puede
+// contratar (`available`, hoy solo SOC 2) o si es solo oferta comercial (`coming_soon`, D50).
 export type FrameworkItem = {
   code: string;
   name: string;
   description: string;
+  availability: 'available' | 'coming_soon';
 };
 
 // Una conexión del catálogo ac_01…ac_06. SIN `provider`: es interno y nunca sale (confidencialidad).

@@ -24,7 +24,6 @@ export function toServiceResponse(service: ServiceDetail, catalogMessage = 'cata
       catalog_version: f.catalogVersion,
       evaluation_period: f.evaluationPeriod,
     })),
-    regulations: d.regulations,
     subservice_organizations: d.subserviceOrganizations.map((s) => ({
       id: s.id,
       type: s.type,
@@ -34,7 +33,14 @@ export function toServiceResponse(service: ServiceDetail, catalogMessage = 'cata
     })),
     previous_certification: d.previousCertification,
     expected_availability: d.expectedAvailability,
-    system_description: d.systemDescription,
+    // La llave del objeto no sale: un archivo se baja con GET .../system-description/file.
+    // Enlace y/o archivo (D51): pueden venir los dos.
+    system_description: d.systemDescription && {
+      id: d.systemDescription.id,
+      url: d.systemDescription.url,
+      file_name: d.systemDescription.fileName,
+      sections: d.systemDescription.sections,
+    },
     catalog: {
       status: d.catalog.status,
       applicable_requirements: d.catalog.applicableRequirements,

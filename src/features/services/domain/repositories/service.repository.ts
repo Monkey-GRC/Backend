@@ -12,9 +12,8 @@ export type Change = { before: ServiceDetail; after: ServiceDetail };
 // Los servicios de UNA empresa (tenant.services). Todo pasa por withScope: RLS impone el aislamiento
 // entre empresas y el filtro por organización/servicio el aislamiento entre servicios.
 export abstract class ServiceRepository {
-  // catalog.frameworks / catalog.regulations: lectura libre, sin tenant.
+  // catalog.frameworks: lectura libre, sin tenant.
   abstract existingFrameworkCodes(codes: string[]): Promise<string[]>;
-  abstract existingRegulationCodes(codes: string[]): Promise<string[]>;
 
   // Los marcos que Monkey Admin contrató para ESTA empresa (platform.company_frameworks, D47).
   abstract contractedFrameworkCodes(scope: TenantScope): Promise<string[]>;

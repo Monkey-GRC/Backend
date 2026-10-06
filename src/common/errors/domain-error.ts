@@ -22,6 +22,16 @@ export type DomainErrorCode =
   | 'SERVICE_HAS_EVALUATIONS'
   // D47: el marco no está entre los que Monkey Admin contrató para la empresa.
   | 'FRAMEWORK_NOT_CONTRACTED'
+  // D50: el marco existe en el catálogo pero aún no está construido (`coming_soon`): no se contrata.
+  | 'FRAMEWORK_NOT_AVAILABLE'
+  // Descripción del Sistema como archivo (DT-12).
+  | 'FILE_REQUIRED'
+  | 'FILE_TOO_LARGE'
+  | 'UNSUPPORTED_MEDIA_TYPE'
+  | 'STORAGE_UNAVAILABLE'
+  | 'SYSTEM_DESCRIPTION_NOT_A_FILE'
+  // Activación de cuenta: demasiados intentos con la clave desde una misma dirección.
+  | 'ACCESS_KEY_RATE_LIMITED'
   // Componente 3 (contracts/modules/onboarding-technical-control.md).
   | 'DEPLOYMENT_SCENARIO_NOT_SET'
   | 'CAPABILITY_NOT_APPLICABLE'

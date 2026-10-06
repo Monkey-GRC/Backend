@@ -11,8 +11,11 @@ import {
   Post,
   Query,
   Req,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiConsumes, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
@@ -24,6 +27,9 @@ import { toPageResponse } from '../../../common/pagination/page';
 import { CreateServiceDto } from '../application/dtos/create-service.dto';
 import { ListServicesQuery } from '../application/dtos/list-services.query';
 import { SetSystemDescriptionDto } from '../application/dtos/system-description.dto';
+import { SYSTEM_DESCRIPTION_MAX_BYTES } from '../application/system-description-file';
+import { GetSystemDescriptionFileUrlUseCase } from '../application/use-cases/get-system-description-file-url.use-case';
+import { UploadSystemDescriptionFileUseCase } from '../application/use-cases/upload-system-description-file.use-case';
 import { UpdateServiceDto } from '../application/dtos/update-service.dto';
 import { CreateServiceUseCase } from '../application/use-cases/create-service.use-case';
 import { DeleteServiceUseCase } from '../application/use-cases/delete-service.use-case';
@@ -62,10 +68,9 @@ const toInput = (dto: CreateServiceDto): ServiceInput => ({
     responsibility: s.responsibility ?? null,
   })),
   frameworkCodes: dto.framework_codes,
-  regulationCodes: dto.regulation_codes,
   previousCertification: dto.previous_certification ?? null,
   expectedAvailability: dto.expected_availability,
-  systemDescription: { kind: 'link', url: dto.system_description.url },
+  systemDescription: dto.system_description ? { linkUrl: dto.system_description.url } : null,
 });
 
 // Solo las claves presentes: `null` en un opcional es "bórralo", ausente es "no lo toques".
@@ -89,11 +94,10 @@ const toPatch = (dto: UpdateServiceDto): ServicePatch => {
     }));
   }
   if (dto.framework_codes !== undefined) patch.frameworkCodes = dto.framework_codes;
-  if (dto.regulation_codes !== undefined) patch.regulationCodes = dto.regulation_codes;
   if (dto.previous_certification !== undefined) patch.previousCertification = dto.previous_certification;
   if (dto.expected_availability !== undefined) patch.expectedAvailability = dto.expected_availability;
-  if (dto.system_description !== undefined) {
-    patch.systemDescription = { kind: 'link', url: dto.system_description.url };
+  if (dto.system_description) {
+    patch.systemDescription = { linkUrl: dto.system_description.url };
   }
   return patch;
 };
@@ -112,6 +116,8 @@ export class ServicesController {
     private readonly updateService: UpdateServiceUseCase,
     private readonly deleteService: DeleteServiceUseCase,
     private readonly setSystemDescription: SetSystemDescriptionUseCase,
+    private readonly uploadSystemDescription: UploadSystemDescriptionFileUseCase,
+    private readonly getSystemDescriptionFileUrl: GetSystemDescriptionFileUrlUseCase,
   ) {}
 
   @Post()
@@ -172,7 +178,7 @@ export class ServicesController {
     const service = await this.setSystemDescription.execute(
       principal,
       id,
-      { kind: 'link', url: dto.url },
+      { linkUrl: dto.url },
       metaOf(req),
     );
     return new ResponseDto(
@@ -180,5 +186,42 @@ export class ServicesController {
       t('service.system_description_saved'),
       toServiceResponse(service),
     );
+  }
+
+  // Archivo en vez de enlace (multipart, campo `file`). Máximo 25 MB, PDF o .docx.
+  @Post(':id/system-description/file')
+  @HttpCode(HttpStatus.OK)
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: SYSTEM_DESCRIPTION_MAX_BYTES, files: 1 } }),
+  )
+  async uploadSystemDescriptionFile(
+    @CurrentUser() principal: Principal,
+    @Param('id', idPipe) id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Req() req: Request,
+  ) {
+    const service = await this.uploadSystemDescription.execute(
+      principal,
+      id,
+      file && { buffer: file.buffer, originalName: file.originalname, mimeType: file.mimetype },
+      metaOf(req),
+    );
+    return new ResponseDto(
+      HttpStatus.OK,
+      t('service.system_description_saved'),
+      toServiceResponse(service),
+    );
+  }
+
+  // Enlace temporal (5 min) para descargar el archivo; el bucket no es público.
+  @Get(':id/system-description/file')
+  async systemDescriptionFile(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string) {
+    const link = await this.getSystemDescriptionFileUrl.execute(principal, id);
+    return new ResponseDto(HttpStatus.OK, t('service.system_description_file'), {
+      url: link.url,
+      file_name: link.fileName,
+      expires_in: link.expiresIn,
+    });
   }
 }

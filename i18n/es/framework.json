@@ -1,4 +1,5 @@
 {
   "not_contracted": "Tu empresa aún no tiene contratado ese marco. Escríbenos y lo habilitamos.",
-  "contracted": "Marcos contratados por tu empresa."
+  "contracted": "Marcos contratados por tu empresa.",
+  "not_available": "Ese marco todavía no está disponible para contratar. Estamos trabajando en él."
 }

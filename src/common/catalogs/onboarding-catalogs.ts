@@ -100,22 +100,31 @@ export const COMPLIANCE_MATURITY_VALUES = [
 
 // catalog.regulations (tabla propia, no enum de columna). `none` y `other` son respuestas válidas
 // del cliente: `none` ("ninguna me aplica") es excluyente y distinto de no haber contestado.
+// Solo normas de protección de datos personales (D51): PCI DSS salió, es un estándar y ya es un marco.
 export const REGULATION_CODES = [
   'ley_1581_co',
   'lfpdppp_mx',
   'ley_29733_pe',
   'ley_19628_cl',
+  'ley_21719_cl',
   'ley_25326_ar',
+  'ley_18331_uy',
+  'lopdp_ec',
+  'ley_81_pa',
+  'ley_8968_cr',
   'lgpd_br',
   'gdpr_eu',
   'lopdgdd_es',
   'hipaa_us',
   'ccpa_cpra_us',
   'glba_us',
-  'pci_dss',
   'none',
   'other',
 ] as const;
+
+// Orden en que se ofrecen los marcos (D50): el que Monkey ya tiene y luego por demanda. Fuente: Drata
+// (ISO 27001 es la expansión más común sobre SOC 2, 32 %; HIPAA 20 %; GDPR 19 %) y ACC 2025.
+export const FRAMEWORK_DISPLAY_ORDER = ['soc2', 'iso27001', 'hipaa', 'gdpr', 'pci_dss', 'nist_csf', 'soc1'] as const;
 
 export const REGULATION_NONE = 'none';
 

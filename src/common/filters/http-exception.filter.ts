@@ -19,6 +19,9 @@ const HTTP_CODES: Record<number, { code: string; messageKey: string }> = {
   403: { code: 'FORBIDDEN', messageKey: 'common.forbidden' },
   404: { code: 'NOT_FOUND', messageKey: 'common.not_found' },
   409: { code: 'CONFLICT', messageKey: 'common.conflict' },
+  // Multer lanza 413 cuando el archivo pasa del límite (Descripción del Sistema, 25 MB).
+  413: { code: 'FILE_TOO_LARGE', messageKey: 'file.too_large' },
+  415: { code: 'UNSUPPORTED_MEDIA_TYPE', messageKey: 'file.unsupported_type' },
   422: { code: 'VALIDATION_FAILED', messageKey: 'validation.failed' },
   429: { code: 'RATE_LIMITED', messageKey: 'common.rate_limited' },
 };

@@ -17,8 +17,13 @@ export type SubserviceInput = {
   responsibility: string | null;
 };
 
-// Por ahora la Descripción del Sistema es un enlace; la carga de archivo queda pendiente (D45).
-export type SystemDescriptionInput = { kind: 'link'; url: string };
+// La Descripción del Sistema se entrega con un enlace, con un archivo ya guardado en el almacenamiento, o con
+// las dos cosas (D51). Cada campo es un cambio: `undefined` no toca lo que había. `fileKey` es la llave del
+// objeto; la arma la aplicación, nunca el cliente.
+export type SystemDescriptionInput = { linkUrl?: string; fileKey?: string };
+
+// Una llave de archivo termina en el nombre original: `.../<uuid>/<nombre>` (ver system-description-file.ts).
+export const fileNameOfKey = (key: string): string => key.slice(key.lastIndexOf('/') + 1);
 
 // Los 15 campos del request de POST /v1/services (16 del Excel: el subservicio colapsa en un array).
 export type ServiceInput = {
@@ -33,10 +38,10 @@ export type ServiceInput = {
   trustCriteria: TrustCriterionValue[];
   subserviceOrganizations: SubserviceInput[];
   frameworkCodes: string[];
-  regulationCodes: string[];
   previousCertification: PreviousCertification | null;
   expectedAvailability: ExpectedAvailability;
-  systemDescription: SystemDescriptionInput;
+  // Opcional al crear: con archivo, el servicio se crea primero y el archivo se sube después (D51).
+  systemDescription: SystemDescriptionInput | null;
 };
 
 // PATCH: solo las claves presentes.
@@ -51,14 +56,15 @@ export type ServiceFrameworkRef = {
   evaluationPeriod: string;
 };
 
-export type ServiceRegulationRef = { code: string; name: string; jurisdiction: string };
-
 export type SubserviceView = SubserviceInput & { id: string };
 
 export type SystemDescriptionView = {
   id: string;
-  kind: 'link' | 'file';
-  url: string;
+  // Pueden venir las dos, o solo una. Un archivo no expone su llave: se descarga con un enlace temporal.
+  url: string | null;
+  fileName: string | null;
+  // Interno (nunca sale en el response): la llave del objeto para descargarlo o reemplazarlo.
+  storageKey: string | null;
   sections: unknown[];
 };
 
@@ -83,7 +89,6 @@ export type ServiceData = {
   trustCriteria: TrustCriterionValue[];
   subserviceOrganizations: SubserviceView[];
   frameworks: ServiceFrameworkRef[];
-  regulations: ServiceRegulationRef[];
   previousCertification: PreviousCertification | null;
   expectedAvailability: ExpectedAvailability;
   systemDescription: SystemDescriptionView | null;
@@ -104,8 +109,8 @@ export class ServiceDetail {
   }
 
   // Cuenta campos de formulario, no cumplimiento: nunca se presenta como readiness (philosophy.md).
-  // 13 obligatorios y 3 opcionales (el "detalle" del subservicio, el número de clientes y la
-  // certificación previa).
+  // 12 obligatorios y 3 opcionales (el "detalle" del subservicio, el número de clientes y la
+  // certificación previa). La regulación ya no se declara por servicio sino por empresa (D51).
   get completion() {
     const d = this.data;
     const requiredFilled = [
@@ -119,7 +124,6 @@ export class ServiceDetail {
       d.trustCriteria.length > 0,
       d.subserviceOrganizations.length > 0,
       d.frameworks.length > 0,
-      d.regulations.length > 0,
       !!d.expectedAvailability,
       !!d.systemDescription,
     ].filter(Boolean).length;
@@ -127,7 +131,7 @@ export class ServiceDetail {
       (s) => s.provider || s.serviceProvided || s.responsibility,
     );
     return {
-      required_total: 13,
+      required_total: 12,
       required_filled: requiredFilled,
       optional_total: 3,
       optional_filled: [!!d.activeClientCount, !!d.previousCertification, hasDetail].filter(Boolean).length,
@@ -165,10 +169,11 @@ export class ServiceDetail {
         responsibility: s.responsibility,
       })),
       framework_codes: d.frameworks.map((f) => `${f.code}:${f.status}`),
-      regulation_codes: d.regulations.map((r) => r.code),
       previous_certification: d.previousCertification,
       expected_availability: d.expectedAvailability,
-      system_description: d.systemDescription?.url ?? null,
+      system_description: d.systemDescription
+        ? { url: d.systemDescription.url, file_name: d.systemDescription.fileName }
+        : null,
     };
   }
 }

@@ -35,6 +35,9 @@ export abstract class CompanyRepository {
   // catalog.frameworks: lectura libre. Devuelve cuáles de estos códigos existen en el catálogo.
   abstract existingFrameworkCodes(codes: string[]): Promise<string[]>;
 
+  // De esos códigos, los que ya tienen catálogo y se pueden contratar (`available`, D50).
+  abstract availableFrameworkCodes(codes: string[]): Promise<string[]>;
+
   // Empresa, clave y marcos contratados en la misma transacción: nunca queda una empresa sin forma
   // de entrar ni sin su contrato.
   abstract createWithAccessKey(

@@ -169,6 +169,10 @@
     "soc2": "SOC 2",
     "soc1": "SOC 1",
     "iso27001": "ISO 27001",
+    "pci_dss": "PCI DSS",
+    "hipaa": "HIPAA",
+    "nist_csf": "NIST CSF",
+    "gdpr": "GDPR",
     "none": "None"
   },
   "deployment_scenario": {

@@ -8,12 +8,14 @@ import { Public } from '../../../common/decorators/public.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import type { SessionPolicy } from '../domain/entities/session.entity';
 import { LoginDto } from '../application/dtos/login.dto';
+import { LookupAccessKeyDto } from '../application/dtos/lookup-access-key.dto';
 import { RedeemAccessKeyDto } from '../application/dtos/redeem-access-key.dto';
 import { SESSION_POLICY } from '../application/session-policy.token';
 import { GetCurrentUserUseCase } from '../application/use-cases/get-current-user.use-case';
 import { GetOnboardingProgressUseCase } from '../application/use-cases/get-onboarding-progress.use-case';
 import { LoginUseCase } from '../application/use-cases/login.use-case';
 import { LogoutUseCase } from '../application/use-cases/logout.use-case';
+import { LookupAccessKeyUseCase } from '../application/use-cases/lookup-access-key.use-case';
 import { RedeemAccessKeyUseCase } from '../application/use-cases/redeem-access-key.use-case';
 import { RefreshSessionUseCase } from '../application/use-cases/refresh-session.use-case';
 import {
@@ -37,6 +39,7 @@ export class AuthController {
     private readonly logout: LogoutUseCase,
     private readonly getCurrentUser: GetCurrentUserUseCase,
     private readonly redeemAccessKey: RedeemAccessKeyUseCase,
+    private readonly lookupAccessKey: LookupAccessKeyUseCase,
     private readonly getOnboardingProgress: GetOnboardingProgressUseCase,
     @Inject(SESSION_POLICY) private readonly policy: SessionPolicy,
   ) {}
@@ -55,6 +58,20 @@ export class AuthController {
     return new ResponseDto(HttpStatus.OK, t('auth.logged_in'), toAuthResponse(result.user, onboarding));
   }
 
+  // Primer paso de la activación (D51): con el código, muestra la empresa y el correo ya fijados por
+  // Monkey Admin. No gasta la clave ni crea nada.
+  @Public()
+  @Post('redeem/lookup')
+  @HttpCode(HttpStatus.OK)
+  async lookup(@Body() dto: LookupAccessKeyDto, @Req() req: Request) {
+    const found = await this.lookupAccessKey.execute(dto.code, requestMeta(req));
+    return new ResponseDto(HttpStatus.OK, t('auth.access_key_found'), {
+      company: { name: found.companyName },
+      admin_email: found.adminEmail,
+      expires_at: found.expiresAt.toISOString(),
+    });
+  }
+
   // Primer acceso del cliente: canjea la clave, crea su cuenta admin_empresa y abre sesión.
   @Public()
   @Post('redeem')
@@ -69,8 +86,6 @@ export class AuthController {
         code: dto.code,
         email: dto.email,
         password: dto.password,
-        name: dto.name,
-        lastName: dto.last_name,
       },
       requestMeta(req),
     );

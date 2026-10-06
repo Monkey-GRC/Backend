@@ -34,6 +34,14 @@ export const DOMAIN_ERROR_CATALOG: Record<
   SERVICE_NAME_TAKEN: { status: HttpStatus.CONFLICT, messageKey: 'service.name_taken' },
   SERVICE_HAS_EVALUATIONS: { status: HttpStatus.CONFLICT, messageKey: 'service.has_evaluations' },
   FRAMEWORK_NOT_CONTRACTED: { status: HttpStatus.CONFLICT, messageKey: 'framework.not_contracted' },
+  FRAMEWORK_NOT_AVAILABLE: { status: HttpStatus.CONFLICT, messageKey: 'framework.not_available' },
+  FILE_REQUIRED: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'file.required' },
+  FILE_TOO_LARGE: { status: HttpStatus.PAYLOAD_TOO_LARGE, messageKey: 'file.too_large' },
+  UNSUPPORTED_MEDIA_TYPE: { status: HttpStatus.UNSUPPORTED_MEDIA_TYPE, messageKey: 'file.unsupported_type' },
+  // No es un fallo del cliente: esta instalación no tiene dónde guardar archivos.
+  STORAGE_UNAVAILABLE: { status: HttpStatus.SERVICE_UNAVAILABLE, messageKey: 'file.storage_unavailable' },
+  SYSTEM_DESCRIPTION_NOT_A_FILE: { status: HttpStatus.NOT_FOUND, messageKey: 'file.not_a_file' },
+  ACCESS_KEY_RATE_LIMITED: { status: HttpStatus.TOO_MANY_REQUESTS, messageKey: 'auth.access_key_rate_limited' },
   // Componente 3 (contracts/modules/onboarding-technical-control.md).
   DEPLOYMENT_SCENARIO_NOT_SET: { status: HttpStatus.CONFLICT, messageKey: 'deployment_scenario.not_set' },
   CAPABILITY_NOT_APPLICABLE: { status: HttpStatus.CONFLICT, messageKey: 'capability.not_applicable' },

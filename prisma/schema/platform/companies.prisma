@@ -44,7 +44,6 @@ model Company {
   auditorAssignments AuditorAssignment[]
   organization              Organization?
   organizationRegulations   OrganizationRegulation[]
-  serviceRegulations        ServiceRegulation[]
   organizationResponsibles  OrganizationResponsible[]
   services                  Service[]
   serviceTrustCriteria      ServiceTrustCriterion[]

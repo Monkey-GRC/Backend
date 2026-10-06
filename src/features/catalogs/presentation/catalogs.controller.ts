@@ -47,6 +47,7 @@ function toItems(catalog: Catalog) {
       code: f.code,
       name: f.name,
       description: f.description,
+      availability: f.availability,
       label: f.name,
     }));
   }

@@ -161,7 +161,7 @@ async function main() {
     // ---- 4. Carga: UNA transacción; cualquier error revierte todo ---------------------------
     await prisma.$transaction(
       async (tx) => {
-        const fw = fwDb ?? (await tx.framework.create({ data: { ...cat.framework } }));
+        const fw = fwDb ?? (await tx.framework.create({ data: { ...cat.framework, availability: 'available' } }));
 
         for (const t of tcMissing) await tx.trustCriterion.create({ data: { criterion: t.criterion, isMandatory: t.isMandatory } });
         const tcId = new Map((await tx.trustCriterion.findMany()).map((t) => [t.criterion as string, t.id]));

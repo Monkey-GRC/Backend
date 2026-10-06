@@ -67,10 +67,16 @@ export class RegisterCompanyUseCase {
       throw new DomainError('ADMIN_EMAIL_TAKEN');
     }
 
-    // Hoy solo existe SOC 2 en el catálogo (D37): cualquier otro código no es una opción.
+    // Un código que no está en el catálogo no es una opción; uno que está pero aún no se construyó
+    // (hoy todos menos SOC 2, D50) se ofrece como gancho comercial, pero no se puede contratar.
     const existing = new Set(await this.companies.existingFrameworkCodes(input.frameworkCodes));
     if (input.frameworkCodes.some((code) => !existing.has(code))) {
       throw new ValidationException([{ field: 'framework_codes', code: 'enum.invalid' }]);
+    }
+    const available = new Set(await this.companies.availableFrameworkCodes(input.frameworkCodes));
+    const unavailable = input.frameworkCodes.filter((code) => !available.has(code));
+    if (unavailable.length > 0) {
+      throw new DomainError('FRAMEWORK_NOT_AVAILABLE', { framework_codes: unavailable });
     }
 
     const accessKeyCode = generateAccessKeyCode();

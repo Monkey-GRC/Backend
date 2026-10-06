@@ -9,14 +9,13 @@ import { AuthUser } from '../../domain/entities/auth-user.entity';
 import { PasswordHasher } from '../../domain/ports/password-hasher';
 import { AccessKeyRedemptionRepository } from '../../domain/repositories/access-key-redemption.repository';
 import { AuthUserRepository } from '../../domain/repositories/auth-user.repository';
+import { AccessKeyAttemptLimiter } from '../services/access-key-attempt-limiter.service';
 import { IssuedSession, SessionIssuer } from '../services/session-issuer.service';
 
 export type RedeemInput = {
   code: string;
   email: string;
   password: string;
-  name: string;
-  lastName: string;
 };
 
 export type RedeemResult = IssuedSession & { user: AuthUser };
@@ -32,10 +31,12 @@ export class RedeemAccessKeyUseCase {
     private readonly passwords: PasswordHasher,
     private readonly tokens: TokenHasher,
     private readonly sessionIssuer: SessionIssuer,
+    private readonly limiter: AccessKeyAttemptLimiter,
     private readonly audit: AuditLogWriter,
   ) {}
 
   async execute(input: RedeemInput, meta: RequestMeta): Promise<RedeemResult> {
+    this.limiter.assertAllowed(meta.ipAddress);
     const now = new Date();
     const email = input.email.trim().toLowerCase();
     const code = normalizeAccessKeyCode(input.code);
@@ -78,8 +79,6 @@ export class RedeemAccessKeyUseCase {
       key.id,
       {
         email,
-        name: input.name.trim(),
-        lastName: input.lastName.trim(),
         passwordHash: await this.passwords.hash(input.password),
       },
       now,
@@ -99,6 +98,7 @@ export class RedeemAccessKeyUseCase {
     if (!user) throw new DomainError('ACCESS_KEY_INVALID');
 
     const issued = await this.sessionIssuer.issue(user, meta, now);
+    this.limiter.clear(meta.ipAddress);
 
     // Dos acciones, dos registros (contrato de auth, MD-92): el canje y la creación del usuario.
     await this.log(meta, user.companyId, user.id, 'success', { access_key_id: key.id });
@@ -124,6 +124,7 @@ export class RedeemAccessKeyUseCase {
     afterState: Record<string, unknown>,
     attemptedEmail?: string,
   ): Promise<void> {
+    if (result === 'error') this.limiter.recordFailure(meta.ipAddress);
     return this.audit.write({
       tenantId,
       userId,

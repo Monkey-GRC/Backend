@@ -4,7 +4,6 @@ import {
   ArrayMinSize,
   ArrayUnique,
   IsArray,
-  IsDefined,
   IsIn,
   IsNotEmpty,
   IsOptional,
@@ -13,7 +12,6 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { REGULATION_CODES } from '../../../../common/catalogs/onboarding-catalogs';
 import {
   ACTIVE_CLIENT_COUNT_VALUES,
   DATA_TYPE_VALUES,
@@ -58,8 +56,8 @@ export class SubserviceDto {
   responsibility?: string | null;
 }
 
-// Por ahora la Descripción del Sistema es un enlace (kind=link). La carga de archivo queda
-// pendiente de decisión (contracts/modules/onboarding-service-context.md, preguntas abiertas).
+// En el JSON la Descripción del Sistema es siempre un enlace (kind=link); el archivo viaja por
+// multipart en POST /v1/services/{id}/system-description (D51).
 export class SystemDescriptionDto {
   @ApiProperty({ enum: ['link'] })
   @IsIn(['link'])
@@ -151,13 +149,6 @@ export class CreateServiceDto {
   @IsString({ each: true })
   framework_codes!: string[];
 
-  @ApiProperty({ enum: REGULATION_CODES, isArray: true })
-  @IsArray()
-  @ArrayMinSize(1)
-  @ArrayUnique()
-  @IsIn(REGULATION_CODES, { each: true })
-  regulation_codes!: (typeof REGULATION_CODES)[number][];
-
   @ApiPropertyOptional({ enum: PREVIOUS_CERTIFICATION_VALUES, nullable: true })
   @IsOptional()
   @IsIn(PREVIOUS_CERTIFICATION_VALUES)
@@ -167,9 +158,11 @@ export class CreateServiceDto {
   @IsIn(EXPECTED_AVAILABILITY_VALUES)
   expected_availability!: (typeof EXPECTED_AVAILABILITY_VALUES)[number];
 
-  @ApiProperty({ type: () => SystemDescriptionDto })
-  @IsDefined()
+  // Opcional: quien prefiere subir un archivo crea el servicio y lo sube a continuación con
+  // POST /v1/services/{id}/system-description (multipart). El servicio queda incompleto hasta entonces.
+  @ApiPropertyOptional({ type: () => SystemDescriptionDto })
+  @IsOptional()
   @ValidateNested()
   @Type(() => SystemDescriptionDto)
-  system_description!: SystemDescriptionDto;
+  system_description?: SystemDescriptionDto;
 }

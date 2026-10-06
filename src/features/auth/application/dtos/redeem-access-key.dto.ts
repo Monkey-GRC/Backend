@@ -32,18 +32,4 @@ export class RedeemAccessKeyDto {
     minSymbols: 1,
   })
   password!: string;
-
-  @ApiProperty({ example: 'Ana' })
-  @Transform(trim)
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  name!: string;
-
-  @ApiProperty({ example: 'Pérez' })
-  @Transform(trim)
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  last_name!: string;
 }

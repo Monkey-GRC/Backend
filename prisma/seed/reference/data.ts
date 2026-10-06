@@ -12,25 +12,95 @@ export interface RegulationSeed {
   jurisdiction: string;
 }
 
-// Fuente: contracts/enums.md `regulation` (14 valores) y hoja "Contexto Empresa" del Excel, fila
-// "Regulaciones aplicables a la empresa". El nombre va sin el país (contracts/modules/onboarding-
-// organizational-context.md: "Ley 1581", jurisdicción "CO"). `none` y `other` son las dos opciones de salida
-// del multi-select, no leyes: su jurisdicción es "n/a". `regulations` no se puntúa (D10).
+// Normas de PROTECCIÓN DE DATOS PERSONALES (D51). Fuente: contracts/enums.md `regulation` y hoja
+// "Contexto Empresa" del Excel, depurada el 2026-10-05 por pedido del comité: PCI DSS salió porque es un
+// estándar de la industria de tarjetas (y ya es un marco), no una norma de protección de datos. HIPAA y GLBA
+// se quedan: son leyes sectoriales de EE. UU. que protegen datos de salud y financieros. Se añadieron la
+// ley chilena que reemplaza a la 19.628 desde el 1 de diciembre de 2026 y las leyes de Uruguay, Ecuador,
+// Panamá y Costa Rica. El nombre va sin el país. `none` y `other` son las dos opciones de salida del
+// multi-select, no leyes: su jurisdicción es "n/a". `regulations` no se puntúa (D10).
 export const REGULATIONS: RegulationSeed[] = [
   { code: 'ley_1581_co', name: 'Ley 1581', jurisdiction: 'CO' },
   { code: 'lfpdppp_mx', name: 'LFPDPPP', jurisdiction: 'MX' },
   { code: 'ley_29733_pe', name: 'Ley 29733', jurisdiction: 'PE' },
   { code: 'ley_19628_cl', name: 'Ley 19628', jurisdiction: 'CL' },
+  { code: 'ley_21719_cl', name: 'Ley 21719', jurisdiction: 'CL' },
   { code: 'ley_25326_ar', name: 'Ley 25326', jurisdiction: 'AR' },
+  { code: 'ley_18331_uy', name: 'Ley 18331', jurisdiction: 'UY' },
+  { code: 'lopdp_ec', name: 'LOPDP', jurisdiction: 'EC' },
+  { code: 'ley_81_pa', name: 'Ley 81', jurisdiction: 'PA' },
+  { code: 'ley_8968_cr', name: 'Ley 8968', jurisdiction: 'CR' },
   { code: 'lgpd_br', name: 'LGPD', jurisdiction: 'BR' },
   { code: 'gdpr_eu', name: 'GDPR', jurisdiction: 'EU' },
   { code: 'lopdgdd_es', name: 'LOPDGDD', jurisdiction: 'ES' },
   { code: 'hipaa_us', name: 'HIPAA', jurisdiction: 'US' },
   { code: 'ccpa_cpra_us', name: 'CCPA/CPRA', jurisdiction: 'US' },
   { code: 'glba_us', name: 'GLBA', jurisdiction: 'US' },
-  { code: 'pci_dss', name: 'PCI DSS', jurisdiction: 'global' },
   { code: 'none', name: 'Ninguna', jurisdiction: 'n/a' },
   { code: 'other', name: 'Otra', jurisdiction: 'n/a' },
+];
+
+export interface FrameworkOfferSeed {
+  code: string;
+  name: string;
+  version: string;
+  type: 'attestation' | 'certification' | 'standard' | 'regulation';
+  scopeDescription: string;
+}
+
+// Marcos que Monkey ofrece pero todavía no tiene construidos (D50): se siembran como `coming_soon`, sin
+// requisitos, para mostrarlos como gancho comercial. SOC 2 NO va aquí: lo carga `catalog:load` con su catálogo
+// completo y como `available`. Versiones y alcance según frameworks/*.md del brain (verificados el 2026-07-22);
+// el orden es el de demanda (Drata, ACC 2025): ISO 27001, HIPAA, GDPR, PCI DSS, NIST CSF, SOC 1.
+export const FRAMEWORK_OFFERS: FrameworkOfferSeed[] = [
+  {
+    code: 'iso27001',
+    name: 'ISO 27001',
+    version: '2022',
+    type: 'certification',
+    scopeDescription:
+      'Certificación internacional de un sistema de gestión de seguridad de la información, con 93 controles en el Anexo A.',
+  },
+  {
+    code: 'hipaa',
+    name: 'HIPAA',
+    version: 'Security Rule',
+    type: 'regulation',
+    scopeDescription:
+      'Salvaguardas administrativas, físicas y técnicas para proteger la información de salud electrónica en EE. UU.',
+  },
+  {
+    code: 'gdpr',
+    name: 'GDPR',
+    version: 'Reglamento (UE) 2016/679',
+    type: 'regulation',
+    scopeDescription:
+      'Reglamento europeo de protección de datos personales; aplica a quien trate datos de personas en la UE.',
+  },
+  {
+    code: 'pci_dss',
+    name: 'PCI DSS',
+    version: '4.0.1',
+    type: 'standard',
+    scopeDescription:
+      'Estándar de la industria de tarjetas de pago para proteger los datos de los titulares, con 12 requisitos.',
+  },
+  {
+    code: 'nist_csf',
+    name: 'NIST CSF',
+    version: '2.0',
+    type: 'standard',
+    scopeDescription:
+      'Marco voluntario de ciberseguridad organizado en seis funciones: gobernar, identificar, proteger, detectar, responder y recuperar.',
+  },
+  {
+    code: 'soc1',
+    name: 'SOC 1',
+    version: 'SSAE 18',
+    type: 'attestation',
+    scopeDescription:
+      'Informe de atestación sobre los controles de una organización de servicios que afectan el reporte financiero de sus clientes.',
+  },
 ];
 
 export interface CapabilitySeed {

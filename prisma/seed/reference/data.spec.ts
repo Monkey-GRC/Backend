@@ -1,14 +1,26 @@
-import { CAPABILITIES, CAPABILITIES_BY_SCENARIO, REGULATIONS } from './data';
+import { CAPABILITIES, CAPABILITIES_BY_SCENARIO, FRAMEWORK_OFFERS, REGULATIONS } from './data';
 
 describe('catálogos de referencia (MD-75, MD-83)', () => {
-  it('trae las 14 regulaciones del contrato, sin códigos ni nombres repetidos y con jurisdicción', () => {
-    expect(REGULATIONS).toHaveLength(14);
-    expect(new Set(REGULATIONS.map((r) => r.code)).size).toBe(14);
-    expect(new Set(REGULATIONS.map((r) => r.name)).size).toBe(14);
+  it('trae las 18 regulaciones del contrato, sin códigos ni nombres repetidos y con jurisdicción', () => {
+    expect(REGULATIONS).toHaveLength(18);
+    expect(new Set(REGULATIONS.map((r) => r.code)).size).toBe(18);
+    expect(new Set(REGULATIONS.map((r) => r.name)).size).toBe(18);
     for (const r of REGULATIONS) {
       expect(r.code).toMatch(/^[a-z0-9_]+$/);
       expect(r.name.trim()).toBe(r.name);
       expect(r.jurisdiction.trim()).not.toBe('');
+    }
+  });
+
+  it('PCI DSS no es una norma de protección de datos: no está entre las regulaciones (D51)', () => {
+    expect(REGULATIONS.map((r) => r.code)).not.toContain('pci_dss');
+  });
+
+  it('ofrece 6 marcos como gancho, sin repetir y sin SOC 2 (que trae su propio catálogo, D50)', () => {
+    expect(FRAMEWORK_OFFERS.map((f) => f.code)).toEqual(['iso27001', 'hipaa', 'gdpr', 'pci_dss', 'nist_csf', 'soc1']);
+    for (const f of FRAMEWORK_OFFERS) {
+      for (const v of [f.name, f.version, f.scopeDescription]) expect(v.trim()).toBe(v);
+      expect(f.scopeDescription).not.toBe('');
     }
   });
 
