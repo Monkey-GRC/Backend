@@ -1,4 +1,5 @@
 {
   "not_contracted": "Your company has not contracted that framework yet. Contact us and we will enable it.",
-  "contracted": "Frameworks contracted by your company."
+  "contracted": "Frameworks contracted by your company.",
+  "not_available": "That framework is not available to contract yet. We are working on it."
 }

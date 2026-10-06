@@ -13,6 +13,7 @@ import { TechnicalControlModule } from './features/technical-control/technical-c
 import { AuditModule } from './infrastructure/audit/audit.module';
 import { DatabaseModule } from './infrastructure/database/database.module';
 import { SecurityModule } from './infrastructure/security/security.module';
+import { StorageModule } from './infrastructure/storage/storage.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { SecurityModule } from './infrastructure/security/security.module';
     DatabaseModule,
     AuditModule,
     SecurityModule,
+    StorageModule,
     AuthModule,
     CompaniesModule,
     CatalogsModule,

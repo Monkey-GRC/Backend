@@ -90,7 +90,18 @@ export const EXPECTED_AVAILABILITY_VALUES = [
 // Marcos que Monkey Admin contrata al registrar una empresa si no se indica otro: hoy solo SOC 2 (D37, D47).
 export const DEFAULT_CONTRACTED_FRAMEWORKS: readonly string[] = ['soc2'];
 
-export const PREVIOUS_CERTIFICATION_VALUES = ['soc2', 'soc1', 'iso27001', 'none'] as const;
+// Los marcos más comunes (D51). HIPAA, NIST CSF y GDPR no se «certifican» como tal: la pregunta es por una
+// certificación o evaluación previa, y así se le muestra al cliente.
+export const PREVIOUS_CERTIFICATION_VALUES = [
+  'soc2',
+  'soc1',
+  'iso27001',
+  'pci_dss',
+  'hipaa',
+  'nist_csf',
+  'gdpr',
+  'none',
+] as const;
 
 export type ServiceType = (typeof SERVICE_TYPE_VALUES)[number];
 export type ServedIndustry = (typeof SERVED_INDUSTRY_VALUES)[number];

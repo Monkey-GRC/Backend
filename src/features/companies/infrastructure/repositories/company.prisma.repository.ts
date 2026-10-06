@@ -94,6 +94,15 @@ export class CompanyPrismaRepository extends CompanyRepository {
     return rows.map((r) => r.code);
   }
 
+  async availableFrameworkCodes(codes: string[]): Promise<string[]> {
+    const rows = await this.prisma.framework.findMany({
+      where: { code: { in: codes }, availability: 'available' },
+      select: { code: true },
+      distinct: ['code'],
+    });
+    return rows.map((r) => r.code);
+  }
+
   createWithAccessKey(
     scope: TenantScope,
     data: NewCompany,

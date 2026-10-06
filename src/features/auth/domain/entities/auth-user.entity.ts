@@ -48,8 +48,9 @@ export class AuthUser {
     public readonly companyId: string,
     public readonly companyName: string,
     public readonly email: string,
-    public readonly name: string,
-    public readonly lastName: string,
+    // Opcionales: la cuenta se identifica por el correo (D51).
+    public readonly name: string | null,
+    public readonly lastName: string | null,
     public readonly role: UserRole,
     public readonly status: UserStatus,
     public readonly isMfaEnabled: boolean,

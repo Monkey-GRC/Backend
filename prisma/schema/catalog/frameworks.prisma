@@ -21,6 +21,17 @@ enum FrameworkType {
   @@schema("catalog")
 }
 
+// available: Monkey ya tiene su catálogo (requisitos, controles) y se puede contratar.
+// coming_soon: se muestra como oferta, pero todavía no se puede contratar ni elegir (D50).
+enum FrameworkAvailability {
+  available
+  coming_soon
+
+  @@map("framework_availability")
+
+  @@schema("catalog")
+}
+
 model Framework {
   id               String  @id @default(uuid()) @db.Uuid
   code             String
@@ -28,6 +39,7 @@ model Framework {
   version          String
   type             FrameworkType
   scopeDescription String  @map("scope_description")
+  availability     FrameworkAvailability @default(coming_soon)
 
   requirements Requirement[]
   serviceFrameworks ServiceFramework[]

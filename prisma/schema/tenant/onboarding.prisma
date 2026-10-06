@@ -181,7 +181,6 @@ model Regulation {
   jurisdiction String
 
   organizationRegulations OrganizationRegulation[]
-  serviceRegulations      ServiceRegulation[]
 
   // No se puntúa (D10). Mismo catálogo para todos los clientes → sin tenant_id, en catalog.
   @@map("regulations")
@@ -344,6 +343,10 @@ enum PreviousCertification {
   soc2
   soc1
   iso27001
+  pci_dss
+  hipaa
+  nist_csf
+  gdpr
   none
 
   @@map("previous_certification")
@@ -374,7 +377,6 @@ model Service {
   tenant       Company      @relation(fields: [tenantId], references: [id])
 
   trustCriteria           ServiceTrustCriterion[]
-  regulations             ServiceRegulation[]
   frameworks              ServiceFramework[]
   subserviceOrganizations SubserviceOrganization[]
   cuecs                   Cuec[]
@@ -406,25 +408,6 @@ model ServiceTrustCriterion {
   @@index([tenantId])
   @@index([trustCriterionId])
   @@map("service_trust_criteria")
-  @@schema("tenant")
-}
-
-// Regulaciones de privacidad que aplican a UN servicio (no se puntúan, D10). Es la versión por
-// servicio de organization_regulations: el contrato las pide en el request del servicio.
-model ServiceRegulation {
-  id           String @id @default(uuid()) @db.Uuid
-  tenantId     String @map("tenant_id") @db.Uuid
-  serviceId    String @map("service_id") @db.Uuid
-  regulationId String @map("regulation_id") @db.Uuid
-
-  service    Service    @relation(fields: [serviceId], references: [id])
-  regulation Regulation @relation(fields: [regulationId], references: [id])
-  tenant     Company    @relation(fields: [tenantId], references: [id])
-
-  @@unique([serviceId, regulationId])
-  @@index([tenantId])
-  @@index([regulationId])
-  @@map("service_regulations")
   @@schema("tenant")
 }
 
@@ -509,7 +492,10 @@ model SystemDescription {
   id        String @id @default(uuid()) @db.Uuid
   tenantId  String @map("tenant_id") @db.Uuid
   serviceId String @unique @map("service_id") @db.Uuid
-  filePath  String @map("file_path")
+  // Dos formas de entregarla (D51): un enlace o un archivo guardado en el almacenamiento. Pueden estar las dos;
+  // al menos una es obligatoria (CHECK en la migración).
+  linkUrl   String? @map("link_url")
+  fileKey   String? @map("file_key")
   sections  Json
 
   service Service @relation(fields: [serviceId], references: [id])

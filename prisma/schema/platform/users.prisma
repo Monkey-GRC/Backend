@@ -35,8 +35,9 @@ model User {
   // Único global (no por empresa): el login recibe solo el email y un auditor es un solo
   // usuario que audita varias empresas. Siempre en minúsculas (CHECK en la migración).
   email          String      @unique
-  name           String
-  lastName       String      @map("last_name")
+  // Opcionales: la cuenta se identifica por el correo (D51); el nombre se podrá completar en el perfil.
+  name           String?
+  lastName       String?     @map("last_name")
   passwordHash   String      @map("password_hash")
   role           UserRole
   status         UserStatus  @default(active)

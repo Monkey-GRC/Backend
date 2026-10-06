@@ -3,8 +3,6 @@ import { RedeemableAccessKey, RedeemingCompany } from '../entities/redeemable-ac
 
 export type NewCompanyAdmin = {
   email: string;
-  name: string;
-  lastName: string;
   passwordHash: string;
 };
 

@@ -9,12 +9,14 @@ import {
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import {
+  fileNameOfKey,
   ServiceData,
   ServiceDetail,
   ServiceInput,
   ServicePatch,
   SubserviceInput,
   SystemDescriptionInput,
+  SystemDescriptionView,
 } from '../../domain/entities/service.entity';
 import { Change, ServiceRepository } from '../../domain/repositories/service.repository';
 import { CloneCatalogService } from '../../../onboarding/application/clone-catalog.service';
@@ -40,7 +42,20 @@ const fromDbAvailability = (value: string): ExpectedAvailability =>
 const subserviceKey = (s: SubserviceInput): string =>
   JSON.stringify([s.type, s.provider, s.serviceProvided, s.responsibility]);
 
-const withMandatory = (criteria: TrustCriterionValue[]): TrustCriterionValue[] =>
+const toSystemDescriptionView = (row: {
+  id: string;
+  linkUrl: string | null;
+  fileKey: string | null;
+  sections: unknown;
+}): SystemDescriptionView => ({
+  id: row.id,
+  url: row.linkUrl,
+  fileName: row.fileKey ? fileNameOfKey(row.fileKey) : null,
+  storageKey: row.fileKey,
+  sections: Array.isArray(row.sections) ? row.sections : [],
+});
+
+const withMandatory =(criteria: TrustCriterionValue[]): TrustCriterionValue[] =>
   criteria.includes(TRUST_CRITERION_MANDATORY) ? criteria : [TRUST_CRITERION_MANDATORY, ...criteria];
 
 @Injectable()
@@ -57,14 +72,6 @@ export class ServicePrismaRepository extends ServiceRepository {
       where: { code: { in: codes } },
       select: { code: true },
       distinct: ['code'],
-    });
-    return rows.map((r) => r.code);
-  }
-
-  async existingRegulationCodes(codes: string[]): Promise<string[]> {
-    const rows = await this.prisma.regulation.findMany({
-      where: { code: { in: codes } },
-      select: { code: true },
     });
     return rows.map((r) => r.code);
   }
@@ -107,9 +114,10 @@ export class ServicePrismaRepository extends ServiceRepository {
       });
 
       await this.replaceTrustCriteria(tx, scope.companyId, service.id, withMandatory(input.trustCriteria));
-      await this.replaceRegulations(tx, scope.companyId, service.id, input.regulationCodes);
       await this.syncSubservices(tx, scope.companyId, service.id, input.subserviceOrganizations);
-      await this.upsertSystemDescription(tx, scope.companyId, service.id, input.systemDescription);
+      if (input.systemDescription) {
+        await this.upsertSystemDescription(tx, scope.companyId, service.id, input.systemDescription);
+      }
       await this.syncFrameworks(tx, scope.companyId, service.id, input.frameworkCodes);
       await this.cloneContractedFrameworks(tx, service.id);
 
@@ -167,9 +175,6 @@ export class ServicePrismaRepository extends ServiceRepository {
 
       if (patch.trustCriteria) {
         await this.replaceTrustCriteria(tx, scope.companyId, id, withMandatory(patch.trustCriteria));
-      }
-      if (patch.regulationCodes) {
-        await this.replaceRegulations(tx, scope.companyId, id, patch.regulationCodes);
       }
       if (patch.subserviceOrganizations) {
         await this.syncSubservices(tx, scope.companyId, id, patch.subserviceOrganizations);
@@ -235,7 +240,6 @@ export class ServicePrismaRepository extends ServiceRepository {
       await tx.cuec.deleteMany({ where: { serviceId: id } });
       await tx.subserviceOrganization.deleteMany({ where: { serviceId: id } });
       await tx.systemDescription.deleteMany({ where: { serviceId: id } });
-      await tx.serviceRegulation.deleteMany({ where: { serviceId: id } });
       await tx.serviceFramework.deleteMany({ where: { serviceId: id } });
       await tx.serviceTrustCriterion.deleteMany({ where: { serviceId: id } });
       await tx.service.delete({ where: { id } });
@@ -285,33 +289,6 @@ export class ServicePrismaRepository extends ServiceRepository {
     if (toAdd.length) {
       await tx.serviceTrustCriterion.createMany({
         data: toAdd.map((trustCriterionId) => ({ tenantId, serviceId, trustCriterionId })),
-      });
-    }
-  }
-
-  private async replaceRegulations(
-    tx: TransactionClient,
-    tenantId: string,
-    serviceId: string,
-    codes: string[],
-  ): Promise<void> {
-    const wanted = await tx.regulation.findMany({
-      where: { code: { in: codes } },
-      select: { id: true },
-    });
-    const wantedIds = wanted.map((r) => r.id);
-    await tx.serviceRegulation.deleteMany({
-      where: { serviceId, regulationId: { notIn: wantedIds } },
-    });
-    const kept = await tx.serviceRegulation.findMany({
-      where: { serviceId },
-      select: { regulationId: true },
-    });
-    const keptIds = new Set(kept.map((r) => r.regulationId));
-    const toAdd = wantedIds.filter((id) => !keptIds.has(id));
-    if (toAdd.length) {
-      await tx.serviceRegulation.createMany({
-        data: toAdd.map((regulationId) => ({ tenantId, serviceId, regulationId })),
       });
     }
   }
@@ -371,10 +348,13 @@ export class ServicePrismaRepository extends ServiceRepository {
   ): Promise<void> {
     // Una Descripción del Sistema por servicio. Al cambiar el documento se vacían las secciones:
     // las que había detectado ya no corresponden.
+    // Solo cambia lo que viene: un enlace nuevo no borra el archivo, ni al revés. Al crearla, el caso de
+    // uso garantiza que viene al menos uno (el CHECK de la base lo vuelve a exigir).
+    const source = { linkUrl: input.linkUrl, fileKey: input.fileKey };
     await tx.systemDescription.upsert({
       where: { serviceId },
-      create: { tenantId, serviceId, filePath: input.url, sections: [] },
-      update: { filePath: input.url, sections: [] },
+      create: { tenantId, serviceId, ...source, sections: [] },
+      update: { ...source, sections: [] },
     });
   }
 
@@ -453,7 +433,6 @@ export class ServicePrismaRepository extends ServiceRepository {
       where: { id },
       include: {
         trustCriteria: { include: { trustCriterion: true } },
-        regulations: { include: { regulation: true } },
         frameworks: { include: { framework: true, catalogVersion: true } },
         subserviceOrganizations: true,
         systemDescription: true,
@@ -503,23 +482,9 @@ export class ServicePrismaRepository extends ServiceRepository {
           evaluationPeriod: f.evaluationPeriod,
         }))
         .sort((a, b) => a.code.localeCompare(b.code)),
-      regulations: row.regulations
-        .map((r) => ({
-          code: r.regulation.code,
-          name: r.regulation.name,
-          jurisdiction: r.regulation.jurisdiction,
-        }))
-        .sort((a, b) => a.code.localeCompare(b.code)),
       previousCertification: row.previousCertification,
       expectedAvailability: fromDbAvailability(row.expectedAvailability),
-      systemDescription: row.systemDescription
-        ? {
-            id: row.systemDescription.id,
-            kind: /^https?:\/\//i.test(row.systemDescription.filePath) ? 'link' : 'file',
-            url: row.systemDescription.filePath,
-            sections: Array.isArray(row.systemDescription.sections) ? row.systemDescription.sections : [],
-          }
-        : null,
+      systemDescription: row.systemDescription ? toSystemDescriptionView(row.systemDescription) : null,
       catalog: { status: 'ready', applicableRequirements, clonedControls },
       deploymentScenario: row.deploymentScenario,
       hasScope: row.scope !== null,

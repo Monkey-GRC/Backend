@@ -67,8 +67,6 @@ export class AccessKeyRedemptionPrismaRepository extends AccessKeyRedemptionRepo
           data: {
             companyId: scope.companyId,
             email: admin.email,
-            name: admin.name,
-            lastName: admin.lastName,
             passwordHash: admin.passwordHash,
             role: 'admin_empresa',
             status: 'active',

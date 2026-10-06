@@ -10,12 +10,14 @@ import { AccessKeyRedemptionRepository } from './domain/repositories/access-key-
 import { OnboardingProgressReader } from './domain/ports/onboarding-progress.reader';
 import { AuthUserRepository } from './domain/repositories/auth-user.repository';
 import { SessionRepository } from './domain/repositories/session.repository';
+import { AccessKeyAttemptLimiter } from './application/services/access-key-attempt-limiter.service';
 import { SessionIssuer } from './application/services/session-issuer.service';
 import { SESSION_POLICY } from './application/session-policy.token';
 import { RedeemAccessKeyUseCase } from './application/use-cases/redeem-access-key.use-case';
 import { GetCurrentUserUseCase } from './application/use-cases/get-current-user.use-case';
 import { GetOnboardingProgressUseCase } from './application/use-cases/get-onboarding-progress.use-case';
 import { LoginUseCase } from './application/use-cases/login.use-case';
+import { LookupAccessKeyUseCase } from './application/use-cases/lookup-access-key.use-case';
 import { LogoutUseCase } from './application/use-cases/logout.use-case';
 import { RefreshSessionUseCase } from './application/use-cases/refresh-session.use-case';
 import { ValidateSessionUseCase } from './application/use-cases/validate-session.use-case';
@@ -66,7 +68,9 @@ const seconds = (config: ConfigService, key: string): number => {
     { provide: OnboardingProgressReader, useClass: OnboardingProgressPrismaReader },
     GetOnboardingProgressUseCase,
     SessionIssuer,
+    AccessKeyAttemptLimiter,
     LoginUseCase,
+    LookupAccessKeyUseCase,
     RedeemAccessKeyUseCase,
     RefreshSessionUseCase,
     LogoutUseCase,
