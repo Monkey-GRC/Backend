@@ -6,7 +6,9 @@ import {
   TRUST_CRITERION_MANDATORY,
   TrustCriterionValue,
 } from '../../../../common/catalogs/service-catalogs';
+import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
+import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import {
   fileNameOfKey,
@@ -86,7 +88,7 @@ export class ServicePrismaRepository extends ServiceRepository {
     });
   }
 
-  create(scope: TenantScope, input: ServiceInput): Promise<ServiceDetail> {
+  create(scope: TenantScope, input: ServiceInput, audit: AuditIntent<ServiceDetail>): Promise<ServiceDetail> {
     return this.prisma.withScope(scope, async (tx) => {
       const organization = await tx.organization.findUnique({
         where: { companyId: scope.companyId },
@@ -121,7 +123,9 @@ export class ServicePrismaRepository extends ServiceRepository {
       await this.syncFrameworks(tx, scope.companyId, service.id, input.frameworkCodes);
       await this.cloneContractedFrameworks(tx, service.id);
 
-      return this.read(tx, service.id);
+      const created = await this.read(tx, service.id);
+      await insertAuditLog(tx, audit(created));
+      return created;
     }, CLONING_TRANSACTION);
   }
 
@@ -146,7 +150,12 @@ export class ServicePrismaRepository extends ServiceRepository {
     return this.prisma.withScope(scope, (tx) => this.readOrNull(tx, id));
   }
 
-  update(scope: TenantScope, id: string, patch: ServicePatch): Promise<Change | null> {
+  update(
+    scope: TenantScope,
+    id: string,
+    patch: ServicePatch,
+    audit: AuditIntent<Change>,
+  ): Promise<Change | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const before = await this.readOrNull(tx, id);
       if (!before) return null;
@@ -191,7 +200,9 @@ export class ServicePrismaRepository extends ServiceRepository {
         await this.cloneContractedFrameworks(tx, id);
       }
 
-      return { before, after: await this.read(tx, id) };
+      const change = { before, after: await this.read(tx, id) };
+      await insertAuditLog(tx, audit(change));
+      return change;
     }, CLONING_TRANSACTION);
   }
 
@@ -199,16 +210,19 @@ export class ServicePrismaRepository extends ServiceRepository {
     scope: TenantScope,
     id: string,
     input: SystemDescriptionInput,
+    audit: AuditIntent<Change>,
   ): Promise<Change | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const before = await this.readOrNull(tx, id);
       if (!before) return null;
       await this.upsertSystemDescription(tx, scope.companyId, id, input);
-      return { before, after: await this.read(tx, id) };
+      const change = { before, after: await this.read(tx, id) };
+      await insertAuditLog(tx, audit(change));
+      return change;
     });
   }
 
-  remove(scope: TenantScope, id: string): Promise<ServiceDetail | null> {
+  remove(scope: TenantScope, id: string, audit: AuditIntent<ServiceDetail>): Promise<ServiceDetail | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const before = await this.readOrNull(tx, id);
       if (!before) return null;
@@ -243,6 +257,7 @@ export class ServicePrismaRepository extends ServiceRepository {
       await tx.serviceFramework.deleteMany({ where: { serviceId: id } });
       await tx.serviceTrustCriterion.deleteMany({ where: { serviceId: id } });
       await tx.service.delete({ where: { id } });
+      await insertAuditLog(tx, audit(before));
       return before;
     }, CLONING_TRANSACTION);
   }

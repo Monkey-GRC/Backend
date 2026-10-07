@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
+import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import {
   OrganizationalContext,
   OrganizationalContextInput,
 } from '../../domain/entities/organizational-context.entity';
-import { OrganizationalContextRepository } from '../../domain/repositories/organizational-context.repository';
+import { OrganizationalContextRepository, SavedContext } from '../../domain/repositories/organizational-context.repository';
 
 @Injectable()
 export class OrganizationalContextPrismaRepository extends OrganizationalContextRepository {
@@ -29,7 +31,8 @@ export class OrganizationalContextPrismaRepository extends OrganizationalContext
   save(
     scope: TenantScope,
     input: OrganizationalContextInput,
-  ): Promise<{ before: OrganizationalContext; after: OrganizationalContext }> {
+    audit: AuditIntent<SavedContext>,
+  ): Promise<SavedContext> {
     return this.prisma.withScope(scope, async (tx) => {
       const before = await this.read(tx, scope.companyId);
       const company = await tx.company.findUniqueOrThrow({
@@ -83,7 +86,9 @@ export class OrganizationalContextPrismaRepository extends OrganizationalContext
         });
       }
 
-      return { before, after: await this.read(tx, scope.companyId) };
+      const saved = { before, after: await this.read(tx, scope.companyId) };
+      await insertAuditLog(tx, audit(saved));
+      return saved;
     });
   }
 

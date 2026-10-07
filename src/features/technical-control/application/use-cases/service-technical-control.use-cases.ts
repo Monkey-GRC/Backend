@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { AuditLogWriter } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
 import { DeploymentScenarioValue } from '../../../../common/catalogs/technical-catalogs';
 import { DomainError } from '../../../../common/errors/domain-error';
@@ -26,7 +25,6 @@ export class GetTechnicalControlUseCase {
 export class SetDeploymentScenarioUseCase {
   constructor(
     private readonly repo: TechnicalControlRepository,
-    private readonly audit: AuditLogWriter,
   ) {}
 
   async execute(
@@ -35,9 +33,7 @@ export class SetDeploymentScenarioUseCase {
     scenario: DeploymentScenarioValue,
     meta: RequestMeta,
   ): Promise<TechnicalControlState> {
-    const result = await this.repo.setDeploymentScenario(scopeOf(principal), serviceId, scenario);
-    if (!result) throw new DomainError('NOT_FOUND');
-    await this.audit.write({
+    const result = await this.repo.setDeploymentScenario(scopeOf(principal), serviceId, scenario, (change) => ({
       tenantId: principal.companyId,
       userId: principal.userId,
       action: 'service.deployment_scenario',
@@ -45,9 +41,10 @@ export class SetDeploymentScenarioUseCase {
       result: 'success',
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
-      beforeState: { service_id: serviceId, deployment_scenario: result.before },
+      beforeState: { service_id: serviceId, deployment_scenario: change.before },
       afterState: { service_id: serviceId, deployment_scenario: scenario },
-    });
+    }));
+    if (!result) throw new DomainError('NOT_FOUND');
     return result.state;
   }
 }
@@ -56,7 +53,6 @@ export class SetDeploymentScenarioUseCase {
 export class SetScopeUseCase {
   constructor(
     private readonly repo: TechnicalControlRepository,
-    private readonly audit: AuditLogWriter,
   ) {}
 
   async execute(
@@ -65,9 +61,7 @@ export class SetScopeUseCase {
     counts: ScopeCounts,
     meta: RequestMeta,
   ): Promise<TechnicalControlState> {
-    const result = await this.repo.setScope(scopeOf(principal), serviceId, counts);
-    if (!result) throw new DomainError('NOT_FOUND');
-    await this.audit.write({
+    const result = await this.repo.setScope(scopeOf(principal), serviceId, counts, (change) => ({
       tenantId: principal.companyId,
       userId: principal.userId,
       action: 'service.scope',
@@ -75,9 +69,10 @@ export class SetScopeUseCase {
       result: 'success',
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
-      beforeState: result.before ? { service_id: serviceId, ...result.before } : null,
+      beforeState: change.before ? { service_id: serviceId, ...change.before } : null,
       afterState: { service_id: serviceId, ...counts },
-    });
+    }));
+    if (!result) throw new DomainError('NOT_FOUND');
     return result.state;
   }
 }

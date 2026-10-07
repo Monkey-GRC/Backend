@@ -28,7 +28,7 @@ export class LoginUseCase {
     // de los dos falló), y queda el intento con el email tecleado (CC7.2).
     if (!credentials) {
       await this.passwords.compareAgainstDummy(password);
-      await this.log(meta, null, null, 'error', { reason: 'unknown_email' }, normalizedEmail);
+      await this.logFailure(meta, null, { reason: 'unknown_email' }, normalizedEmail);
       throw new DomainError('INVALID_CREDENTIALS');
     }
 
@@ -39,7 +39,7 @@ export class LoginUseCase {
     };
 
     if (credentials.isLocked(now)) {
-      await this.log(meta, credentials.companyId, credentials.id, 'error', { reason: 'locked' });
+      await this.logFailure(meta, credentials.id, { reason: 'locked' });
       throw new DomainError('ACCOUNT_LOCKED', {
         retry_after_seconds: credentials.secondsUntilUnlock(now),
       });
@@ -48,7 +48,7 @@ export class LoginUseCase {
     if (!(await this.passwords.compare(password, credentials.passwordHash))) {
       const next = credentials.afterFailedAttempt(now);
       await this.users.registerFailedLogin(scope, credentials.id, next);
-      await this.log(meta, credentials.companyId, credentials.id, 'error', {
+      await this.logFailure(meta, credentials.id, {
         reason: next.lockedUntil ? 'locked_now' : 'wrong_password',
       });
       if (next.lockedUntil) {
@@ -61,7 +61,7 @@ export class LoginUseCase {
 
     // Se comprueba después de la contraseña: a quien no la sabe no se le revela el estado.
     if (credentials.status !== 'active') {
-      await this.log(meta, credentials.companyId, credentials.id, 'error', {
+      await this.logFailure(meta, credentials.id, {
         reason: `status_${credentials.status}`,
       });
       throw new DomainError('ACCOUNT_INACTIVE');
@@ -71,29 +71,41 @@ export class LoginUseCase {
     const user = await this.users.findById(scope, credentials.id);
     if (!user) throw new DomainError('INVALID_CREDENTIALS');
 
-    const issued = await this.sessionIssuer.issue(user, meta, now);
-    await this.log(meta, user.companyId, user.id, 'success', { session_id: issued.session.id });
+    // La sesión y su rastro `auth.login` se confirman en la misma transacción (SEG-36): no hay sesión sin rastro.
+    const issued = await this.sessionIssuer.issue(
+      user,
+      meta,
+      (session) => ({
+        tenantId: user.companyId,
+        userId: user.id,
+        action: 'auth.login',
+        resource: 'session',
+        result: 'success',
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+        afterState: { session_id: session.id },
+      }),
+      now,
+    );
     return { user, ...issued };
   }
 
-  private log(
+  // Solo intentos FALLIDOS: no hay efecto con el que ser atómico, así que se escriben aparte (de mejor esfuerzo). El
+  // acceso correcto se audita junto con la sesión (SEG-36). Convención (contracts/conventions.md):
+  // `auth.login_failed` sin tenant (CC7.2), porque el correo puede no existir.
+  private logFailure(
     meta: RequestMeta,
-    tenantId: string | null,
     userId: string | null,
-    result: 'success' | 'error',
     afterState: Record<string, unknown>,
     attemptedEmail?: string,
   ): Promise<void> {
-    // Convención de auditoría (contracts/conventions.md): un acceso correcto es `auth.login` en su
-    // empresa; uno fallido es `auth.login_failed` sin tenant (CC7.2), porque el correo puede no existir.
-    const failed = result === 'error';
     return this.audit.write({
-      tenantId: failed ? null : tenantId,
+      tenantId: null,
       userId,
       attemptedEmail,
-      action: failed ? 'auth.login_failed' : 'auth.login',
+      action: 'auth.login_failed',
       resource: 'session',
-      result,
+      result: 'error',
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
       afterState,

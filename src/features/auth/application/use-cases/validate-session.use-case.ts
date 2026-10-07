@@ -36,13 +36,13 @@ export class ValidateSessionUseCase {
 
     const state = session.stateAt(now, this.policy);
     if (state !== 'active') {
-      if (state !== 'revoked') await this.sessions.revoke(scope, session.id, now);
+      if (state !== 'revoked') await this.sessions.revoke(scope, session.id, now, null);
       throw new DomainError('SESSION_EXPIRED');
     }
 
     const user = await this.users.findById(scope, claims.sub);
     if (!user || !user.isActive()) {
-      await this.sessions.revoke(scope, session.id, now);
+      await this.sessions.revoke(scope, session.id, now, null);
       throw new DomainError('ACCOUNT_INACTIVE');
     }
 

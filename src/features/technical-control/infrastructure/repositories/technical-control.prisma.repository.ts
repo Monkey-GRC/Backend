@@ -13,7 +13,9 @@ import {
 import { DomainError } from '../../../../common/errors/domain-error';
 import { ValidationException } from '../../../../common/errors/validation.exception';
 import { Page, PageRequest } from '../../../../common/pagination/page';
+import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
+import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import {
   Asset,
@@ -25,7 +27,12 @@ import {
   ScopeCounts,
   TechnicalControlState,
 } from '../../domain/entities/technical-control.entities';
-import { TechnicalControlRepository } from '../../domain/repositories/technical-control.repository';
+import {
+  AssetChange,
+  ScenarioChange,
+  ScopeChange,
+  TechnicalControlRepository,
+} from '../../domain/repositories/technical-control.repository';
 
 const ASSET_PREFIX = 'AST-';
 
@@ -63,7 +70,12 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
 
   // ---- escenario y scope ----------------------------------------------------------------------
 
-  setDeploymentScenario(scope: TenantScope, serviceId: string, scenario: DeploymentScenarioValue) {
+  setDeploymentScenario(
+    scope: TenantScope,
+    serviceId: string,
+    scenario: DeploymentScenarioValue,
+    audit: AuditIntent<ScenarioChange>,
+  ) {
     return this.prisma.withScope(scope, async (tx) => {
       const service = await tx.service.findUnique({
         where: { id: serviceId },
@@ -82,14 +94,16 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
       }
 
       await tx.service.update({ where: { id: serviceId }, data: { deploymentScenario: scenario } });
-      return {
+      const change = {
         before: service.deploymentScenario as DeploymentScenarioValue | null,
         state: await this.state(tx, serviceId),
       };
+      await insertAuditLog(tx, audit(change));
+      return change;
     });
   }
 
-  setScope(scope: TenantScope, serviceId: string, counts: ScopeCounts) {
+  setScope(scope: TenantScope, serviceId: string, counts: ScopeCounts, audit: AuditIntent<ScopeChange>) {
     return this.prisma.withScope(scope, async (tx) => {
       const service = await tx.service.findUnique({ where: { id: serviceId }, select: { id: true } });
       if (!service) return null;
@@ -106,7 +120,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
         create: { tenantId: scope.companyId, serviceId, ...data },
         update: data,
       });
-      return {
+      const change = {
         before: existing
           ? {
               server_count: existing.serverCount,
@@ -118,6 +132,8 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
           : null,
         state: await this.state(tx, serviceId),
       };
+      await insertAuditLog(tx, audit(change));
+      return change;
     });
   }
 
@@ -130,7 +146,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
 
   // ---- activos --------------------------------------------------------------------------------
 
-  createAsset(scope: TenantScope, input: NewAsset): Promise<Asset> {
+  createAsset(scope: TenantScope, input: NewAsset, audit: AuditIntent<Asset>): Promise<Asset> {
     return this.prisma.withScope(scope, async (tx) => {
       const organization = await tx.organization.findUnique({
         where: { companyId: scope.companyId },
@@ -204,7 +220,9 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
           encryptedCredentials: input.encryptedCredentials,
         },
       });
-      return this.readAsset(tx, asset.id);
+      const created = await this.readAsset(tx, asset.id);
+      await insertAuditLog(tx, audit(created));
+      return created;
     }, ASSET_CREATION_TRANSACTION);
   }
 
@@ -260,7 +278,12 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
     });
   }
 
-  recordValidation(scope: TenantScope, id: string, result: { ok: boolean; technicalCoverage?: string }) {
+  recordValidation(
+    scope: TenantScope,
+    id: string,
+    result: { ok: boolean; technicalCoverage?: string },
+    audit: AuditIntent<AssetChange>,
+  ) {
     return this.prisma.withScope(scope, async (tx) => {
       const before = await this.readAsset(tx, id);
       // Una conexión ya activa no se vuelve a validar (su estado manda).
@@ -275,11 +298,18 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
       if (result.ok && result.technicalCoverage) {
         await tx.asset.update({ where: { id }, data: { technicalCoverage: result.technicalCoverage } });
       }
-      return { before, after: await this.readAsset(tx, id) };
+      const change = { before, after: await this.readAsset(tx, id) };
+      await insertAuditLog(tx, audit(change));
+      return change;
     });
   }
 
-  activateAsset(scope: TenantScope, id: string, operationalStatus: 'operational' | 'warning') {
+  activateAsset(
+    scope: TenantScope,
+    id: string,
+    operationalStatus: 'operational' | 'warning',
+    audit: AuditIntent<AssetChange>,
+  ) {
     return this.prisma.withScope(scope, async (tx) => {
       const before = await this.readAsset(tx, id);
       if (before.provisioning.isActive) throw new DomainError('ASSET_ALREADY_ACTIVE');
@@ -290,11 +320,13 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
       });
       if (changed.count === 0) throw new DomainError('ASSET_NOT_VALIDATED');
       await tx.asset.update({ where: { id }, data: { operationalStatus } });
-      return { before, after: await this.readAsset(tx, id) };
+      const change = { before, after: await this.readAsset(tx, id) };
+      await insertAuditLog(tx, audit(change));
+      return change;
     });
   }
 
-  scheduleAsset(scope: TenantScope, id: string, frequency: ScheduleFrequencyValue) {
+  scheduleAsset(scope: TenantScope, id: string, frequency: ScheduleFrequencyValue, audit: AuditIntent<AssetChange>) {
     return this.prisma.withScope(scope, async (tx) => {
       const before = await this.readAsset(tx, id);
       if (!before.provisioning.isActive) throw new DomainError('ASSET_NOT_ACTIVE');
@@ -307,7 +339,9 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
         where: { id: before.provisioning.id },
         data: { connectionStatus: 'scheduled', scheduleFrequency: frequency },
       });
-      return { before, after: await this.readAsset(tx, id) };
+      const change = { before, after: await this.readAsset(tx, id) };
+      await insertAuditLog(tx, audit(change));
+      return change;
     });
   }
 

@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { AuditLogWriter } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { ServiceDetail, ServiceInput } from '../../domain/entities/service.entity';
@@ -10,17 +9,15 @@ import { assertServiceInput } from '../service-input.validation';
 export class CreateServiceUseCase {
   constructor(
     private readonly services: ServiceRepository,
-    private readonly audit: AuditLogWriter,
   ) {}
 
   async execute(principal: Principal, input: ServiceInput, meta: RequestMeta): Promise<ServiceDetail> {
     const scope = { companyId: principal.companyId, userId: principal.userId, role: principal.role };
     await assertServiceInput(this.services, scope, input);
 
-    const created = await this.services.create(scope, input);
-
-    // CC9.2 (gestión de cambios): quién declaró el servicio y con qué datos.
-    await this.audit.write({
+    // CC9.2 (gestión de cambios): quién declaró el servicio y con qué datos. El rastro se escribe en la misma
+    // transacción que el servicio y su clonado (SEG-36).
+    return this.services.create(scope, input, (created) => ({
       tenantId: principal.companyId,
       userId: principal.userId,
       action: 'service.create',
@@ -30,7 +27,6 @@ export class CreateServiceUseCase {
       userAgent: meta.userAgent,
       beforeState: null,
       afterState: created.snapshot(),
-    });
-    return created;
+    }));
   }
 }

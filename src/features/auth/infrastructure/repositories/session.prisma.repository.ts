@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
+import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { Session } from '../../domain/entities/session.entity';
 import { NewSession, SessionRepository } from '../../domain/repositories/session.repository';
@@ -31,9 +33,9 @@ export class SessionPrismaRepository extends SessionRepository {
     super();
   }
 
-  async create(scope: TenantScope, data: NewSession): Promise<Session> {
-    const row = await this.prisma.withScope(scope, (tx) =>
-      tx.session.create({
+  async create(scope: TenantScope, data: NewSession, audit: AuditIntent<Session> | null): Promise<Session> {
+    const created = await this.prisma.withScope(scope, async (tx) => {
+      const row = await tx.session.create({
         data: {
           companyId: scope.companyId,
           userId: data.userId,
@@ -44,9 +46,12 @@ export class SessionPrismaRepository extends SessionRepository {
           lastActivityAt: data.createdAt,
           expiresAt: data.expiresAt,
         },
-      }),
-    );
-    return toEntity(row);
+      });
+      const session = toEntity(row);
+      if (audit) await insertAuditLog(tx, audit(session));
+      return session;
+    });
+    return created;
   }
 
   async findByRefreshTokenHash(hash: string): Promise<Session | null> {
@@ -81,12 +86,16 @@ export class SessionPrismaRepository extends SessionRepository {
     );
   }
 
-  async revoke(scope: TenantScope, sessionId: string, at: Date): Promise<void> {
-    await this.prisma.withScope(scope, (tx) =>
-      tx.session.updateMany({
+  async revoke(scope: TenantScope, sessionId: string, at: Date, audit: AuditIntent<Session> | null): Promise<void> {
+    await this.prisma.withScope(scope, async (tx) => {
+      const closed = await tx.session.updateMany({
         where: { id: sessionId, revokedAt: null },
         data: { revokedAt: at },
-      }),
-    );
+      });
+      // Otro cierre llegó primero: no hubo cambio, no hay rastro que escribir.
+      if (closed.count === 0 || !audit) return;
+      const row = await tx.session.findUniqueOrThrow({ where: { id: sessionId } });
+      await insertAuditLog(tx, audit(toEntity(row)));
+    });
   }
 }

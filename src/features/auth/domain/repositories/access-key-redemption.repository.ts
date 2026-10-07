@@ -1,3 +1,4 @@
+import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { RedeemableAccessKey, RedeemingCompany } from '../entities/redeemable-access-key.entity';
 
@@ -18,11 +19,13 @@ export abstract class AccessKeyRedemptionRepository {
   abstract findCompany(scope: TenantScope): Promise<RedeemingCompany | null>;
 
   // En una sola transacción: marca la clave como usada (solo si seguía pendiente, así dos canjes
-  // simultáneos no crean dos cuentas) y crea el admin_empresa. Si algo falla, no queda nada a medias.
+  // simultáneos no crean dos cuentas) y crea el admin_empresa. Si algo falla, no queda nada a medias. `audit` se
+  // escribe en esa misma transacción, solo si el canje se produjo (SEG-36): sin rastro no hay cuenta.
   abstract redeem(
     scope: TenantScope,
     accessKeyId: string,
     admin: NewCompanyAdmin,
     at: Date,
+    audit: AuditIntent<{ userId: string }>,
   ): Promise<RedeemOutcome>;
 }

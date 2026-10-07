@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AuditLogWriter } from '../../../../common/audit/audit-log.writer';
+import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
 import {
   ConnectionCategory,
@@ -36,24 +36,19 @@ const snapshot = (a: Asset): Record<string, unknown> => ({
 
 type Audited = { principal: Principal; meta: RequestMeta; action: string; before: Asset | null; after: Asset | null; result?: 'success' | 'error' };
 
-// Escribe el audit trail de un activo; los casos de uso lo crean con el escritor que reciben.
-class AssetAudit {
-  constructor(private readonly audit: AuditLogWriter) {}
-
-  write({ principal, meta, action, before, after, result = 'success' }: Audited): Promise<void> {
-    return this.audit.write({
-      tenantId: principal.companyId,
-      userId: principal.userId,
-      action,
-      resource: 'asset',
-      result,
-      ipAddress: meta.ipAddress,
-      userAgent: meta.userAgent,
-      beforeState: before ? snapshot(before) : null,
-      afterState: after ? snapshot(after) : null,
-    });
-  }
-}
+// El rastro de un activo. Cada caso de uso lo entrega al repositorio como `AuditIntent` para que se escriba en la
+// misma transacción que el cambio (SEG-36).
+const assetEntry = ({ principal, meta, action, before, after, result = 'success' }: Audited): AuditEntry => ({
+  tenantId: principal.companyId,
+  userId: principal.userId,
+  action,
+  resource: 'asset',
+  result,
+  ipAddress: meta.ipAddress,
+  userAgent: meta.userAgent,
+  beforeState: before ? snapshot(before) : null,
+  afterState: after ? snapshot(after) : null,
+});
 
 export type NewAssetRequest = {
   name: string;
@@ -73,14 +68,15 @@ export class CreateAssetUseCase {
   constructor(
     private readonly repo: TechnicalControlRepository,
     private readonly cipher: CredentialCipher,
-    private readonly audit: AuditLogWriter,
   ) {}
 
   async execute(principal: Principal, request: NewAssetRequest, meta: RequestMeta): Promise<Asset> {
     const { errors, toStore } = normalizeCredentials(request.connectionCategory, request.credentials);
     if (errors.length > 0) throw new ValidationException(errors);
 
-    const asset = await this.repo.createAsset(scopeOf(principal), {
+    return this.repo.createAsset(
+      scopeOf(principal),
+      {
       name: request.name,
       connectionCategory: request.connectionCategory,
       platform: request.platform,
@@ -91,9 +87,9 @@ export class CreateAssetUseCase {
       serviceIds: request.serviceIds,
       responsibleId: request.responsibleId,
       encryptedCredentials: toStore ? this.cipher.encrypt(toStore) : null,
-    });
-    await new AssetAudit(this.audit).write({ principal, meta, action: 'asset.create', before: null, after: asset });
-    return asset;
+      },
+      (asset) => assetEntry({ principal, meta, action: 'asset.create', before: null, after: asset }),
+    );
   }
 }
 
@@ -125,7 +121,6 @@ export class ValidateAssetUseCase {
     private readonly repo: TechnicalControlRepository,
     private readonly probe: ConnectionProbe,
     private readonly cipher: CredentialCipher,
-    private readonly audit: AuditLogWriter,
   ) {}
 
   async execute(principal: Principal, id: string, meta: RequestMeta): Promise<ValidationOutcome> {
@@ -146,17 +141,19 @@ export class ValidateAssetUseCase {
       credentials,
     });
 
-    const audit = new AssetAudit(this.audit);
     if (!result.ok) {
-      const { before, after } = await this.repo.recordValidation(scope, id, { ok: false });
-      await audit.write({ principal, meta, action: 'asset.validate', before, after, result: 'error' });
+      // La validación fallida también cambia el estado de la conexión: su rastro va en la misma transacción.
+      await this.repo.recordValidation(scope, id, { ok: false }, (c) =>
+        assetEntry({ principal, meta, action: 'asset.validate', before: c.before, after: c.after, result: 'error' }),
+      );
       throw new ValidationException(result.fields, { code: 'CONNECTION_FAILED', messageKey: 'asset.connection_failed' });
     }
-    const { before, after } = await this.repo.recordValidation(scope, id, {
-      ok: true,
-      technicalCoverage: result.technicalCoverage,
-    });
-    await audit.write({ principal, meta, action: 'asset.validate', before, after });
+    const { after } = await this.repo.recordValidation(
+      scope,
+      id,
+      { ok: true, technicalCoverage: result.technicalCoverage },
+      (c) => assetEntry({ principal, meta, action: 'asset.validate', before: c.before, after: c.after }),
+    );
     return { asset: after, checksAvailable: result.checksAvailable };
   }
 }
@@ -166,32 +163,29 @@ export class ActivateAssetUseCase {
   constructor(
     private readonly repo: TechnicalControlRepository,
     private readonly probe: ConnectionProbe,
-    private readonly audit: AuditLogWriter,
   ) {}
 
   async execute(principal: Principal, id: string, meta: RequestMeta): Promise<Asset> {
     // «Automatizado ≠ Operativo»: solo una sonda real puede decir que el activo opera. Con la
     // simulada (demostración) queda en `warning` y la pantalla lo explica.
-    const { before, after } = await this.repo.activateAsset(
+    const { after } = await this.repo.activateAsset(
       scopeOf(principal),
       id,
       this.probe.confirmsOperation ? 'operational' : 'warning',
+      (c) => assetEntry({ principal, meta, action: 'asset.activate', before: c.before, after: c.after }),
     );
-    await new AssetAudit(this.audit).write({ principal, meta, action: 'asset.activate', before, after });
     return after;
   }
 }
 
 @Injectable()
 export class ScheduleAssetUseCase {
-  constructor(
-    private readonly repo: TechnicalControlRepository,
-    private readonly audit: AuditLogWriter,
-  ) {}
+  constructor(private readonly repo: TechnicalControlRepository) {}
 
   async execute(principal: Principal, id: string, frequency: ScheduleFrequencyValue, meta: RequestMeta): Promise<Asset> {
-    const { before, after } = await this.repo.scheduleAsset(scopeOf(principal), id, frequency);
-    await new AssetAudit(this.audit).write({ principal, meta, action: 'asset.schedule', before, after });
+    const { after } = await this.repo.scheduleAsset(scopeOf(principal), id, frequency, (c) =>
+      assetEntry({ principal, meta, action: 'asset.schedule', before: c.before, after: c.after }),
+    );
     return after;
   }
 }

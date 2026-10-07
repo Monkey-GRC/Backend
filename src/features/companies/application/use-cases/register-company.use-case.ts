@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { AuditLogWriter } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
@@ -37,7 +36,6 @@ export class RegisterCompanyUseCase {
   constructor(
     private readonly companies: CompanyRepository,
     private readonly tokens: TokenHasher,
-    private readonly audit: AuditLogWriter,
     @Inject(ACCESS_KEY_TTL_HOURS) private readonly accessKeyTtlHours: number,
   ) {}
 
@@ -80,6 +78,9 @@ export class RegisterCompanyUseCase {
     }
 
     const accessKeyCode = generateAccessKeyCode();
+    // Acción de plataforma: tenant_id nulo (la hace admin_monkey, no la empresa). La clave nunca
+    // entra al audit trail, ni en claro ni en hash. El rastro se escribe en la misma transacción que la
+    // empresa, su clave y su contrato (SEG-36): sin rastro no hay empresa.
     const { company, accessKey, frameworks } = await this.companies.createWithAccessKey(
       scope,
       {
@@ -93,28 +94,25 @@ export class RegisterCompanyUseCase {
         expiresAt: new Date(Date.now() + this.accessKeyTtlHours * 3_600_000),
         createdBy: principal.userId,
       },
+      (created) => ({
+        tenantId: null,
+        userId: principal.userId,
+        action: 'company.register',
+        resource: 'company',
+        result: 'success',
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+        afterState: {
+          company_id: created.company.id,
+          name: created.company.name,
+          admin_email: created.company.adminEmail,
+          isolation_strategy: created.company.isolationStrategy,
+          framework_codes: created.frameworks.map((f) => f.code),
+          access_key_id: created.accessKey.id,
+          access_key_expires_at: created.accessKey.expiresAt.toISOString(),
+        },
+      }),
     );
-
-    // Acción de plataforma: tenant_id nulo (la hace admin_monkey, no la empresa). La clave nunca
-    // entra al audit trail, ni en claro ni en hash.
-    await this.audit.write({
-      tenantId: null,
-      userId: principal.userId,
-      action: 'company.register',
-      resource: 'company',
-      result: 'success',
-      ipAddress: meta.ipAddress,
-      userAgent: meta.userAgent,
-      afterState: {
-        company_id: company.id,
-        name: company.name,
-        admin_email: company.adminEmail,
-        isolation_strategy: company.isolationStrategy,
-        framework_codes: frameworks.map((f) => f.code),
-        access_key_id: accessKey.id,
-        access_key_expires_at: accessKey.expiresAt.toISOString(),
-      },
-    });
 
     return { company, accessKey, frameworks, accessKeyCode };
   }

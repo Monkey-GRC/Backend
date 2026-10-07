@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, IsStrongPassword, MaxLength } from 'class-validator';
-import { PASSWORD_MIN_LENGTH } from '../../../../common/security/password-policy';
+import { PASSWORD_POLICY } from '../../../../common/security/password-policy';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 
@@ -24,12 +24,6 @@ export class RedeemAccessKeyDto {
   @ApiProperty({ example: 'UnaClaveLarga123!' })
   @IsString()
   @MaxLength(128)
-  @IsStrongPassword({
-    minLength: PASSWORD_MIN_LENGTH,
-    minLowercase: 1,
-    minUppercase: 1,
-    minNumbers: 1,
-    minSymbols: 1,
-  })
+  @IsStrongPassword({ ...PASSWORD_POLICY })
   password!: string;
 }

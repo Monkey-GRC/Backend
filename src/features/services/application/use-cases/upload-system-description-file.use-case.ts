@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { AuditLogWriter } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
@@ -19,7 +18,6 @@ export class UploadSystemDescriptionFileUseCase {
   constructor(
     private readonly services: ServiceRepository,
     private readonly storage: FileStorage,
-    private readonly audit: AuditLogWriter,
   ) {}
 
   async execute(
@@ -40,7 +38,17 @@ export class UploadSystemDescriptionFileUseCase {
 
     let change;
     try {
-      change = await this.services.setSystemDescription(scope, id, { fileKey: key });
+      change = await this.services.setSystemDescription(scope, id, { fileKey: key }, (done) => ({
+        tenantId: principal.companyId,
+        userId: principal.userId,
+        action: 'service.system_description',
+        resource: 'service',
+        result: 'success',
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+        beforeState: done.before.snapshot(),
+        afterState: done.after.snapshot(),
+      }));
     } catch (error) {
       await this.storage.remove(key);
       throw error;
@@ -54,17 +62,6 @@ export class UploadSystemDescriptionFileUseCase {
     const previous = change.before.data.systemDescription?.storageKey;
     if (previous && previous !== key) await this.storage.remove(previous);
 
-    await this.audit.write({
-      tenantId: principal.companyId,
-      userId: principal.userId,
-      action: 'service.system_description',
-      resource: 'service',
-      result: 'success',
-      ipAddress: meta.ipAddress,
-      userAgent: meta.userAgent,
-      beforeState: change.before.snapshot(),
-      afterState: change.after.snapshot(),
-    });
     return change.after;
   }
 }

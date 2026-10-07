@@ -13,7 +13,7 @@ export type Tenant = {
   assetName: string;
 };
 
-const servicePayload = (name: string) => ({
+export const servicePayload = (name: string) => ({
   name,
   description: 'Soporte de primer y segundo nivel para clientes corporativos, 24/7.',
   scope_statement: 'Se presta a clientes del sector financiero en Colombia y México.',
@@ -30,7 +30,7 @@ const servicePayload = (name: string) => ({
   system_description: { kind: 'link', url: 'https://docs.ejemplo.com/system-description.pdf' },
 });
 
-const orgPayload = {
+export const orgPayload = {
   description: 'Consultoría de auditoría y cumplimiento para empresas de servicios en LATAM.',
   size: 'from_51_to_200',
   industry: 'bpo_outsourcing',

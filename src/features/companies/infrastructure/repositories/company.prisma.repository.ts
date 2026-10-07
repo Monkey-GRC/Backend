@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
+import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { AccessKey } from '../../domain/entities/access-key.entity';
 import {
@@ -9,7 +11,7 @@ import {
   ContractedFramework,
 } from '../../domain/entities/company-overview';
 import { Company } from '../../domain/entities/company.entity';
-import {
+import { RegisteredCompany,
   CompanyListQuery,
   CompanyRepository,
   NewAccessKey,
@@ -107,7 +109,8 @@ export class CompanyPrismaRepository extends CompanyRepository {
     scope: TenantScope,
     data: NewCompany,
     key: NewAccessKey,
-  ): Promise<{ company: Company; accessKey: AccessKey; frameworks: ContractedFramework[] }> {
+    audit: AuditIntent<RegisteredCompany>,
+  ): Promise<RegisteredCompany> {
     return this.prisma.withScope(scope, async (tx) => {
       const company = await tx.company.create({
         data: {
@@ -147,11 +150,14 @@ export class CompanyPrismaRepository extends CompanyRepository {
         where: { companyId: company.id },
         ...FRAMEWORKS_INCLUDE,
       });
-      return {
+      const registered = {
         company: toCompany(company),
         accessKey: toAccessKey(accessKey),
         frameworks: toContracted(contracted),
       };
+      // En la misma transacción que la empresa, la clave y el contrato (SEG-36).
+      await insertAuditLog(tx, audit(registered));
+      return registered;
     });
   }
 
