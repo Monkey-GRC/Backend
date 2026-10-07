@@ -441,3 +441,29 @@ src/features/<feature>/
 ```
 
 Luego agrega el módulo en `src/app.module.ts` y está listo.
+
+## Pruebas y CI
+
+| Qué | Comando | Necesita |
+|---|---|---|
+| Unitarias | `npm test` | nada |
+| Lint (sin `--fix`, como en CI) | `npm run lint:ci` | nada |
+| Aislamiento entre empresas (RLS) | `npm run test:e2e` | `TEST_DATABASE_URL`: un Postgres **desechable** con las migraciones aplicadas |
+| Catálogo, clonado y audit trail | `npm run catalog:verify` · `clone:verify` · `audit:verify` | base con las migraciones y el catálogo cargados |
+
+Las pruebas de base de datos **escriben filas (siempre dentro de una transacción que se revierte)** y se niegan a correr contra
+un servidor que no sea local: nunca las apuntes a la base compartida de dev. Para correrlas en tu máquina:
+
+```bash
+docker run -d --name monkey-test-pg -e POSTGRES_PASSWORD=test -e POSTGRES_DB=monkey -p 55432:5432 postgres:17
+export DATABASE_URL=postgresql://postgres:test@localhost:55432/monkey
+export APP_DATABASE_URL=postgresql://monkey_app:test@localhost:55432/monkey
+export TEST_DATABASE_URL=$DATABASE_URL
+npx prisma migrate deploy
+docker exec monkey-test-pg psql -U postgres -d monkey -c "ALTER ROLE monkey_app PASSWORD 'test'"
+npm run catalog:load -- --apply && npm run reference:load -- --apply
+npm run test:e2e
+```
+
+Exporta las tres URLs en la misma terminal: el `.env` del proyecto apunta a la base de dev y `dotenv` no pisa las variables ya definidas.
+`.github/workflows/ci.yml` hace exactamente esto en cada PR a `develop`/`main`.
