@@ -1,26 +1,12 @@
-import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
-import { ValidationException } from './common/errors/validation.exception';
+import { configureApp } from './app.setup';
 import { setupSwagger } from './swagger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.setGlobalPrefix('v1');
-
-  app.use(cookieParser());
-
-  // 422 con todos los errores por campo a la vez (contracts/conventions.md).
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      exceptionFactory: (errors) => ValidationException.fromValidationErrors(errors),
-    }),
-  );
+  configureApp(app);
 
   // CORS: 4200 = Monkey Platform, 4201 = Monkey Admin (angular.json de cada app).
   app.enableCors({

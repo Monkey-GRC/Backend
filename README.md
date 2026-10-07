@@ -448,11 +448,12 @@ Luego agrega el módulo en `src/app.module.ts` y está listo.
 |---|---|---|
 | Unitarias | `npm test` | nada |
 | Lint (sin `--fix`, como en CI) | `npm run lint:ci` | nada |
-| Aislamiento entre empresas (RLS) | `npm run test:e2e` | `TEST_DATABASE_URL`: un Postgres **desechable** con las migraciones aplicadas |
+| Aislamiento entre empresas: base de datos (RLS) y API (HTTP) | `npm run test:e2e` | `TEST_DATABASE_URL`: un Postgres **desechable** con migraciones, catálogo y `monkey_app` con contraseña (`TEST_APP_PASSWORD`, por defecto `test`) |
 | Catálogo, clonado y audit trail | `npm run catalog:verify` · `clone:verify` · `audit:verify` | base con las migraciones y el catálogo cargados |
 
-Las pruebas de base de datos **escriben filas (siempre dentro de una transacción que se revierte)** y se niegan a correr contra
-un servidor que no sea local: nunca las apuntes a la base compartida de dev. Para correrlas en tu máquina:
+Las pruebas de RLS escriben dentro de una transacción que se revierte. **Las de HTTP no**: crean empresas, servicios y activos reales
+por la API (con nombres únicos por corrida), así que solo sirven sobre una base desechable. Ambas se niegan a correr contra un
+servidor que no sea local: nunca las apuntes a la base compartida de dev. Para correrlas en tu máquina:
 
 ```bash
 docker run -d --name monkey-test-pg -e POSTGRES_PASSWORD=test -e POSTGRES_DB=monkey -p 55432:5432 postgres:17

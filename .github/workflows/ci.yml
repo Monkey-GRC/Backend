@@ -42,6 +42,8 @@ jobs:
       DATABASE_URL: postgresql://postgres:ci@localhost:5432/monkey
       APP_DATABASE_URL: postgresql://monkey_app:ci@localhost:5432/monkey
       TEST_DATABASE_URL: postgresql://postgres:ci@localhost:5432/monkey
+      # Contraseña que el paso de preparación le pone a monkey_app: la app de las pruebas e2e se conecta con ese rol.
+      TEST_APP_PASSWORD: ci
 
     steps:
       - uses: actions/checkout@v4
@@ -83,5 +85,5 @@ jobs:
           npm run clone:verify
           npm run audit:verify
 
-      - name: Pruebas de aislamiento entre empresas (RLS)
+      - name: Pruebas de aislamiento entre empresas (base de datos y API)
         run: npm run test:e2e
