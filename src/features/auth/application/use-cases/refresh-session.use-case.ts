@@ -36,14 +36,14 @@ export class RefreshSessionUseCase {
     const state = session.stateAt(now, this.policy);
     if (state !== 'active') {
       // Inactiva 30 min o pasadas las 8 h: se cierra para que el token no vuelva a servir.
-      if (state !== 'revoked') await this.sessions.revoke(scope, session.id, now);
+      if (state !== 'revoked') await this.sessions.revoke(scope, session.id, now, null);
       throw new DomainError('SESSION_EXPIRED');
     }
 
     // El usuario pudo pasar a inactive/suspended con la sesión abierta (CC6.3).
     const user = await this.users.findById(scope, session.userId);
     if (!user || !user.isActive()) {
-      await this.sessions.revoke(scope, session.id, now);
+      await this.sessions.revoke(scope, session.id, now, null);
       throw new DomainError('ACCOUNT_INACTIVE');
     }
 

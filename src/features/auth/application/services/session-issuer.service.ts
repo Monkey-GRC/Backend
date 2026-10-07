@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { TokenHasher } from '../../../../common/security/token-hasher';
 import { AuthUser } from '../../domain/entities/auth-user.entity';
@@ -25,7 +26,13 @@ export class SessionIssuer {
     @Inject(SESSION_POLICY) private readonly policy: SessionPolicy,
   ) {}
 
-  async issue(user: AuthUser, meta: RequestMeta, now = new Date()): Promise<IssuedSession> {
+  // `audit` viaja hasta la transacción que crea la sesión (SEG-36). `null` solo si otra acción ya audita este hecho.
+  async issue(
+    user: AuthUser,
+    meta: RequestMeta,
+    audit: AuditIntent<Session> | null,
+    now = new Date(),
+  ): Promise<IssuedSession> {
     const refreshToken = this.tokens.generate();
     const session = await this.sessions.create(
       { companyId: user.companyId, userId: user.id, role: user.role },
@@ -37,6 +44,7 @@ export class SessionIssuer {
         createdAt: now,
         expiresAt: Session.expiresAtFor(now, this.policy),
       },
+      audit,
     );
     const accessToken = await this.accessTokens.sign({
       sub: user.id,

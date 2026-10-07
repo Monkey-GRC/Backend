@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { AuditLogWriter } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
 import { REGULATION_NONE } from '../../../../common/catalogs/onboarding-catalogs';
 import { ValidationException } from '../../../../common/errors/validation.exception';
@@ -14,7 +13,6 @@ import { OrganizationalContextRepository } from '../../domain/repositories/organ
 export class SaveOrganizationalContextUseCase {
   constructor(
     private readonly contexts: OrganizationalContextRepository,
-    private readonly audit: AuditLogWriter,
   ) {}
 
   async execute(
@@ -40,10 +38,9 @@ export class SaveOrganizationalContextUseCase {
       userId: principal.userId,
       role: principal.role,
     };
-    const { before, after } = await this.contexts.save(scope, input);
-
-    // CC9.2 (gestión de cambios): estado antes y después, con quién y desde dónde.
-    await this.audit.write({
+    // CC9.2 (gestión de cambios): estado antes y después, con quién y desde dónde. El rastro se escribe en la
+    // misma transacción que el cambio (SEG-36).
+    const { after } = await this.contexts.save(scope, input, ({ before, after }) => ({
       tenantId: principal.companyId,
       userId: principal.userId,
       action: 'organizational_context.save',
@@ -53,7 +50,7 @@ export class SaveOrganizationalContextUseCase {
       userAgent: meta.userAgent,
       beforeState: before.exists ? before.snapshot() : null,
       afterState: after.snapshot(),
-    });
+    }));
     return after;
   }
 }

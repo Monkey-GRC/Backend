@@ -1,3 +1,4 @@
+import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { PageRequest, Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import {
@@ -19,20 +20,27 @@ export abstract class ServiceRepository {
   abstract contractedFrameworkCodes(scope: TenantScope): Promise<string[]>;
 
   // Declara el servicio y clona el catálogo de sus marcos, todo en una sola transacción.
-  // Lanza ORGANIZATION_NOT_DECLARED y SERVICE_NAME_TAKEN.
-  abstract create(scope: TenantScope, input: ServiceInput): Promise<ServiceDetail>;
+  // Lanza ORGANIZATION_NOT_DECLARED y SERVICE_NAME_TAKEN. Toda acción que cambia datos recibe su `audit`, que se
+  // escribe en la MISMA transacción: si el rastro falla, el cambio se revierte (SEG-36).
+  abstract create(scope: TenantScope, input: ServiceInput, audit: AuditIntent<ServiceDetail>): Promise<ServiceDetail>;
 
   abstract list(scope: TenantScope, request: PageRequest): Promise<Page<ServiceDetail>>;
   abstract findById(scope: TenantScope, id: string): Promise<ServiceDetail | null>;
 
-  // null si el servicio no existe (o es de otra empresa: RLS no deja verlo).
-  abstract update(scope: TenantScope, id: string, patch: ServicePatch): Promise<Change | null>;
+  // null si el servicio no existe (o es de otra empresa: RLS no deja verlo); en ese caso no hay cambio ni rastro.
+  abstract update(
+    scope: TenantScope,
+    id: string,
+    patch: ServicePatch,
+    audit: AuditIntent<Change>,
+  ): Promise<Change | null>;
   abstract setSystemDescription(
     scope: TenantScope,
     id: string,
     input: SystemDescriptionInput,
+    audit: AuditIntent<Change>,
   ): Promise<Change | null>;
 
   // Lanza SERVICE_HAS_EVALUATIONS si ya tiene histórico. null si no existe.
-  abstract remove(scope: TenantScope, id: string): Promise<ServiceDetail | null>;
+  abstract remove(scope: TenantScope, id: string, audit: AuditIntent<ServiceDetail>): Promise<ServiceDetail | null>;
 }

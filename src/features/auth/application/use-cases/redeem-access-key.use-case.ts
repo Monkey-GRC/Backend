@@ -43,7 +43,7 @@ export class RedeemAccessKeyUseCase {
 
     const key = code ? await this.redemptions.findByCodeHash(this.tokens.hash(code)) : null;
     if (!key) {
-      await this.log(meta, null, null, 'error', { reason: 'unknown_key' }, email);
+      await this.logFailure(meta, null, null, { reason: 'unknown_key' }, email);
       throw new DomainError('ACCESS_KEY_INVALID');
     }
 
@@ -54,13 +54,13 @@ export class RedeemAccessKeyUseCase {
     // Una empresa suspendida no puede estrenar cuenta; se responde como clave inválida para no
     // revelar el estado de la empresa a quien solo tiene la clave.
     if (!company || company.status !== 'active') {
-      await this.log(meta, key.companyId, null, 'error', { reason: 'company_not_active' }, email);
+      await this.logFailure(meta, key.companyId, null, { reason: 'company_not_active' }, email);
       throw new DomainError('ACCESS_KEY_INVALID');
     }
 
     const state = key.stateAt(now);
     if (state !== 'redeemable') {
-      await this.log(meta, key.companyId, null, 'error', { reason: `key_${state}` }, email);
+      await this.logFailure(meta, key.companyId, null, { reason: `key_${state}` }, email);
       if (state === 'used') throw new DomainError('ACCESS_KEY_ALREADY_USED');
       if (state === 'expired') throw new DomainError('ACCESS_KEY_EXPIRED');
       throw new DomainError('ACCESS_KEY_INVALID');
@@ -69,7 +69,7 @@ export class RedeemAccessKeyUseCase {
     // La clave se emitió para el correo administrativo que registró Monkey (D24): solo con ese
     // correo se crea el admin_empresa. Así una clave interceptada no sirve con otro correo.
     if (email !== company.adminEmail.toLowerCase()) {
-      await this.log(meta, key.companyId, null, 'error', { reason: 'email_mismatch' }, email);
+      await this.logFailure(meta, key.companyId, null, { reason: 'email_mismatch' }, email);
       throw new DomainError('ACCESS_KEY_EMAIL_MISMATCH');
     }
 
@@ -82,13 +82,37 @@ export class RedeemAccessKeyUseCase {
         passwordHash: await this.passwords.hash(input.password),
       },
       now,
+      // Dos hechos auditables, un solo commit con la clave consumida y la cuenta creada (contrato de auth, SEG-36):
+      // el canje y la creación del usuario.
+      ({ userId }) => [
+        {
+          tenantId: key.companyId,
+          userId,
+          action: 'access_key.redeem',
+          resource: 'access_key',
+          result: 'success',
+          ipAddress: meta.ipAddress,
+          userAgent: meta.userAgent,
+          afterState: { access_key_id: key.id },
+        },
+        {
+          tenantId: key.companyId,
+          userId,
+          action: 'user.create',
+          resource: 'user',
+          result: 'success',
+          ipAddress: meta.ipAddress,
+          userAgent: meta.userAgent,
+          afterState: { user_id: userId, email, role: 'admin_empresa', via: 'access_key' },
+        },
+      ],
     );
     if (outcome.kind === 'already_used') {
-      await this.log(meta, key.companyId, null, 'error', { reason: 'key_used_concurrently' }, email);
+      await this.logFailure(meta, key.companyId, null, { reason: 'key_used_concurrently' }, email);
       throw new DomainError('ACCESS_KEY_ALREADY_USED');
     }
     if (outcome.kind === 'email_taken') {
-      await this.log(meta, key.companyId, null, 'error', { reason: 'email_taken' }, email);
+      await this.logFailure(meta, key.companyId, null, { reason: 'email_taken' }, email);
       throw new DomainError('EMAIL_TAKEN');
     }
 
@@ -97,41 +121,30 @@ export class RedeemAccessKeyUseCase {
     const user = await this.users.findById(userScope, outcome.userId);
     if (!user) throw new DomainError('ACCESS_KEY_INVALID');
 
-    const issued = await this.sessionIssuer.issue(user, meta, now);
+    // La sesión no lleva rastro propio aquí: ya quedó auditado el canje que la origina.
+    const issued = await this.sessionIssuer.issue(user, meta, null, now);
     this.limiter.clear(meta.ipAddress);
-
-    // Dos acciones, dos registros (contrato de auth, MD-92): el canje y la creación del usuario.
-    await this.log(meta, user.companyId, user.id, 'success', { access_key_id: key.id });
-    await this.audit.write({
-      tenantId: user.companyId,
-      userId: user.id,
-      action: 'user.create',
-      resource: 'user',
-      result: 'success',
-      ipAddress: meta.ipAddress,
-      userAgent: meta.userAgent,
-      afterState: { user_id: user.id, email: user.email, role: user.role, via: 'access_key' },
-    });
 
     return { user, ...issued };
   }
 
-  private log(
+  // Solo intentos FALLIDOS: no hay efecto con el que ser atómico, así que se escriben aparte (de mejor esfuerzo) y
+  // cuentan para el freno por dirección. El canje correcto se audita dentro de su transacción (SEG-36).
+  private logFailure(
     meta: RequestMeta,
     tenantId: string | null,
     userId: string | null,
-    result: 'success' | 'error',
     afterState: Record<string, unknown>,
     attemptedEmail?: string,
   ): Promise<void> {
-    if (result === 'error') this.limiter.recordFailure(meta.ipAddress);
+    this.limiter.recordFailure(meta.ipAddress);
     return this.audit.write({
       tenantId,
       userId,
       attemptedEmail,
       action: 'access_key.redeem',
       resource: 'access_key',
-      result,
+      result: 'error',
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
       afterState,

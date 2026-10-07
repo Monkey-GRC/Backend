@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { AuditLogWriter } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
@@ -11,7 +10,6 @@ import { assertServiceInput } from '../service-input.validation';
 export class UpdateServiceUseCase {
   constructor(
     private readonly services: ServiceRepository,
-    private readonly audit: AuditLogWriter,
   ) {}
 
   async execute(
@@ -23,10 +21,7 @@ export class UpdateServiceUseCase {
     const scope = { companyId: principal.companyId, userId: principal.userId, role: principal.role };
     await assertServiceInput(this.services, scope, patch);
 
-    const change = await this.services.update(scope, id, patch);
-    if (!change) throw new DomainError('NOT_FOUND');
-
-    await this.audit.write({
+    const change = await this.services.update(scope, id, patch, (done) => ({
       tenantId: principal.companyId,
       userId: principal.userId,
       action: 'service.update',
@@ -34,9 +29,10 @@ export class UpdateServiceUseCase {
       result: 'success',
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
-      beforeState: change.before.snapshot(),
-      afterState: change.after.snapshot(),
-    });
+      beforeState: done.before.snapshot(),
+      afterState: done.after.snapshot(),
+    }));
+    if (!change) throw new DomainError('NOT_FOUND');
     return change.after;
   }
 }

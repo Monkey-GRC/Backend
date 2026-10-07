@@ -1,3 +1,4 @@
+import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { Page, PageRequest } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { AccessKey } from '../entities/access-key.entity';
@@ -27,6 +28,8 @@ export type CompanyListQuery = PageRequest & {
   excludeCompanyId: string;
 };
 
+export type RegisteredCompany = { company: Company; accessKey: AccessKey; frameworks: ContractedFramework[] };
+
 export abstract class CompanyRepository {
   abstract existsActiveWithName(scope: TenantScope, name: string): Promise<boolean>;
 
@@ -40,11 +43,13 @@ export abstract class CompanyRepository {
 
   // Empresa, clave y marcos contratados en la misma transacción: nunca queda una empresa sin forma
   // de entrar ni sin su contrato.
+  // `audit` se escribe en esa misma transacción: sin rastro no hay empresa (SEG-36).
   abstract createWithAccessKey(
     scope: TenantScope,
     company: NewCompany,
     accessKey: NewAccessKey,
-  ): Promise<{ company: Company; accessKey: AccessKey; frameworks: ContractedFramework[] }>;
+    audit: AuditIntent<RegisteredCompany>,
+  ): Promise<RegisteredCompany>;
 
   abstract list(scope: TenantScope, query: CompanyListQuery): Promise<Page<CompanyOverview>>;
 

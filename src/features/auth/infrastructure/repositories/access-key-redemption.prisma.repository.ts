@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../../generated/prisma/client';
+import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
+import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import {
   RedeemableAccessKey,
@@ -53,6 +55,7 @@ export class AccessKeyRedemptionPrismaRepository extends AccessKeyRedemptionRepo
     accessKeyId: string,
     admin: NewCompanyAdmin,
     at: Date,
+    audit: AuditIntent<{ userId: string }>,
   ): Promise<RedeemOutcome> {
     try {
       const user = await this.prisma.withScope(scope, async (tx) => {
@@ -63,7 +66,7 @@ export class AccessKeyRedemptionPrismaRepository extends AccessKeyRedemptionRepo
         });
         if (marked.count !== 1) throw new KeyNoLongerPending();
 
-        return tx.user.create({
+        const created = await tx.user.create({
           data: {
             companyId: scope.companyId,
             email: admin.email,
@@ -74,6 +77,9 @@ export class AccessKeyRedemptionPrismaRepository extends AccessKeyRedemptionRepo
           },
           select: { id: true },
         });
+        // El rastro se confirma con la clave consumida y la cuenta creada: o las tres cosas, o ninguna (SEG-36).
+        await insertAuditLog(tx, audit({ userId: created.id }));
+        return created;
       });
       return { kind: 'created', userId: user.id };
     } catch (error) {

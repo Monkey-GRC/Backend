@@ -35,6 +35,8 @@ export async function bootApp(): Promise<INestApplication> {
   // Las variables se fijan antes de compilar el módulo: es cuando los servicios leen la configuración.
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = moduleRef.createNestApplication();
+  // Los errores que las pruebas provocan a propósito (p. ej. un rastro que falla) no deben llenar la salida.
+  app.useLogger(false);
   configureApp(app);
   await app.init();
   return app;
@@ -70,4 +72,14 @@ export async function login(app: INestApplication, email: string): Promise<Agent
   const res = await agent.post('/v1/auth/login').send({ email, password: PASSWORD });
   if (res.status !== 200) throw new Error(`login ${email} → ${res.status} ${JSON.stringify(res.body)}`);
   return agent;
+}
+
+/** Una consulta como DUEÑO de la base (sin RLS): para comprobar o preparar estado que la API no deja tocar. */
+export async function owner<T extends Record<string, unknown> = Record<string, unknown>>(sql: string, params: unknown[] = []): Promise<T[]> {
+  const db = await connect();
+  try {
+    return (await db.query(sql, params)).rows as T[];
+  } finally {
+    await db.end();
+  }
 }
