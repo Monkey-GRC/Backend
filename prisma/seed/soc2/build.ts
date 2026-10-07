@@ -247,7 +247,7 @@ export function splitSteps(text: string): string[] | null {
   let pos = 0;
   let k = 1;
   const marker = (n: number, from: number) => new RegExp(`(?:^|(?<=[\\s.;:]))${n}[.)]\\s+`).exec(s.slice(from));
-  let cur = marker(1, 0);
+  const cur = marker(1, 0);
   if (!cur || cur.index !== 0) return null;
   pos = cur[0].length;
   for (;;) {
