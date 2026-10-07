@@ -53,7 +53,7 @@ export DATABASE_URL="$MIGRATE_DATABASE_URL"
 if ! docker run --rm --network "$NETWORK" -e DATABASE_URL "$IMAGE" npx prisma migrate deploy; then
   echo "ERROR: la migración falló. El backend NO se redespliega." >&2
   [ -n "${dump:-}" ] && echo "       Respaldo previo: $dump" >&2
-  echo "       Qué hacer: Monkey-Brain-IA/skills/product/monkey-compliance-council/references/schema-implementacion.md §7 (reversa)." >&2
+  echo "       Qué hacer: Monkey-Brain-IA/skills/product/monkey-compliance-council/references/datos/schema-implementacion.md §7 (reversa)." >&2
   exit 1
 fi
 echo "==> Migraciones al día."

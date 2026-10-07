@@ -4,7 +4,7 @@ Carga en la base el catálogo de **SOC 2** que entregó el comité: 1 marco, 5 c
 302 puntos de enfoque, 119 controles y 729 relaciones (MD-65), más 10 riesgos con 56 causas y sus relaciones, 61
 pruebas con 284 asignaciones, 50 plantillas de evidencia con 89 vínculos, 10 políticas con 16 vínculos y 210
 dimensiones por control (D39), y la versión 1 del catálogo: 2.305 filas.
-Por qué se hizo así: `Monkey-Brain-IA` → `modelo-datos-decisiones.md` (D35, D38, D39) y `schema-implementacion.md` §11.
+Por qué se hizo así: `Monkey-Brain-IA` → `references/datos/modelo-datos-decisiones.md` (D35, D38, D39) y `references/datos/schema-implementacion.md` §11.
 
 **El dato real manda (D38):** las cifras se midieron sobre las hojas, no se copiaron de ningún resumen. Lo que el
 Excel dice y los datos no confirman queda en `meta.sourceNotes` del JSON y en `catalog_versions.change_summary`.
