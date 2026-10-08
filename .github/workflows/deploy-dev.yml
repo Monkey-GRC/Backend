@@ -46,10 +46,13 @@ jobs:
           script_stop: true
           script: |
             set -e
-            echo '${{ secrets.ENV_FILE }}' | base64 -d > /home/ubuntu/monkey-dev/.env
+            # El .env del backend se escribe a un archivo TEMPORAL y solo reemplaza al actual si parece el .env del backend. Un secreto equivocado (p. ej.
+            # el del trabajador pegado aquí) hace fallar el despliegue SIN tocar el .env que funciona. Una sola línea por comando (ver nota más abajo).
+            echo '${{ secrets.ENV_FILE }}' | base64 -d > /home/ubuntu/monkey-dev/.env.new
+            if grep -q '^JWT_SECRET=' /home/ubuntu/monkey-dev/.env.new && grep -q '^APP_DATABASE_URL=' /home/ubuntu/monkey-dev/.env.new; then mv /home/ubuntu/monkey-dev/.env.new /home/ubuntu/monkey-dev/.env; else rm -f /home/ubuntu/monkey-dev/.env.new; echo 'ENV_FILE no parece el .env del backend (faltan JWT_SECRET o APP_DATABASE_URL): no se toca el .env actual'; exit 1; fi
             # Entorno del trabajador del motor (D57): archivo APARTE con solo lo suyo. Opcional hasta que exista el secreto RUNNER_ENV_FILE.
             # Una sola línea por comando: este motor de SSH inyecta chequeos entre líneas y corrompería un bloque if/fi de varias líneas.
-            if [ -n '${{ secrets.RUNNER_ENV_FILE }}' ]; then echo '${{ secrets.RUNNER_ENV_FILE }}' | base64 -d > /home/ubuntu/monkey-dev/runner.env && chmod 600 /home/ubuntu/monkey-dev/runner.env; fi
+            if [ -n '${{ secrets.RUNNER_ENV_FILE }}' ]; then echo '${{ secrets.RUNNER_ENV_FILE }}' | base64 -d > /home/ubuntu/monkey-dev/runner.env.new; if grep -q '^RUNNER_TOKEN=' /home/ubuntu/monkey-dev/runner.env.new && grep -q '^ENGINE_IMAGE=' /home/ubuntu/monkey-dev/runner.env.new && ! grep -q '^JWT_SECRET=' /home/ubuntu/monkey-dev/runner.env.new; then chmod 600 /home/ubuntu/monkey-dev/runner.env.new && mv /home/ubuntu/monkey-dev/runner.env.new /home/ubuntu/monkey-dev/runner.env; else rm -f /home/ubuntu/monkey-dev/runner.env.new; echo 'RUNNER_ENV_FILE no parece el entorno del trabajador (faltan RUNNER_TOKEN o ENGINE_IMAGE, o trae secretos del backend): no se toca runner.env'; exit 1; fi; fi
             # 1) Migrar ANTES de levantar el backend nuevo. Si falla (set -e + script_stop), el deploy se
             #    aborta y el backend anterior sigue corriendo. Respalda antes de tocar la base: ver
             #    backend/scripts/deploy/migrate.sh y schema-implementacion.md §7 (reversa).
