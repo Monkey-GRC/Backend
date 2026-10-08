@@ -1,3 +1,6 @@
+import { Injectable } from '@nestjs/common';
+import { DomainError } from '../../../../common/errors/domain-error';
+import { EngineOutputParser } from '../../domain/ports/engine-output-parser';
 import { EngineFinding, EngineStatus } from '../../domain/scan/scan.types';
 
 // Lee la salida OCSF de un motor de configuración de nube y la normaliza. Falla en voz alta: una fila mal formada o un estado desconocido
@@ -36,4 +39,16 @@ export function parseOcsfFindings(json: unknown): EngineFinding[] {
       resource: { uid: resource.uid, type: typeof resource.type === 'string' ? resource.type : 'Other', name: typeof resource.name === 'string' ? resource.name : null },
     };
   });
+}
+
+@Injectable()
+export class OcsfEngineOutputParser extends EngineOutputParser {
+  parse(raw: unknown): EngineFinding[] {
+    try {
+      return parseOcsfFindings(raw);
+    } catch (e) {
+      if (e instanceof EngineOutputError) throw new DomainError('ENGINE_OUTPUT_INVALID', { reason: e.message });
+      throw e;
+    }
+  }
 }

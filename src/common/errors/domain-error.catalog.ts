@@ -48,6 +48,9 @@ export const DOMAIN_ERROR_CATALOG: Record<
   ASSET_NOT_VALIDATED: { status: HttpStatus.CONFLICT, messageKey: 'asset.not_validated' },
   ASSET_ALREADY_ACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'asset.already_active' },
   ASSET_NOT_ACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'asset.not_active' },
+  EXECUTION_IN_PROGRESS: { status: HttpStatus.CONFLICT, messageKey: 'execution.in_progress' },
+  EXECUTION_NOT_RUNNING: { status: HttpStatus.CONFLICT, messageKey: 'execution.not_running' },
+  ENGINE_OUTPUT_INVALID: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'execution.output_invalid' },
   FREQUENCY_NOT_SUPPORTED: {
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     messageKey: 'frequency.not_supported',

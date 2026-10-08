@@ -1,0 +1,7 @@
+{
+  "queued": "Listo, la evaluación quedó en cola.",
+  "in_progress": "Ya hay una evaluación en curso para este sistema. Espera a que termine.",
+  "not_running": "Esta evaluación ya no está en curso.",
+  "output_invalid": "El resultado de la evaluación automática no tiene el formato esperado.",
+  "timed_out": "La evaluación tardó demasiado y se canceló. Inténtalo de nuevo."
+}

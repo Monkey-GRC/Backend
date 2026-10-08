@@ -39,6 +39,10 @@ export type DomainErrorCode =
   | 'ASSET_ALREADY_ACTIVE'
   | 'ASSET_NOT_ACTIVE'
   | 'FREQUENCY_NOT_SUPPORTED'
+  // Operación continua (contracts/modules/control-tecnico.md, D57).
+  | 'EXECUTION_IN_PROGRESS'
+  | 'EXECUTION_NOT_RUNNING'
+  | 'ENGINE_OUTPUT_INVALID'
   | 'CONNECTION_UNAVAILABLE';
 
 export class DomainError extends Error {
