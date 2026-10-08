@@ -630,6 +630,8 @@ model Asset {
   status             AssetStatus             @default(active)
   operationalStatus  AssetOperationalStatus  @default(not_monitored) @map("operational_status")
   technicalCoverage  String                  @map("technical_coverage")
+  // Identificador del activo en el proveedor (cuenta de AWS, suscripción de Azure, proyecto de GCP). Solo activos de nube.
+  externalAccountId  String?                 @map("external_account_id")
 
   organization Organization             @relation(fields: [organizationId], references: [id])
   responsible  OrganizationResponsible? @relation(fields: [responsibleId], references: [id])
@@ -641,6 +643,7 @@ model Asset {
   vulnerabilities Vulnerability[]
   findings        Finding[]
   executions Execution[]
+  resources  AssetResource[]
 
   @@unique([organizationId, code])
   @@index([tenantId])
@@ -677,6 +680,16 @@ enum ScheduleFrequency {
   @@schema("tenant")
 }
 
+// Cómo se conectó el activo (D53): el cliente elige el canal entre los que existen para su categoría y Monkey lo guía.
+enum ConnectionMethod {
+  agent
+  readonly_role
+  access_keys
+
+  @@map("connection_method")
+  @@schema("tenant")
+}
+
 model AssetProvisioning {
   id                    String    @id @default(uuid()) @db.Uuid
   tenantId              String    @map("tenant_id") @db.Uuid
@@ -692,6 +705,9 @@ model AssetProvisioning {
   isActive              Boolean   @default(false) @map("is_active")
   // Null hasta el paso "programar".
   scheduleFrequency     ScheduleFrequency? @map("schedule_frequency")
+  // Null hasta que se elige el canal. Las regiones son las que el cliente declara y las únicas que se evalúan (D53).
+  connectionMethod      ConnectionMethod?  @map("connection_method")
+  regions               String[]
 
   asset               Asset              @relation(fields: [assetId], references: [id])
   automatedCapability AutomatedCapability @relation(fields: [automatedCapabilityId], references: [id])
