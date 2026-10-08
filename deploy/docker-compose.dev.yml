@@ -1,0 +1,85 @@
+# Compose del entorno de desarrollo (VPS). Va en /home/ubuntu/monkey-dev/docker-compose.yml; los contextos de build son relativos a esa carpeta
+# (./backend es este repo, que el workflow copia allí). Versionado aquí para que deje de ser un archivo a mano en el servidor.
+#
+# Servicios nuevos (D57): `docker-proxy` y `runner`. Ninguno publica puertos ni entra a `proxy_net`: ni el proxy ni la base los ven.
+services:
+  backend:
+    build: ./backend
+    # El trabajador usa ESTA misma imagen (otro comando): un solo build, un solo pipeline.
+    image: monkey-dev-backend:latest
+    env_file: .env
+    restart: unless-stopped
+    networks:
+      - default
+      - proxy_net
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        API_URL: https://api-dev.monkey360.io/v1
+    restart: unless-stopped
+    networks:
+      - default
+      - proxy_net
+
+  frontend-platform:
+    build:
+      context: ./frontend-platform
+      args:
+        API_URL: https://api-dev.monkey360.io/v1
+    restart: unless-stopped
+    networks:
+      - default
+      - proxy_net
+
+  # El ÚNICO que toca el socket de Docker, de solo lectura y filtrado por ruta: expone solo contenedores (crear, iniciar, esperar, leer, borrar)
+  # e imágenes. Sin exec, volúmenes, redes, swarm ni secretos. OJO: filtra por ruta, no por contenido; el trabajador es código nuestro, sin puertos
+  # de entrada. Para producción con varios clientes, la salida es ejecutar el motor como tarea en la nube (sin socket).
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      IMAGES: 1
+      POST: 1
+      DELETE: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - default
+
+  # Reclama las ejecuciones del backend, corre el motor en un contenedor efímero y entrega el resultado (`/internal/runner`, por la red interna).
+  # Solo recibe su `runner.env`: no ve el JWT, ni la clave de cifrado, ni la base de datos.
+  runner:
+    image: monkey-dev-backend:latest
+    command: ["node", "dist/src/runner/main.js"]
+    # `required: false`: si aún no existe runner.env, Compose NO falla para el resto de servicios (el backend se despliega igual);
+    # el trabajador, sin su token, se niega a arrancar y lo dice en su registro.
+    env_file:
+      - path: runner.env
+        required: false
+    environment:
+      DOCKER_HOST: tcp://docker-proxy:2375
+      BACKEND_INTERNAL_URL: http://backend:3000
+    depends_on:
+      - backend
+      - docker-proxy
+    restart: unless-stopped
+    # Una corrida en curso al redesplegar puede perderse (el backend la cierra por tiempo a los 30 min): no redesplegar a mitad de un escaneo.
+    stop_grace_period: 2m
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    networks:
+      - default
+
+networks:
+  default:
+  proxy_net:
+    external: true
