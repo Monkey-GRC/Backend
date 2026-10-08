@@ -65,7 +65,10 @@ model Execution {
   assetId            String          @map("asset_id") @db.Uuid
   scheduleRuleId     String?         @map("schedule_rule_id") @db.Uuid // null si es manual
   retryOfId          String?         @map("retry_of_id") @db.Uuid
-  startedAt          DateTime        @map("started_at")
+  // Desde cuándo espera en la cola (D57). Ordena el reclamo del trabajador.
+  queuedAt           DateTime        @default(now()) @map("queued_at")
+  // Null mientras está en cola; se fija cuando el trabajador la reclama.
+  startedAt          DateTime?       @map("started_at")
   finishedAt         DateTime?       @map("finished_at")
   status             ExecutionStatus
   progressPercentage Int             @default(0) @map("progress_percentage")
@@ -75,6 +78,8 @@ model Execution {
   engineVersion      String?         @map("engine_version")
   regions            String[]
   checksExecuted     Int?            @map("checks_executed")
+  // Clave i18n de por qué falló (connection.role_not_found, execution.timed_out…). Un fallo de ejecución es de CONEXIÓN, no un incumplimiento.
+  failureReason      String?         @map("failure_reason")
 
   asset        Asset         @relation(fields: [assetId], references: [id])
   scheduleRule ScheduleRule? @relation(fields: [scheduleRuleId], references: [id])
@@ -86,6 +91,7 @@ model Execution {
   logs         ExecutionLog[]
 
   @@index([assetId, startedAt])
+  @@index([status, queuedAt])
   @@index([tenantId])
   @@index([retryOfId])
   @@index([scheduleRuleId])
