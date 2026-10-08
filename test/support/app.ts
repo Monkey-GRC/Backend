@@ -8,6 +8,7 @@ import { configureApp } from '../../src/app.setup';
 import { connect, testDatabaseUrl } from './db';
 
 export const PASSWORD = 'UnaClaveLarga123!';
+export const RUNNER_TOKEN = 'token-de-prueba-del-trabajador-0123456789';
 
 // La app de las pruebas e2e usa el rol REAL de runtime (monkey_app, sujeto a RLS) contra el Postgres desechable. Se
 // niega a arrancar si APP_DATABASE_URL no es local, para no escribir en la base compartida de dev.
@@ -30,6 +31,8 @@ export async function bootApp(): Promise<INestApplication> {
     SESSION_MAX_DURATION: '28800',
     ACCESS_KEY_TTL_HOURS: '168',
     PROBE_MODE: 'simulated',
+    RUNNER_TOKEN: RUNNER_TOKEN,
+    READINESS_INCLUDE_PROPOSED: 'true',
     NODE_ENV: 'test',
   });
   // Las variables se fijan antes de compilar el módulo: es cuando los servicios leen la configuración.

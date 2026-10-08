@@ -149,7 +149,7 @@ describe('Importar una corrida: se guarda y se lee bajo RLS', () => {
   });
 
   it('otra empresa no ve la corrida ni puede escribir sobre el activo (RLS)', async () => {
-    expect(await readiness.execute({ companyId: b.companyId }, assetId, { includeProposed: true })).toBeNull();
+    await expect(readiness.execute({ companyId: b.companyId }, assetId, { includeProposed: true })).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(importScan.execute({ companyId: b.companyId }, importArgs(assetId, failing()))).rejects.toMatchObject({ code: 'NOT_FOUND' });
     expect(await count('select count(*)::int n from tenant.executions where asset_id = $1', [assetId])).toBe(1);
   });
@@ -202,7 +202,7 @@ describe('Ciclo de vida: en cola → en curso → completada o fallida (D57)', (
     expect(ex).toEqual({ status: 'queued', started_at: null });
     const rows = await owner<{ user_id: string }>(`select user_id from audit.audit_logs where tenant_id = $1 and action = 'execution.queue' and after_state->>'execution_id' = $2`, [a.companyId, executionId]);
     expect(rows).toEqual([{ user_id: aUserId }]);
-    expect((await list.execute(principal(a, aUserId), assetId)).map((e) => e.status)).toContain('queued');
+    expect((await list.execute(principal(a, aUserId), assetId, { page: 1, pageSize: 25 })).items.map((e) => e.status)).toContain('queued');
   });
 
   it('no se puede abrir una segunda mientras hay una abierta, ni siquiera dos a la vez (índice único parcial)', async () => {

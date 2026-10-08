@@ -31,10 +31,13 @@ import { createConnectionProbe } from './infrastructure/probes/connection-probe.
 import { ScanPrismaRepository } from './infrastructure/repositories/scan.prisma.repository';
 import { TechnicalControlPrismaRepository } from './infrastructure/repositories/technical-control.prisma.repository';
 import { AssetsController } from './presentation/assets.controller';
+import { ExecutionsController } from './presentation/executions.controller';
+import { RunnerController } from './presentation/runner.controller';
+import { RunnerTokenGuard } from './presentation/runner-token.guard';
 import { TechnicalControlController } from './presentation/technical-control.controller';
 
 @Module({
-  controllers: [TechnicalControlController, AssetsController],
+  controllers: [TechnicalControlController, AssetsController, ExecutionsController, RunnerController],
   providers: [
     { provide: TechnicalControlRepository, useClass: TechnicalControlPrismaRepository },
     { provide: ScanRepository, useClass: ScanPrismaRepository },
@@ -50,6 +53,7 @@ import { TechnicalControlController } from './presentation/technical-control.con
     ActivateAssetUseCase,
     ScheduleAssetUseCase,
     { provide: EngineOutputParser, useClass: OcsfEngineOutputParser },
+    RunnerTokenGuard,
     QueueExecutionUseCase,
     ListExecutionsUseCase,
     GetAssetReadinessUseCase,

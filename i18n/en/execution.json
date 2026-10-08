@@ -3,5 +3,8 @@
   "in_progress": "An assessment is already running for this system. Wait for it to finish.",
   "not_running": "This assessment is no longer running.",
   "output_invalid": "The automatic assessment result does not have the expected format.",
-  "timed_out": "The assessment took too long and was cancelled. Try again."
+  "timed_out": "The assessment took too long and was cancelled. Try again.",
+  "list": "Assessment history.",
+  "completed": "Assessment completed.",
+  "failed": "The assessment could not be completed."
 }

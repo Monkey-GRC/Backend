@@ -1,0 +1,44 @@
+import { ExecutionSummary } from '../domain/repositories/scan.repository';
+import { AssetReadiness, READINESS_AREAS, ReadinessArea } from '../domain/scan/readiness';
+
+const iso = (d: Date | null) => (d ? d.toISOString() : null);
+
+export const toExecutionResponse = (e: ExecutionSummary) => ({
+  id: e.id,
+  status: e.status,
+  origin: e.origin,
+  queued_at: iso(e.queuedAt),
+  started_at: iso(e.startedAt),
+  finished_at: iso(e.finishedAt),
+  // Clave i18n de por qué falló; nunca el texto del motor.
+  failure_reason: e.failureReason,
+});
+
+type ReadinessView = AssetReadiness & { executionId: string; measuredAt: Date | null; includesProposedMappings: boolean };
+
+// Lo que ve el cliente por defecto: cualitativo primero, cobertura y cumplimiento como dos números aparte, sin porcentaje consolidado y sin
+// códigos de control ni de requisito (philosophy.md). `includes_proposed_mappings` es honestidad: si es true, parte de lo medido se apoya en
+// vínculos que el comité aún no ratificó.
+export const toReadinessResponse = (assetId: string, r: ReadinessView | null) =>
+  r
+    ? {
+        asset_id: assetId,
+        readiness: r.readiness,
+        measured_at: iso(r.measuredAt),
+        includes_proposed_mappings: r.includesProposedMappings,
+        coverage: r.coverage,
+        of_measured: { compliant: r.ofMeasured.compliant, not_compliant: r.ofMeasured.notCompliant },
+        areas: r.areas.map((a) => ({ area: a.area, readiness: a.readiness, open_findings: a.openFindings, not_measured: a.notMeasured })),
+        needs_manual_review: r.needsManualReview,
+      }
+    : {
+        // Aún no hay ninguna corrida completada: es un hueco de cobertura, no un fallo.
+        asset_id: assetId,
+        readiness: 'not_measured',
+        measured_at: null,
+        includes_proposed_mappings: false,
+        coverage: { measured: 0, expected: 0 },
+        of_measured: { compliant: 0, not_compliant: 0 },
+        areas: (Object.keys(READINESS_AREAS) as ReadinessArea[]).map((area) => ({ area, readiness: 'not_measured', open_findings: 0, not_measured: 0 })),
+        needs_manual_review: 0,
+      };
