@@ -1,4 +1,5 @@
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
+import { Page, PageRequest } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { TestCheckLink } from '../scan/readiness';
 import { InterpretedResult } from '../scan/scan.types';
@@ -76,7 +77,7 @@ export abstract class ScanRepository {
     audit: AuditIntent<{ executionId: string }>,
   ): Promise<{ executionId: string }>;
 
-  abstract listExecutions(scope: TenantScope, assetId: string, limit: number): Promise<ExecutionSummary[]>;
+  abstract listExecutions(scope: TenantScope, assetId: string, page: PageRequest): Promise<Page<ExecutionSummary>>;
 
   // El trabajador reclama la próxima en cola de CUALQUIER empresa y la pasa a `running`. Barre antes las que llevan más de 30 min en curso.
   abstract claimNext(): Promise<ClaimedExecution | null>;

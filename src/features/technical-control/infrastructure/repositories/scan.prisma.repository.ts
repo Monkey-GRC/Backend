@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { DomainError } from '../../../../common/errors/domain-error';
+import { Page, PageRequest } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
@@ -61,15 +62,17 @@ export class ScanPrismaRepository extends ScanRepository {
     });
   }
 
-  listExecutions(scope: TenantScope, assetId: string, limit: number): Promise<ExecutionSummary[]> {
+  listExecutions(scope: TenantScope, assetId: string, page: PageRequest): Promise<Page<ExecutionSummary>> {
     return this.prisma.withScope(scope, async (tx) => {
+      const total = await tx.execution.count({ where: { assetId } });
       const rows = await tx.execution.findMany({
         where: { assetId },
         orderBy: { queuedAt: 'desc' },
-        take: limit,
+        skip: (page.page - 1) * page.pageSize,
+        take: page.pageSize,
         select: { id: true, status: true, origin: true, queuedAt: true, startedAt: true, finishedAt: true, failureReason: true },
       });
-      return rows.map((r) => ({ ...r }));
+      return { items: rows.map((r) => ({ ...r })), total, page: page.page, pageSize: page.pageSize };
     });
   }
 

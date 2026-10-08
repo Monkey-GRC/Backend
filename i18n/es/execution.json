@@ -3,5 +3,8 @@
   "in_progress": "Ya hay una evaluación en curso para este sistema. Espera a que termine.",
   "not_running": "Esta evaluación ya no está en curso.",
   "output_invalid": "El resultado de la evaluación automática no tiene el formato esperado.",
-  "timed_out": "La evaluación tardó demasiado y se canceló. Inténtalo de nuevo."
+  "timed_out": "La evaluación tardó demasiado y se canceló. Inténtalo de nuevo.",
+  "list": "Historial de evaluaciones.",
+  "completed": "Evaluación completada.",
+  "failed": "La evaluación no pudo completarse."
 }

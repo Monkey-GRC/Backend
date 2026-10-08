@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
+import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
+import { Page, PageRequest } from '../../../../common/pagination/page';
 import { CredentialCipher } from '../../../../common/security/credential-cipher';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { EngineOutputParser } from '../../domain/ports/engine-output-parser';
+import { TechnicalControlRepository } from '../../domain/repositories/technical-control.repository';
 import { ExecutionSummary, RecordedScan, RunContext, ScanOutcome, ScanRepository } from '../../domain/repositories/scan.repository';
 import { interpretScan } from '../../domain/scan/interpret-scan';
 import { AssetReadiness, computeReadiness } from '../../domain/scan/readiness';
@@ -58,20 +61,31 @@ export class QueueExecutionUseCase {
 
 @Injectable()
 export class ListExecutionsUseCase {
-  constructor(private readonly repo: ScanRepository) {}
+  constructor(
+    private readonly repo: ScanRepository,
+    private readonly assets: TechnicalControlRepository,
+  ) {}
 
-  execute(principal: Principal, assetId: string, limit = 25): Promise<ExecutionSummary[]> {
-    return this.repo.listExecutions(scopeOf(principal), assetId, limit);
+  async execute(principal: Principal, assetId: string, page: PageRequest): Promise<Page<ExecutionSummary>> {
+    const scope = scopeOf(principal);
+    // Un activo de otra empresa no existe para quien pregunta: 404, no una lista vacía (conventions.md).
+    if (!(await this.assets.findAsset(scope, assetId))) throw new DomainError('NOT_FOUND');
+    return this.repo.listExecutions(scope, assetId, page);
   }
 }
 
 // El estado de preparación de un activo, calculado de su última corrida completada (nunca almacenado: §9).
 @Injectable()
 export class GetAssetReadinessUseCase {
-  constructor(private readonly repo: ScanRepository) {}
+  constructor(
+    private readonly repo: ScanRepository,
+    private readonly assets: TechnicalControlRepository,
+  ) {}
 
   // `includeProposed`: la demo cuenta los mapeos propuestos; producción, solo lo ratificado por el comité (D56).
+  // null si el activo aún no tiene ninguna corrida completada; NOT_FOUND si no existe para esta empresa.
   async execute(scope: TenantScope, assetId: string, opts: { includeProposed: boolean }): Promise<(AssetReadiness & { executionId: string; measuredAt: Date | null; includesProposedMappings: boolean }) | null> {
+    if (!(await this.assets.findAsset(scope, assetId))) throw new DomainError('NOT_FOUND');
     const scan = await this.repo.loadLatestScan(scope, assetId);
     if (!scan) return null;
     const readiness = computeReadiness(scan.results, scan.links, { includeProposed: opts.includeProposed });
