@@ -18,6 +18,10 @@ API REST construida con NestJS + Prisma + PostgreSQL, organizada con **Clean Arc
 npm install
 ```
 
+**Versión de Node:** usa Node 20 (`.nvmrc`; `nvm use`). Es la que usan el CI y el `Dockerfile`, y **el `package-lock.json` debe generarse con ella**:
+npm 11 (Node 24) descarta del lock paquetes que npm 10 sí instala (por ejemplo los *peers* de React de Prisma Studio) y entonces `npm ci` falla en el CI.
+Si cambias dependencias con otra versión: `docker run --rm -v "$PWD":/w -w /w node:20-alpine npm install --package-lock-only`.
+
 Copia el archivo de entorno y configura las variables:
 
 ```bash
