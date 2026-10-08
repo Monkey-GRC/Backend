@@ -16,7 +16,17 @@ import {
   SetDeploymentScenarioUseCase,
   SetScopeUseCase,
 } from './application/use-cases/service-technical-control.use-cases';
-import { GetAssetReadinessUseCase, RecordScanUseCase } from './application/use-cases/scan.use-cases';
+import {
+  ClaimExecutionUseCase,
+  CompleteExecutionUseCase,
+  FailExecutionUseCase,
+  GetAssetReadinessUseCase,
+  ImportScanUseCase,
+  ListExecutionsUseCase,
+  QueueExecutionUseCase,
+} from './application/use-cases/scan.use-cases';
+import { EngineOutputParser } from './domain/ports/engine-output-parser';
+import { OcsfEngineOutputParser } from './infrastructure/engine/ocsf-parser';
 import { createConnectionProbe } from './infrastructure/probes/connection-probe.factory';
 import { ScanPrismaRepository } from './infrastructure/repositories/scan.prisma.repository';
 import { TechnicalControlPrismaRepository } from './infrastructure/repositories/technical-control.prisma.repository';
@@ -39,9 +49,15 @@ import { TechnicalControlController } from './presentation/technical-control.con
     ValidateAssetUseCase,
     ActivateAssetUseCase,
     ScheduleAssetUseCase,
-    RecordScanUseCase,
+    { provide: EngineOutputParser, useClass: OcsfEngineOutputParser },
+    QueueExecutionUseCase,
+    ListExecutionsUseCase,
     GetAssetReadinessUseCase,
+    ImportScanUseCase,
+    ClaimExecutionUseCase,
+    CompleteExecutionUseCase,
+    FailExecutionUseCase,
   ],
-  exports: [RecordScanUseCase, GetAssetReadinessUseCase],
+  exports: [QueueExecutionUseCase, ListExecutionsUseCase, GetAssetReadinessUseCase, ImportScanUseCase, ClaimExecutionUseCase, CompleteExecutionUseCase, FailExecutionUseCase],
 })
 export class TechnicalControlModule {}

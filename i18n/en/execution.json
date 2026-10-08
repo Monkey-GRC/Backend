@@ -1,0 +1,7 @@
+{
+  "queued": "Done, the assessment is queued.",
+  "in_progress": "An assessment is already running for this system. Wait for it to finish.",
+  "not_running": "This assessment is no longer running.",
+  "output_invalid": "The automatic assessment result does not have the expected format.",
+  "timed_out": "The assessment took too long and was cancelled. Try again."
+}

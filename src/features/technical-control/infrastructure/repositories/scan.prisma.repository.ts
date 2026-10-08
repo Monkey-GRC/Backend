@@ -3,10 +3,19 @@ import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
-import { PrismaService } from '../../../../infrastructure/database/prisma.service';
+import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { TestCheckLink } from '../../domain/scan/readiness';
 import { InterpretedResult } from '../../domain/scan/scan.types';
-import { LoadedScan, RecordedScan, ScanRepository, ScanRun } from '../../domain/repositories/scan.repository';
+import {
+  ClaimedExecution,
+  ExecutionSummary,
+  LoadedScan,
+  RecordedScan,
+  RunContext,
+  ScanOutcome,
+  ScanRepository,
+  ScanRun,
+} from '../../domain/repositories/scan.repository';
 
 // El motor de nube no tiene «política» como la sonda: una constante conserva la clave de tres partes (D56).
 const PLATFORM = 'aws';
@@ -29,13 +38,112 @@ export class ScanPrismaRepository extends ScanRepository {
     return new Map(rows.map((r) => [r.checkId, r.id]));
   }
 
+  // ---- ciclo de vida (D57) ----------------------------------------------------------------
+
+  queueExecution(scope: TenantScope, input: { assetId: string; origin: 'scheduled' | 'manual' }, audit: AuditIntent<{ executionId: string }>) {
+    return this.prisma.withScope(scope, async (tx) => {
+      const asset = await tx.asset.findFirst({ where: { id: input.assetId }, select: { id: true } });
+      if (!asset) throw new DomainError('NOT_FOUND');
+      const provisioning = await tx.assetProvisioning.findFirst({ where: { assetId: input.assetId }, select: { connectionStatus: true } });
+      if (!provisioning || !['validated', 'active', 'scheduled'].includes(provisioning.connectionStatus)) throw new DomainError('ASSET_NOT_VALIDATED');
+      let executionId: string;
+      try {
+        const created = await tx.execution.create({ data: { tenantId: scope.companyId, assetId: input.assetId, status: 'queued', origin: input.origin }, select: { id: true } });
+        executionId = created.id;
+      } catch (e) {
+        // El índice único parcial `executions_one_open_per_asset` decide: dos peticiones a la vez no pueden abrir dos.
+        if ((e as { code?: string }).code === 'P2002') throw new DomainError('EXECUTION_IN_PROGRESS');
+        throw e;
+      }
+      const queued = { executionId };
+      await insertAuditLog(tx, audit(queued));
+      return queued;
+    });
+  }
+
+  listExecutions(scope: TenantScope, assetId: string, limit: number): Promise<ExecutionSummary[]> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const rows = await tx.execution.findMany({
+        where: { assetId },
+        orderBy: { queuedAt: 'desc' },
+        take: limit,
+        select: { id: true, status: true, origin: true, queuedAt: true, startedAt: true, finishedAt: true, failureReason: true },
+      });
+      return rows.map((r) => ({ ...r }));
+    });
+  }
+
+  async claimNext(): Promise<ClaimedExecution | null> {
+    // Sin empresa: la función SECURITY DEFINER busca entre todas y solo toca el estado de UNA ejecución (SEG-47).
+    const rows = await this.prisma.$queryRaw<{ out_execution_id: string; out_tenant_id: string; out_asset_id: string; out_origin: string }[]>`
+      SELECT * FROM tenant.claim_next_execution()`;
+    if (rows.length === 0) return null;
+    const r = rows[0];
+    return { executionId: r.out_execution_id, tenantId: r.out_tenant_id, assetId: r.out_asset_id, origin: r.out_origin as 'scheduled' | 'manual' };
+  }
+
+  loadRunContext(scope: TenantScope, executionId: string): Promise<RunContext> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const execution = await tx.execution.findFirst({ where: { id: executionId }, select: { id: true, assetId: true, origin: true } });
+      if (!execution) throw new DomainError('NOT_FOUND');
+      const asset = await tx.asset.findFirst({
+        where: { id: execution.assetId },
+        select: { platform: true, externalAccountId: true, provisionings: { take: 1, select: { regions: true, connectionMethod: true, encryptedCredentials: true } } },
+      });
+      if (!asset) throw new DomainError('NOT_FOUND');
+      const prov = asset.provisionings[0];
+      return {
+        executionId: execution.id,
+        assetId: execution.assetId,
+        origin: execution.origin,
+        platform: asset.platform,
+        externalAccountId: asset.externalAccountId,
+        regions: prov?.regions ?? [],
+        connectionMethod: prov?.connectionMethod ?? null,
+        encryptedCredentials: prov?.encryptedCredentials ?? null,
+      };
+    });
+  }
+
+  completeExecution(scope: TenantScope, executionId: string, outcome: ScanOutcome, audit: AuditIntent<RecordedScan>): Promise<RecordedScan> {
+    return this.prisma.withScope(
+      scope,
+      async (tx) => {
+        // Condicional: solo una ejecución en curso se cierra, y solo una vez.
+        const closed = await tx.execution.updateMany({
+          where: { id: executionId, status: 'running' },
+          data: { status: 'completed', finishedAt: outcome.finishedAt, progressPercentage: 100, engineVersion: outcome.engineVersion, regions: outcome.regions, checksExecuted: outcome.checksExecuted },
+        });
+        if (closed.count === 0) throw new DomainError('EXECUTION_NOT_RUNNING');
+        const execution = await tx.execution.findFirstOrThrow({ where: { id: executionId }, select: { assetId: true } });
+        const recorded = await this.writeResults(tx, scope, executionId, execution.assetId, outcome);
+        await insertAuditLog(tx, audit(recorded));
+        return recorded;
+      },
+      SCAN_TRANSACTION,
+    );
+  }
+
+  failExecution(scope: TenantScope, executionId: string, reason: string, audit: AuditIntent<{ executionId: string }>) {
+    return this.prisma.withScope(scope, async (tx) => {
+      const closed = await tx.execution.updateMany({
+        where: { id: executionId, status: 'running' },
+        data: { status: 'failed', finishedAt: new Date(), failureReason: reason },
+      });
+      if (closed.count === 0) throw new DomainError('EXECUTION_NOT_RUNNING');
+      await tx.executionLog.create({ data: { tenantId: scope.companyId, executionId, loggedAt: new Date(), level: 'error', message: reason } });
+      const failed = { executionId };
+      await insertAuditLog(tx, audit(failed));
+      return failed;
+    });
+  }
+
   recordCompletedScan(scope: TenantScope, run: ScanRun, audit: AuditIntent<RecordedScan>): Promise<RecordedScan> {
     return this.prisma.withScope(
       scope,
       async (tx) => {
         const asset = await tx.asset.findFirst({ where: { id: run.assetId }, select: { id: true } });
         if (!asset) throw new DomainError('NOT_FOUND');
-
         const execution = await tx.execution.create({
           data: {
             tenantId: scope.companyId,
@@ -51,69 +159,7 @@ export class ScanPrismaRepository extends ScanRepository {
           },
           select: { id: true },
         });
-
-        const catalog = await tx.check.findMany({ where: { platform: PLATFORM, policyId: POLICY_ID }, select: { id: true, checkId: true } });
-        const checkIds = new Map(catalog.map((c) => [c.checkId, c.id]));
-        const missing = [...new Set(run.results.map((r) => r.checkId))].filter((c) => !checkIds.has(c));
-        if (missing.length > 0) throw new Error(`Checks de la corrida que no están en el catálogo: ${missing.slice(0, 5).join(', ')}`);
-
-        // Recursos: el activo (la cuenta) los contiene. Se crean los nuevos y se marca la vista de los que ya estaban.
-        const resources = new Map<string, InterpretedResult>();
-        for (const r of run.results) if (r.resourceUid) resources.set(r.resourceUid, r);
-        const uids = [...resources.keys()];
-        for (const part of chunks(uids)) {
-          await tx.assetResource.createMany({
-            data: part.map((uid) => {
-              const r = resources.get(uid)!;
-              return {
-                tenantId: scope.companyId,
-                assetId: run.assetId,
-                resourceUid: uid,
-                resourceType: r.resourceType ?? 'Other',
-                name: r.resourceName,
-                region: r.regions.length === 1 ? r.regions[0] : null,
-                firstSeenAt: run.finishedAt,
-                lastSeenAt: run.finishedAt,
-              };
-            }),
-            skipDuplicates: true,
-          });
-          await tx.assetResource.updateMany({ where: { assetId: run.assetId, resourceUid: { in: part } }, data: { lastSeenAt: run.finishedAt } });
-        }
-        const resourceIds = new Map<string, string>();
-        for (const part of chunks(uids)) {
-          const found = await tx.assetResource.findMany({ where: { assetId: run.assetId, resourceUid: { in: part } }, select: { id: true, resourceUid: true } });
-          found.forEach((f) => resourceIds.set(f.resourceUid, f.id));
-        }
-
-        // `not_applicable` no se guarda (D56): se deriva de «ejecutado menos lo que devolvió filas».
-        const persisted = run.results.filter((r) => r.result !== 'not_applicable');
-        for (const part of chunks(persisted)) {
-          await tx.checkResult.createMany({
-            data: part.map((r) => ({
-              tenantId: scope.companyId,
-              executionId: execution.id,
-              checkId: checkIds.get(r.checkId)!,
-              platform: PLATFORM,
-              policyId: POLICY_ID,
-              rawCheckId: r.checkId,
-              result: r.result,
-              evaluatedAt: run.finishedAt,
-              assetResourceId: r.resourceUid ? resourceIds.get(r.resourceUid)! : null,
-              // Una evaluación fundida entre regiones es de cuenta: sin región.
-              region: r.regions.length === 1 ? r.regions[0] : null,
-              statusDetail: r.detail,
-              engineSeverity: r.severity,
-            })),
-          });
-        }
-        if (run.logs.length > 0) {
-          await tx.executionLog.createMany({
-            data: run.logs.map((l) => ({ tenantId: scope.companyId, executionId: execution.id, loggedAt: run.finishedAt, level: l.level, message: l.message })),
-          });
-        }
-
-        const recorded = { executionId: execution.id, resultCount: persisted.length, resourceCount: uids.length };
+        const recorded = await this.writeResults(tx, scope, execution.id, run.assetId, run);
         await insertAuditLog(tx, audit(recorded));
         return recorded;
       },
@@ -121,33 +167,69 @@ export class ScanPrismaRepository extends ScanRepository {
     );
   }
 
-  recordFailedScan(
-    scope: TenantScope,
-    run: Pick<ScanRun, 'assetId' | 'origin' | 'startedAt' | 'finishedAt' | 'engineVersion' | 'regions'> & { reason: string },
-    audit: AuditIntent<{ executionId: string }>,
-  ) {
-    return this.prisma.withScope(scope, async (tx) => {
-      const asset = await tx.asset.findFirst({ where: { id: run.assetId }, select: { id: true } });
-      if (!asset) throw new DomainError('NOT_FOUND');
-      const execution = await tx.execution.create({
-        data: {
-          tenantId: scope.companyId,
-          assetId: run.assetId,
-          startedAt: run.startedAt,
-          finishedAt: run.finishedAt,
-          status: 'failed',
-          progressPercentage: 0,
-          origin: run.origin,
-          engineVersion: run.engineVersion,
-          regions: run.regions,
-        },
-        select: { id: true },
+  // Recursos, resultados y bitácora de UNA corrida, dentro de la transacción que ya abrió quien llama.
+  private async writeResults(tx: TransactionClient, scope: TenantScope, executionId: string, assetId: string, run: ScanOutcome): Promise<RecordedScan> {
+    const catalog = await tx.check.findMany({ where: { platform: PLATFORM, policyId: POLICY_ID }, select: { id: true, checkId: true } });
+    const checkIds = new Map(catalog.map((c) => [c.checkId, c.id]));
+    const missing = [...new Set(run.results.map((r) => r.checkId))].filter((c) => !checkIds.has(c));
+    if (missing.length > 0) throw new Error(`Checks de la corrida que no están en el catálogo: ${missing.slice(0, 5).join(', ')}`);
+
+    // Recursos: el activo (la cuenta) los contiene. Se crean los nuevos y se marca la vista de los que ya estaban.
+    const resources = new Map<string, InterpretedResult>();
+    for (const r of run.results) if (r.resourceUid) resources.set(r.resourceUid, r);
+    const uids = [...resources.keys()];
+    for (const part of chunks(uids)) {
+      await tx.assetResource.createMany({
+        data: part.map((uid) => {
+          const r = resources.get(uid)!;
+          return {
+            tenantId: scope.companyId,
+            assetId,
+            resourceUid: uid,
+            resourceType: r.resourceType ?? 'Other',
+            name: r.resourceName,
+            region: r.regions.length === 1 ? r.regions[0] : null,
+            firstSeenAt: run.finishedAt,
+            lastSeenAt: run.finishedAt,
+          };
+        }),
+        skipDuplicates: true,
       });
-      await tx.executionLog.create({ data: { tenantId: scope.companyId, executionId: execution.id, loggedAt: run.finishedAt, level: 'error', message: run.reason } });
-      const recorded = { executionId: execution.id };
-      await insertAuditLog(tx, audit(recorded));
-      return recorded;
-    });
+      await tx.assetResource.updateMany({ where: { assetId, resourceUid: { in: part } }, data: { lastSeenAt: run.finishedAt } });
+    }
+    const resourceIds = new Map<string, string>();
+    for (const part of chunks(uids)) {
+      const found = await tx.assetResource.findMany({ where: { assetId, resourceUid: { in: part } }, select: { id: true, resourceUid: true } });
+      found.forEach((f) => resourceIds.set(f.resourceUid, f.id));
+    }
+
+    // `not_applicable` no se guarda (D56): se deriva de «ejecutado menos lo que devolvió filas».
+    const persisted = run.results.filter((r) => r.result !== 'not_applicable');
+    for (const part of chunks(persisted)) {
+      await tx.checkResult.createMany({
+        data: part.map((r) => ({
+          tenantId: scope.companyId,
+          executionId,
+          checkId: checkIds.get(r.checkId)!,
+          platform: PLATFORM,
+          policyId: POLICY_ID,
+          rawCheckId: r.checkId,
+          result: r.result,
+          evaluatedAt: run.finishedAt,
+          assetResourceId: r.resourceUid ? resourceIds.get(r.resourceUid)! : null,
+          // Una evaluación fundida entre regiones es de cuenta: sin región.
+          region: r.regions.length === 1 ? r.regions[0] : null,
+          statusDetail: r.detail,
+          engineSeverity: r.severity,
+        })),
+      });
+    }
+    if (run.logs.length > 0) {
+      await tx.executionLog.createMany({
+        data: run.logs.map((l) => ({ tenantId: scope.companyId, executionId, loggedAt: run.finishedAt, level: l.level, message: l.message })),
+      });
+    }
+    return { executionId, resultCount: persisted.length, resourceCount: uids.length };
   }
 
   loadLatestScan(scope: TenantScope, assetId: string): Promise<LoadedScan | null> {
