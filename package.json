@@ -29,6 +29,7 @@
     "cloud:extract": "tsx prisma/seed/extract-cloud-checks.ts",
     "cloud:load": "tsx prisma/seed/load-cloud-checks.ts",
     "cloud:verify": "tsx prisma/seed/load-cloud-checks.ts --verify",
+    "cloud:readiness": "tsx scripts/cloud-readiness.ts",
     "reference:load": "tsx prisma/seed/seed-reference.ts",
     "reference:verify": "tsx prisma/seed/seed-reference.ts --verify",
     "bootstrap:admin": "tsx prisma/seed/bootstrap-admin.ts",
