@@ -47,6 +47,9 @@ jobs:
           script: |
             set -e
             echo '${{ secrets.ENV_FILE }}' | base64 -d > /home/ubuntu/monkey-dev/.env
+            # Entorno del trabajador del motor (D57): archivo APARTE con solo lo suyo. Opcional hasta que exista el secreto RUNNER_ENV_FILE.
+            # Una sola línea por comando: este motor de SSH inyecta chequeos entre líneas y corrompería un bloque if/fi de varias líneas.
+            if [ -n '${{ secrets.RUNNER_ENV_FILE }}' ]; then echo '${{ secrets.RUNNER_ENV_FILE }}' | base64 -d > /home/ubuntu/monkey-dev/runner.env && chmod 600 /home/ubuntu/monkey-dev/runner.env; fi
             # 1) Migrar ANTES de levantar el backend nuevo. Si falla (set -e + script_stop), el deploy se
             #    aborta y el backend anterior sigue corriendo. Respalda antes de tocar la base: ver
             #    backend/scripts/deploy/migrate.sh y schema-implementacion.md §7 (reversa).
@@ -54,3 +57,5 @@ jobs:
             cd /home/ubuntu/monkey-dev
             docker compose build backend
             docker compose up -d backend
+            # El trabajador solo se levanta si el compose de la VPS ya lo define y existe su entorno: así este paso no rompe el despliegue antes de actualizar el compose.
+            if docker compose config --services | grep -qx runner && [ -f runner.env ]; then docker compose up -d docker-proxy runner; fi

@@ -1,3 +1,10 @@
 {
-  "unavailable": "Automatic evaluation isn't available on your account yet. We saved your system and will let you know when you can check the connection."
+  "unavailable": "Automatic evaluation isn't available on your account yet. We saved your system and will let you know when you can check the connection.",
+  "role_not_found": "We could not access your account with the read-only role. Check that the role exists and that the external identifier matches.",
+  "account_mismatch": "The access you configured belongs to a different account than the one you declared. Check the account identifier.",
+  "credentials_invalid": "The credentials are not valid or have been disabled. Check them and try again.",
+  "regions_missing": "You have not declared which regions to assess yet. Choose at least one.",
+  "not_configured": "This system does not have its connection configured yet.",
+  "provider_not_supported": "For now we can only assess AWS accounts.",
+  "method_not_supported_by_runner": "This connection type is assessed a different way and not from here."
 }
