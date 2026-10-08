@@ -1,6 +1,7 @@
 import Docker from 'dockerode';
 import { RunNextExecution } from './application/run-next-execution';
 import { RunnerLogger } from './domain/ports';
+import { describeError } from './infrastructure/describe-error';
 import { DockerScanEngine, prowlerAwsProfile } from './infrastructure/docker-scan-engine';
 import { HttpRunnerApi } from './infrastructure/http-runner-api';
 import { loadRunnerConfig } from './infrastructure/runner-config';
@@ -50,10 +51,10 @@ async function main() {
       // Si había trabajo, se pide el siguiente de inmediato; si no, se espera.
       if (result === 'idle') await sleep(config.pollIntervalMs);
     } catch (e) {
-      // Un fallo de red o del backend no mata al trabajador: reintenta con espera creciente. Solo la clase del error: nunca su contenido.
+      // Un fallo de red o del backend no mata al trabajador: reintenta con espera creciente. Solo la clase y el código del error: nunca su contenido.
       failures += 1;
       const wait = Math.min(config.pollIntervalMs * 2 ** failures, MAX_BACKOFF_MS);
-      log.error(`Fallo del ciclo (${(e as Error)?.constructor?.name ?? 'Error'}); reintento en ${Math.round(wait / 1000)} s.`);
+      log.error(`Fallo del ciclo (${describeError(e)}); reintento en ${Math.round(wait / 1000)} s.`);
       await sleep(wait);
     }
   }
