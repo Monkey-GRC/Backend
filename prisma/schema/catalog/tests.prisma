@@ -11,6 +11,8 @@ enum CheckOrigin {
   cis_native
   monkey_policy
   auditor_criterion
+  // Check de un motor de configuración de nube (D56); su mapeo propio se guarda con procedencia, no se presenta como del comité.
+  engine_native
 
   @@map("check_origin")
 
@@ -25,6 +27,16 @@ enum MappingConfidence {
   low
 
   @@map("mapping_confidence")
+  @@schema("catalog")
+}
+
+// Quién afirma un mapeo (D56). Un mapeo del motor o propuesto por Monkey nunca se presenta como si lo hubiera validado el comité.
+enum MappingProvenance {
+  engine_native
+  monkey_proposed
+  committee_ratified
+
+  @@map("mapping_provenance")
   @@schema("catalog")
 }
 
@@ -107,17 +119,24 @@ model Check {
   platform           String
   policyId           String      @map("policy_id")
   checkId            String      @map("check_id")
-  titleEs            String      @map("title_es")
+  // Nullable: los checks del motor de nube solo traen título en inglés; la traducción es posterior (DT-21).
+  titleEs            String?     @map("title_es")
   titleEn            String      @map("title_en")
   condition          String      @db.Text
   remediation        String      @db.Text
-  verificationRule   String      @map("verification_rule") @db.Text
+  // Nullable: el motor de nube no expone una regla de verificación propia, y no se inventa una.
+  verificationRule   String?     @map("verification_rule") @db.Text
   origin             CheckOrigin
   mappingProvenance  String      @map("mapping_provenance")
   mappingConfidence  MappingConfidence @map("mapping_confidence")
   // La política SCA que contiene el check (sca_policies ||--o{ checks). Nullable: el check
   // se carga primero y se enlaza a su política al importar el catálogo.
   scaPolicyId        String?     @map("sca_policy_id") @db.Uuid
+  // Solo checks de un motor de nube (D56). Interno: nunca sale al cliente (el texto nombra al proveedor en algunos casos).
+  serviceName        String?     @map("service_name")
+  resourceType       String?     @map("resource_type")
+  engineSeverity     String?     @map("engine_severity")
+  categories         Json?
 
   scaPolicy ScaPolicy? @relation(fields: [scaPolicyId], references: [id])
 
@@ -136,6 +155,10 @@ model TestCheck {
   id      String @id @default(uuid()) @db.Uuid
   testId  String @map("test_id") @db.Uuid
   checkId String @map("check_id") @db.Uuid
+  // Quién asignó el check a la prueba y con qué confianza (D56). La asignación es del comité; hasta que la ratifique, es propuesta.
+  provenance MappingProvenance @default(monkey_proposed)
+  confidence MappingConfidence?
+  rationale  String?           @db.Text
 
   test  Test  @relation(fields: [testId], references: [id])
   check Check @relation(fields: [checkId], references: [id])
@@ -152,9 +175,12 @@ model CheckMapping {
   frameworkCode    String @map("framework_code")
   frameworkVersion String @map("framework_version")
   requirementCode  String @map("requirement_code")
+  provenance       MappingProvenance @default(engine_native)
 
   check Check @relation(fields: [checkId], references: [id])
+  @@unique([checkId, frameworkCode, frameworkVersion, requirementCode])
   @@index([checkId])
+  @@index([frameworkCode, requirementCode])
   @@map("check_mappings")
   @@schema("catalog")
 }

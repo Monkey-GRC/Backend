@@ -59,3 +59,15 @@ Las listas de opciones del Componente 1 (tamaño, industria, modelo de negocio, 
 se siembran**: son enums de Postgres, no tablas.
 
 Si el Excel cambia, el cambio **no** entra por recarga: `catalog:load` aborta con el diff (A4/D33).
+
+## Checks del motor de nube (D56)
+
+| Comando | Qué hace |
+|---|---|
+| `npm run cloud:extract -- <carpeta-del-motor> [versión]` | Lee los metadatos y los marcos del motor de AWS y escribe `data/cloud-aws-checks.json` (662 checks, 3.413 mapeos a los marcos ofrecidos, 569 asignaciones propuestas a las pruebas `T-CLD`). Si algo no cuadra, **no escribe** |
+| `npm run cloud:load` · `-- --apply` | Dry-run / carga en una transacción. Mismas garantías que los otros seeds; **no pisa una asignación `committee_ratified`** |
+| `npm run cloud:verify` | Solo lectura; sale con código 1 si la base no coincide |
+
+Requiere el catálogo de SOC 2 ya cargado (las pruebas `T-CLD`). Las asignaciones check → prueba son **propuestas** (`monkey_proposed`) hasta
+que el comité las ratifique. Los textos del motor son internos: no salen al cliente. **Licencia del motor sin verificar (`P14` E1):** el
+JSON incluye sus metadatos; revísalo antes de abrir el repo.

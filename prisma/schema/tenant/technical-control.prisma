@@ -70,6 +70,11 @@ model Execution {
   status             ExecutionStatus
   progressPercentage Int             @default(0) @map("progress_percentage")
   origin             ExecutionOrigin
+  // Versión del motor y regiones evaluadas (D53). Lo que el motor no devuelve para un check de esta corrida es `not_applicable`,
+  // no «no ejecutado»: el conjunto ejecutado es el catálogo de esa versión (D56, DT-50).
+  engineVersion      String?         @map("engine_version")
+  regions            String[]
+  checksExecuted     Int?            @map("checks_executed")
 
   asset        Asset         @relation(fields: [assetId], references: [id])
   scheduleRule ScheduleRule? @relation(fields: [scheduleRuleId], references: [id])
@@ -99,12 +104,19 @@ model CheckResult {
   rawCheckId  String            @map("raw_check_id")
   result      CheckResultStatus
   evaluatedAt DateTime          @map("evaluated_at")
+  // Solo checks de nube (D56, DT-44): el recurso evaluado, su región y lo que el motor dijo. Nulos en los checks de la sonda.
+  assetResourceId String?        @map("asset_resource_id") @db.Uuid
+  region          String?
+  statusDetail    String?        @map("status_detail") @db.Text
+  engineSeverity  String?        @map("engine_severity")
 
-  execution Execution @relation(fields: [executionId], references: [id])
-  check     Check     @relation(fields: [checkId], references: [id])
-  tenant    Company   @relation(fields: [tenantId], references: [id])
+  execution     Execution      @relation(fields: [executionId], references: [id])
+  check         Check          @relation(fields: [checkId], references: [id])
+  assetResource AssetResource? @relation(fields: [assetResourceId], references: [id])
+  tenant        Company        @relation(fields: [tenantId], references: [id])
 
   // Tabla de mayor volumen del sistema (miles de checks por activo por corrida)
+  @@index([assetResourceId])
   @@index([executionId])
   @@index([checkId])
   @@index([tenantId])
@@ -126,5 +138,30 @@ model ExecutionLog {
   @@index([executionId, loggedAt])
   @@index([tenantId])
   @@map("execution_logs")
+  @@schema("tenant")
+}
+
+// Un recurso hallado dentro de un activo de nube (D53, D56): el activo es la cuenta/suscripción/proyecto; sus recursos
+// (instancias, volúmenes, grupos de seguridad…) cuelgan de él con el identificador del proveedor. Sin esto no se puede
+// mostrar el resultado «por activo» ni decir qué recurso falló.
+model AssetResource {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  assetId      String   @map("asset_id") @db.Uuid
+  resourceUid  String   @map("resource_uid") // ARN en AWS
+  resourceType String   @map("resource_type")
+  name         String?
+  region       String?
+  firstSeenAt  DateTime @map("first_seen_at")
+  lastSeenAt   DateTime @map("last_seen_at")
+
+  asset  Asset   @relation(fields: [assetId], references: [id])
+  tenant Company @relation(fields: [tenantId], references: [id])
+
+  checkResults CheckResult[]
+
+  @@unique([assetId, resourceUid])
+  @@index([tenantId])
+  @@map("asset_resources")
   @@schema("tenant")
 }

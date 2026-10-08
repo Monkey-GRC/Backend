@@ -78,6 +78,7 @@ model Company {
   scheduleRules  ScheduleRule[]
   executions     Execution[]
   checkResults   CheckResult[]
+  assetResources AssetResource[]
   executionLogs  ExecutionLog[]
   auditLogs        AuditLog[]
   complianceEvents ComplianceEvent[]
