@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1106.0",
+    "@aws-sdk/client-sts": "^3.1147.0",
     "@aws-sdk/s3-request-presigner": "^3.1106.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
@@ -53,6 +54,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
     "cookie-parser": "^1.4.7",
+    "dockerode": "^5.0.1",
     "dotenv": "^17.2.3",
     "multer": "^2.2.0",
     "nestjs-i18n": "^10.6.0",
@@ -62,6 +64,7 @@
     "pg-format": "^1.0.4",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "tar-stream": "^3.2.2",
     "undici": "^7.16.0"
   },
   "devDependencies": {
@@ -71,6 +74,7 @@
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
     "@types/cookie-parser": "^1.4.10",
+    "@types/dockerode": "^4.0.1",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/multer": "^2.2.0",
@@ -79,6 +83,7 @@
     "@types/pg": "^8.15.6",
     "@types/pg-format": "^1.0.5",
     "@types/supertest": "^6.0.2",
+    "@types/tar-stream": "^3.1.5",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",

@@ -1,3 +1,10 @@
 {
-  "unavailable": "La evaluación automática aún no está disponible en tu cuenta. Guardamos tu sistema y te avisaremos cuando puedas comprobar la conexión."
+  "unavailable": "La evaluación automática aún no está disponible en tu cuenta. Guardamos tu sistema y te avisaremos cuando puedas comprobar la conexión.",
+  "role_not_found": "No pudimos acceder a tu cuenta con el rol de solo lectura. Revisa que el rol exista y que el identificador externo coincida.",
+  "account_mismatch": "El acceso que configuraste es de otra cuenta distinta a la que declaraste. Revisa el identificador de la cuenta.",
+  "credentials_invalid": "Las credenciales no son válidas o están desactivadas. Revísalas e inténtalo de nuevo.",
+  "regions_missing": "Aún no declaraste en qué regiones evaluar. Elige al menos una.",
+  "not_configured": "Este sistema todavía no tiene su conexión configurada.",
+  "provider_not_supported": "Por ahora solo podemos evaluar cuentas de AWS.",
+  "method_not_supported_by_runner": "Este tipo de conexión se evalúa de otra forma y no desde aquí."
 }

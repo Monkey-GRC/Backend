@@ -6,5 +6,7 @@
   "timed_out": "The assessment took too long and was cancelled. Try again.",
   "list": "Assessment history.",
   "completed": "Assessment completed.",
-  "failed": "The assessment could not be completed."
+  "failed": "The assessment could not be completed.",
+  "engine_failed": "The automatic assessment could not be completed. Try again; if it keeps happening, contact us.",
+  "engine_timeout": "The assessment took longer than allowed and was cancelled. Try again."
 }

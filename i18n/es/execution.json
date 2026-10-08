@@ -6,5 +6,7 @@
   "timed_out": "La evaluación tardó demasiado y se canceló. Inténtalo de nuevo.",
   "list": "Historial de evaluaciones.",
   "completed": "Evaluación completada.",
-  "failed": "La evaluación no pudo completarse."
+  "failed": "La evaluación no pudo completarse.",
+  "engine_failed": "La evaluación automática no pudo completarse. Inténtalo de nuevo; si se repite, contáctanos.",
+  "engine_timeout": "La evaluación tardó más de lo permitido y se canceló. Inténtalo de nuevo."
 }
