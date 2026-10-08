@@ -24,18 +24,18 @@ Copia el archivo de entorno y configura las variables:
 cp .env.example .env
 ```
 
-Variables requeridas:
+Variables requeridas (la lista completa, con su explicación, está en `.env.example`; solo se documenta aquí lo que la app lee de verdad):
 
 ```env
 # Migraciones (rol dueño; solo Prisma CLI y deploy) y runtime (rol monkey_app, sujeto a RLS).
-# La app nunca se conecta como el rol dueño. Ver .env.example.
+# La app nunca se conecta como el rol dueño.
 DATABASE_URL="postgresql://postgres:password@localhost:5432/monkey"
 SHADOW_DATABASE_URL="postgresql://postgres:password@localhost:5432/monkey_shadow"
 APP_DATABASE_URL="postgresql://monkey_app:password@localhost:5432/monkey"
-JWT_SECRET="tu-secreto-de-acceso"
-JWT_REFRESH_SECRET="tu-secreto-de-refresh"
-JWT_EXPIRES_IN=7200
-JWT_REFRESH_EXPIRES_IN=2592000
+JWT_SECRET="…"            # firma del access token
+JWT_ACCESS_EXPIRES_IN=900 # y SESSION_IDLE_TIMEOUT, SESSION_MAX_DURATION
+TOKEN_HASH_PEPPER="…"
+CREDENTIALS_ENCRYPTION_KEY="…"
 PORT=3000
 ```
 
