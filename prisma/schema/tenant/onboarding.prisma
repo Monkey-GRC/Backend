@@ -383,7 +383,6 @@ model Service {
   systemDescription       SystemDescription?
   clientRisks             ClientRisk[]
   clientCauses            ClientCause[]
-  scope                   Scope?
   serviceAssets           ServiceAsset[]
   clientControls ClientControl[]
   evaluations    Evaluation[]
@@ -504,25 +503,6 @@ model SystemDescription {
   @@index([tenantId])
 
   @@map("system_descriptions")
-  @@schema("tenant")
-}
-
-model Scope {
-  id            String @id @default(uuid()) @db.Uuid
-  tenantId      String @map("tenant_id") @db.Uuid
-  serviceId     String @unique @map("service_id") @db.Uuid
-  serverCount   Int    @map("server_count")
-  cloudCount    Int    @map("cloud_count")
-  appCount      Int    @map("app_count")
-  databaseCount Int    @map("database_count")
-  endpointCount Int    @map("endpoint_count")
-
-  service Service @relation(fields: [serviceId], references: [id])
-  tenant  Company @relation(fields: [tenantId], references: [id])
-
-  @@index([tenantId])
-
-  @@map("scopes")
   @@schema("tenant")
 }
 
@@ -708,6 +688,14 @@ model AssetProvisioning {
   // Null hasta que se elige el canal. Las regiones son las que el cliente declara y las únicas que se evalúan (D53).
   connectionMethod      ConnectionMethod?  @map("connection_method")
   regions               String[]
+  // Lo que el cliente necesita para configurar el rol de solo lectura (D58). Ninguno es secreto: el ExternalId lo genera Monkey y evita que otro
+  // cliente use el rol de este; el ARN del rol lo pega el cliente. Las llaves (canal alternativo) siguen cifradas en `encryptedCredentials`.
+  externalId            String?            @map("external_id")
+  roleArn               String?            @map("role_arn")
+  // Cuándo se descubrieron por última vez los recursos de la cuenta. Lo que no se vio desde entonces ya no se muestra.
+  inventoryAt           DateTime?          @map("inventory_at")
+  // Servicios que no se pudieron leer en ese descubrimiento: el cliente ve «incompleto», no «vacío».
+  inventoryWarnings     String[]           @map("inventory_warnings")
 
   asset               Asset              @relation(fields: [assetId], references: [id])
   automatedCapability AutomatedCapability @relation(fields: [automatedCapabilityId], references: [id])

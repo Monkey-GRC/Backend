@@ -12,6 +12,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
+    "runner:local": "bash scripts/dev/runner-local.sh",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" \"prisma/seed/**/*.ts\" \"scripts/**/*.ts\" --fix",
     "lint:ci": "eslint \"{src,apps,libs,test}/**/*.ts\" \"prisma/seed/**/*.ts\" \"scripts/**/*.ts\"",
     "test": "jest",
@@ -37,6 +38,9 @@
     "audit:verify": "tsx scripts/verify-audit-append-only.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-ec2": "^3.1148.0",
+    "@aws-sdk/client-lambda": "^3.1148.0",
+    "@aws-sdk/client-rds": "^3.1148.0",
     "@aws-sdk/client-s3": "^3.1106.0",
     "@aws-sdk/client-sts": "^3.1147.0",
     "@aws-sdk/s3-request-presigner": "^3.1106.0",

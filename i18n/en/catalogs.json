@@ -195,5 +195,37 @@
   "regulation": {
     "none": "None",
     "other": "Other"
+  },
+  "connection_method": {
+    "readonly_role": "Read-only role (recommended)",
+    "access_keys": "Access keys (less secure)",
+    "agent": "Installed agent"
+  },
+  "aws_region": {
+    "us-east-1": "N. Virginia (us-east-1)",
+    "us-east-2": "Ohio (us-east-2)",
+    "us-west-1": "N. California (us-west-1)",
+    "us-west-2": "Oregon (us-west-2)",
+    "ca-central-1": "Canada Central (ca-central-1)",
+    "mx-central-1": "Mexico Central (mx-central-1)",
+    "sa-east-1": "São Paulo (sa-east-1)",
+    "eu-west-1": "Ireland (eu-west-1)",
+    "eu-west-2": "London (eu-west-2)",
+    "eu-west-3": "Paris (eu-west-3)",
+    "eu-central-1": "Frankfurt (eu-central-1)",
+    "eu-north-1": "Stockholm (eu-north-1)",
+    "eu-south-1": "Milan (eu-south-1)",
+    "ap-south-1": "Mumbai (ap-south-1)",
+    "ap-northeast-1": "Tokyo (ap-northeast-1)",
+    "ap-northeast-2": "Seoul (ap-northeast-2)",
+    "ap-southeast-1": "Singapore (ap-southeast-1)",
+    "ap-southeast-2": "Sydney (ap-southeast-2)"
+  },
+  "resource_kind": {
+    "server": "Server",
+    "database": "Database",
+    "storage": "Storage",
+    "function": "Function",
+    "other": "Other"
   }
 }

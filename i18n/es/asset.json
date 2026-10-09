@@ -8,5 +8,9 @@
   "connection_failed": "No pudimos conectar con el sistema. Revisa los datos e inténtalo de nuevo.",
   "not_validated": "Primero comprueba la conexión para poder activarla.",
   "already_active": "Esta conexión ya está activa.",
-  "not_active": "Primero activa la conexión para poder programarla."
+  "not_active": "Primero activa la conexión para poder programarla.",
+  "connection_set": "Guardamos el rol. Ahora comprobemos la conexión.",
+  "updated": "Guardamos los cambios. Si cambió la conexión, hay que comprobarla de nuevo.",
+  "removed": "Quitamos el sistema. Su historial se conserva.",
+  "resources": "Estos son los activos que encontramos en tu cuenta."
 }

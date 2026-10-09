@@ -195,5 +195,37 @@
   "regulation": {
     "none": "Ninguna",
     "other": "Otra"
+  },
+  "connection_method": {
+    "readonly_role": "Rol de solo lectura (recomendado)",
+    "access_keys": "Llaves de acceso (menos seguro)",
+    "agent": "Agente instalado"
+  },
+  "aws_region": {
+    "us-east-1": "Virginia del Norte (us-east-1)",
+    "us-east-2": "Ohio (us-east-2)",
+    "us-west-1": "California (us-west-1)",
+    "us-west-2": "Oregón (us-west-2)",
+    "ca-central-1": "Canadá Central (ca-central-1)",
+    "mx-central-1": "México Central (mx-central-1)",
+    "sa-east-1": "São Paulo (sa-east-1)",
+    "eu-west-1": "Irlanda (eu-west-1)",
+    "eu-west-2": "Londres (eu-west-2)",
+    "eu-west-3": "París (eu-west-3)",
+    "eu-central-1": "Fráncfort (eu-central-1)",
+    "eu-north-1": "Estocolmo (eu-north-1)",
+    "eu-south-1": "Milán (eu-south-1)",
+    "ap-south-1": "Bombay (ap-south-1)",
+    "ap-northeast-1": "Tokio (ap-northeast-1)",
+    "ap-northeast-2": "Seúl (ap-northeast-2)",
+    "ap-southeast-1": "Singapur (ap-southeast-1)",
+    "ap-southeast-2": "Sídney (ap-southeast-2)"
+  },
+  "resource_kind": {
+    "server": "Servidor",
+    "database": "Base de datos",
+    "storage": "Almacenamiento",
+    "function": "Función",
+    "other": "Otro"
   }
 }
