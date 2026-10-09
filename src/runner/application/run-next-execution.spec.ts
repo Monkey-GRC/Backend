@@ -1,9 +1,10 @@
-import { CredentialBroker, RunnerApi, RunnerLogger, ScanEngine } from '../domain/ports';
+import { Inventory } from '../domain/inventory';
+import { CredentialBroker, InventoryScanner, RunnerApi, RunnerLogger, ScanEngine } from '../domain/ports';
 import { EngineInput, EngineRun, FAILURE, RunnerApiError, RunnerFailure, RunnerJob, TemporaryCredentials } from '../domain/runner.types';
 import { RunNextExecution } from './run-next-execution';
 
 const job: RunnerJob = {
-  executionId: 'e1', tenantId: 't1', assetId: 'a1', origin: 'manual', platform: 'aws', externalAccountId: '123456789012', regions: ['us-east-1'],
+  executionId: 'e1', kind: 'assessment', tenantId: 't1', assetId: 'a1', origin: 'manual', platform: 'aws', externalAccountId: '123456789012', regions: ['us-east-1'],
   connection: { method: 'readonly_role', roleArn: 'arn:aws:iam::123456789012:role/R', externalId: 'mk-1' },
 };
 const creds: TemporaryCredentials = { accessKeyId: 'ASIATEMP', secretAccessKey: 'SECRETO-NO-DEBE-SALIR', sessionToken: 'TOKEN-NO-DEBE-SALIR' };
@@ -12,8 +13,12 @@ const run: EngineRun = { engineVersion: '5.44.0', startedAt: new Date(), finishe
 class FakeApi extends RunnerApi {
   submitted: { job: RunnerJob; run: EngineRun }[] = [];
   failed: { job: RunnerJob; reason: string }[] = [];
+  validatedJobs: RunnerJob[] = [];
+  claimedKinds: (string | undefined)[] = [];
   constructor(private readonly next: RunnerJob | null, private readonly submitError?: unknown, private readonly failError?: unknown) { super(); }
-  claim() { return Promise.resolve(this.next); }
+  claim(kind?: string) { this.claimedKinds.push(kind); return Promise.resolve(this.next); }
+  inventories: (Inventory | null | undefined)[] = [];
+  validated(j: RunnerJob, inventory?: Inventory | null) { this.validatedJobs.push(j); this.inventories.push(inventory); return Promise.resolve(); }
   submitResults(j: RunnerJob, r: EngineRun) { if (this.submitError) return Promise.reject(this.submitError); this.submitted.push({ job: j, run: r }); return Promise.resolve(); }
   fail(j: RunnerJob, reason: string) { if (this.failError) return Promise.reject(this.failError); this.failed.push({ job: j, reason }); return Promise.resolve(); }
 }
@@ -21,7 +26,7 @@ const broker = (impl: () => Promise<TemporaryCredentials>): CredentialBroker => 
 const engine = (impl: (i: EngineInput) => Promise<EngineRun>): ScanEngine => ({ run: impl, cleanupOrphans: () => Promise.resolve(0) });
 class Log extends RunnerLogger { lines: string[] = []; info(m: string) { this.lines.push(m); } error(m: string) { this.lines.push(m); } }
 
-const step = (api: FakeApi, b: CredentialBroker, e: ScanEngine, log = new Log()) => ({ log, result: new RunNextExecution(api, b, e, log).execute() });
+const step = (api: FakeApi, b: CredentialBroker, e: ScanEngine, log = new Log(), kind?: 'assessment' | 'validation') => ({ log, result: new RunNextExecution(api, b, e, log, kind).execute() });
 
 describe('RunNextExecution', () => {
   it('sin nada pendiente no hace nada', async () => {
@@ -74,5 +79,67 @@ describe('RunNextExecution', () => {
     const { log, result } = step(api, broker(() => Promise.reject(new RunnerFailure(FAILURE.credentialsInvalid))), engine(() => Promise.resolve(run)));
     expect(await result).toBe('failed');
     expect(log.lines.join('\n')).toContain('se cerrará por tiempo');
+  });
+
+  describe('una validación (D58)', () => {
+    const validation: RunnerJob = { ...job, kind: 'validation' };
+    it('obtener las credenciales YA es la comprobación: no corre el motor y cierra la validación', async () => {
+      const api = new FakeApi(validation);
+      let ran = false;
+      const out = await step(api, broker(() => Promise.resolve(creds)), engine(() => { ran = true; return Promise.resolve(run); })).result;
+      expect(out).toBe('completed');
+      expect(ran).toBe(false);
+      expect(api.validatedJobs).toEqual([validation]);
+      expect(api.submitted).toHaveLength(0);
+    });
+    it('si no se puede asumir el rol, la validación falla con su razón y no se marca validada', async () => {
+      const api = new FakeApi(validation);
+      expect(await step(api, broker(() => Promise.reject(new RunnerFailure(FAILURE.roleNotFound))), engine(() => Promise.resolve(run))).result).toBe('failed');
+      expect(api.failed).toEqual([{ job: validation, reason: 'connection.role_not_found' }]);
+      expect(api.validatedJobs).toHaveLength(0);
+    });
+  });
+
+  it('cada carril reclama solo su tipo', async () => {
+    const api = new FakeApi(null);
+    await step(api, broker(() => Promise.resolve(creds)), engine(() => Promise.resolve(run)), new Log(), 'validation').result;
+    await step(api, broker(() => Promise.resolve(creds)), engine(() => Promise.resolve(run)), new Log(), 'assessment').result;
+    expect(api.claimedKinds).toEqual(['validation', 'assessment']);
+  });
+
+  describe('descubrimiento de activos al validar (D59)', () => {
+    const validation: RunnerJob = { ...job, kind: 'validation' };
+    const found: Inventory = { resources: [{ uid: 'arn:aws:ec2:us-east-1:123456789012:instance/i-1', type: 'AwsEc2Instance', kind: 'server', name: 'api', region: 'us-east-1', attributes: { os: 'Ubuntu 22.04' }, tags: [] }], warnings: [] };
+    const scanner = (impl: () => Promise<Inventory>): InventoryScanner => ({ discover: impl });
+    const validate = (api: FakeApi, s?: InventoryScanner, log = new Log()) => new RunNextExecution(api, broker(() => Promise.resolve(creds)), engine(() => Promise.reject(new Error('no'))), log, 'validation', s).execute();
+
+    it('entrega lo descubierto junto con la validación, con las regiones y la cuenta del trabajo', async () => {
+      const api = new FakeApi(validation);
+      let seen: unknown;
+      expect(await validate(api, scanner(() => { seen = 1; return Promise.resolve(found); }))).toBe('completed');
+      expect(seen).toBe(1);
+      expect(api.inventories).toEqual([found]);
+    });
+
+    it('si el descubrimiento falla, la conexión sigue siendo válida (y no se registra el error del proveedor)', async () => {
+      const api = new FakeApi(validation);
+      const log = new Log();
+      expect(await validate(api, scanner(() => Promise.reject(new Error(`boom ${creds.secretAccessKey}`))), log)).toBe('completed');
+      expect(api.inventories).toEqual([null]);
+      expect(log.lines.join('\n')).not.toContain('SECRETO-NO-DEBE-SALIR');
+    });
+
+    it('sin descubridor, la validación solo comprueba el acceso', async () => {
+      const api = new FakeApi(validation);
+      expect(await validate(api)).toBe('completed');
+      expect(api.inventories).toEqual([null]);
+    });
+
+    it('una evaluación no descubre nada', async () => {
+      const api = new FakeApi(job);
+      let called = false;
+      await new RunNextExecution(api, broker(() => Promise.resolve(creds)), engine(() => Promise.resolve(run)), new Log(), 'assessment', scanner(() => { called = true; return Promise.resolve(found); })).execute();
+      expect(called).toBe(false);
+    });
   });
 });

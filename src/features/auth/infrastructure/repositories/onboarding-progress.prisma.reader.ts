@@ -35,7 +35,6 @@ export class OnboardingProgressPrismaReader extends OnboardingProgressReader {
         where: {
           organization: { companyId: scope.companyId },
           deploymentScenario: { not: null },
-          scope: { isNot: null },
         },
       }),
     );

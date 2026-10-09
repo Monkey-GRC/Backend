@@ -3,7 +3,7 @@ import { RunnerJob } from '../domain/runner.types';
 import { StsCredentialBroker } from './sts-credential-broker';
 
 const job = (over: Partial<RunnerJob> = {}): RunnerJob => ({
-  executionId: 'abcdef12-0000', tenantId: 't', assetId: 'a', origin: 'manual', platform: 'aws', externalAccountId: '123456789012', regions: ['us-east-1'],
+  executionId: 'abcdef12-0000', kind: 'assessment', tenantId: 't', assetId: 'a', origin: 'manual', platform: 'aws', externalAccountId: '123456789012', regions: ['us-east-1'],
   connection: { method: 'readonly_role', roleArn: 'arn:aws:iam::123456789012:role/MonkeyReadOnly', externalId: 'mk-1' }, ...over,
 });
 const named = (name: string) => Object.assign(new Error('x'), { name });

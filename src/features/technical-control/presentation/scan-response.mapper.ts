@@ -3,15 +3,18 @@ import { AssetReadiness, READINESS_AREAS, ReadinessArea } from '../domain/scan/r
 
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
 
-export const toExecutionResponse = (e: ExecutionSummary) => ({
+type Translate = (key: string) => string;
+
+export const toExecutionResponse = (e: ExecutionSummary, t: Translate = (k) => k) => ({
   id: e.id,
   status: e.status,
   origin: e.origin,
   queued_at: iso(e.queuedAt),
   started_at: iso(e.startedAt),
   finished_at: iso(e.finishedAt),
-  // Clave i18n de por qué falló; nunca el texto del motor.
+  // Clave i18n de por qué falló y su texto ya traducido (la plataforma no tiene i18n propio); nunca el texto del motor.
   failure_reason: e.failureReason,
+  failure_message: e.failureReason ? t(e.failureReason) : null,
 });
 
 type ReadinessView = AssetReadiness & { executionId: string; measuredAt: Date | null; includesProposedMappings: boolean };

@@ -9,7 +9,7 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
 import { toPageResponse } from '../../../common/pagination/page';
-import { ListExecutionsQuery } from '../application/dtos/runner.dtos';
+import { ListExecutionsQuery, ReadinessQuery } from '../application/dtos/runner.dtos';
 import { GetAssetReadinessUseCase, ListExecutionsUseCase, QueueExecutionUseCase } from '../application/use-cases/scan.use-cases';
 import { toExecutionResponse, toReadinessResponse } from './scan-response.mapper';
 
@@ -41,14 +41,14 @@ export class ExecutionsController {
   @Get('executions')
   async history(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Query() query: ListExecutionsQuery) {
     const page = await this.listExecutions.execute(principal, id, { page: query.page, pageSize: query.page_size });
-    return new ResponseDto(HttpStatus.OK, t('execution.list'), toPageResponse(page, toExecutionResponse));
+    return new ResponseDto(HttpStatus.OK, t('execution.list'), toPageResponse(page, (e) => toExecutionResponse(e, t)));
   }
 
   @Get('readiness')
-  async readiness(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string) {
+  async readiness(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Query() query: ReadinessQuery) {
     // Producción cuenta solo lo que el comité ratificó (D56); la demo y el desarrollo pueden incluir los vínculos propuestos.
     const includeProposed = this.config.get<string>('READINESS_INCLUDE_PROPOSED')?.trim().toLowerCase() === 'true';
-    const out = await this.getReadiness.execute({ companyId: principal.companyId, userId: principal.userId, role: principal.role }, id, { includeProposed });
+    const out = await this.getReadiness.execute({ companyId: principal.companyId, userId: principal.userId, role: principal.role }, id, { includeProposed, serviceId: query.service_id });
     return new ResponseDto(HttpStatus.OK, t('readiness.read'), toReadinessResponse(id, out));
   }
 }

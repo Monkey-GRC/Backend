@@ -299,3 +299,42 @@ describe('Ciclo de vida: en cola → en curso → completada o fallida (D57)', (
     expect(fn.acl).not.toMatch(/(^\{|,)=X\//);
   });
 });
+
+describe('El estado de preparación de un servicio mide solo sus activos (D61)', () => {
+  let assetId: string;
+  let childId: string;
+  const state = (serviceId?: string) => readiness.execute({ companyId: a.companyId }, assetId, { includeProposed: true, serviceId });
+
+  beforeAll(async () => {
+    assetId = await cloudAsset(a, `aws-servicio-${RUN}`, { account_id: ACCOUNT, read_only_role: ROLE_ARN });
+    await importScan.execute({ companyId: a.companyId }, importArgs(assetId, failing()));
+    // El grupo de seguridad que falla es un ACTIVO del cliente (descubierto dentro de la conexión); lo demás (MFA, registro de actividad) es de toda la cuenta.
+    childId = (
+      await owner<{ id: string }>(
+        `insert into tenant.assets (id, tenant_id, organization_id, code, connection_category, type, name, platform, criticality, tags, origin, status, operational_status, technical_coverage, parent_asset_id, resource_id)
+         select gen_random_uuid(), p.tenant_id, p.organization_id, 'AST-9' || lpad((floor(random() * 9000) + 1000)::int::text, 4, '0'), 'ac_02', 'server', 'sg-api', 'Servidor', 'medium', '[]'::jsonb, 'discovered', 'active', 'not_monitored', '0/18', p.id, r.id
+         from tenant.assets p join tenant.asset_resources r on r.asset_id = p.id where p.id = $1 and r.resource_uid = $2 returning id`,
+        [assetId, SG],
+      )
+    )[0].id;
+  });
+
+  it('sin un servicio mide la cuenta entera', async () => {
+    expect((await state())!.readiness).toBe('needs_work');
+  });
+
+  it('un servicio al que NO pertenece el activo que falla no lo ve fallar, pero sí lo que es de toda la cuenta', async () => {
+    const scoped = (await state(a.serviceId))!;
+    expect(scoped.readiness).not.toBe('needs_work');
+    expect(scoped.needsManualReview).toBe(1); // lo de la cuenta entera sigue contando
+  });
+
+  it('al enlazar el activo al servicio, vuelve a contar su fallo', async () => {
+    await owner('insert into tenant.service_assets (id, tenant_id, asset_id, service_id) values (gen_random_uuid(), $1, $2, $3)', [a.companyId, childId, a.serviceId]);
+    expect((await state(a.serviceId))!.readiness).toBe('needs_work');
+  });
+
+  it('un servicio de otra empresa es 404', async () => {
+    await expect(state(b.serviceId)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+});

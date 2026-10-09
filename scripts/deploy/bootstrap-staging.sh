@@ -7,7 +7,7 @@
 #   1. Le pone contraseña al rol `monkey_app` (las migraciones lo crean SIN contraseña).
 #   2. Carga el catálogo de SOC 2 y los catálogos de referencia, y los verifica con `monkey_app`.
 #   3. Crea la empresa interna de Monkey y el primer `admin_monkey`.
-# Al final te imprime la línea `APP_DATABASE_URL` que debe ir en el secret ENV_FILE del backend.
+# Al final te imprime la línea `APP_DATABASE_URL` que debe ir en el `.env` del servidor (se pone con `scripts/deploy/set-env.sh`).
 #
 # Es seguro repetirlo: el seed solo agrega lo que falta y el admin no se crea dos veces.
 set -euo pipefail
@@ -68,7 +68,8 @@ run npm run --silent reference:verify | tail -n 2
 
 echo
 echo "== Todo listo =="
-echo "Falta una cosa: que el secret ENV_FILE del backend tenga esta línea (con ENV_FILE en base64, como siempre):"
+echo "Falta una cosa: que el .env del servidor tenga esta línea:"
 echo "  APP_DATABASE_URL=postgresql://monkey_app:${APPPW}@${DB_CONTAINER}:5432/${DB_NAME}"
+echo "Ponla con:  bash ~/monkey-dev/backend/scripts/deploy/set-env.sh ~/monkey-dev/.env 'APP_DATABASE_URL=...'"
 [ -n "${GENERATED:-}" ] && echo "(La clave de monkey_app se generó aleatoria; esta es la única vez que se muestra. Guárdala.)"
 echo "Después, redespliega o reinicia el backend."

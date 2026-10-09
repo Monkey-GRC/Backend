@@ -61,19 +61,6 @@ export const ASSET_TYPE_BY_CATEGORY: Record<ConnectionCategory, AssetTypeValue> 
   ac_06: 'endpoint',
 };
 
-// Los cinco contadores del scope declarado y el tipo de activo que los llena al conectar.
-// `network_device` y `documentation` no se cuentan: no son lo que el cliente declara (D46).
-export const SCOPE_KEYS = ['server_count', 'cloud_count', 'app_count', 'database_count', 'endpoint_count'] as const;
-export type ScopeKey = (typeof SCOPE_KEYS)[number];
-export const SCOPE_KEY_BY_ASSET_TYPE: Partial<Record<AssetTypeValue, ScopeKey>> = {
-  server: 'server_count',
-  cloud_service: 'cloud_count',
-  application: 'app_count',
-  database: 'database_count',
-  endpoint: 'endpoint_count',
-};
-export const SCOPE_MAX = 1_000_000;
-
 // Credenciales por conexión. Solo viajan al crear el activo y se guardan cifradas; nunca se
 // devuelven. Los agentes ligeros no guardan credenciales (modelo-datos.md §6.3): para ellos basta
 // con `connection_method = agent`, que es el valor por defecto.
@@ -102,5 +89,35 @@ export const CREDENTIAL_MAX_LENGTH = 8000;
 export const TECHNICAL_COVERAGE_TOTAL = 18;
 export const NO_COVERAGE = `0/${TECHNICAL_COVERAGE_TOTAL}`;
 
-export type ProbeMode = 'simulated' | 'unavailable';
-export const PROBE_MODES: readonly ProbeMode[] = ['simulated', 'unavailable'];
+// `runner`: la validación la hace el trabajador que ejecuta el motor de nube (D58); el backend nunca toca la nube del cliente ni guarda llaves de AWS.
+export type ProbeMode = 'simulated' | 'unavailable' | 'runner';
+export const PROBE_MODES: readonly ProbeMode[] = ['simulated', 'unavailable', 'runner'];
+
+// Cómo se conecta un activo (D53). El cliente elige entre los canales que existen para su categoría.
+// Qué clase de activo es lo que se encontró en la cuenta del cliente (D59). Es lo que el cliente reconoce, no el tipo de recurso del proveedor.
+export const RESOURCE_KIND_VALUES = ['server', 'database', 'storage', 'function', 'other'] as const;
+export type ResourceKindValue = (typeof RESOURCE_KIND_VALUES)[number];
+
+export const CONNECTION_METHOD_VALUES = ['readonly_role', 'access_keys', 'agent'] as const;
+export type ConnectionMethodValue = (typeof CONNECTION_METHOD_VALUES)[number];
+// Canales por categoría; el primero es el recomendado. ac_01 es la nube (AWS hoy); el resto, agente.
+export const METHODS_BY_CATEGORY: Record<ConnectionCategory, readonly ConnectionMethodValue[]> = {
+  ac_01: ['readonly_role', 'access_keys'],
+  ac_02: ['agent'],
+  ac_03: ['agent'],
+  ac_04: ['agent'],
+  ac_05: ['agent'],
+  ac_06: ['agent'],
+};
+export const CLOUD_PLATFORM_AWS = 'aws';
+export const AWS_ACCOUNT_ID = /^\d{12}$/;
+export const AWS_ROLE_ARN = /^arn:aws:iam::(\d{12}):role\/[\w+=,.@/-]{1,512}$/;
+// Mismas reglas que el trabajador: nada llega a la línea de comandos del motor sin revisar.
+export const AWS_REGION = /^[a-z]{2,4}(-[a-z]+){1,2}-\d$/;
+// Las regiones que se ofrecen al cliente (GET /v1/catalogs/aws_region) y las únicas que el alta acepta. Todas las entiende el motor.
+export const AWS_REGION_VALUES = [
+  'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2', 'ca-central-1', 'mx-central-1', 'sa-east-1',
+  'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-central-1', 'eu-north-1', 'eu-south-1',
+  'ap-south-1', 'ap-northeast-1', 'ap-northeast-2', 'ap-southeast-1', 'ap-southeast-2',
+] as const;
+export const MAX_REGIONS = 20;

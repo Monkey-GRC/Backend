@@ -6,5 +6,21 @@
   "regions_missing": "You have not declared which regions to assess yet. Choose at least one.",
   "not_configured": "This system does not have its connection configured yet.",
   "provider_not_supported": "For now we can only assess AWS accounts.",
-  "method_not_supported_by_runner": "This connection type is assessed a different way and not from here."
+  "method_not_supported_by_runner": "This connection type is assessed a different way and not from here.",
+  "method_not_applicable": "That connection type is not available for this system.",
+  "access_keys": {
+    "less_secure": "Access keys are long-lived and less secure than a role. Use them only if you cannot create the role.",
+    "step_1": "In IAM, create a read-only user with the SecurityAudit and ViewOnlyAccess policies.",
+    "step_2": "Generate an access key for that user and paste it here. It is not shown again."
+  },
+  "aws_role": {
+    "step_1": "Download the template and create it in your AWS account: CloudFormation → Create stack → With new resources → Upload a template file.",
+    "step_2": "When AWS asks for the parameters, paste the external identifier and the Monkey identity shown here.",
+    "step_3": "Tick the box acknowledging that AWS will create an IAM role and create the stack.",
+    "step_4": "When it finishes, copy the “RoleArn” value from the Outputs tab and paste it into this form."
+  },
+  "agent": {
+    "step_1": "Copy the install command and run it on the server.",
+    "step_2": "Once the agent connects, the status will change to “Connected”."
+  }
 }

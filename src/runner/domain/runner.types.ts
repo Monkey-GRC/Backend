@@ -4,8 +4,12 @@
 // de modo que se puede reemplazar por otro ejecutor (una tarea en la nube) sin tocar el backend, y no necesita acceso a la base de datos.
 
 // Lo que el backend entrega al reclamar una ejecución.
+// Qué se pide (D58): una validación comprueba el acceso a la cuenta (segundos, el cliente espera); una evaluación corre el motor (minutos).
+export type RunnerJobKind = 'assessment' | 'validation';
+
 export type RunnerJob = {
   executionId: string;
+  kind: RunnerJobKind;
   tenantId: string;
   assetId: string;
   origin: 'scheduled' | 'manual';

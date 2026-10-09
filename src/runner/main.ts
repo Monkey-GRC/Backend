@@ -5,6 +5,7 @@ import { describeError } from './infrastructure/describe-error';
 import { DockerScanEngine, prowlerAwsProfile } from './infrastructure/docker-scan-engine';
 import { HttpRunnerApi } from './infrastructure/http-runner-api';
 import { loadRunnerConfig } from './infrastructure/runner-config';
+import { AwsInventoryScanner } from './infrastructure/inventory/aws-inventory-scanner';
 import { StsCredentialBroker } from './infrastructure/sts-credential-broker';
 
 // Punto de entrada del trabajador (D57): `node dist/runner/main.js`. Es la raíz de composición: aquí, y solo aquí, se eligen los adaptadores.
@@ -30,10 +31,16 @@ async function main() {
     memoryBytes: config.engineMemoryBytes,
     cpus: config.engineCpus,
   });
-  const step = new RunNextExecution(new HttpRunnerApi(config.backendUrl, config.runnerToken), new StsCredentialBroker(), engine, log);
+  const api = new HttpRunnerApi(config.backendUrl, config.runnerToken);
+  const broker = new StsCredentialBroker();
+  // Dos carriles independientes (D58): una evaluación de minutos no puede hacer esperar la validación de un cliente que mira la pantalla.
+  const lanes = [
+    { name: 'validación', step: new RunNextExecution(api, broker, engine, log, 'validation', new AwsInventoryScanner()), pollMs: config.validationPollIntervalMs },
+    { name: 'evaluación', step: new RunNextExecution(api, broker, engine, log, 'assessment'), pollMs: config.pollIntervalMs },
+  ];
 
   const orphans = await engine.cleanupOrphans();
-  log.info(`Trabajador listo. Motor: ${config.engineImage}. Contenedores huérfanos retirados: ${orphans}.`);
+  log.info(`Trabajador listo (carriles: ${lanes.map((l) => l.name).join(', ')}). Motor: ${config.engineImage}. Contenedores huérfanos retirados: ${orphans}.`);
 
   let stopping = false;
   for (const signal of ['SIGTERM', 'SIGINT'] as const) {
@@ -43,21 +50,24 @@ async function main() {
     });
   }
 
-  let failures = 0;
-  while (!stopping) {
-    try {
-      const result = await step.execute();
-      failures = 0;
-      // Si había trabajo, se pide el siguiente de inmediato; si no, se espera.
-      if (result === 'idle') await sleep(config.pollIntervalMs);
-    } catch (e) {
-      // Un fallo de red o del backend no mata al trabajador: reintenta con espera creciente. Solo la clase y el código del error: nunca su contenido.
-      failures += 1;
-      const wait = Math.min(config.pollIntervalMs * 2 ** failures, MAX_BACKOFF_MS);
-      log.error(`Fallo del ciclo (${describeError(e)}); reintento en ${Math.round(wait / 1000)} s.`);
-      await sleep(wait);
+  const runLane = async (lane: (typeof lanes)[number]) => {
+    let failures = 0;
+    while (!stopping) {
+      try {
+        const result = await lane.step.execute();
+        failures = 0;
+        // Si había trabajo, se pide el siguiente de inmediato; si no, se espera.
+        if (result === 'idle') await sleep(lane.pollMs);
+      } catch (e) {
+        // Un fallo de red o del backend no mata al trabajador: reintenta con espera creciente. Solo la clase y el código del error: nunca su contenido.
+        failures += 1;
+        const wait = Math.min(lane.pollMs * 2 ** failures, MAX_BACKOFF_MS);
+        log.error(`Fallo del ciclo de ${lane.name} (${describeError(e)}); reintento en ${Math.round(wait / 1000)} s.`);
+        await sleep(wait);
+      }
     }
-  }
+  };
+  await Promise.all(lanes.map(runLane));
   log.info('Trabajador detenido.');
 }
 

@@ -8,6 +8,7 @@ import { configureApp } from '../../src/app.setup';
 import { connect, testDatabaseUrl } from './db';
 
 export const PASSWORD = 'UnaClaveLarga123!';
+export const MONKEY_PRINCIPAL_ARN = 'arn:aws:iam::210987654321:user/monkey-prueba';
 export const RUNNER_TOKEN = 'token-de-prueba-del-trabajador-0123456789';
 
 // La app de las pruebas e2e usa el rol REAL de runtime (monkey_app, sujeto a RLS) contra el Postgres desechable. Se
@@ -20,7 +21,8 @@ function appDatabaseUrl(): string {
   return url.toString();
 }
 
-export async function bootApp(): Promise<INestApplication> {
+/** `env` sobrescribe lo de por defecto solo para esta app (p. ej. PROBE_MODE=runner). Cada llamada vuelve a fijar los valores base. */
+export async function bootApp(env: Record<string, string> = {}): Promise<INestApplication> {
   Object.assign(process.env, {
     APP_DATABASE_URL: appDatabaseUrl(),
     JWT_SECRET: randomBytes(64).toString('base64url'),
@@ -33,7 +35,10 @@ export async function bootApp(): Promise<INestApplication> {
     PROBE_MODE: 'simulated',
     RUNNER_TOKEN: RUNNER_TOKEN,
     READINESS_INCLUDE_PROPOSED: 'true',
+    MONKEY_AWS_PRINCIPAL_ARN: MONKEY_PRINCIPAL_ARN,
+    VALIDATION_WAIT_SECONDS: '25',
     NODE_ENV: 'test',
+    ...env,
   });
   // Las variables se fijan antes de compilar el módulo: es cuando los servicios leen la configuración.
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();

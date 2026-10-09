@@ -2,14 +2,14 @@ import { Injectable } from '@nestjs/common';
 import {
   ASSET_TYPE_BY_CATEGORY,
   ConnectionCategory,
+  ConnectionMethodValue,
   DeploymentScenarioValue,
   FREQUENCIES_BY_CATEGORY,
   NO_COVERAGE,
   SCENARIO_CAPABILITIES,
-  SCOPE_KEYS,
-  SCOPE_KEY_BY_ASSET_TYPE,
   ScheduleFrequencyValue,
 } from '../../../../common/catalogs/technical-catalogs';
+import { ResourceKindValue } from '../../../../common/catalogs/technical-catalogs';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { ValidationException } from '../../../../common/errors/validation.exception';
 import { Page, PageRequest } from '../../../../common/pagination/page';
@@ -19,18 +19,18 @@ import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.inser
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import {
   Asset,
+  AssetEdit,
   AssetFilters,
+  ResourceListing,
+  ResourceAttributes,
   Capability,
   NewAsset,
   ProbeTarget,
-  Scope,
-  ScopeCounts,
   TechnicalControlState,
 } from '../../domain/entities/technical-control.entities';
 import {
   AssetChange,
   ScenarioChange,
-  ScopeChange,
   TechnicalControlRepository,
 } from '../../domain/repositories/technical-control.repository';
 
@@ -40,8 +40,6 @@ const ASSET_PREFIX = 'AST-';
 // la vez, la última espera a las demás y puede pasar de los 5 s que Prisma da por defecto a una
 // transacción. Margen explícito para que ninguna alta legítima se pierda.
 const ASSET_CREATION_TRANSACTION = { timeoutMs: 30_000 };
-// Una conexión ya comprobada cuenta como «conectada» frente a lo que el cliente declaró.
-const CONNECTED_STATUSES = ['validated', 'active', 'scheduled'] as const;
 
 const ASSET_INCLUDE = {
   serviceAssets: { include: { service: { select: { id: true, name: true } } } },
@@ -86,7 +84,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
       // Cambiar de escenario no puede dejar huérfana una conexión ya registrada en este servicio.
       const allowed = SCENARIO_CAPABILITIES[scenario];
       const orphaned = await tx.asset.findMany({
-        where: { serviceAssets: { some: { serviceId } }, connectionCategory: { notIn: [...allowed] } },
+        where: { status: 'active', parentAssetId: null, serviceAssets: { some: { serviceId } }, connectionCategory: { notIn: [...allowed] } },
         select: { code: true },
       });
       if (orphaned.length > 0) {
@@ -96,40 +94,6 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
       await tx.service.update({ where: { id: serviceId }, data: { deploymentScenario: scenario } });
       const change = {
         before: service.deploymentScenario as DeploymentScenarioValue | null,
-        state: await this.state(tx, serviceId),
-      };
-      await insertAuditLog(tx, audit(change));
-      return change;
-    });
-  }
-
-  setScope(scope: TenantScope, serviceId: string, counts: ScopeCounts, audit: AuditIntent<ScopeChange>) {
-    return this.prisma.withScope(scope, async (tx) => {
-      const service = await tx.service.findUnique({ where: { id: serviceId }, select: { id: true } });
-      if (!service) return null;
-      const existing = await tx.scope.findUnique({ where: { serviceId } });
-      const data = {
-        serverCount: counts.server_count,
-        cloudCount: counts.cloud_count,
-        appCount: counts.app_count,
-        databaseCount: counts.database_count,
-        endpointCount: counts.endpoint_count,
-      };
-      await tx.scope.upsert({
-        where: { serviceId },
-        create: { tenantId: scope.companyId, serviceId, ...data },
-        update: data,
-      });
-      const change = {
-        before: existing
-          ? {
-              server_count: existing.serverCount,
-              cloud_count: existing.cloudCount,
-              app_count: existing.appCount,
-              database_count: existing.databaseCount,
-              endpoint_count: existing.endpointCount,
-            }
-          : null,
         state: await this.state(tx, serviceId),
       };
       await insertAuditLog(tx, audit(change));
@@ -205,6 +169,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
           tags: input.tags,
           origin: 'declared',
           technicalCoverage: NO_COVERAGE,
+          externalAccountId: input.externalAccountId,
         },
         select: { id: true },
       });
@@ -218,6 +183,9 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
           automatedCapabilityId: capability.id,
           technicalCoverage: NO_COVERAGE,
           encryptedCredentials: input.encryptedCredentials,
+          connectionMethod: input.connectionMethod,
+          regions: input.regions,
+          externalId: input.externalId,
         },
       });
       const created = await this.readAsset(tx, asset.id);
@@ -230,6 +198,9 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
     return this.prisma.withScope(scope, async (tx) => {
       const where = {
         organization: { companyId: scope.companyId },
+        status: 'active' as const,
+        // Las conexiones (y lo que el cliente registró a mano). Los activos descubiertos viven dentro de su conexión y se ven ahí (D61).
+        parentAssetId: null,
         ...(filters.serviceId ? { serviceAssets: { some: { serviceId: filters.serviceId } } } : {}),
         ...(filters.connectionCategory ? { connectionCategory: filters.connectionCategory } : {}),
         ...(filters.operationalStatus ? { operationalStatus: filters.operationalStatus as 'operational' } : {}),
@@ -249,14 +220,87 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
   findAsset(scope: TenantScope, id: string): Promise<Asset | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const row = await tx.asset.findUnique({ where: { id }, include: ASSET_INCLUDE });
-      return row ? this.toAsset(row) : null;
+      return row && row.status === 'active' && !row.parentAssetId ? this.toAsset(row) : null;
+    });
+  }
+
+  listResources(scope: TenantScope, assetId: string, filter: { kind?: ResourceKindValue; serviceId?: string }, page: PageRequest): Promise<ResourceListing | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const asset = await tx.asset.findUnique({ where: { id: assetId }, select: { status: true, parentAssetId: true, provisionings: { take: 1, select: { regions: true, inventoryAt: true, inventoryWarnings: true } } } });
+      if (!asset || asset.status !== 'active' || asset.parentAssetId) return null;
+      const { regions, inventoryAt, inventoryWarnings } = asset.provisionings[0] ?? { regions: [], inventoryAt: null, inventoryWarnings: [] };
+      if (!inventoryAt) return { discoveredAt: null, regions, incompleteServices: [], summary: [], items: [], total: 0, includedCount: filter.serviceId ? 0 : null };
+      // Los activos que el descubrimiento reconoció dentro de esta conexión (D61), solo de las regiones declaradas. Los recursos que únicamente conoce la evaluación
+      // (usuarios, políticas…) no son activos que el cliente reconozca y no tienen activo propio.
+      const base = { parentAssetId: assetId, status: 'active' as const, resource: { is: { kind: { not: 'other' }, OR: [{ region: null }, { region: { in: regions } }] } } };
+      const where = { ...base, ...(filter.kind ? { resource: { is: { ...base.resource.is, kind: filter.kind } } } : {}) };
+      const [groups, total, rows, included] = await Promise.all([
+        tx.assetResource.groupBy({ by: ['kind'], where: { childAsset: { is: base }, kind: { not: 'other' } }, _count: { _all: true } }),
+        tx.asset.count({ where }),
+        tx.asset.findMany({
+          where,
+          orderBy: [{ resource: { kind: 'asc' } }, { name: 'asc' }, { code: 'asc' }],
+          skip: (page.page - 1) * page.pageSize,
+          take: page.pageSize,
+          include: { resource: true, ...(filter.serviceId ? { serviceAssets: { where: { serviceId: filter.serviceId }, select: { id: true } } } : {}) },
+        }),
+        filter.serviceId ? tx.asset.count({ where: { ...base, serviceAssets: { some: { serviceId: filter.serviceId } } } }) : Promise.resolve(null),
+      ]);
+      return {
+        discoveredAt: inventoryAt,
+        regions,
+        incompleteServices: inventoryWarnings,
+        summary: groups.map((g) => ({ kind: g.kind as ResourceKindValue, count: g._count._all })),
+        items: rows.map((r) => ({
+          id: r.id,
+          code: r.code,
+          kind: (r.resource?.kind ?? 'other') as ResourceKindValue,
+          type: r.resource?.resourceType ?? 'Other',
+          name: r.name,
+          region: r.resource?.region ?? null,
+          platform: r.platform,
+          ipAddress: r.ipAddress,
+          location: r.location,
+          criticality: r.criticality,
+          tags: asStrings(r.tags),
+          attributes: (r.resource?.attributes ?? {}) as ResourceAttributes,
+          inService: filter.serviceId ? ((r as { serviceAssets?: unknown[] }).serviceAssets?.length ?? 0) > 0 : null,
+        })),
+        total,
+        includedCount: included,
+      };
+    });
+  }
+
+  setServiceAssets(scope: TenantScope, serviceId: string, connectionId: string, assetIds: string[], audit: AuditIntent<{ added: number; removed: number; total: number }>) {
+    return this.prisma.withScope(scope, async (tx) => {
+      const service = await tx.service.findUnique({ where: { id: serviceId }, select: { id: true } });
+      const connection = await tx.asset.findUnique({
+        where: { id: connectionId },
+        select: { status: true, parentAssetId: true, serviceAssets: { where: { serviceId }, select: { id: true } } },
+      });
+      // La conexión tiene que ser una conexión activa que sirva a ese servicio; si no, para esta empresa no existe.
+      if (!service || !connection || connection.status !== 'active' || connection.parentAssetId || connection.serviceAssets.length === 0) throw new DomainError('NOT_FOUND');
+
+      const wanted = [...new Set(assetIds)];
+      const children = await tx.asset.findMany({ where: { parentAssetId: connectionId, status: 'active' }, select: { id: true, serviceAssets: { where: { serviceId }, select: { id: true } } } });
+      const byId = new Map(children.map((c) => [c.id, c]));
+      if (wanted.some((id) => !byId.has(id))) throw new ValidationException([{ field: 'asset_ids', code: 'invalid' }]);
+
+      const toAdd = wanted.filter((id) => byId.get(id)!.serviceAssets.length === 0);
+      const toRemove = children.filter((c) => c.serviceAssets.length > 0 && !wanted.includes(c.id)).map((c) => c.id);
+      if (toAdd.length > 0) await tx.serviceAsset.createMany({ data: toAdd.map((assetId) => ({ tenantId: scope.companyId, assetId, serviceId })), skipDuplicates: true });
+      if (toRemove.length > 0) await tx.serviceAsset.deleteMany({ where: { serviceId, assetId: { in: toRemove } } });
+      const result = { added: toAdd.length, removed: toRemove.length, total: wanted.length };
+      await insertAuditLog(tx, audit(result));
+      return result;
     });
   }
 
   findProbeTarget(scope: TenantScope, id: string): Promise<ProbeTarget | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const row = await tx.asset.findUnique({
-        where: { id },
+        where: { id, status: 'active', parentAssetId: null },
         select: {
           id: true,
           connectionCategory: true,
@@ -286,16 +330,18 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
   ) {
     return this.prisma.withScope(scope, async (tx) => {
       const before = await this.readAsset(tx, id);
-      // Una conexión ya activa no se vuelve a validar (su estado manda).
-      if (before.provisioning.isActive) throw new DomainError('ASSET_ALREADY_ACTIVE');
       const provisioning = await tx.assetProvisioning.findFirstOrThrow({ where: { assetId: id }, select: { id: true } });
+      // Una conexión ya activa se puede volver a comprobar (refresca los activos encontrados), pero su estado manda: ni un éxito ni un fallo la mueven.
+      const active = before.provisioning.isActive;
       await tx.assetProvisioning.update({
         where: { id: provisioning.id },
-        data: result.ok
-          ? { connectionStatus: 'validated', lastValidatedAt: new Date(), technicalCoverage: result.technicalCoverage }
-          : { connectionStatus: 'failed' },
+        data: active
+          ? result.ok ? { lastValidatedAt: new Date() } : {}
+          : result.ok
+            ? { connectionStatus: 'validated', lastValidatedAt: new Date(), technicalCoverage: result.technicalCoverage }
+            : { connectionStatus: 'failed' },
       });
-      if (result.ok && result.technicalCoverage) {
+      if (result.ok && result.technicalCoverage && !active) {
         await tx.asset.update({ where: { id }, data: { technicalCoverage: result.technicalCoverage } });
       }
       const change = { before, after: await this.readAsset(tx, id) };
@@ -326,6 +372,73 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
     });
   }
 
+  // El cliente entrega el ARN del rol que creó en su cuenta. Un cambio de rol invalida la validación anterior (hay que comprobar de nuevo).
+  setConnection(scope: TenantScope, id: string, roleArn: string, audit: AuditIntent<AssetChange>) {
+    return this.prisma.withScope(scope, async (tx) => {
+      const before = await this.readAsset(tx, id);
+      if (before.provisioning.connectionMethod !== 'readonly_role') throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
+      // Una conexión activa no se reconfigura en caliente: sería cambiar lo que se evalúa sin dejar constancia de una nueva comprobación.
+      if (before.provisioning.isActive) throw new DomainError('ASSET_ALREADY_ACTIVE');
+      await tx.assetProvisioning.update({ where: { id: before.provisioning.id }, data: { roleArn, connectionStatus: 'pending', lastValidatedAt: null } });
+      const change = { before, after: await this.readAsset(tx, id) };
+      await insertAuditLog(tx, audit(change));
+      return change;
+    });
+  }
+
+  updateAsset(scope: TenantScope, id: string, edit: AssetEdit, audit: AuditIntent<AssetChange>) {
+    return this.prisma.withScope(scope, async (tx) => {
+      const before = await this.readAsset(tx, id);
+      if (before.status !== 'active') throw new DomainError('NOT_FOUND');
+      await this.assertNoOpenExecution(tx, id);
+      await tx.asset.update({
+        where: { id },
+        data: {
+          ...(edit.name !== undefined ? { name: edit.name } : {}),
+          ...(edit.criticality !== undefined ? { criticality: edit.criticality as 'medium' } : {}),
+          ...(edit.tags !== undefined ? { tags: edit.tags } : {}),
+          ...(edit.externalAccountId !== undefined ? { externalAccountId: edit.externalAccountId } : {}),
+          ...(edit.resetsConnection ? { operationalStatus: 'not_monitored' as const, technicalCoverage: NO_COVERAGE } : {}),
+        },
+      });
+      await tx.assetProvisioning.update({
+        where: { id: before.provisioning.id },
+        data: {
+          ...(edit.regions !== undefined ? { regions: edit.regions } : {}),
+          ...(edit.roleArn !== undefined ? { roleArn: edit.roleArn } : {}),
+          ...(edit.encryptedCredentials !== undefined ? { encryptedCredentials: edit.encryptedCredentials } : {}),
+          ...(edit.externalId !== undefined ? { externalId: edit.externalId } : {}),
+          ...(edit.resetsConnection ? { connectionStatus: 'pending' as const, isActive: false, scheduleFrequency: null, lastValidatedAt: null, technicalCoverage: NO_COVERAGE } : {}),
+        },
+      });
+      const change = { before, after: await this.readAsset(tx, id) };
+      await insertAuditLog(tx, audit(change));
+      return change;
+    });
+  }
+
+  retireAsset(scope: TenantScope, id: string, audit: AuditIntent<AssetChange>) {
+    return this.prisma.withScope(scope, async (tx) => {
+      const before = await this.readAsset(tx, id);
+      if (before.status !== 'active') throw new DomainError('NOT_FOUND');
+      await this.assertNoOpenExecution(tx, id);
+      await tx.asset.update({ where: { id }, data: { status: 'inactive', operationalStatus: 'not_monitored' } });
+      // Al darlo de baja se borran las llaves guardadas (si las había): no hay razón para conservar un secreto de algo que ya no se evalúa.
+      await tx.assetProvisioning.update({
+        where: { id: before.provisioning.id },
+        data: { connectionStatus: 'pending', isActive: false, scheduleFrequency: null, lastValidatedAt: null, encryptedCredentials: null },
+      });
+      const change = { before, after: await this.readAsset(tx, id, { allowInactive: true }) };
+      await insertAuditLog(tx, audit(change));
+      return change;
+    });
+  }
+
+  private async assertNoOpenExecution(tx: TransactionClient, assetId: string): Promise<void> {
+    const open = await tx.execution.count({ where: { assetId, status: { in: ['queued', 'running'] } } });
+    if (open > 0) throw new DomainError('EXECUTION_IN_PROGRESS');
+  }
+
   scheduleAsset(scope: TenantScope, id: string, frequency: ScheduleFrequencyValue, audit: AuditIntent<AssetChange>) {
     return this.prisma.withScope(scope, async (tx) => {
       const before = await this.readAsset(tx, id);
@@ -347,9 +460,11 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
 
   // ---- lectura --------------------------------------------------------------------------------
 
-  private async readAsset(tx: TransactionClient, id: string): Promise<Asset> {
+  // Un activo dado de baja no existe para nadie: no se valida, ni se activa, ni se programa, ni se edita (404). Solo la propia baja lo relee ya inactivo.
+  private async readAsset(tx: TransactionClient, id: string, opts: { allowInactive?: boolean } = {}): Promise<Asset> {
     const row = await tx.asset.findUnique({ where: { id }, include: ASSET_INCLUDE });
-    if (!row) throw new DomainError('NOT_FOUND');
+    // Un activo descubierto no es una conexión: no se valida, activa ni programa por su cuenta (D61).
+    if (!row || row.parentAssetId || (row.status !== 'active' && !opts.allowInactive)) throw new DomainError('NOT_FOUND');
     return this.toAsset(row);
   }
 
@@ -368,9 +483,14 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
     status: string;
     operationalStatus: string;
     technicalCoverage: string;
+    externalAccountId: string | null;
     serviceAssets: { service: { id: string; name: string } }[];
     provisionings: {
       id: string;
+      connectionMethod: ConnectionMethodValue | null;
+      regions: string[];
+      externalId: string | null;
+      roleArn: string | null;
       connectionStatus: string;
       lastValidatedAt: Date | null;
       isActive: boolean;
@@ -394,9 +514,14 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
       status: row.status,
       operationalStatus: row.operationalStatus,
       technicalCoverage: row.technicalCoverage,
+      externalAccountId: row.externalAccountId,
       services: row.serviceAssets.map((s) => s.service).sort((a, b) => a.name.localeCompare(b.name)),
       provisioning: {
         id: p.id,
+        connectionMethod: p.connectionMethod,
+        regions: p.regions,
+        externalId: p.externalId,
+        roleArn: p.roleArn,
         automatedCapabilityCode: p.automatedCapability.catalogCode as ConnectionCategory,
         connectionStatus: p.connectionStatus,
         lastValidatedAt: p.lastValidatedAt,
@@ -409,7 +534,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
   private async state(tx: TransactionClient, serviceId: string): Promise<TechnicalControlState> {
     const service = await tx.service.findUniqueOrThrow({
       where: { id: serviceId },
-      select: { deploymentScenario: true, scope: true },
+      select: { deploymentScenario: true },
     });
     const scenario = service.deploymentScenario as DeploymentScenarioValue | null;
 
@@ -431,47 +556,6 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
         }))
       : [];
 
-    let declared: Scope | null = null;
-    if (service.scope) {
-      const counts: ScopeCounts = {
-        server_count: service.scope.serverCount,
-        cloud_count: service.scope.cloudCount,
-        app_count: service.scope.appCount,
-        database_count: service.scope.databaseCount,
-        endpoint_count: service.scope.endpointCount,
-      };
-      const connected = await this.connectedCounts(tx, serviceId);
-      declared = {
-        id: service.scope.id,
-        counts,
-        declaredTotal: SCOPE_KEYS.reduce((sum, k) => sum + counts[k], 0),
-        connectedTotal: SCOPE_KEYS.reduce((sum, k) => sum + connected[k], 0),
-        connected,
-      };
-    }
-    return { deploymentScenario: scenario, applicableCapabilities: capabilities, scope: declared };
-  }
-
-  // Lo declarado frente a lo conectado: un activo cuenta cuando su conexión ya se comprobó.
-  private async connectedCounts(tx: TransactionClient, serviceId: string): Promise<ScopeCounts> {
-    const assets = await tx.asset.findMany({
-      where: {
-        serviceAssets: { some: { serviceId } },
-        provisionings: { some: { connectionStatus: { in: [...CONNECTED_STATUSES] } } },
-      },
-      select: { type: true },
-    });
-    const counts: ScopeCounts = {
-      server_count: 0,
-      cloud_count: 0,
-      app_count: 0,
-      database_count: 0,
-      endpoint_count: 0,
-    };
-    for (const { type } of assets) {
-      const key = SCOPE_KEY_BY_ASSET_TYPE[type];
-      if (key) counts[key] += 1;
-    }
-    return counts;
+    return { deploymentScenario: scenario, applicableCapabilities: capabilities };
   }
 }

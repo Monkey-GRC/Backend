@@ -1,12 +1,16 @@
 {
-  "created": "Listo, registramos el sistema. Ahora comprobemos la conexión.",
-  "list": "Sistemas de tu empresa.",
-  "detail": "Detalle del sistema.",
+  "created": "Listo, registramos el activo. Ahora comprobemos la conexión.",
+  "list": "Activos de tu empresa.",
+  "detail": "Detalle del activo.",
   "validated": "La conexión funciona.",
   "activated": "Listo, la evaluación automática quedó activa.",
   "scheduled": "Listo, programamos la evaluación automática.",
-  "connection_failed": "No pudimos conectar con el sistema. Revisa los datos e inténtalo de nuevo.",
+  "connection_failed": "No pudimos conectar con el activo. Revisa los datos e inténtalo de nuevo.",
   "not_validated": "Primero comprueba la conexión para poder activarla.",
   "already_active": "Esta conexión ya está activa.",
-  "not_active": "Primero activa la conexión para poder programarla."
+  "not_active": "Primero activa la conexión para poder programarla.",
+  "connection_set": "Guardamos el rol. Ahora comprobemos la conexión.",
+  "updated": "Guardamos los cambios. Si cambió la conexión, hay que comprobarla de nuevo.",
+  "removed": "Quitamos el activo. Su historial se conserva.",
+  "resources": "Estos son los activos que encontramos en tu cuenta."
 }

@@ -1,3 +1,4 @@
+import { Inventory } from '../../domain/entities/technical-control.entities';
 import { Injectable } from '@nestjs/common';
 import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
@@ -8,7 +9,7 @@ import { CredentialCipher } from '../../../../common/security/credential-cipher'
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { EngineOutputParser } from '../../domain/ports/engine-output-parser';
 import { TechnicalControlRepository } from '../../domain/repositories/technical-control.repository';
-import { ExecutionSummary, RecordedScan, RunContext, ScanOutcome, ScanRepository } from '../../domain/repositories/scan.repository';
+import { ExecutionKindValue, ExecutionSummary, RecordedScan, RunContext, ScanOutcome, ScanRepository } from '../../domain/repositories/scan.repository';
 import { interpretScan } from '../../domain/scan/interpret-scan';
 import { AssetReadiness, computeReadiness } from '../../domain/scan/readiness';
 import { EngineFinding } from '../../domain/scan/scan.types';
@@ -84,9 +85,11 @@ export class GetAssetReadinessUseCase {
 
   // `includeProposed`: la demo cuenta los mapeos propuestos; producción, solo lo ratificado por el comité (D56).
   // null si el activo aún no tiene ninguna corrida completada; NOT_FOUND si no existe para esta empresa.
-  async execute(scope: TenantScope, assetId: string, opts: { includeProposed: boolean }): Promise<(AssetReadiness & { executionId: string; measuredAt: Date | null; includesProposedMappings: boolean }) | null> {
+  async execute(scope: TenantScope, assetId: string, opts: { includeProposed: boolean; serviceId?: string }): Promise<(AssetReadiness & { executionId: string; measuredAt: Date | null; includesProposedMappings: boolean }) | null> {
     if (!(await this.assets.findAsset(scope, assetId))) throw new DomainError('NOT_FOUND');
-    const scan = await this.repo.loadLatestScan(scope, assetId);
+    // Con un servicio, solo se miden sus activos más lo que es de toda la cuenta (D61). Un servicio que no existe para esta empresa es 404.
+    if (opts.serviceId && !(await this.assets.getState(scope, opts.serviceId))) throw new DomainError('NOT_FOUND');
+    const scan = await this.repo.loadLatestScan(scope, assetId, opts.serviceId);
     if (!scan) return null;
     const readiness = computeReadiness(scan.results, scan.links, { includeProposed: opts.includeProposed });
     return { ...readiness, executionId: scan.executionId, measuredAt: scan.finishedAt, includesProposedMappings: opts.includeProposed };
@@ -116,6 +119,7 @@ export class ImportScanUseCase {
 
 export type RunnerJob = {
   executionId: string;
+  kind: ExecutionKindValue;
   tenantId: string;
   assetId: string;
   origin: 'scheduled' | 'manual';
@@ -132,24 +136,25 @@ type Credentials = Record<string, unknown>;
 const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
 // Convierte lo guardado en una conexión en lo que el trabajador necesita, o dice por qué la corrida no puede hacerse (clave i18n).
-// INTERINO: hoy las credenciales vienen del formulario provisional del paso 3 (`account_id`, `read_only_role`, `external_id`); cuando
-// exista `PATCH /connection` se leerán `role_arn` y `external_id` generado por Monkey (contracts/modules/control-tecnico.md).
+// El rol y el ExternalId salen de lo que el cliente configuró (columnas, no secretos); las llaves, del cifrado. Si la conexión se creó con el
+// formulario provisional del paso 3 (`account_id`, `read_only_role`, `external_id` dentro de las credenciales cifradas) también se entiende: se retira
+// cuando la pantalla migre. Una VALIDACIÓN solo comprueba el acceso a la cuenta: no necesita regiones (una evaluación sí).
 export function buildConnection(ctx: RunContext, creds: Credentials | null): { ok: true; job: Pick<RunnerJob, 'platform' | 'externalAccountId' | 'connection'> } | { ok: false; reason: string } {
   if (ctx.platform.trim().toLowerCase() !== PLATFORM) return { ok: false, reason: 'connection.provider_not_supported' };
-  if (ctx.regions.length === 0) return { ok: false, reason: 'connection.regions_missing' };
-  if (!creds) return { ok: false, reason: 'connection.not_configured' };
-  const externalAccountId = ctx.externalAccountId ?? text(creds['account_id']);
-  const accessKeyId = text(creds['access_key_id']);
-  const secretAccessKey = text(creds['secret_access_key']);
+  if (ctx.kind === 'assessment' && ctx.regions.length === 0) return { ok: false, reason: 'connection.regions_missing' };
+  const externalAccountId = ctx.externalAccountId ?? text(creds?.['account_id']);
+  const accessKeyId = text(creds?.['access_key_id']);
+  const secretAccessKey = text(creds?.['secret_access_key']);
   const method = ctx.connectionMethod ?? (accessKeyId ? 'access_keys' : 'readonly_role');
   if (method === 'access_keys') {
     if (!accessKeyId || !secretAccessKey) return { ok: false, reason: 'connection.credentials_invalid' };
     return { ok: true, job: { platform: PLATFORM, externalAccountId, connection: { method: 'access_keys', accessKeyId, secretAccessKey } } };
   }
   if (method === 'readonly_role') {
-    const roleArn = text(creds['role_arn']) ?? text(creds['read_only_role']);
-    if (!roleArn) return { ok: false, reason: 'connection.role_not_found' };
-    return { ok: true, job: { platform: PLATFORM, externalAccountId, connection: { method: 'readonly_role', roleArn, externalId: text(creds['external_id']) } } };
+    const roleArn = ctx.roleArn ?? text(creds?.['role_arn']) ?? text(creds?.['read_only_role']);
+    // Sin rol guardado: si no hay nada más, todavía no se configuró; si el formulario provisional trajo otros datos pero no el rol, es el rol lo que falta.
+    if (!roleArn) return { ok: false, reason: creds ? 'connection.role_not_found' : 'connection.not_configured' };
+    return { ok: true, job: { platform: PLATFORM, externalAccountId, connection: { method: 'readonly_role', roleArn, externalId: ctx.externalId ?? text(creds?.['external_id']) } } };
   }
   // `agent`: no lo ejecuta el trabajador de la nube (lo lee la sonda de servidores).
   return { ok: false, reason: 'connection.method_not_supported_by_runner' };
@@ -164,9 +169,9 @@ export class ClaimExecutionUseCase {
 
   // Reclama la próxima ejecución utilizable. Una cuya conexión no sirve se cierra como `failed` (problema de conexión, no incumplimiento)
   // y se sigue con la siguiente: nunca queda una ejecución colgada en `running`.
-  async execute(): Promise<RunnerJob | null> {
+  async execute(kind?: ExecutionKindValue): Promise<RunnerJob | null> {
     for (let i = 0; i < MAX_CLAIM_ATTEMPTS; i++) {
-      const claimed = await this.repo.claimNext();
+      const claimed = await this.repo.claimNext(kind);
       if (!claimed) return null;
       const scope: TenantScope = { companyId: claimed.tenantId };
       const ctx = await this.repo.loadRunContext(scope, claimed.executionId);
@@ -177,8 +182,8 @@ export class ClaimExecutionUseCase {
         creds = null;
       }
       const built = buildConnection(ctx, creds);
-      if (built.ok) return { executionId: claimed.executionId, tenantId: claimed.tenantId, assetId: claimed.assetId, origin: claimed.origin, regions: ctx.regions, ...built.job };
-      await this.repo.failExecution(scope, claimed.executionId, built.reason, () => entry(scope, null, 'execution.fail', recordedState(claimed.executionId, claimed.assetId, { reason: built.reason })));
+      if (built.ok) return { executionId: claimed.executionId, kind: claimed.kind, tenantId: claimed.tenantId, assetId: claimed.assetId, origin: claimed.origin, regions: ctx.regions, ...built.job };
+      await this.repo.failExecution(scope, claimed.executionId, built.reason, () => entry(scope, null, 'execution.fail', recordedState(claimed.executionId, claimed.assetId, { reason: built.reason, kind: claimed.kind })));
     }
     return null;
   }
@@ -208,5 +213,17 @@ export class FailExecutionUseCase {
   execute(tenantId: string, executionId: string, reason: string) {
     const scope: TenantScope = { companyId: tenantId };
     return this.repo.failExecution(scope, executionId, reason, () => entry(scope, null, 'execution.fail', recordedState(executionId, null, { reason })));
+  }
+}
+
+// El trabajador comprobó que se puede acceder a la cuenta del cliente (rol asumido, cuenta correcta): cierra la validación. Quien espera la
+// respuesta (la sonda `runner` del backend) la ve cerrada y registra la conexión como validada.
+@Injectable()
+export class CompleteValidationUseCase {
+  constructor(private readonly repo: ScanRepository) {}
+
+  execute(tenantId: string, executionId: string, inventory: Inventory | null) {
+    const scope: TenantScope = { companyId: tenantId };
+    return this.repo.completeValidation(scope, executionId, inventory, (done) => entry(scope, null, 'execution.validate', recordedState(executionId, null, { kind: 'validation', resources_found: done.resources })));
   }
 }

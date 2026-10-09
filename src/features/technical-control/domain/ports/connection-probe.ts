@@ -1,6 +1,10 @@
 import { ConnectionCategory, ProbeMode } from '../../../../common/catalogs/technical-catalogs';
 
 export type ProbeInput = {
+  // A qué activo y empresa pertenece lo que se valida, y quién lo pidió (para el rastro). Las sondas que validan a través de un trabajador lo necesitan.
+  assetId: string;
+  companyId: string;
+  actorUserId: string | null;
   category: ConnectionCategory;
   platform: string;
   ipAddress: string | null;

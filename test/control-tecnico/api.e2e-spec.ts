@@ -144,7 +144,10 @@ describe('El trabajador: API interna', () => {
     const ready = await a.agent.get(`/v1/assets/${assetId}/readiness`).expect(200);
     expect(ready.body.data).toMatchObject({ readiness: 'needs_work', includes_proposed_mappings: true, needs_manual_review: 1 });
     // Lo que ve el cliente por defecto: sin jerga de control, ni códigos de prueba, ni el proveedor, ni el texto crudo del motor.
-    expect(JSON.stringify(ready.body)).not.toMatch(/CC\d|T-CLD|prowler|wazuh|Texto crudo/i);
+    // Los códigos de control van en mayúsculas y sin distinguir no sirve: un UUID (minúsculas) puede contener «cc6» por azar (la prueba fallaba de forma intermitente).
+    const visible = JSON.stringify(ready.body);
+    expect(visible).not.toMatch(/CC\d|T-CLD/);
+    expect(visible).not.toMatch(/prowler|wazuh|Texto crudo/i);
 
     const hist = await a.agent.get(`/v1/assets/${assetId}/executions`).expect(200);
     expect(hist.body.data.items[0]).toMatchObject({ id: executionId, status: 'completed' });
@@ -169,7 +172,7 @@ describe('El trabajador: API interna', () => {
     await http().post(`/internal/runner/executions/${executionId}/fail`).set(runner()).send({ tenant_id: b.companyId, reason: 'connection.role_not_found' }).expect(409);
     await http().post(`/internal/runner/executions/${executionId}/fail`).set(runner()).send({ tenant_id: a.companyId, reason: 'connection.role_not_found' }).expect(200);
     const hist = await a.agent.get(`/v1/assets/${assetId}/executions`).expect(200);
-    expect(hist.body.data.items[0]).toMatchObject({ id: executionId, status: 'failed', failure_reason: 'connection.role_not_found' });
+    expect(hist.body.data.items[0]).toMatchObject({ id: executionId, status: 'failed', failure_reason: 'connection.role_not_found', failure_message: expect.stringMatching(/rol/i) });
     await http().post(`/internal/runner/executions/${executionId}/fail`).set(runner()).send({ tenant_id: a.companyId }).expect(422);
   });
 

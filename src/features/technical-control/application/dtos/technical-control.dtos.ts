@@ -20,9 +20,9 @@ import {
 import {
   ASSET_CRITICALITY_VALUES,
   CONNECTION_CATEGORY_VALUES,
+  CONNECTION_METHOD_VALUES,
   DEPLOYMENT_SCENARIO_VALUES,
   SCHEDULE_FREQUENCY_VALUES,
-  SCOPE_MAX,
 } from '../../../../common/catalogs/technical-catalogs';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
@@ -36,13 +36,14 @@ export class DeploymentScenarioDto {
   deployment_scenario!: (typeof DEPLOYMENT_SCENARIO_VALUES)[number];
 }
 
-// PUT /v1/services/{id}/scope — lo que el cliente DICE que tiene (0 es válido).
-export class ScopeDto {
-  @ApiProperty({ example: 12 }) @Type(() => Number) @IsInt() @Min(0) @Max(SCOPE_MAX) server_count!: number;
-  @ApiProperty({ example: 2 }) @Type(() => Number) @IsInt() @Min(0) @Max(SCOPE_MAX) cloud_count!: number;
-  @ApiProperty({ example: 3 }) @Type(() => Number) @IsInt() @Min(0) @Max(SCOPE_MAX) app_count!: number;
-  @ApiProperty({ example: 4 }) @Type(() => Number) @IsInt() @Min(0) @Max(SCOPE_MAX) database_count!: number;
-  @ApiProperty({ example: 45 }) @Type(() => Number) @IsInt() @Min(0) @Max(SCOPE_MAX) endpoint_count!: number;
+// PUT /v1/services/{id}/connections/{assetId}/assets — los activos de la conexión que son de este servicio (los demás quedan fuera).
+export class ServiceAssetsDto {
+  @ApiProperty({ isArray: true, type: String })
+  @IsArray()
+  @ArrayMaxSize(500)
+  @ArrayUnique()
+  @IsUUID('all', { each: true })
+  asset_ids!: string[];
 }
 
 // POST /v1/assets — registrar y conectar. El tipo del activo se deduce de la conexión (D46).
@@ -110,6 +111,87 @@ export class CreateAssetDto {
   @IsOptional()
   @IsObject()
   credentials?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ enum: CONNECTION_METHOD_VALUES, description: 'Canal de conexión (D53). Sin él rige el formulario provisional.' })
+  @IsOptional()
+  @IsIn(CONNECTION_METHOD_VALUES)
+  connection_method?: (typeof CONNECTION_METHOD_VALUES)[number];
+
+  @ApiPropertyOptional({ nullable: true, example: '123456789012', description: 'Cuenta de AWS a la que apunta la conexión.' })
+  @IsOptional()
+  @Transform(trimOrNull)
+  @IsString()
+  @MaxLength(20)
+  external_account_id?: string | null;
+
+  @ApiPropertyOptional({ isArray: true, type: String, example: ['us-east-1'], description: 'Regiones a evaluar: las únicas que se miran (D53).' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  regions?: string[];
+}
+
+// PATCH /v1/assets/{id} — editar un sistema. Todo es opcional; lo que cambia la conexión (cuenta, regiones, rol, llaves) la devuelve a «pendiente».
+export class UpdateAssetDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  name?: string;
+
+  @ApiPropertyOptional({ enum: ASSET_CRITICALITY_VALUES })
+  @IsOptional()
+  @IsIn(ASSET_CRITICALITY_VALUES)
+  criticality?: (typeof ASSET_CRITICALITY_VALUES)[number];
+
+  @ApiPropertyOptional({ isArray: true, type: String })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ArrayUnique()
+  @IsString({ each: true })
+  @MaxLength(50, { each: true })
+  tags?: string[];
+
+  @ApiPropertyOptional({ example: '123456789012' })
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(20)
+  external_account_id?: string;
+
+  @ApiPropertyOptional({ isArray: true, type: String, example: ['us-east-1'] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  regions?: string[];
+
+  @ApiPropertyOptional({ example: 'arn:aws:iam::123456789012:role/MonkeyReadOnly' })
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(700)
+  role_arn?: string;
+
+  @ApiPropertyOptional({ description: 'Solo en el canal de llaves: reemplaza las llaves. Se guardan cifradas y nunca se devuelven.' })
+  @IsOptional()
+  @IsObject()
+  credentials?: Record<string, unknown>;
+}
+
+// PATCH /v1/assets/{id}/connection — el cliente entrega el rol que creó con la plantilla.
+export class SetConnectionDto {
+  @ApiProperty({ example: 'arn:aws:iam::123456789012:role/MonkeyReadOnly' })
+  @Transform(trim)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(700)
+  role_arn!: string;
 }
 
 // PUT /v1/assets/{id}/schedule

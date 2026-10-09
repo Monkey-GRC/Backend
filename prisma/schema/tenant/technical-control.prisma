@@ -59,6 +59,16 @@ enum ExecutionStatus {
   @@schema("tenant")
 }
 
+// Qué hace una ejecución (D58). Una validación solo comprueba que se puede acceder a la cuenta del cliente (segundos; el cliente espera en
+// pantalla); una evaluación corre el motor (minutos). Corren en carriles distintos del trabajador para que una no bloquee a la otra.
+enum ExecutionKind {
+  assessment
+  validation
+
+  @@map("execution_kind")
+  @@schema("tenant")
+}
+
 model Execution {
   id                 String          @id @default(uuid()) @db.Uuid
   tenantId           String          @map("tenant_id") @db.Uuid
@@ -73,6 +83,7 @@ model Execution {
   status             ExecutionStatus
   progressPercentage Int             @default(0) @map("progress_percentage")
   origin             ExecutionOrigin
+  kind               ExecutionKind   @default(assessment)
   // Versión del motor y regiones evaluadas (D53). Lo que el motor no devuelve para un check de esta corrida es `not_applicable`,
   // no «no ejecutado»: el conjunto ejecutado es el catálogo de esa versión (D56, DT-50).
   engineVersion      String?         @map("engine_version")
@@ -158,6 +169,10 @@ model AssetResource {
   resourceType String   @map("resource_type")
   name         String?
   region       String?
+  // Qué clase de activo es para el cliente (servidor, base de datos, almacenamiento, función…) y lo que se supo de él al descubrirlo: sistema
+  // operativo, versión, estado… Los atributos son los que el descubrimiento pudo leer; los que no, no están (no se inventan).
+  kind         String   @default("other")
+  attributes   Json     @default("{}")
   firstSeenAt  DateTime @map("first_seen_at")
   lastSeenAt   DateTime @map("last_seen_at")
 
@@ -165,6 +180,8 @@ model AssetResource {
   tenant Company @relation(fields: [tenantId], references: [id])
 
   checkResults CheckResult[]
+  // El activo del cliente que respalda este recurso, si el descubrimiento lo reconoció (D61).
+  childAsset   Asset?       @relation("BackingResource")
 
   @@unique([assetId, resourceUid])
   @@index([tenantId])

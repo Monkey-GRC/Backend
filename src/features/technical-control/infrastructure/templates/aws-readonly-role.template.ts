@@ -1,4 +1,10 @@
-AWSTemplateFormatVersion: "2010-09-09"
+// Plantilla de CloudFormation que el cliente crea en SU cuenta de AWS: un rol de solo lectura que Monkey asume (D53, D58). Es la ÚNICA fuente: el
+// backend la sirve en `GET /v1/connection-templates/aws-readonly-role` para que el cliente la descargue.
+//
+// Qué hace el rol y qué NO: lee la configuración de la cuenta (políticas administradas `SecurityAudit` y `ViewOnlyAccess`); no crea, cambia ni
+// borra nada y no lee el contenido de sus datos. Solo lo puede asumir la identidad de Monkey que el cliente indica, y solo con el ExternalId que
+// Monkey generó para esa conexión (evita que otro cliente de Monkey use este rol: el problema del «delegado confundido»).
+export const AWS_READONLY_ROLE_TEMPLATE = `AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   Monkey - read-only access role. Lets Monkey READ the configuration of this AWS account to assess it.
   It cannot create, change or delete anything and cannot read the contents of your data.
@@ -48,3 +54,4 @@ Outputs:
   AccountId:
     Description: The account being connected.
     Value: !Ref AWS::AccountId
+`;

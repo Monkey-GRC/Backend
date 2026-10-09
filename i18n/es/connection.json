@@ -1,10 +1,26 @@
 {
-  "unavailable": "La evaluación automática aún no está disponible en tu cuenta. Guardamos tu sistema y te avisaremos cuando puedas comprobar la conexión.",
+  "unavailable": "La evaluación automática aún no está disponible en tu cuenta. Guardamos tu activo y te avisaremos cuando puedas comprobar la conexión.",
   "role_not_found": "No pudimos acceder a tu cuenta con el rol de solo lectura. Revisa que el rol exista y que el identificador externo coincida.",
   "account_mismatch": "El acceso que configuraste es de otra cuenta distinta a la que declaraste. Revisa el identificador de la cuenta.",
   "credentials_invalid": "Las credenciales no son válidas o están desactivadas. Revísalas e inténtalo de nuevo.",
   "regions_missing": "Aún no declaraste en qué regiones evaluar. Elige al menos una.",
-  "not_configured": "Este sistema todavía no tiene su conexión configurada.",
+  "not_configured": "Este activo todavía no tiene su conexión configurada.",
   "provider_not_supported": "Por ahora solo podemos evaluar cuentas de AWS.",
-  "method_not_supported_by_runner": "Este tipo de conexión se evalúa de otra forma y no desde aquí."
+  "method_not_supported_by_runner": "Este tipo de conexión se evalúa de otra forma y no desde aquí.",
+  "method_not_applicable": "Ese tipo de conexión no está disponible para este activo.",
+  "access_keys": {
+    "less_secure": "Las llaves de acceso son de larga duración y menos seguras que un rol. Úsalas solo si no puedes crear el rol.",
+    "step_1": "Crea en IAM un usuario de solo lectura con las políticas SecurityAudit y ViewOnlyAccess.",
+    "step_2": "Genera una llave de acceso para ese usuario y pégala aquí. No se vuelve a mostrar."
+  },
+  "aws_role": {
+    "step_1": "Descarga la plantilla y créala en tu cuenta de AWS: CloudFormation → Crear pila → Con recursos nuevos → Cargar un archivo de plantilla.",
+    "step_2": "Cuando AWS pida los parámetros, pega el identificador externo y la identidad de Monkey que ves aquí.",
+    "step_3": "Marca la casilla que reconoce que AWS creará un rol de IAM y crea la pila.",
+    "step_4": "Al terminar, copia el valor «RoleArn» de la pestaña Salidas y pégalo en este formulario."
+  },
+  "agent": {
+    "step_1": "Copia el comando de instalación y ejecútalo en el servidor.",
+    "step_2": "Cuando el agente se conecte, el estado cambiará a «Conectado»."
+  }
 }

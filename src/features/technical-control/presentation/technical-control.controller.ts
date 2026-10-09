@@ -17,16 +17,15 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
-import { DeploymentScenarioDto, ScopeDto } from '../application/dtos/technical-control.dtos';
+import { DeploymentScenarioDto, ServiceAssetsDto } from '../application/dtos/technical-control.dtos';
+import { SetServiceAssetsUseCase } from '../application/use-cases/asset.use-cases';
 import {
   GetTechnicalControlUseCase,
   SetDeploymentScenarioUseCase,
-  SetScopeUseCase,
 } from '../application/use-cases/service-technical-control.use-cases';
 import { ConnectionProbe } from '../domain/ports/connection-probe';
 import {
   toDeploymentScenarioResponse,
-  toScopeResponse,
   toTechnicalControlResponse,
 } from './technical-control-response.mapper';
 
@@ -45,7 +44,7 @@ export class TechnicalControlController {
   constructor(
     private readonly getState: GetTechnicalControlUseCase,
     private readonly setScenario: SetDeploymentScenarioUseCase,
-    private readonly setScope: SetScopeUseCase,
+    private readonly setServiceAssets: SetServiceAssetsUseCase,
     private readonly probe: ConnectionProbe,
   ) {}
 
@@ -68,26 +67,17 @@ export class TechnicalControlController {
     return new ResponseDto(HttpStatus.OK, t('deployment_scenario.saved'), toDeploymentScenarioResponse(state));
   }
 
-  @Put('scope')
+  // Los activos de una conexión que son de ESTE servicio (D61). Fija el conjunto exacto: lo que no viene, queda fuera.
+  @Put('connections/:connectionId/assets')
   @HttpCode(HttpStatus.OK)
-  async scope(
+  async serviceAssets(
     @CurrentUser() principal: Principal,
     @Param('id', idPipe) id: string,
-    @Body() dto: ScopeDto,
+    @Param('connectionId', idPipe) connectionId: string,
+    @Body() dto: ServiceAssetsDto,
     @Req() req: Request,
   ) {
-    const state = await this.setScope.execute(
-      principal,
-      id,
-      {
-        server_count: dto.server_count,
-        cloud_count: dto.cloud_count,
-        app_count: dto.app_count,
-        database_count: dto.database_count,
-        endpoint_count: dto.endpoint_count,
-      },
-      metaOf(req),
-    );
-    return new ResponseDto(HttpStatus.OK, t('scope.saved'), toScopeResponse(state.scope!));
+    const result = await this.setServiceAssets.execute(principal, id, connectionId, dto.asset_ids, metaOf(req));
+    return new ResponseDto(HttpStatus.OK, t('technical_control.assets_saved'), { included: result.total, added: result.added, removed: result.removed });
   }
 }

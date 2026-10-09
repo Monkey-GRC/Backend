@@ -120,14 +120,10 @@ describe('Si el rastro falla, la acción se revierte (y el rastro también)', ()
     expect((await a.agent.get('/v1/onboarding/organizational-context')).body.data.description).toBe(original.description);
   });
 
-  it('cambiar el escenario y el alcance de un servicio', async () => {
+  it('cambiar el escenario de un servicio', async () => {
     const stateBefore = JSON.stringify((await a.agent.get(`/v1/services/${a.serviceId}/technical-control`)).body.data);
     auditFailsAfterInsert();
     expect((await a.agent.put(`/v1/services/${a.serviceId}/deployment-scenario`).send({ deployment_scenario: 'hybrid' })).status).toBe(500);
-    auditFailsAfterInsert();
-    expect(
-      (await a.agent.put(`/v1/services/${a.serviceId}/scope`).send({ server_count: 7, cloud_count: 7, app_count: 7, database_count: 7, endpoint_count: 7 })).status,
-    ).toBe(500);
     expect(JSON.stringify((await a.agent.get(`/v1/services/${a.serviceId}/technical-control`)).body.data)).toBe(stateBefore);
   });
 
