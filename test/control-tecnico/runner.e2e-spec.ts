@@ -109,7 +109,9 @@ describe('El trabajador contra el backend real', () => {
     expect((await history(a, assetId))[0]).toMatchObject({ id: executionId, status: 'completed' });
     const ready = await a.agent.get(`/v1/assets/${assetId}/readiness`).expect(200);
     expect(ready.body.data).toMatchObject({ readiness: 'needs_work', needs_manual_review: 1, includes_proposed_mappings: true });
-    expect(JSON.stringify(ready.body)).not.toMatch(/\bCC\d|\bT-CLD|prowler|wazuh|texto crudo|secreto-temporal|token/i);
+    // Los códigos de control en mayúsculas: sin distinguir, un UUID con «cc6» por azar daría un falso positivo.
+    expect(JSON.stringify(ready.body)).not.toMatch(/CC\d|T-CLD/);
+    expect(JSON.stringify(ready.body)).not.toMatch(/prowler|wazuh|texto crudo|secreto-temporal|token/i);
     // y en la base: la versión del motor y las regiones evaluadas quedaron registradas
     const [ex] = await owner<{ engine_version: string; regions: string[] }>('select engine_version, regions from tenant.executions where id = $1', [executionId]);
     expect(ex).toEqual({ engine_version: '5.44.0', regions: ['us-east-1'] });

@@ -144,8 +144,10 @@ describe('El trabajador: API interna', () => {
     const ready = await a.agent.get(`/v1/assets/${assetId}/readiness`).expect(200);
     expect(ready.body.data).toMatchObject({ readiness: 'needs_work', includes_proposed_mappings: true, needs_manual_review: 1 });
     // Lo que ve el cliente por defecto: sin jerga de control, ni códigos de prueba, ni el proveedor, ni el texto crudo del motor.
-    // `\b`: un UUID puede contener «cc5» por azar y no es un código de control (esta prueba fallaba de forma intermitente).
-    expect(JSON.stringify(ready.body)).not.toMatch(/\bCC\d|\bT-CLD|prowler|wazuh|Texto crudo/i);
+    // Los códigos de control van en mayúsculas y sin distinguir no sirve: un UUID (minúsculas) puede contener «cc6» por azar (la prueba fallaba de forma intermitente).
+    const body = JSON.stringify(ready.body);
+    expect(body).not.toMatch(/CC\d|T-CLD/);
+    expect(body).not.toMatch(/prowler|wazuh|Texto crudo/i);
 
     const hist = await a.agent.get(`/v1/assets/${assetId}/executions`).expect(200);
     expect(hist.body.data.items[0]).toMatchObject({ id: executionId, status: 'completed' });
