@@ -117,6 +117,8 @@ export type ConnectionSetup =
   | { method: 'agent'; steps: string[] };
 
 export const ROLE_NAME = 'MonkeyReadOnly';
+// Cómo se llama el archivo que el cliente descarga (la plantilla de CloudFormation).
+export const TEMPLATE_FILE_NAME = 'RoleMonkeyReadOnly.yaml';
 export const ROLE_TEMPLATE_PATH = '/v1/connection-templates/aws-readonly-role';
 
 export function buildConnectionSetup(

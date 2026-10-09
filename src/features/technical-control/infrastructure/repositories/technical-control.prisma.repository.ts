@@ -423,6 +423,13 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
       if (before.status !== 'active') throw new DomainError('NOT_FOUND');
       await this.assertNoOpenExecution(tx, id);
       await tx.asset.update({ where: { id }, data: { status: 'inactive', operationalStatus: 'not_monitored' } });
+      // Los activos que descubrió esta conexión se van con ella: se dan de baja y se desenlazan de los servicios (D61). Su historial se conserva.
+      const children = await tx.asset.findMany({ where: { parentAssetId: id, status: 'active' }, select: { id: true } });
+      if (children.length > 0) {
+        const ids = children.map((c) => c.id);
+        await tx.serviceAsset.deleteMany({ where: { assetId: { in: ids } } });
+        await tx.asset.updateMany({ where: { id: { in: ids } }, data: { status: 'inactive', operationalStatus: 'not_monitored' } });
+      }
       // Al darlo de baja se borran las llaves guardadas (si las había): no hay razón para conservar un secreto de algo que ya no se evalúa.
       await tx.assetProvisioning.update({
         where: { id: before.provisioning.id },

@@ -145,7 +145,7 @@ describe('La plantilla que el cliente crea en su cuenta', () => {
   it('se descarga como archivo, pide solo lectura y exige el ExternalId', async () => {
     const res = await a.agent.get('/v1/connection-templates/aws-readonly-role').expect(200);
     expect(res.headers['content-type']).toMatch(/text\/yaml/);
-    expect(res.headers['content-disposition']).toMatch(/attachment; filename="monkey-monkeyreadonly\.yaml"/);
+    expect(res.headers['content-disposition']).toMatch(/attachment; filename="RoleMonkeyReadOnly\.yaml"/);
     const yaml = res.text;
     expect(yaml).toContain('sts:ExternalId');
     expect(yaml).toContain('arn:aws:iam::aws:policy/SecurityAudit');
@@ -390,6 +390,22 @@ describe('Los activos descubiertos son activos del cliente y se enlazan a servic
     expect(now.items.filter((i: { kind: string }) => i.kind === 'server')).toHaveLength(2);
     expect(now.incomplete_services).toEqual(['ec2']);
     expect(first.total).toBe(4);
+  });
+
+  it('al dar de baja la conexión, sus activos se dan de baja y se desenlazan, pero su historial queda', async () => {
+    const id = await connect(INVENTORY);
+    const first = await listing(id);
+    const child = idOf(first, 'api-prod');
+    await put(id, [child, idOf(first, 'main')]).expect(200);
+    await a.agent.delete(`/v1/assets/${id}`).expect(200);
+    const [row] = await owner<{ inactive: number; links: number; kept: number }>(
+      `select count(*) filter (where status = 'inactive')::int inactive,
+              (select count(*)::int from tenant.service_assets sa join tenant.assets c on c.id = sa.asset_id where c.parent_asset_id = $1) links,
+              (select count(*)::int from tenant.asset_resources where asset_id = $1) kept
+         from tenant.assets where parent_asset_id = $1`,
+      [id],
+    );
+    expect(row).toEqual({ inactive: 4, links: 0, kept: 4 });
   });
 
   it('volver a descubrir conserva la criticidad y el enlace que fijó el cliente', async () => {
