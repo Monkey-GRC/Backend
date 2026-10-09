@@ -57,6 +57,14 @@ beforeAll(async () => {
   await app.listen(0, '127.0.0.1');
   baseUrl = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
   ({ a, b } = await dosEmpresas(app));
+  // El catálogo de checks de nube en una base nueva (CI) está vacío: la prueba trae el suyo en lugar de depender de lo que dejó otra corrida.
+  for (const id of ['conexion_check_1', 'conexion_check_2', 'conexion_check_3']) {
+    await owner(
+      `insert into catalog.checks (id, platform, policy_id, check_id, title_en, condition, remediation, origin, mapping_provenance, mapping_confidence)
+       values (gen_random_uuid(), 'aws', 'cloud_configuration', $1, 't', 'c', 'r', 'engine_native', 'test', 'low') on conflict do nothing`,
+      [id],
+    );
+  }
 });
 afterAll(async () => {
   await drainQueue();
