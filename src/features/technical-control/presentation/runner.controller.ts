@@ -23,6 +23,7 @@ function toInventory(dto: RunnerValidatedDto['inventory']): Inventory | null {
       kind: r.kind,
       name: r.name ?? null,
       region: r.region ?? null,
+      tags: r.tags ?? [],
       attributes: Object.fromEntries(
         Object.entries(r.attributes ?? {})
           .filter(([k, v]) => k.length <= 50 && (v === null || ['string', 'number', 'boolean'].includes(typeof v)))

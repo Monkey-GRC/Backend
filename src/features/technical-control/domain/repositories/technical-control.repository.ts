@@ -41,7 +41,10 @@ export abstract class TechnicalControlRepository {
   abstract listAssets(scope: TenantScope, filters: AssetFilters, page: PageRequest): Promise<Page<Asset>>;
   abstract findAsset(scope: TenantScope, id: string): Promise<Asset | null>;
   // Los activos que el descubrimiento encontró en la cuenta, en las regiones declaradas. Null si el activo no existe.
-  abstract listResources(scope: TenantScope, assetId: string, filter: { kind?: ResourceKindValue }, page: PageRequest): Promise<ResourceListing | null>;
+  abstract listResources(scope: TenantScope, assetId: string, filter: { kind?: ResourceKindValue; serviceId?: string }, page: PageRequest): Promise<ResourceListing | null>;
+  // Fija EXACTAMENTE qué activos de la conexión pertenecen al servicio (D61): lo que no está en `assetIds` se desenlaza. Lanza NOT_FOUND si el servicio o la
+  // conexión no existen, o la conexión no sirve a ese servicio; y un 422 si algún id no es un activo activo de esa conexión.
+  abstract setServiceAssets(scope: TenantScope, serviceId: string, connectionId: string, assetIds: string[], audit: AuditIntent<{ added: number; removed: number; total: number }>): Promise<{ added: number; removed: number; total: number }>;
 
   // Lo que la sonda necesita, leído FUERA de la transacción de escritura para no tener la base
   // abierta mientras se comprueba una conexión.

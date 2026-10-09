@@ -109,7 +109,7 @@ describe('RunNextExecution', () => {
 
   describe('descubrimiento de activos al validar (D59)', () => {
     const validation: RunnerJob = { ...job, kind: 'validation' };
-    const found: Inventory = { resources: [{ uid: 'arn:aws:ec2:us-east-1:123456789012:instance/i-1', type: 'AwsEc2Instance', kind: 'server', name: 'api', region: 'us-east-1', attributes: { os: 'Ubuntu 22.04' } }], warnings: [] };
+    const found: Inventory = { resources: [{ uid: 'arn:aws:ec2:us-east-1:123456789012:instance/i-1', type: 'AwsEc2Instance', kind: 'server', name: 'api', region: 'us-east-1', attributes: { os: 'Ubuntu 22.04' }, tags: [] }], warnings: [] };
     const scanner = (impl: () => Promise<Inventory>): InventoryScanner => ({ discover: impl });
     const validate = (api: FakeApi, s?: InventoryScanner, log = new Log()) => new RunNextExecution(api, broker(() => Promise.resolve(creds)), engine(() => Promise.reject(new Error('no'))), log, 'validation', s).execute();
 

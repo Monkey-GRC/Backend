@@ -1,3 +1,4 @@
 {
-  "state": "Your service's technical control status."
+  "state": "Your service's technical control status.",
+  "assets_saved": "Done, we saved this service's assets."
 }

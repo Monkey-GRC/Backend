@@ -17,7 +17,8 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
-import { DeploymentScenarioDto } from '../application/dtos/technical-control.dtos';
+import { DeploymentScenarioDto, ServiceAssetsDto } from '../application/dtos/technical-control.dtos';
+import { SetServiceAssetsUseCase } from '../application/use-cases/asset.use-cases';
 import {
   GetTechnicalControlUseCase,
   SetDeploymentScenarioUseCase,
@@ -43,6 +44,7 @@ export class TechnicalControlController {
   constructor(
     private readonly getState: GetTechnicalControlUseCase,
     private readonly setScenario: SetDeploymentScenarioUseCase,
+    private readonly setServiceAssets: SetServiceAssetsUseCase,
     private readonly probe: ConnectionProbe,
   ) {}
 
@@ -63,5 +65,19 @@ export class TechnicalControlController {
   ) {
     const state = await this.setScenario.execute(principal, id, dto.deployment_scenario, metaOf(req));
     return new ResponseDto(HttpStatus.OK, t('deployment_scenario.saved'), toDeploymentScenarioResponse(state));
+  }
+
+  // Los activos de una conexión que son de ESTE servicio (D61). Fija el conjunto exacto: lo que no viene, queda fuera.
+  @Put('connections/:connectionId/assets')
+  @HttpCode(HttpStatus.OK)
+  async serviceAssets(
+    @CurrentUser() principal: Principal,
+    @Param('id', idPipe) id: string,
+    @Param('connectionId', idPipe) connectionId: string,
+    @Body() dto: ServiceAssetsDto,
+    @Req() req: Request,
+  ) {
+    const result = await this.setServiceAssets.execute(principal, id, connectionId, dto.asset_ids, metaOf(req));
+    return new ResponseDto(HttpStatus.OK, t('technical_control.assets_saved'), { included: result.total, added: result.added, removed: result.removed });
   }
 }

@@ -36,6 +36,16 @@ export class DeploymentScenarioDto {
   deployment_scenario!: (typeof DEPLOYMENT_SCENARIO_VALUES)[number];
 }
 
+// PUT /v1/services/{id}/connections/{assetId}/assets — los activos de la conexión que son de este servicio (los demás quedan fuera).
+export class ServiceAssetsDto {
+  @ApiProperty({ isArray: true, type: String })
+  @IsArray()
+  @ArrayMaxSize(500)
+  @ArrayUnique()
+  @IsUUID('all', { each: true })
+  asset_ids!: string[];
+}
+
 // POST /v1/assets — registrar y conectar. El tipo del activo se deduce de la conexión (D46).
 export class CreateAssetDto {
   @ApiProperty({ example: 'srv-app-prod-01' })

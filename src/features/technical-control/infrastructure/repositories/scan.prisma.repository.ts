@@ -1,5 +1,6 @@
-import { Inventory } from '../../domain/entities/technical-control.entities';
 import { Injectable } from '@nestjs/common';
+import { ConnectionCategory, DEFAULT_CRITICALITY, NO_COVERAGE, ResourceKindValue } from '../../../../common/catalogs/technical-catalogs';
+import { DiscoveredResource, Inventory } from '../../domain/entities/technical-control.entities';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { Page, PageRequest } from '../../../../common/pagination/page';
@@ -24,6 +25,34 @@ import {
 const PLATFORM = 'aws';
 const POLICY_ID = 'cloud_configuration';
 const CHUNK = 1000;
+const ASSET_PREFIX = 'AST-';
+
+// Qué activo del catálogo del comité es cada clase de recurso descubierto: un servidor en la nube es `ac_02`, una base de datos en la nube `ac_03`; el almacenamiento
+// y las funciones son servicios gestionados de la nube (`ac_01`).
+const ASSET_SHAPE_BY_KIND: Record<string, { type: 'server' | 'database' | 'cloud_service' | 'application'; category: ConnectionCategory }> = {
+  server: { type: 'server', category: 'ac_02' },
+  database: { type: 'database', category: 'ac_03' },
+  storage: { type: 'cloud_service', category: 'ac_01' },
+  function: { type: 'application', category: 'ac_01' },
+};
+// Qué servicio de AWS lee cada clase: si uno no se pudo leer, no se da por desaparecido lo que ese servicio mostraba.
+const KIND_BY_AWS_SERVICE: Record<string, string> = { ec2: 'server', rds: 'database', s3: 'storage', lambda: 'function' };
+
+// La «plataforma» de un activo descubierto, dicha como la dice el cliente: el sistema operativo de un servidor, el motor de una base de datos.
+function platformOf(r: DiscoveredResource): string {
+  const at = r.attributes;
+  const text = (k: string) => (typeof at[k] === 'string' && at[k] ? (at[k] as string) : null);
+  switch (r.kind) {
+    case 'server':
+      return text('os') ?? text('platform') ?? 'Servidor en AWS';
+    case 'database':
+      return [text('engine'), text('engine_version')].filter(Boolean).join(' ') || 'Base de datos en AWS';
+    case 'function':
+      return text('runtime') ? `Lambda ${text('runtime')}` : 'Función en AWS';
+    default:
+      return 'Amazon S3';
+  }
+}
 // Una corrida completa son cientos o miles de filas: margen explícito sobre los 5 s por defecto de Prisma.
 const SCAN_TRANSACTION = { timeoutMs: 60_000 };
 
@@ -45,7 +74,7 @@ export class ScanPrismaRepository extends ScanRepository {
 
   queueExecution(scope: TenantScope, input: { assetId: string; origin: 'scheduled' | 'manual' }, audit: AuditIntent<{ executionId: string }>) {
     return this.prisma.withScope(scope, async (tx) => {
-      const asset = await tx.asset.findFirst({ where: { id: input.assetId }, select: { id: true } });
+      const asset = await tx.asset.findFirst({ where: { id: input.assetId, status: 'active', parentAssetId: null }, select: { id: true } });
       if (!asset) throw new DomainError('NOT_FOUND');
       const provisioning = await tx.assetProvisioning.findFirst({ where: { assetId: input.assetId }, select: { connectionStatus: true } });
       if (!provisioning || !['validated', 'active', 'scheduled'].includes(provisioning.connectionStatus)) throw new DomainError('ASSET_NOT_VALIDATED');
@@ -92,7 +121,7 @@ export class ScanPrismaRepository extends ScanRepository {
 
   queueValidation(scope: TenantScope, assetId: string, _actorUserId: string | null, audit: AuditIntent<{ executionId: string }>) {
     return this.prisma.withScope(scope, async (tx) => {
-      const asset = await tx.asset.findFirst({ where: { id: assetId }, select: { id: true } });
+      const asset = await tx.asset.findFirst({ where: { id: assetId, status: 'active', parentAssetId: null }, select: { id: true } });
       if (!asset) throw new DomainError('NOT_FOUND');
       let executionId: string;
       try {
@@ -259,6 +288,71 @@ export class ScanPrismaRepository extends ScanRepository {
       }
     }
     await tx.assetProvisioning.updateMany({ where: { assetId }, data: { inventoryAt: seenAt, inventoryWarnings: inventory.warnings } });
+    await this.syncDiscoveredAssets(tx, scope, assetId, inventory, seenAt);
+  }
+
+  // Cada recurso descubierto es un ACTIVO del cliente (D61): con su código, su IP, sus etiquetas y su criticidad, enlazable a los servicios. Se crea el que es nuevo, se
+  // actualiza lo que se conoce (sin pisar la criticidad ni el responsable que fijó el cliente) y el que ya no aparece pasa a inactivo y se desenlaza de los servicios.
+  private async syncDiscoveredAssets(tx: TransactionClient, scope: TenantScope, connectionId: string, inventory: Inventory, seenAt: Date): Promise<void> {
+    const parent = await tx.asset.findUniqueOrThrow({ where: { id: connectionId }, select: { organizationId: true, externalAccountId: true } });
+    const resources = await tx.assetResource.findMany({
+      where: { assetId: connectionId, resourceUid: { in: inventory.resources.map((r) => r.uid) }, kind: { not: 'other' } },
+      select: { id: true, resourceUid: true, kind: true, childAsset: { select: { id: true } } },
+    });
+    const byUid = new Map(inventory.resources.map((r) => [r.uid, r]));
+
+    // Código AST-#### consecutivo por empresa; el candado evita que dos descubrimientos simultáneos calculen el mismo número.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${parent.organizationId}))`;
+    const codes = await tx.asset.findMany({ where: { organizationId: parent.organizationId }, select: { code: true } });
+    let next = codes.reduce((max, { code }) => Math.max(max, Number(code.slice(ASSET_PREFIX.length)) || 0), 0) + 1;
+
+    for (const resource of resources) {
+      const found = byUid.get(resource.resourceUid);
+      if (!found) continue;
+      const data = {
+        name: found.name ?? found.uid.split(/[/:]/).pop() ?? found.uid,
+        platform: platformOf(found),
+        ipAddress: typeof found.attributes['private_ip'] === 'string' ? (found.attributes['private_ip'] as string) : null,
+        location: (typeof found.attributes['availability_zone'] === 'string' ? (found.attributes['availability_zone'] as string) : found.region) ?? null,
+        tags: found.tags,
+        status: 'active' as const,
+        externalAccountId: parent.externalAccountId,
+      };
+      if (resource.childAsset) {
+        await tx.asset.update({ where: { id: resource.childAsset.id }, data });
+        continue;
+      }
+      const { type, category } = ASSET_SHAPE_BY_KIND[resource.kind as ResourceKindValue] ?? ASSET_SHAPE_BY_KIND['storage'];
+      await tx.asset.create({
+        data: {
+          ...data,
+          tenantId: scope.companyId,
+          organizationId: parent.organizationId,
+          parentAssetId: connectionId,
+          resourceId: resource.id,
+          code: `${ASSET_PREFIX}${String(next++).padStart(4, '0')}`,
+          connectionCategory: category,
+          type,
+          criticality: DEFAULT_CRITICALITY as 'medium',
+          origin: 'discovered',
+          operationalStatus: 'not_monitored',
+          technicalCoverage: NO_COVERAGE,
+        },
+      });
+    }
+
+    // Lo que ya no aparece: se da de baja y se desenlaza de los servicios. Si un servicio de AWS no se pudo leer en este descubrimiento, sus activos NO se tocan
+    // (no sabemos si siguen ahí).
+    const unreadable = new Set(inventory.warnings.flatMap((w) => (w === 'timeout' ? Object.keys(ASSET_SHAPE_BY_KIND) : [KIND_BY_AWS_SERVICE[w]].filter((k): k is string => !!k))));
+    const missing = await tx.asset.findMany({
+      where: { parentAssetId: connectionId, status: 'active', resource: { is: { lastSeenAt: { lt: seenAt }, kind: { notIn: [...unreadable, 'other'] } } } },
+      select: { id: true },
+    });
+    if (missing.length > 0) {
+      const ids = missing.map((m) => m.id);
+      await tx.serviceAsset.deleteMany({ where: { assetId: { in: ids } } });
+      await tx.asset.updateMany({ where: { id: { in: ids } }, data: { status: 'inactive' } });
+    }
   }
 
   // Recursos, resultados y bitácora de UNA corrida, dentro de la transacción que ya abrió quien llama.
@@ -326,7 +420,7 @@ export class ScanPrismaRepository extends ScanRepository {
     return { executionId, resultCount: persisted.length, resourceCount: uids.length };
   }
 
-  loadLatestScan(scope: TenantScope, assetId: string): Promise<LoadedScan | null> {
+  loadLatestScan(scope: TenantScope, assetId: string, serviceId?: string): Promise<LoadedScan | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const execution = await tx.execution.findFirst({
         where: { assetId, status: 'completed', kind: 'assessment' },
@@ -343,10 +437,19 @@ export class ScanPrismaRepository extends ScanRepository {
           statusDetail: true,
           engineSeverity: true,
           check: { select: { id: true, checkId: true } },
-          assetResource: { select: { resourceUid: true, resourceType: true, name: true } },
+          assetResource: {
+            select: {
+              resourceUid: true,
+              resourceType: true,
+              name: true,
+              childAsset: { select: { serviceAssets: { where: serviceId ? { serviceId } : {}, select: { id: true } } } },
+            },
+          },
         },
       });
-      const results: InterpretedResult[] = rows.map((r) => ({
+      // Un recurso con activo propio que NO es de este servicio no se mide para él.
+      const scoped = serviceId ? rows.filter((r) => !r.assetResource?.childAsset || r.assetResource.childAsset.serviceAssets.length > 0) : rows;
+      const results: InterpretedResult[] = scoped.map((r) => ({
         checkId: r.check.checkId,
         resourceKey: r.assetResource?.resourceUid ?? null,
         resourceUid: r.assetResource?.resourceUid ?? null,
@@ -358,7 +461,7 @@ export class ScanPrismaRepository extends ScanRepository {
         detail: r.statusDetail,
       }));
 
-      const checkUuids = [...new Set(rows.map((r) => r.check.id))];
+      const checkUuids = [...new Set(scoped.map((r) => r.check.id))];
       const linkRows = await tx.testCheck.findMany({
         where: { checkId: { in: checkUuids }, test: { code: { startsWith: 'T-CLD-' } } },
         select: { provenance: true, check: { select: { checkId: true } }, test: { select: { code: true } } },

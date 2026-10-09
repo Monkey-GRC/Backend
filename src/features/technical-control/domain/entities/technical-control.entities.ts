@@ -119,10 +119,27 @@ export type DiscoveredResource = {
   name: string | null;
   region: string | null;
   attributes: ResourceAttributes;
+  tags: string[];
 };
 export type Inventory = { resources: DiscoveredResource[]; warnings: string[] };
 
-export type AssetResourceView = DiscoveredResource & { id: string; lastSeenAt: Date };
+// Un activo descubierto dentro de una conexión, tal como lo ve el cliente (D61): con lo que lo distingue de otro igual.
+export type DiscoveredAssetView = {
+  id: string; // el id del activo (no del recurso técnico)
+  code: string;
+  kind: ResourceKindValue;
+  type: string;
+  name: string | null;
+  region: string | null;
+  platform: string;
+  ipAddress: string | null;
+  location: string | null;
+  criticality: string;
+  tags: string[];
+  attributes: ResourceAttributes;
+  // Si pertenece al servicio por el que se pregunta. Nulo cuando no se preguntó por ninguno.
+  inService: boolean | null;
+};
 export type ResourceListing = {
   // Nulo si la cuenta aún no se ha descubierto (conexión sin comprobar, o comprobada sin descubrimiento).
   discoveredAt: Date | null;
@@ -130,6 +147,8 @@ export type ResourceListing = {
   // Servicios que no se pudieron leer en el último descubrimiento (permiso denegado, tiempo agotado).
   incompleteServices: string[];
   summary: { kind: ResourceKindValue; count: number }[];
-  items: AssetResourceView[];
+  items: DiscoveredAssetView[];
   total: number;
+  // Cuántos de los activos de la conexión pertenecen al servicio por el que se preguntó.
+  includedCount: number | null;
 };

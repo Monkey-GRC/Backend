@@ -612,7 +612,14 @@ model Asset {
   technicalCoverage  String                  @map("technical_coverage")
   // Identificador del activo en el proveedor (cuenta de AWS, suscripción de Azure, proyecto de GCP). Solo activos de nube.
   externalAccountId  String?                 @map("external_account_id")
+  // Un activo descubierto dentro de una conexión (D61): su cuenta de nube (`parent`) y el recurso técnico que lo respalda (`resource`, 1:1).
+  // Los activos que el cliente registra a mano no tienen ninguno de los dos.
+  parentAssetId      String?                 @map("parent_asset_id") @db.Uuid
+  resourceId         String?                 @unique @map("resource_id") @db.Uuid
 
+  parent       Asset?                   @relation("AssetChildren", fields: [parentAssetId], references: [id])
+  children     Asset[]                  @relation("AssetChildren")
+  resource     AssetResource?           @relation("BackingResource", fields: [resourceId], references: [id])
   organization Organization             @relation(fields: [organizationId], references: [id])
   responsible  OrganizationResponsible? @relation(fields: [responsibleId], references: [id])
   tenant       Company                  @relation(fields: [tenantId], references: [id])
@@ -628,6 +635,7 @@ model Asset {
   @@unique([organizationId, code])
   @@index([tenantId])
   @@index([responsibleId])
+  @@index([parentAssetId])
   @@map("assets")
   @@schema("tenant")
 }

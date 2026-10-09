@@ -119,15 +119,30 @@ export class AssetsController {
   // Los activos que la conexión reconoció dentro de la cuenta, en las regiones declaradas (D59).
   @Get(':id/resources')
   async resources(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Query() query: ListResourcesQuery) {
-    const listing = await this.listResources.execute(principal, id, { kind: query.kind }, { page: query.page, pageSize: query.page_size });
+    const listing = await this.listResources.execute(principal, id, { kind: query.kind, serviceId: query.service_id }, { page: query.page, pageSize: query.page_size });
     return new ResponseDto(HttpStatus.OK, t('asset.resources'), {
       discovered_at: listing.discoveredAt?.toISOString() ?? null,
       regions: listing.regions,
       incomplete_services: listing.incompleteServices,
       summary: listing.summary.map((s) => ({ kind: s.kind, count: s.count })),
+      included_count: listing.includedCount,
       ...toPageResponse(
         { items: listing.items, total: listing.total, page: query.page, pageSize: query.page_size },
-        (r) => ({ id: r.id, kind: r.kind, type: r.type, name: r.name, region: r.region, attributes: r.attributes }),
+        (r) => ({
+          id: r.id,
+          code: r.code,
+          kind: r.kind,
+          type: r.type,
+          name: r.name,
+          region: r.region,
+          platform: r.platform,
+          ip_address: r.ipAddress,
+          location: r.location,
+          criticality: r.criticality,
+          tags: r.tags,
+          attributes: r.attributes,
+          in_service: r.inService,
+        }),
       ),
     });
   }

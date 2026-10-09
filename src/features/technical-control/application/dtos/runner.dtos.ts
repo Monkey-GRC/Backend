@@ -31,6 +31,7 @@ export class RunnerResourceDto {
   @ApiProperty({ nullable: true, required: false }) @IsOptional() @IsString() @MaxLength(256) name?: string | null;
   @ApiProperty({ nullable: true, required: false }) @IsOptional() @IsString() @MaxLength(40) region?: string | null;
   @ApiProperty({ required: false }) @IsOptional() @IsObject() attributes?: Record<string, unknown>;
+  @ApiProperty({ required: false, type: [String] }) @IsOptional() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @MaxLength(120, { each: true }) tags?: string[];
 }
 
 // Lo que el descubrimiento encontró dentro de la cuenta (D59). Opcional: una validación sin descubrimiento sigue siendo válida.
@@ -52,11 +53,18 @@ export class RunnerFailDto {
   @ApiProperty({ example: 'connection.role_not_found' }) @IsString() @IsNotEmpty() @MaxLength(100) reason!: string;
 }
 
+// GET /v1/assets/{id}/readiness — con `service_id` solo mide lo que es de ese servicio (D61).
+export class ReadinessQuery {
+  @ApiProperty({ required: false }) @IsOptional() @IsUUID() service_id?: string;
+}
+
 // GET /v1/assets/{id}/resources
 export class ListResourcesQuery {
   @ApiProperty({ required: false, default: 1 }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @ApiProperty({ required: false, default: 50, maximum: 100 }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) page_size = 50;
   @ApiProperty({ required: false, enum: RESOURCE_KIND_VALUES }) @IsOptional() @IsIn(RESOURCE_KIND_VALUES) kind?: (typeof RESOURCE_KIND_VALUES)[number];
+  // Para saber cuáles de los activos de la conexión pertenecen a este servicio (D61).
+  @ApiProperty({ required: false }) @IsOptional() @IsUUID() service_id?: string;
 }
 
 // GET /v1/assets/{id}/executions

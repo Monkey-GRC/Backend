@@ -180,6 +180,8 @@ model AssetResource {
   tenant Company @relation(fields: [tenantId], references: [id])
 
   checkResults CheckResult[]
+  // El activo del cliente que respalda este recurso, si el descubrimiento lo reconoció (D61).
+  childAsset   Asset?       @relation("BackingResource")
 
   @@unique([assetId, resourceUid])
   @@index([tenantId])

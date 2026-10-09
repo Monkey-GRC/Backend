@@ -450,7 +450,7 @@ export class ServicePrismaRepository extends ServiceRepository {
         frameworks: { include: { framework: true, catalogVersion: true } },
         subserviceOrganizations: true,
         systemDescription: true,
-        _count: { select: { serviceAssets: { where: { asset: { status: 'active' } } } } },
+        _count: { select: { serviceAssets: { where: { asset: { status: 'active', parentAssetId: null } } } } },
       },
     });
     if (!row) return null;

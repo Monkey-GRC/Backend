@@ -85,9 +85,11 @@ export class GetAssetReadinessUseCase {
 
   // `includeProposed`: la demo cuenta los mapeos propuestos; producción, solo lo ratificado por el comité (D56).
   // null si el activo aún no tiene ninguna corrida completada; NOT_FOUND si no existe para esta empresa.
-  async execute(scope: TenantScope, assetId: string, opts: { includeProposed: boolean }): Promise<(AssetReadiness & { executionId: string; measuredAt: Date | null; includesProposedMappings: boolean }) | null> {
+  async execute(scope: TenantScope, assetId: string, opts: { includeProposed: boolean; serviceId?: string }): Promise<(AssetReadiness & { executionId: string; measuredAt: Date | null; includesProposedMappings: boolean }) | null> {
     if (!(await this.assets.findAsset(scope, assetId))) throw new DomainError('NOT_FOUND');
-    const scan = await this.repo.loadLatestScan(scope, assetId);
+    // Con un servicio, solo se miden sus activos más lo que es de toda la cuenta (D61). Un servicio que no existe para esta empresa es 404.
+    if (opts.serviceId && !(await this.assets.getState(scope, opts.serviceId))) throw new DomainError('NOT_FOUND');
+    const scan = await this.repo.loadLatestScan(scope, assetId, opts.serviceId);
     if (!scan) return null;
     const readiness = computeReadiness(scan.results, scan.links, { includeProposed: opts.includeProposed });
     return { ...readiness, executionId: scan.executionId, measuredAt: scan.finishedAt, includesProposedMappings: opts.includeProposed };

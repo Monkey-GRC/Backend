@@ -13,6 +13,7 @@ import {
   UpdateAssetUseCase,
   RetireAssetUseCase,
   ListAssetResourcesUseCase,
+  SetServiceAssetsUseCase,
   ValidateAssetUseCase,
 } from './application/use-cases/asset.use-cases';
 import {
@@ -60,6 +61,7 @@ import { TechnicalControlController } from './presentation/technical-control.con
     UpdateAssetUseCase,
     RetireAssetUseCase,
     ListAssetResourcesUseCase,
+    SetServiceAssetsUseCase,
     { provide: EngineOutputParser, useClass: OcsfEngineOutputParser },
     RunnerTokenGuard,
     QueueExecutionUseCase,

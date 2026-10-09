@@ -27,6 +27,13 @@ const sdkFor = (credentials: TemporaryCredentials): Sdk => {
 };
 
 const nameTag = (tags: { Key?: string; Value?: string }[] | undefined): string | null => tags?.find((t) => t.Key === 'Name')?.Value ?? null;
+// Las etiquetas del cliente como `clave=valor`: sin las `aws:*` (las pone AWS) ni `Name` (ya es el nombre), y acotadas.
+const MAX_TAGS = 20;
+const tagList = (tags: { Key?: string; Value?: string }[] | undefined): string[] =>
+  (tags ?? [])
+    .filter((t) => t.Key && t.Key !== 'Name' && !t.Key.startsWith('aws:'))
+    .slice(0, MAX_TAGS)
+    .map((t) => `${t.Key}=${t.Value ?? ''}`.slice(0, 120));
 
 export class AwsInventoryScanner extends InventoryScanner {
   constructor(private readonly sdk?: (credentials: TemporaryCredentials) => Sdk) {
@@ -88,7 +95,14 @@ export class AwsInventoryScanner extends InventoryScanner {
           os_source: os ? 'image' : null,
           architecture: i.Architecture ?? null,
           launched_at: i.LaunchTime?.toISOString() ?? null,
+          // Lo que distingue un servidor de otro igual: dónde está y cómo se llega a él.
+          private_ip: i.PrivateIpAddress ?? null,
+          public_ip: i.PublicIpAddress ?? null,
+          availability_zone: i.Placement?.AvailabilityZone ?? null,
+          vpc_id: i.VpcId ?? null,
+          subnet_id: i.SubnetId ?? null,
         },
+        tags: tagList(i.Tags),
       };
     });
   }
@@ -130,7 +144,8 @@ export class AwsInventoryScanner extends InventoryScanner {
           kind: 'database',
           name: db.DBInstanceIdentifier ?? null,
           region,
-          attributes: { engine: db.Engine ?? null, engine_version: db.EngineVersion ?? null, status: db.DBInstanceStatus ?? null, instance_class: db.DBInstanceClass ?? null, multi_az: db.MultiAZ ?? null, encrypted: db.StorageEncrypted ?? null },
+          attributes: { engine: db.Engine ?? null, engine_version: db.EngineVersion ?? null, status: db.DBInstanceStatus ?? null, instance_class: db.DBInstanceClass ?? null, multi_az: db.MultiAZ ?? null, encrypted: db.StorageEncrypted ?? null, availability_zone: db.AvailabilityZone ?? null, endpoint: db.Endpoint?.Address ?? null },
+          tags: tagList(db.TagList),
         });
       }
       marker = page.Marker;
@@ -146,7 +161,7 @@ export class AwsInventoryScanner extends InventoryScanner {
       const page = await lambda.send(new ListFunctionsCommand({ Marker: marker, MaxItems: 50 }));
       for (const f of page.Functions ?? []) {
         if (!f.FunctionArn) continue;
-        out.push({ uid: f.FunctionArn, type: 'AwsLambdaFunction', kind: 'function', name: f.FunctionName ?? null, region, attributes: { runtime: f.Runtime ?? null, last_modified: f.LastModified ?? null } });
+        out.push({ uid: f.FunctionArn, type: 'AwsLambdaFunction', kind: 'function', name: f.FunctionName ?? null, region, attributes: { runtime: f.Runtime ?? null, last_modified: f.LastModified ?? null }, tags: [] });
       }
       marker = page.NextMarker;
     } while (marker && out.length < MAX_RESOURCES);
@@ -158,6 +173,6 @@ export class AwsInventoryScanner extends InventoryScanner {
     const res = await sdk.s3(regions[0] ?? 'us-east-1').send(new ListBucketsCommand({ MaxBuckets: 500 }));
     return (res.Buckets ?? [])
       .filter((b) => b.Name && (!b.BucketRegion || regions.includes(b.BucketRegion)))
-      .map((b) => ({ uid: `arn:aws:s3:::${b.Name}`, type: 'AwsS3Bucket', kind: 'storage' as const, name: b.Name!, region: b.BucketRegion ?? null, attributes: { created_at: b.CreationDate?.toISOString() ?? null } }));
+      .map((b) => ({ uid: `arn:aws:s3:::${b.Name}`, type: 'AwsS3Bucket', kind: 'storage' as const, name: b.Name!, region: b.BucketRegion ?? null, attributes: { created_at: b.CreationDate?.toISOString() ?? null }, tags: [] }));
   }
 }

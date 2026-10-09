@@ -185,11 +185,11 @@ describe('El cliente entrega el rol que creó', () => {
   });
 });
 
-const res = (uid: string, kind: Inventory['resources'][number]['kind'], name: string, region: string, attributes: Record<string, string | number | boolean | null> = {}) => ({ uid, type: `Aws${kind}`, kind, name, region, attributes });
+const res = (uid: string, kind: Inventory['resources'][number]['kind'], name: string, region: string, attributes: Record<string, string | number | boolean | null> = {}, tags: string[] = []) => ({ uid, type: `Aws${kind}`, kind, name, region, attributes, tags });
 const INVENTORY: Inventory = {
   warnings: [],
   resources: [
-    res(`arn:aws:ec2:us-east-1:${ACCOUNT}:instance/i-1`, 'server', 'api-prod', 'us-east-1', { os: 'Ubuntu 22.04', os_source: 'image', state: 'running' }),
+    res(`arn:aws:ec2:us-east-1:${ACCOUNT}:instance/i-1`, 'server', 'api-prod', 'us-east-1', { os: 'Ubuntu 22.04', os_source: 'image', state: 'running', private_ip: '10.0.1.15', availability_zone: 'us-east-1a', instance_id: 'i-1' }, ['ambiente=prod', 'equipo=pagos']),
     res(`arn:aws:ec2:us-east-2:${ACCOUNT}:instance/i-2`, 'server', 'worker', 'us-east-2', { os: null, state: 'stopped' }),
     res(`arn:aws:rds:us-east-1:${ACCOUNT}:db:main`, 'database', 'main', 'us-east-1', { engine: 'postgres', engine_version: '16.3' }),
     res('arn:aws:s3:::datos-prod', 'storage', 'datos-prod', 'us-east-1'),
@@ -288,10 +288,122 @@ describe('Los activos que la conexión reconoce en la cuenta (D59)', () => {
   it('el trabajador no puede entregar un inventario mal formado', async () => {
     const id = (await create(a, roleAsset()).expect(201)).body.data.id;
     await a.agent.patch(`/v1/assets/${id}/connection`).send({ role_arn: ROLE_ARN }).expect(200);
-    const served = serveValidation(new FakeBroker(), 40, scannerOf({ warnings: [], resources: [{ uid: 'x', type: 'T', kind: 'inventada' as never, name: null, region: null, attributes: {} }] }));
+    const served = serveValidation(new FakeBroker(), 40, scannerOf({ warnings: [], resources: [{ uid: 'x', type: 'T', kind: 'inventada' as never, name: null, region: null, attributes: {}, tags: [] }] }));
     await validate(a, id);
     await served;
     expect((await a.agent.get(`/v1/assets/${id}/resources`).expect(200)).body.data.total).toBe(0);
+  });
+});
+
+describe('Los activos descubiertos son activos del cliente y se enlazan a servicios (D61)', () => {
+  const connect = async (inv: Inventory) => {
+    const id = (await create(a, roleAsset()).expect(201)).body.data.id as string;
+    await a.agent.patch(`/v1/assets/${id}/connection`).send({ role_arn: ROLE_ARN }).expect(200);
+    const served = serveValidation(new FakeBroker(), 40, scannerOf(inv));
+    await validate(a, id).expect(200);
+    await served;
+    return id;
+  };
+  const listing = async (id: string, extra: Record<string, string> = {}) => (await a.agent.get(`/v1/assets/${id}/resources`).query({ service_id: a.serviceId, ...extra }).expect(200)).body.data;
+  const idOf = (data: { items: { id: string; name: string }[] }, name: string) => data.items.find((i) => i.name === name)!.id;
+  const put = (conn: string, ids: string[], serviceId = a.serviceId) => a.agent.put(`/v1/services/${serviceId}/connections/${conn}/assets`).send({ asset_ids: ids });
+
+  it('cada recurso descubierto es un activo propio, con su código, su IP, su zona y sus etiquetas', async () => {
+    const id = await connect(INVENTORY);
+    const data = await listing(id);
+    const api = data.items.find((i: { name: string }) => i.name === 'api-prod');
+    expect(api).toMatchObject({ code: expect.stringMatching(/^AST-\d{4}$/), kind: 'server', ip_address: '10.0.1.15', location: 'us-east-1a', platform: 'Ubuntu 22.04', criticality: 'medium', tags: ['ambiente=prod', 'equipo=pagos'], in_service: false });
+    expect(api.attributes).toMatchObject({ instance_id: 'i-1', private_ip: '10.0.1.15' });
+    const codes = data.items.map((i: { code: string }) => i.code);
+    expect(new Set(codes).size).toBe(codes.length);
+    const [row] = await owner<{ origin: string; parent: string; res: string }>('select origin::text, parent_asset_id::text parent, resource_id::text res from tenant.assets where id = $1', [api.id]);
+    expect(row).toMatchObject({ origin: 'discovered', parent: id });
+    expect(row.res).toEqual(expect.any(String));
+  });
+
+  it('los activos descubiertos no son conexiones: no salen en el listado ni cuentan en las conexiones del servicio', async () => {
+    const id = await connect(INVENTORY);
+    const mine = (await a.agent.get('/v1/assets').query({ page_size: 100 }).expect(200)).body.data.items as { id: string }[];
+    expect(mine.some((x) => x.id === id)).toBe(true);
+    const child = idOf(await listing(id), 'api-prod');
+    expect(mine.some((x) => x.id === child)).toBe(false);
+    await a.agent.get(`/v1/assets/${child}`).expect(404);
+    await validate(a, child).expect(404);
+    await a.agent.patch(`/v1/assets/${child}`).send({ name: 'x' }).expect(404);
+  });
+
+  it('el cliente elige cuáles son del servicio; los demás quedan visibles como «no incluidos»', async () => {
+    const id = await connect(INVENTORY);
+    const before = await listing(id);
+    expect(before.included_count).toBe(0);
+    const pick = [idOf(before, 'api-prod'), idOf(before, 'main')];
+    const saved = await put(id, pick).expect(200);
+    expect(saved.body.data).toEqual({ included: 2, added: 2, removed: 0 });
+    const after = await listing(id);
+    expect(after.included_count).toBe(2);
+    expect(after.total).toBe(4);
+    expect(after.items.filter((i: { in_service: boolean }) => i.in_service).map((i: { name: string }) => i.name).sort()).toEqual(['api-prod', 'main']);
+    // fija el conjunto exacto: quitar uno y agregar otro
+    const swap = await put(id, [idOf(before, 'api-prod'), idOf(before, 'worker')]).expect(200);
+    expect(swap.body.data).toEqual({ included: 2, added: 1, removed: 1 });
+    expect((await put(id, []).expect(200)).body.data).toMatchObject({ included: 0, removed: 2 });
+  });
+
+  it('solo se pueden enlazar activos de ESA conexión; con ids ajenos o inventados es 422, y otra empresa ve 404', async () => {
+    const one = await connect(INVENTORY);
+    const two = await connect({ warnings: [], resources: [res(`arn:aws:ec2:us-east-1:${ACCOUNT}:instance/i-77`, 'server', 'otra-conexion', 'us-east-1')] });
+    const foreign = idOf(await listing(two), 'otra-conexion');
+    const bad = await put(one, [foreign]).expect(422);
+    expect(bad.body.error.fields[0]).toMatchObject({ field: 'asset_ids', code: 'invalid' });
+    await put(one, ['6f1c2a3b-4d5e-4f60-8a9b-0c1d2e3f4a5b']).expect(422);
+    await b.agent.put(`/v1/services/${a.serviceId}/connections/${one}/assets`).send({ asset_ids: [] }).expect(404);
+    await put(one, [], b.serviceId).expect(404);
+    await a.agent.put(`/v1/services/${a.serviceId}/connections/${one}/assets`).send({ asset_ids: 'no-es-lista' }).expect(422);
+  });
+
+  it('un servicio que no existe para la empresa no puede enlazar activos (404)', async () => {
+    const id = await connect(INVENTORY);
+    await a.agent.put(`/v1/services/6f1c2a3b-4d5e-4f60-8a9b-0c1d2e3f4a5b/connections/${id}/assets`).send({ asset_ids: [] }).expect(404);
+  });
+
+  it('un servicio ve solo sus activos al volver a comprobar; lo que desaparece de AWS se da de baja y se desenlaza', async () => {
+    const id = await connect(INVENTORY);
+    const first = await listing(id);
+    await put(id, [idOf(first, 'api-prod'), idOf(first, 'worker')]).expect(200);
+    const served = serveValidation(new FakeBroker(), 40, scannerOf({ warnings: [], resources: INVENTORY.resources.filter((r) => r.name !== 'worker') }));
+    await validate(a, id).expect(200);
+    await served;
+    const now = await listing(id);
+    expect(now.items.map((i: { name: string }) => i.name).sort()).toEqual(['api-prod', 'datos-prod', 'main']);
+    expect(now.included_count).toBe(1);
+    const [gone] = await owner<{ status: string; links: number }>(`select status::text, (select count(*)::int from tenant.service_assets where asset_id = $1) links from tenant.assets where id = $1`, [idOf(first, 'worker')]);
+    expect(gone).toEqual({ status: 'inactive', links: 0 });
+  });
+
+  it('si un servicio de AWS no se pudo leer, sus activos NO se dan por desaparecidos', async () => {
+    const id = await connect(INVENTORY);
+    const first = await listing(id);
+    const served = serveValidation(new FakeBroker(), 40, scannerOf({ warnings: ['ec2'], resources: INVENTORY.resources.filter((r) => r.kind !== 'server') }));
+    await validate(a, id).expect(200);
+    await served;
+    const now = await listing(id);
+    expect(now.items.filter((i: { kind: string }) => i.kind === 'server')).toHaveLength(2);
+    expect(now.incomplete_services).toEqual(['ec2']);
+    expect(first.total).toBe(4);
+  });
+
+  it('volver a descubrir conserva la criticidad y el enlace que fijó el cliente', async () => {
+    const id = await connect(INVENTORY);
+    const first = await listing(id);
+    const child = idOf(first, 'api-prod');
+    await put(id, [child]).expect(200);
+    await owner(`update tenant.assets set criticality = 'high' where id = $1`, [child]);
+    const served = serveValidation(new FakeBroker(), 40, scannerOf(INVENTORY));
+    await validate(a, id).expect(200);
+    await served;
+    const again = await listing(id);
+    expect(again.items.find((i: { id: string }) => i.id === child)).toMatchObject({ criticality: 'high', in_service: true });
+    expect(again.total).toBe(4);
   });
 });
 
@@ -363,6 +475,22 @@ describe('Editar y dar de baja un sistema (CRUD)', () => {
     const [row] = await owner<{ status: string }>('select status from tenant.assets where id = $1', [id]);
     expect(row.status).toBe('inactive');
     await a.agent.delete(`/v1/assets/${id}`).expect(404);
+  });
+
+  it('un activo dado de baja no se puede operar (404 en todo) y sus llaves se borran', async () => {
+    const id = (await create(a, roleAsset({ connection_method: 'access_keys', credentials: { access_key_id: 'AKIAIOSFODNN7EXAMPLE', secret_access_key: SECRET } })).expect(201)).body.data.id;
+    const [before] = await owner<{ c: string | null }>('select encrypted_credentials as c from tenant.asset_provisionings where asset_id = $1', [id]);
+    expect(before.c).not.toBeNull();
+    await a.agent.delete(`/v1/assets/${id}`).expect(200);
+    const [after] = await owner<{ c: string | null }>('select encrypted_credentials as c from tenant.asset_provisionings where asset_id = $1', [id]);
+    expect(after.c).toBeNull();
+    await validate(a, id).expect(404);
+    await a.agent.post(`/v1/assets/${id}/activate`).expect(404);
+    await a.agent.put(`/v1/assets/${id}/schedule`).send({ frequency: 'every_24h' }).expect(404);
+    await a.agent.patch(`/v1/assets/${id}/connection`).send({ role_arn: ROLE_ARN }).expect(404);
+    await a.agent.patch(`/v1/assets/${id}`).send({ name: 'x' }).expect(404);
+    await a.agent.post(`/v1/assets/${id}/executions`).expect(404);
+    await a.agent.get(`/v1/assets/${id}/readiness`).expect(404);
   });
 
   it('la lista de servicios cuenta sus conexiones, y una conexión dada de baja deja de contar', async () => {

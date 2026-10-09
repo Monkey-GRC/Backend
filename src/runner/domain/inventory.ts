@@ -11,6 +11,8 @@ export type DiscoveredResource = {
   region: string | null;
   // Solo lo que se pudo leer. Lo que no se sabe no está (y no se inventa).
   attributes: Record<string, string | number | boolean | null>;
+  // Las etiquetas del recurso en el proveedor (`clave=valor`), sin las que pone el propio proveedor. Es como el cliente lo reconoce y lo clasifica.
+  tags: string[];
 };
 
 export type Inventory = {

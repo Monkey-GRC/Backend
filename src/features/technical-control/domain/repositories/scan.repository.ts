@@ -110,5 +110,7 @@ export abstract class ScanRepository {
   abstract recordCompletedScan(scope: TenantScope, run: ScanRun, audit: AuditIntent<RecordedScan>): Promise<RecordedScan>;
 
   // La última corrida COMPLETADA del activo, o null si no hay ninguna.
-  abstract loadLatestScan(scope: TenantScope, assetId: string): Promise<LoadedScan | null>;
+  // Con `serviceId`, deja fuera los resultados de los activos de la conexión que NO son de ese servicio. Lo que no tiene activo propio (usuarios, políticas, la
+  // cuenta entera) es de toda la cuenta y cuenta para todos los servicios que la usan (D61).
+  abstract loadLatestScan(scope: TenantScope, assetId: string, serviceId?: string): Promise<LoadedScan | null>;
 }

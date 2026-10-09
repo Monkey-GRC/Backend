@@ -346,9 +346,29 @@ export class RetireAssetUseCase {
 export class ListAssetResourcesUseCase {
   constructor(private readonly repo: TechnicalControlRepository) {}
 
-  async execute(principal: Principal, id: string, filter: { kind?: ResourceKindValue }, page: PageRequest): Promise<ResourceListing> {
+  async execute(principal: Principal, id: string, filter: { kind?: ResourceKindValue; serviceId?: string }, page: PageRequest): Promise<ResourceListing> {
     const listing = await this.repo.listResources(scopeOf(principal), id, filter, page);
     if (!listing) throw new DomainError('NOT_FOUND');
     return listing;
+  }
+}
+
+// El cliente fija qué activos de una conexión son de ESTE servicio (D61). Lo que no marca queda fuera: ni se mide para el servicio ni cuenta en su preparación.
+@Injectable()
+export class SetServiceAssetsUseCase {
+  constructor(private readonly repo: TechnicalControlRepository) {}
+
+  async execute(principal: Principal, serviceId: string, connectionId: string, assetIds: string[], meta: RequestMeta): Promise<{ added: number; removed: number; total: number }> {
+    return this.repo.setServiceAssets(scopeOf(principal), serviceId, connectionId, assetIds, (result) => ({
+      tenantId: principal.companyId,
+      userId: principal.userId,
+      action: 'service.assets_set',
+      resource: 'service',
+      result: 'success',
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+      beforeState: { service_id: serviceId, connection_id: connectionId },
+      afterState: { service_id: serviceId, connection_id: connectionId, included: result.total, added: result.added, removed: result.removed },
+    }));
   }
 }
