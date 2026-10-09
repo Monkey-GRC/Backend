@@ -9,6 +9,7 @@
 #   2. Si la base ya tiene datos, la respalda con pg_dump ANTES de tocarla. Guarda las últimas $KEEP copias.
 #   3. Corre `prisma migrate deploy` en un contenedor desechable con el rol DUEÑO. Ese rol solo existe en este
 #      paso: el `.env` del backend sigue llevando únicamente `APP_DATABASE_URL` (rol `monkey_app`).
+#   4. Carga el catálogo de checks de nube (idempotente y NO bloqueante).
 #
 # Si algo falla, sale con código distinto de 0 y el deploy se aborta: el backend anterior sigue corriendo.
 # La URL con la clave nunca se imprime ni se pasa como argumento (se exporta y Docker la lee del entorno).
@@ -25,10 +26,10 @@ IMAGE="${IMAGE:-monkey-backend-tools}"
 CONTEXT="${CONTEXT:-$(cd "$(dirname "$0")/../.." && pwd)}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 
-echo "==> 1/3 Construyendo la imagen de herramientas ($IMAGE)"
+echo "==> 1/4 Construyendo la imagen de herramientas ($IMAGE)"
 docker build --target build -t "$IMAGE" "$CONTEXT" >/dev/null
 
-echo "==> 2/3 Respaldo previo"
+echo "==> 2/4 Respaldo previo"
 tables="$(docker exec "$DB_CONTAINER" psql -U "$DB_SUPERUSER" -d "$DB_NAME" -Atc \
   "select count(*) from pg_tables where schemaname in ('catalog','platform','tenant','audit')")"
 if [ "$tables" -eq 0 ]; then
@@ -48,7 +49,7 @@ else
   ls -1t "$BACKUP_DIR"/"${DB_NAME}"_pre-migrate_*.dump 2>/dev/null | tail -n +"$((KEEP + 1))" | xargs -r rm -f --
 fi
 
-echo "==> 3/3 prisma migrate deploy"
+echo "==> 3/4 prisma migrate deploy"
 export DATABASE_URL="$MIGRATE_DATABASE_URL"
 if ! docker run --rm --network "$NETWORK" -e DATABASE_URL "$IMAGE" npx prisma migrate deploy; then
   echo "ERROR: la migración falló. El backend NO se redespliega." >&2
@@ -57,3 +58,13 @@ if ! docker run --rm --network "$NETWORK" -e DATABASE_URL "$IMAGE" npx prisma mi
   exit 1
 fi
 echo "==> Migraciones al día."
+
+# El catálogo de checks de la nube (D56) es dato de referencia que las evaluaciones necesitan: sin él, guardar el resultado de una corrida falla. La carga es
+# IDEMPOTENTE (solo inserta lo que falta; si una fila difiere, aborta sin tocar nada), así que correrla en cada despliegue es seguro. NO bloquea el
+# despliegue: si no se puede (p. ej. aún no está cargado el catálogo de SOC 2), se avisa y el backend sigue subiendo.
+echo "==> 4/4 Catálogo de checks de nube (solo inserta lo que falta)"
+if docker run --rm --network "$NETWORK" -e DATABASE_URL "$IMAGE" npm run cloud:load -- --apply; then
+  echo "==> Catálogo de nube al día."
+else
+  echo "AVISO: no se pudo cargar el catálogo de nube (¿falta el catálogo de SOC 2? corre bootstrap-staging.sh). El despliegue sigue; hasta que se cargue no se podrán guardar resultados de evaluaciones." >&2
+fi

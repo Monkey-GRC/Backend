@@ -1,5 +1,6 @@
-import { CredentialBroker, RunnerApi, RunnerLogger, ScanEngine } from '../domain/ports';
-import { FAILURE, RunnerApiError, RunnerFailure, RunnerJob } from '../domain/runner.types';
+import { CredentialBroker, InventoryScanner, RunnerApi, RunnerLogger, ScanEngine } from '../domain/ports';
+import { Inventory } from '../domain/inventory';
+import { FAILURE, RunnerApiError, RunnerFailure, RunnerJob, RunnerJobKind, TemporaryCredentials } from '../domain/runner.types';
 
 export type StepResult = 'idle' | 'completed' | 'failed';
 
@@ -11,16 +12,27 @@ export class RunNextExecution {
     private readonly broker: CredentialBroker,
     private readonly engine: ScanEngine,
     private readonly log: RunnerLogger,
+    // El carril: solo reclama este tipo. Sin él, reclama de cualquiera.
+    private readonly kind?: RunnerJobKind,
+    // Opcional: sin él, la validación solo comprueba el acceso (no descubre activos).
+    private readonly inventory?: InventoryScanner,
   ) {}
 
   async execute(): Promise<StepResult> {
-    const job = await this.api.claim();
+    const job = await this.api.claim(this.kind);
     if (!job) return 'idle';
-    this.log.info(`Ejecución ${job.executionId}: reclamada (${job.regions.length} región(es)).`);
+    this.log.info(`Ejecución ${job.executionId}: reclamada (${job.kind}, ${job.regions.length} región(es)).`);
 
     let reason: string | null = null;
     try {
       const credentials = await this.broker.obtain(job);
+      // Una validación termina aquí: obtener las credenciales (asumir el rol y comprobar que la cuenta es la declarada) YA es la comprobación.
+      if (job.kind === 'validation') {
+        const inventory = await this.discover(job, credentials);
+        await this.api.validated(job, inventory);
+        this.log.info(`Ejecución ${job.executionId}: conexión validada${inventory ? ` (${inventory.resources.length} activos encontrados)` : ''}.`);
+        return 'completed';
+      }
       const run = await this.engine.run({ executionId: job.executionId, regions: job.regions, credentials });
       try {
         await this.api.submitResults(job, run, job.regions);
@@ -41,6 +53,17 @@ export class RunNextExecution {
       this.log.error(`Ejecución ${job.executionId}: falló (${e instanceof RunnerFailure ? e.message : (e as Error)?.constructor?.name ?? 'Error'}).`);
     }
     return this.reportFailure(job, reason ?? FAILURE.engineFailed);
+  }
+
+  // El descubrimiento es un extra de la validación: si falla, la conexión sigue siendo válida (el cliente verá «no pudimos listar tus activos»).
+  private async discover(job: RunnerJob, credentials: TemporaryCredentials): Promise<Inventory | null> {
+    if (!this.inventory) return null;
+    try {
+      return await this.inventory.discover({ accountId: job.externalAccountId, regions: job.regions, credentials });
+    } catch (e) {
+      this.log.error(`Ejecución ${job.executionId}: no se pudo descubrir los activos (${(e as Error)?.constructor?.name ?? 'Error'}).`);
+      return null;
+    }
   }
 
   private async reportFailure(job: RunnerJob, reason: string): Promise<StepResult> {

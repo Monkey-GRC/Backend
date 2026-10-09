@@ -95,13 +95,9 @@ describe('A no puede modificar lo de B', () => {
     expect((await a.agent.put(`/v1/assets/${b.assetId}/schedule`).send({ frequency: 'continuous' })).status).toBe(404);
   });
 
-  it('cambiar el escenario o el scope del servicio de B → 404', async () => {
+  it('cambiar el escenario del servicio de B → 404', async () => {
     const escenario = await a.agent.put(`/v1/services/${b.serviceId}/deployment-scenario`).send({ deployment_scenario: 'hybrid' });
     expect(escenario.status).toBe(404);
-    const scope = await a.agent
-      .put(`/v1/services/${b.serviceId}/scope`)
-      .send({ server_count: 1, cloud_count: 1, app_count: 1, database_count: 1, endpoint_count: 1 });
-    expect(scope.status).toBe(404);
   });
 
   it('el servicio de B sigue en su escenario original', async () => {

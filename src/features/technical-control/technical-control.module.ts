@@ -9,16 +9,20 @@ import {
   GetAssetUseCase,
   ListAssetsUseCase,
   ScheduleAssetUseCase,
+  SetAssetConnectionUseCase,
+  UpdateAssetUseCase,
+  RetireAssetUseCase,
+  ListAssetResourcesUseCase,
   ValidateAssetUseCase,
 } from './application/use-cases/asset.use-cases';
 import {
   GetTechnicalControlUseCase,
   SetDeploymentScenarioUseCase,
-  SetScopeUseCase,
 } from './application/use-cases/service-technical-control.use-cases';
 import {
   ClaimExecutionUseCase,
   CompleteExecutionUseCase,
+  CompleteValidationUseCase,
   FailExecutionUseCase,
   GetAssetReadinessUseCase,
   ImportScanUseCase,
@@ -31,27 +35,31 @@ import { createConnectionProbe } from './infrastructure/probes/connection-probe.
 import { ScanPrismaRepository } from './infrastructure/repositories/scan.prisma.repository';
 import { TechnicalControlPrismaRepository } from './infrastructure/repositories/technical-control.prisma.repository';
 import { AssetsController } from './presentation/assets.controller';
+import { ConnectionTemplatesController } from './presentation/connection-templates.controller';
 import { ExecutionsController } from './presentation/executions.controller';
 import { RunnerController } from './presentation/runner.controller';
 import { RunnerTokenGuard } from './presentation/runner-token.guard';
 import { TechnicalControlController } from './presentation/technical-control.controller';
 
 @Module({
-  controllers: [TechnicalControlController, AssetsController, ExecutionsController, RunnerController],
+  controllers: [TechnicalControlController, AssetsController, ConnectionTemplatesController, ExecutionsController, RunnerController],
   providers: [
     { provide: TechnicalControlRepository, useClass: TechnicalControlPrismaRepository },
     { provide: ScanRepository, useClass: ScanPrismaRepository },
     // La sonda la decide PROBE_MODE (por defecto «unavailable»; «simulated» solo fuera de producción).
-    { provide: ConnectionProbe, useFactory: createConnectionProbe, inject: [ConfigService] },
+    { provide: ConnectionProbe, useFactory: createConnectionProbe, inject: [ConfigService, ScanRepository] },
     GetTechnicalControlUseCase,
     SetDeploymentScenarioUseCase,
-    SetScopeUseCase,
-    CreateAssetUseCase,
+      CreateAssetUseCase,
     ListAssetsUseCase,
     GetAssetUseCase,
     ValidateAssetUseCase,
     ActivateAssetUseCase,
     ScheduleAssetUseCase,
+    SetAssetConnectionUseCase,
+    UpdateAssetUseCase,
+    RetireAssetUseCase,
+    ListAssetResourcesUseCase,
     { provide: EngineOutputParser, useClass: OcsfEngineOutputParser },
     RunnerTokenGuard,
     QueueExecutionUseCase,
@@ -60,6 +68,7 @@ import { TechnicalControlController } from './presentation/technical-control.con
     ImportScanUseCase,
     ClaimExecutionUseCase,
     CompleteExecutionUseCase,
+    CompleteValidationUseCase,
     FailExecutionUseCase,
   ],
   exports: [QueueExecutionUseCase, ListExecutionsUseCase, GetAssetReadinessUseCase, ImportScanUseCase, ClaimExecutionUseCase, CompleteExecutionUseCase, FailExecutionUseCase],

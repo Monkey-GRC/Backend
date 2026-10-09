@@ -17,16 +17,14 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
-import { DeploymentScenarioDto, ScopeDto } from '../application/dtos/technical-control.dtos';
+import { DeploymentScenarioDto } from '../application/dtos/technical-control.dtos';
 import {
   GetTechnicalControlUseCase,
   SetDeploymentScenarioUseCase,
-  SetScopeUseCase,
 } from '../application/use-cases/service-technical-control.use-cases';
 import { ConnectionProbe } from '../domain/ports/connection-probe';
 import {
   toDeploymentScenarioResponse,
-  toScopeResponse,
   toTechnicalControlResponse,
 } from './technical-control-response.mapper';
 
@@ -45,7 +43,6 @@ export class TechnicalControlController {
   constructor(
     private readonly getState: GetTechnicalControlUseCase,
     private readonly setScenario: SetDeploymentScenarioUseCase,
-    private readonly setScope: SetScopeUseCase,
     private readonly probe: ConnectionProbe,
   ) {}
 
@@ -66,28 +63,5 @@ export class TechnicalControlController {
   ) {
     const state = await this.setScenario.execute(principal, id, dto.deployment_scenario, metaOf(req));
     return new ResponseDto(HttpStatus.OK, t('deployment_scenario.saved'), toDeploymentScenarioResponse(state));
-  }
-
-  @Put('scope')
-  @HttpCode(HttpStatus.OK)
-  async scope(
-    @CurrentUser() principal: Principal,
-    @Param('id', idPipe) id: string,
-    @Body() dto: ScopeDto,
-    @Req() req: Request,
-  ) {
-    const state = await this.setScope.execute(
-      principal,
-      id,
-      {
-        server_count: dto.server_count,
-        cloud_count: dto.cloud_count,
-        app_count: dto.app_count,
-        database_count: dto.database_count,
-        endpoint_count: dto.endpoint_count,
-      },
-      metaOf(req),
-    );
-    return new ResponseDto(HttpStatus.OK, t('scope.saved'), toScopeResponse(state.scope!));
   }
 }

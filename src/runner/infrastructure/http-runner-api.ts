@@ -1,5 +1,6 @@
+import { Inventory } from '../domain/inventory';
 import { RunnerApi } from '../domain/ports';
-import { EngineRun, RunnerApiError, RunnerJob } from '../domain/runner.types';
+import { EngineRun, RunnerApiError, RunnerJob, RunnerJobKind } from '../domain/runner.types';
 
 type Fetch = typeof fetch;
 
@@ -13,14 +14,15 @@ export class HttpRunnerApi extends RunnerApi {
     super();
   }
 
-  async claim(): Promise<RunnerJob | null> {
-    const res = await this.post('/internal/runner/claim', undefined, 30_000);
+  async claim(kind?: RunnerJobKind): Promise<RunnerJob | null> {
+    const res = await this.post('/internal/runner/claim', kind ? { kind } : undefined, 30_000);
     if (res.status === 204) return null;
     await this.ensureOk(res);
     const { data } = (await res.json()) as { data: Record<string, any> };
     const c = data['connection'];
     return {
       executionId: data['execution_id'],
+      kind: data['kind'] ?? 'assessment',
       tenantId: data['tenant_id'],
       assetId: data['asset_id'],
       origin: data['origin'],
@@ -38,6 +40,11 @@ export class HttpRunnerApi extends RunnerApi {
     // La salida de un escaneo pesa megas: tiempo de sobra para subirla.
     const body = { tenant_id: job.tenantId, engine_version: run.engineVersion, regions, started_at: run.startedAt.toISOString(), finished_at: run.finishedAt.toISOString(), findings: run.findings };
     await this.ensureOk(await this.post(`/internal/runner/executions/${job.executionId}/results`, body, 180_000));
+  }
+
+  async validated(job: RunnerJob, inventory?: Inventory | null): Promise<void> {
+    const body = { tenant_id: job.tenantId, ...(inventory ? { inventory } : {}) };
+    await this.ensureOk(await this.post(`/internal/runner/executions/${job.executionId}/validated`, body, 30_000));
   }
 
   async fail(job: RunnerJob, reason: string): Promise<void> {

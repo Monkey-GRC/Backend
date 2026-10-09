@@ -1,3 +1,4 @@
+import { Inventory } from '../../domain/entities/technical-control.entities';
 import { Injectable } from '@nestjs/common';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { DomainError } from '../../../../common/errors/domain-error';
@@ -9,6 +10,7 @@ import { TestCheckLink } from '../../domain/scan/readiness';
 import { InterpretedResult } from '../../domain/scan/scan.types';
 import {
   ClaimedExecution,
+  ExecutionKindValue,
   ExecutionSummary,
   LoadedScan,
   RecordedScan,
@@ -64,9 +66,10 @@ export class ScanPrismaRepository extends ScanRepository {
 
   listExecutions(scope: TenantScope, assetId: string, page: PageRequest): Promise<Page<ExecutionSummary>> {
     return this.prisma.withScope(scope, async (tx) => {
-      const total = await tx.execution.count({ where: { assetId } });
+      // El historial es de evaluaciones: las validaciones (comprobar la conexión) no son «una evaluación» para el cliente.
+      const total = await tx.execution.count({ where: { assetId, kind: 'assessment' } });
       const rows = await tx.execution.findMany({
-        where: { assetId },
+        where: { assetId, kind: 'assessment' },
         orderBy: { queuedAt: 'desc' },
         skip: (page.page - 1) * page.pageSize,
         take: page.pageSize,
@@ -76,22 +79,78 @@ export class ScanPrismaRepository extends ScanRepository {
     });
   }
 
-  async claimNext(): Promise<ClaimedExecution | null> {
+  async claimNext(kind?: ExecutionKindValue): Promise<ClaimedExecution | null> {
     // Sin empresa: la función SECURITY DEFINER busca entre todas y solo toca el estado de UNA ejecución (SEG-47).
-    const rows = await this.prisma.$queryRaw<{ out_execution_id: string; out_tenant_id: string; out_asset_id: string; out_origin: string }[]>`
-      SELECT * FROM tenant.claim_next_execution()`;
+    type Row = { out_execution_id: string; out_tenant_id: string; out_asset_id: string; out_origin: string; out_kind: string };
+    const rows = kind
+      ? await this.prisma.$queryRaw<Row[]>`SELECT * FROM tenant.claim_next_execution(${kind}::tenant.execution_kind)`
+      : await this.prisma.$queryRaw<Row[]>`SELECT * FROM tenant.claim_next_execution()`;
     if (rows.length === 0) return null;
     const r = rows[0];
-    return { executionId: r.out_execution_id, tenantId: r.out_tenant_id, assetId: r.out_asset_id, origin: r.out_origin as 'scheduled' | 'manual' };
+    return { executionId: r.out_execution_id, tenantId: r.out_tenant_id, assetId: r.out_asset_id, origin: r.out_origin as 'scheduled' | 'manual', kind: r.out_kind as ExecutionKindValue };
+  }
+
+  queueValidation(scope: TenantScope, assetId: string, _actorUserId: string | null, audit: AuditIntent<{ executionId: string }>) {
+    return this.prisma.withScope(scope, async (tx) => {
+      const asset = await tx.asset.findFirst({ where: { id: assetId }, select: { id: true } });
+      if (!asset) throw new DomainError('NOT_FOUND');
+      let executionId: string;
+      try {
+        const created = await tx.execution.create({ data: { tenantId: scope.companyId, assetId, status: 'queued', origin: 'manual', kind: 'validation' }, select: { id: true } });
+        executionId = created.id;
+      } catch (e) {
+        // El índice único parcial `executions_one_open_per_asset` decide: un activo no tiene dos ejecuciones abiertas.
+        if ((e as { code?: string }).code === 'P2002') throw new DomainError('EXECUTION_IN_PROGRESS');
+        throw e;
+      }
+      const queued = { executionId };
+      await insertAuditLog(tx, audit(queued));
+      return queued;
+    });
+  }
+
+  executionStatus(scope: TenantScope, executionId: string) {
+    return this.prisma.withScope(scope, async (tx) => {
+      const row = await tx.execution.findFirst({ where: { id: executionId }, select: { status: true, failureReason: true } });
+      return row ? { status: row.status, failureReason: row.failureReason } : null;
+    });
+  }
+
+  cancelQueued(scope: TenantScope, executionId: string): Promise<boolean> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const r = await tx.execution.updateMany({
+        where: { id: executionId, kind: 'validation', status: 'queued' },
+        data: { status: 'cancelled', finishedAt: new Date(), failureReason: 'execution.timed_out' },
+      });
+      return r.count > 0;
+    });
+  }
+
+  completeValidation(scope: TenantScope, executionId: string, inventory: Inventory | null, audit: AuditIntent<{ executionId: string; resources: number | null }>) {
+    return this.prisma.withScope(scope, async (tx) => {
+      // Condicional: solo una validación en curso se cierra, y solo una vez.
+      const closed = await tx.execution.updateMany({
+        where: { id: executionId, kind: 'validation', status: 'running' },
+        data: { status: 'completed', finishedAt: new Date(), progressPercentage: 100 },
+      });
+      if (closed.count === 0) throw new DomainError('EXECUTION_NOT_RUNNING');
+      if (inventory) {
+        const execution = await tx.execution.findFirstOrThrow({ where: { id: executionId }, select: { assetId: true } });
+        await this.writeInventory(tx, scope, execution.assetId, inventory);
+      }
+      const done = { executionId, resources: inventory ? inventory.resources.length : null };
+      await insertAuditLog(tx, audit(done));
+      return done;
+    });
   }
 
   loadRunContext(scope: TenantScope, executionId: string): Promise<RunContext> {
     return this.prisma.withScope(scope, async (tx) => {
-      const execution = await tx.execution.findFirst({ where: { id: executionId }, select: { id: true, assetId: true, origin: true } });
+      const execution = await tx.execution.findFirst({ where: { id: executionId }, select: { id: true, assetId: true, origin: true, kind: true } });
       if (!execution) throw new DomainError('NOT_FOUND');
       const asset = await tx.asset.findFirst({
         where: { id: execution.assetId },
-        select: { platform: true, externalAccountId: true, provisionings: { take: 1, select: { regions: true, connectionMethod: true, encryptedCredentials: true } } },
+        select: { platform: true, externalAccountId: true, provisionings: { take: 1, select: { regions: true, connectionMethod: true, roleArn: true, externalId: true, encryptedCredentials: true } } },
       });
       if (!asset) throw new DomainError('NOT_FOUND');
       const prov = asset.provisionings[0];
@@ -99,10 +158,13 @@ export class ScanPrismaRepository extends ScanRepository {
         executionId: execution.id,
         assetId: execution.assetId,
         origin: execution.origin,
+        kind: execution.kind,
         platform: asset.platform,
         externalAccountId: asset.externalAccountId,
         regions: prov?.regions ?? [],
         connectionMethod: prov?.connectionMethod ?? null,
+        roleArn: prov?.roleArn ?? null,
+        externalId: prov?.externalId ?? null,
         encryptedCredentials: prov?.encryptedCredentials ?? null,
       };
     });
@@ -168,6 +230,35 @@ export class ScanPrismaRepository extends ScanRepository {
       },
       SCAN_TRANSACTION,
     );
+  }
+
+  // Lo que el descubrimiento encontró en la cuenta (D59). Se crea lo nuevo y se actualiza lo conocido; lo que ya no aparece deja de mostrarse
+  // porque su `last_seen_at` queda por debajo de `inventory_at` (no se borra: sus resultados siguen siendo evidencia).
+  private async writeInventory(tx: TransactionClient, scope: TenantScope, assetId: string, inventory: Inventory): Promise<void> {
+    const seenAt = new Date();
+    for (const part of chunks(inventory.resources.map((r) => r.uid))) {
+      const known = new Set((await tx.assetResource.findMany({ where: { assetId, resourceUid: { in: part } }, select: { resourceUid: true } })).map((r) => r.resourceUid));
+      const byUid = new Map(inventory.resources.filter((r) => part.includes(r.uid)).map((r) => [r.uid, r]));
+      await tx.assetResource.createMany({
+        data: [...byUid.values()].filter((r) => !known.has(r.uid)).map((r) => ({
+          tenantId: scope.companyId,
+          assetId,
+          resourceUid: r.uid,
+          resourceType: r.type,
+          kind: r.kind,
+          name: r.name,
+          region: r.region,
+          attributes: r.attributes,
+          firstSeenAt: seenAt,
+          lastSeenAt: seenAt,
+        })),
+      });
+      for (const uid of known) {
+        const r = byUid.get(uid)!;
+        await tx.assetResource.updateMany({ where: { assetId, resourceUid: uid }, data: { resourceType: r.type, kind: r.kind, name: r.name, region: r.region, attributes: r.attributes, lastSeenAt: seenAt } });
+      }
+    }
+    await tx.assetProvisioning.updateMany({ where: { assetId }, data: { inventoryAt: seenAt, inventoryWarnings: inventory.warnings } });
   }
 
   // Recursos, resultados y bitácora de UNA corrida, dentro de la transacción que ya abrió quien llama.
@@ -238,7 +329,7 @@ export class ScanPrismaRepository extends ScanRepository {
   loadLatestScan(scope: TenantScope, assetId: string): Promise<LoadedScan | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const execution = await tx.execution.findFirst({
-        where: { assetId, status: 'completed' },
+        where: { assetId, status: 'completed', kind: 'assessment' },
         orderBy: { finishedAt: 'desc' },
         select: { id: true, finishedAt: true, engineVersion: true, regions: true, checksExecuted: true },
       });

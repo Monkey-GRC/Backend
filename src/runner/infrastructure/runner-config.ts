@@ -8,6 +8,8 @@ export type RunnerConfig = {
   engineMemoryBytes: number;
   engineCpus: number;
   pollIntervalMs: number;
+  // Las validaciones las espera un cliente en pantalla: se miran más seguido que las evaluaciones.
+  validationPollIntervalMs: number;
 };
 
 const int = (env: Record<string, string | undefined>, key: string, fallback: number, min: number, max: number): number => {
@@ -37,5 +39,6 @@ export function loadRunnerConfig(env: Record<string, string | undefined>): Runne
     engineMemoryBytes: int(env, 'ENGINE_MEMORY_MB', 2048, 512, 16384) * 1024 * 1024,
     engineCpus: int(env, 'ENGINE_CPUS', 2, 1, 16),
     pollIntervalMs: int(env, 'POLL_INTERVAL_SECONDS', 5, 1, 300) * 1000,
+    validationPollIntervalMs: int(env, 'VALIDATION_POLL_INTERVAL_SECONDS', 1, 1, 60) * 1000,
   };
 }

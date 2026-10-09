@@ -12,7 +12,7 @@ const SOURCES = [
   'src/features/technical-control/application/use-cases/scan.use-cases.ts',
 ];
 // Las acciones del audit trail comparten el prefijo `execution.` pero no son razones de fallo ni llevan texto para el cliente.
-const AUDIT_ACTIONS = new Set(['execution.queue', 'execution.complete', 'execution.fail']);
+const AUDIT_ACTIONS = new Set(['execution.queue', 'execution.complete', 'execution.fail', 'execution.validate']);
 const KEY = /['"`]((?:connection|execution)\.[a-z_]+)['"`]/g;
 const text = (lang: string, file: string): Record<string, string> => JSON.parse(readFileSync(join('i18n', lang, `${file}.json`), 'utf8'));
 

@@ -43,6 +43,7 @@ export type DomainErrorCode =
   | 'EXECUTION_IN_PROGRESS'
   | 'EXECUTION_NOT_RUNNING'
   | 'ENGINE_OUTPUT_INVALID'
+  | 'CONNECTION_METHOD_NOT_APPLICABLE'
   | 'CONNECTION_UNAVAILABLE';
 
 export class DomainError extends Error {

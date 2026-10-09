@@ -41,7 +41,7 @@ export class ExecutionsController {
   @Get('executions')
   async history(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Query() query: ListExecutionsQuery) {
     const page = await this.listExecutions.execute(principal, id, { page: query.page, pageSize: query.page_size });
-    return new ResponseDto(HttpStatus.OK, t('execution.list'), toPageResponse(page, toExecutionResponse));
+    return new ResponseDto(HttpStatus.OK, t('execution.list'), toPageResponse(page, (e) => toExecutionResponse(e, t)));
   }
 
   @Get('readiness')

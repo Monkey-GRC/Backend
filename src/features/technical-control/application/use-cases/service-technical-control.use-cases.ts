@@ -4,7 +4,7 @@ import { DeploymentScenarioValue } from '../../../../common/catalogs/technical-c
 import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
-import { ScopeCounts, TechnicalControlState } from '../../domain/entities/technical-control.entities';
+import { TechnicalControlState } from '../../domain/entities/technical-control.entities';
 import { TechnicalControlRepository } from '../../domain/repositories/technical-control.repository';
 
 const scopeOf = (p: Principal): TenantScope => ({ companyId: p.companyId, userId: p.userId, role: p.role });
@@ -43,34 +43,6 @@ export class SetDeploymentScenarioUseCase {
       userAgent: meta.userAgent,
       beforeState: { service_id: serviceId, deployment_scenario: change.before },
       afterState: { service_id: serviceId, deployment_scenario: scenario },
-    }));
-    if (!result) throw new DomainError('NOT_FOUND');
-    return result.state;
-  }
-}
-
-@Injectable()
-export class SetScopeUseCase {
-  constructor(
-    private readonly repo: TechnicalControlRepository,
-  ) {}
-
-  async execute(
-    principal: Principal,
-    serviceId: string,
-    counts: ScopeCounts,
-    meta: RequestMeta,
-  ): Promise<TechnicalControlState> {
-    const result = await this.repo.setScope(scopeOf(principal), serviceId, counts, (change) => ({
-      tenantId: principal.companyId,
-      userId: principal.userId,
-      action: 'service.scope',
-      resource: 'service',
-      result: 'success',
-      ipAddress: meta.ipAddress,
-      userAgent: meta.userAgent,
-      beforeState: change.before ? { service_id: serviceId, ...change.before } : null,
-      afterState: { service_id: serviceId, ...counts },
     }));
     if (!result) throw new DomainError('NOT_FOUND');
     return result.state;

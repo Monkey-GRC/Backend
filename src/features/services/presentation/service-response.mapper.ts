@@ -60,7 +60,7 @@ export function toServiceResponse(service: ServiceDetail, catalogMessage = 'cata
 function toTechnicalControlSummary(service: ServiceDetail) {
   return {
     deployment_scenario: service.data.deploymentScenario,
-    has_scope: service.data.hasScope,
+    connection_count: service.data.connectionCount,
     is_complete: service.technicalControlDone,
   };
 }

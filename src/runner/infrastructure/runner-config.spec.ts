@@ -6,7 +6,7 @@ describe('loadRunnerConfig', () => {
   it('toma valores por defecto seguros', () => {
     expect(loadRunnerConfig(ok)).toEqual({
       backendUrl: 'http://backend:3000', runnerToken: 'tok', engineImage: 'toniblyx/prowler:5.44.0',
-      engineTimeoutMs: MAX_ENGINE_TIMEOUT_SECONDS * 1000, engineMemoryBytes: 2048 * 1024 * 1024, engineCpus: 2, pollIntervalMs: 5000,
+      engineTimeoutMs: MAX_ENGINE_TIMEOUT_SECONDS * 1000, engineMemoryBytes: 2048 * 1024 * 1024, engineCpus: 2, pollIntervalMs: 5000, validationPollIntervalMs: 1000,
     });
   });
   it('acepta una imagen fijada por digest', () => {

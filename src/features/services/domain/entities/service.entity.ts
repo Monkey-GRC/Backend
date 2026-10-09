@@ -95,7 +95,8 @@ export type ServiceData = {
   catalog: CatalogSummary;
   // Componente 3 (control técnico): solo lo que la lista necesita para decir si ya se hizo.
   deploymentScenario: string | null;
-  hasScope: boolean;
+  // Cuántas conexiones (activos) tiene registradas este servicio.
+  connectionCount: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -142,10 +143,10 @@ export class ServiceDetail {
     return this.completion.required_filled === this.completion.required_total;
   }
 
-  // El paso 3 se da por hecho con el escenario y el scope declarados (D46); conectar sistemas se
+  // El paso 3 se da por hecho con el escenario de despliegue (D60); registrar activos se
   // recomienda pero se puede dejar para después.
   get technicalControlDone(): boolean {
-    return this.data.deploymentScenario !== null && this.data.hasScope;
+    return this.data.deploymentScenario !== null;
   }
 
   // Forma para el audit trail (estado antes/después, CC9.2).

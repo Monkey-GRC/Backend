@@ -249,7 +249,6 @@ export class ServicePrismaRepository extends ServiceRepository {
       await tx.clientCause.deleteMany({ where: { serviceId: id } });
       await tx.clientRisk.deleteMany({ where: { serviceId: id } });
       await tx.serviceAsset.deleteMany({ where: { serviceId: id } });
-      await tx.scope.deleteMany({ where: { serviceId: id } });
       await tx.csoc.deleteMany({ where: { subserviceOrganization: { serviceId: id } } });
       await tx.cuec.deleteMany({ where: { serviceId: id } });
       await tx.subserviceOrganization.deleteMany({ where: { serviceId: id } });
@@ -451,7 +450,7 @@ export class ServicePrismaRepository extends ServiceRepository {
         frameworks: { include: { framework: true, catalogVersion: true } },
         subserviceOrganizations: true,
         systemDescription: true,
-        scope: { select: { id: true } },
+        _count: { select: { serviceAssets: { where: { asset: { status: 'active' } } } } },
       },
     });
     if (!row) return null;
@@ -502,7 +501,7 @@ export class ServicePrismaRepository extends ServiceRepository {
       systemDescription: row.systemDescription ? toSystemDescriptionView(row.systemDescription) : null,
       catalog: { status: 'ready', applicableRequirements, clonedControls },
       deploymentScenario: row.deploymentScenario,
-      hasScope: row.scope !== null,
+      connectionCount: row._count.serviceAssets,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };

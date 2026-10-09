@@ -50,6 +50,7 @@ export const DOMAIN_ERROR_CATALOG: Record<
   ASSET_NOT_ACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'asset.not_active' },
   EXECUTION_IN_PROGRESS: { status: HttpStatus.CONFLICT, messageKey: 'execution.in_progress' },
   EXECUTION_NOT_RUNNING: { status: HttpStatus.CONFLICT, messageKey: 'execution.not_running' },
+  CONNECTION_METHOD_NOT_APPLICABLE: { status: HttpStatus.CONFLICT, messageKey: 'connection.method_not_applicable' },
   ENGINE_OUTPUT_INVALID: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'execution.output_invalid' },
   FREQUENCY_NOT_SUPPORTED: {
     status: HttpStatus.UNPROCESSABLE_ENTITY,

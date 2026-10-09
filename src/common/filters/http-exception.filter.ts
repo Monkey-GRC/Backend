@@ -52,7 +52,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       messageKey = exception.override?.messageKey ?? 'validation.failed';
       error.fields = exception.fields.map((f) => ({
         ...f,
-        message: t(`validation.${f.code.replace('.', '_')}`),
+        // Las razones de conexión y de ejecución (`connection.role_not_found`…) tienen su texto propio: no se duplican en validation.json.
+        message: /^(connection|execution)\./.test(f.code) ? t(f.code) : t(`validation.${f.code.replace('.', '_')}`),
       }));
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();

@@ -2,7 +2,7 @@ import { RunContext } from '../../domain/repositories/scan.repository';
 import { buildConnection } from './scan.use-cases';
 
 const ctx = (over: Partial<RunContext> = {}): RunContext => ({
-  executionId: 'e', assetId: 'a', origin: 'manual', platform: 'AWS', externalAccountId: '123456789012', regions: ['us-east-1'], connectionMethod: null, encryptedCredentials: 'x', ...over,
+  executionId: 'e', assetId: 'a', origin: 'manual', kind: 'assessment', roleArn: null, externalId: null, platform: 'AWS', externalAccountId: '123456789012', regions: ['us-east-1'], connectionMethod: null, encryptedCredentials: 'x', ...over,
 });
 
 describe('buildConnection', () => {

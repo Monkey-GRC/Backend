@@ -25,17 +25,25 @@ beforeAll(async () => {
 afterAll(() => new Promise<void>((r) => server.close(() => r())));
 beforeEach(() => { seen = []; reply = { status: 204 }; });
 
-const job: RunnerJob = { executionId: 'e1', tenantId: 't1', assetId: 'a1', origin: 'manual', platform: 'aws', externalAccountId: '1', regions: ['us-east-1'], connection: { method: 'readonly_role', roleArn: 'arn', externalId: 'x' } };
+const job: RunnerJob = { executionId: 'e1', kind: 'assessment', tenantId: 't1', assetId: 'a1', origin: 'manual', platform: 'aws', externalAccountId: '1', regions: ['us-east-1'], connection: { method: 'readonly_role', roleArn: 'arn', externalId: 'x' } };
 const api = () => new HttpRunnerApi(base, 'secreto-del-trabajador');
 
 describe('HttpRunnerApi', () => {
-  it('claim: 204 es «nada pendiente» y lleva el token', async () => {
+  it('claim: 204 es «nada pendiente», lleva el token y pide solo el tipo de su carril', async () => {
     expect(await api().claim()).toBeNull();
-    expect(seen[0]).toMatchObject({ method: 'POST', url: '/internal/runner/claim', auth: 'Bearer secreto-del-trabajador' });
+    expect(seen[0]).toMatchObject({ method: 'POST', url: '/internal/runner/claim', auth: 'Bearer secreto-del-trabajador', body: null });
+    await api().claim('validation');
+    expect(seen[1].body).toEqual({ kind: 'validation' });
+  });
+
+  it('validated: avisa que la conexión se comprobó, con el tenant', async () => {
+    reply = { status: 200, body: { data: {} } };
+    await api().validated({ ...job, kind: 'validation' });
+    expect(seen[0]).toMatchObject({ url: '/internal/runner/executions/e1/validated', body: { tenant_id: 't1' } });
   });
 
   it('claim: traduce el trabajo del contrato (rol y llaves)', async () => {
-    reply = { status: 200, body: { data: { execution_id: 'e1', tenant_id: 't1', asset_id: 'a1', origin: 'manual', platform: 'aws', external_account_id: '123', regions: ['us-east-1'], connection: { method: 'readonly_role', role_arn: 'arn:r', external_id: 'mk-1' } } } };
+    reply = { status: 200, body: { data: { execution_id: 'e1', kind: 'assessment', tenant_id: 't1', asset_id: 'a1', origin: 'manual', platform: 'aws', external_account_id: '123', regions: ['us-east-1'], connection: { method: 'readonly_role', role_arn: 'arn:r', external_id: 'mk-1' } } } };
     expect(await api().claim()).toEqual({ ...job, externalAccountId: '123', connection: { method: 'readonly_role', roleArn: 'arn:r', externalId: 'mk-1' } });
     reply = { status: 200, body: { data: { execution_id: 'e2', tenant_id: 't1', asset_id: 'a1', origin: 'manual', platform: 'aws', external_account_id: null, regions: ['us-east-1'], connection: { method: 'access_keys', access_key_id: 'AKIA', secret_access_key: 's' } } } };
     expect((await api().claim())!.connection).toEqual({ method: 'access_keys', accessKeyId: 'AKIA', secretAccessKey: 's' });
