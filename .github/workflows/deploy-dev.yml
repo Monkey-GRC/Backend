@@ -21,7 +21,7 @@ jobs:
           target: "/home/ubuntu/monkey-dev/backend"
           rm: true
 
-      - name: Migrar la base, escribir .env y (re)desplegar
+      - name: Comprobar el entorno, migrar la base y (re)desplegar
         uses: appleboy/ssh-action@v1.0.3
         env:
           # Rol DUEÑO de la base de staging, solo para migrar. NO va en el .env del backend (que solo lleva
@@ -36,23 +36,13 @@ jobs:
           # script_stop: si un comando del script falla, el step (y el job)
           # deben fallar de verdad — sin esto, appleboy/ssh-action reporta
           # "success" aunque el build de Docker truene por dentro.
-          #
-          # ENV_FILE va en base64 (no en un heredoc): con script_stop activo,
-          # drone-ssh (el motor de esta action) envuelve CADA LÍNEA del script
-          # con su propio chequeo de código de salida — si el script tiene un
-          # heredoc multilínea, ese chequeo se inyecta ENTRE las líneas del
-          # heredoc y corrompe el archivo que se está escribiendo. Una sola
-          # línea con base64 no tiene ese problema.
           script_stop: true
           script: |
             set -e
-            # El .env del backend se escribe a un archivo TEMPORAL y solo reemplaza al actual si parece el .env del backend. Un secreto equivocado (p. ej.
-            # el del trabajador pegado aquí) hace fallar el despliegue SIN tocar el .env que funciona. Una sola línea por comando (ver nota más abajo).
-            echo '${{ secrets.ENV_FILE }}' | base64 -d > /home/ubuntu/monkey-dev/.env.new
-            if grep -q '^JWT_SECRET=' /home/ubuntu/monkey-dev/.env.new && grep -q '^APP_DATABASE_URL=' /home/ubuntu/monkey-dev/.env.new; then mv /home/ubuntu/monkey-dev/.env.new /home/ubuntu/monkey-dev/.env; else rm -f /home/ubuntu/monkey-dev/.env.new; echo 'ENV_FILE no parece el .env del backend (faltan JWT_SECRET o APP_DATABASE_URL): no se toca el .env actual'; exit 1; fi
-            # Entorno del trabajador del motor (D57): archivo APARTE con solo lo suyo. Opcional hasta que exista el secreto RUNNER_ENV_FILE.
-            # Una sola línea por comando: este motor de SSH inyecta chequeos entre líneas y corrompería un bloque if/fi de varias líneas.
-            if [ -n '${{ secrets.RUNNER_ENV_FILE }}' ]; then echo '${{ secrets.RUNNER_ENV_FILE }}' | base64 -d > /home/ubuntu/monkey-dev/runner.env.new; if grep -q '^RUNNER_TOKEN=' /home/ubuntu/monkey-dev/runner.env.new && grep -q '^ENGINE_IMAGE=' /home/ubuntu/monkey-dev/runner.env.new && ! grep -q '^JWT_SECRET=' /home/ubuntu/monkey-dev/runner.env.new; then chmod 600 /home/ubuntu/monkey-dev/runner.env.new && mv /home/ubuntu/monkey-dev/runner.env.new /home/ubuntu/monkey-dev/runner.env; else rm -f /home/ubuntu/monkey-dev/runner.env.new; echo 'RUNNER_ENV_FILE no parece el entorno del trabajador (faltan RUNNER_TOKEN o ENGINE_IMAGE, o trae secretos del backend): no se toca runner.env'; exit 1; fi; fi
+            # Los archivos de entorno (.env del backend y runner.env del trabajador) VIVEN EN EL SERVIDOR: este despliegue no los escribe ni los toca, así que no hay secretos
+            # que reconvertir a base64 al añadir una variable. Se editan con `backend/scripts/deploy/set-env.sh`. Aquí solo se comprueba que estén completos: si falta algo,
+            # el despliegue se detiene y dice qué (el backend anterior sigue corriendo).
+            bash /home/ubuntu/monkey-dev/backend/scripts/deploy/check-env.sh /home/ubuntu/monkey-dev
             # 1) Migrar ANTES de levantar el backend nuevo. Si falla (set -e + script_stop), el deploy se
             #    aborta y el backend anterior sigue corriendo. Respalda antes de tocar la base: ver
             #    backend/scripts/deploy/migrate.sh y schema-implementacion.md §7 (reversa).
