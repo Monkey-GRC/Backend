@@ -10,7 +10,8 @@ export function toCapabilityResponse(c: Capability) {
     method: c.method,
     required_permissions: c.requiredPermissions,
     base_frequency: c.baseFrequency,
-    supported_platforms: c.supportedPlatforms,
+    // Lo que el cliente elige (D67): la marca no se traduce y las bloqueadas se muestran como tales.
+    platforms: c.platforms.map((p) => ({ code: p.code, name: p.name, logo_key: p.logoKey, availability: p.availability, connection_methods: p.connectionMethods })),
     generated_evidence: c.generatedEvidence,
   };
 }

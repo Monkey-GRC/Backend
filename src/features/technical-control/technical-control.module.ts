@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TechnicalControlRepository } from './domain/repositories/technical-control.repository';
 import { ScanRepository } from './domain/repositories/scan.repository';
+import { ConnectionCatalogRepository } from './domain/repositories/connection-catalog.repository';
 import { ConnectionProbe } from './domain/ports/connection-probe';
 import {
   ActivateAssetUseCase,
@@ -33,6 +34,7 @@ import {
 import { EngineOutputParser } from './domain/ports/engine-output-parser';
 import { OcsfEngineOutputParser } from './infrastructure/engine/ocsf-parser';
 import { createConnectionProbe } from './infrastructure/probes/connection-probe.factory';
+import { ConnectionCatalogPrismaRepository } from './infrastructure/repositories/connection-catalog.prisma.repository';
 import { ScanPrismaRepository } from './infrastructure/repositories/scan.prisma.repository';
 import { TechnicalControlPrismaRepository } from './infrastructure/repositories/technical-control.prisma.repository';
 import { AssetsController } from './presentation/assets.controller';
@@ -47,11 +49,12 @@ import { TechnicalControlController } from './presentation/technical-control.con
   providers: [
     { provide: TechnicalControlRepository, useClass: TechnicalControlPrismaRepository },
     { provide: ScanRepository, useClass: ScanPrismaRepository },
+    { provide: ConnectionCatalogRepository, useClass: ConnectionCatalogPrismaRepository },
     // La sonda la decide PROBE_MODE (por defecto «unavailable»; «simulated» solo fuera de producción).
     { provide: ConnectionProbe, useFactory: createConnectionProbe, inject: [ConfigService, ScanRepository] },
     GetTechnicalControlUseCase,
     SetDeploymentScenarioUseCase,
-      CreateAssetUseCase,
+    CreateAssetUseCase,
     ListAssetsUseCase,
     GetAssetUseCase,
     ValidateAssetUseCase,

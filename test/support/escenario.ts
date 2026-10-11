@@ -62,21 +62,35 @@ async function crearTenant(app: INestApplication, admin: Agent, k: string): Prom
   const serviceName = `Servicio ${k} ${RUN}`;
   const service = must(await agent.post('/v1/services').send(servicePayload(serviceName)), 201, `servicio ${k}`);
   must(await agent.put(`/v1/services/${service.id}/deployment-scenario`).send({ deployment_scenario: 'cloud_with_servers' }), 200, `escenario ${k}`);
-  const assetName = `srv-${k.toLowerCase()}-${RUN}`;
+  // Una cuenta de AWS: es la única plataforma con flujo (D67). Servidores y bases se muestran bloqueados hasta tener su canal de agente (DT-57).
+  const assetName = `aws-${k.toLowerCase()}-${RUN}`;
   const asset = must(
     await agent.post('/v1/assets').send({
       name: assetName,
-      connection_category: 'ac_02',
-      platform: 'Ubuntu 22.04',
-      ip_address: '10.0.0.5',
+      connection_category: 'ac_01',
+      platform: 'aws',
+      connection_method: 'readonly_role',
+      external_account_id: '123456789012',
+      regions: ['us-east-1'],
       service_ids: [service.id],
-      credentials: { connection_method: 'agent' },
     }),
     201,
     `activo ${k}`,
   );
   return { agent, companyId: company.id, companyName, email, serviceId: service.id, serviceName, assetId: asset.id, assetName };
 }
+
+/** El alta de una cuenta de AWS tal como la hace la pantalla (D67): la plataforma elegida, el canal de rol y las regiones. */
+export const awsBody = (t: Tenant, name: string, over: Record<string, unknown> = {}) => ({
+  name,
+  connection_category: 'ac_01',
+  platform: 'aws',
+  connection_method: 'readonly_role',
+  external_account_id: '123456789012',
+  regions: ['us-east-1'],
+  service_ids: [t.serviceId],
+  ...over,
+});
 
 export async function dosEmpresas(app: INestApplication): Promise<{ a: Tenant; b: Tenant; monkey: Agent }> {
   const { email } = await seedAdminMonkey();

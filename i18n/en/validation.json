@@ -23,5 +23,6 @@
   "connection_permission_denied": "The user does not have enough permissions for automatic evaluation.",
   "ip_invalid": "Enter a valid IP address.",
   "object_invalid": "The format is not valid.",
-  "array_max": "You selected too many options."
+  "array_max": "You selected too many options.",
+  "platform_not_in_category": "That platform doesn't belong to this type of connection."
 }

@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { bootApp, owner, RUN, RUNNER_TOKEN } from '../support/app';
-import { dosEmpresas, Tenant } from '../support/escenario';
+import { awsBody, dosEmpresas, Tenant } from '../support/escenario';
 
 // D57, SEG-47: la API real. Lo del cliente va por cookie y rol; lo del trabajador, por un token de servicio, por la red interna y fuera del
 // prefijo público. Cada prueba sale por HTTP, como lo haría el frontend o el trabajador.
@@ -51,8 +51,11 @@ beforeAll(async () => {
       [c.test, c.id],
     );
   }
-  const created = await a.agent.post('/v1/assets').send({ name: `aws-api-${RUN}`, connection_category: 'ac_01', platform: 'AWS', service_ids: [a.serviceId], credentials: { account_id: ACCOUNT, read_only_role: ROLE_ARN, external_id: `mk-${RUN}` } });
+  const created = await a.agent.post('/v1/assets').send(awsBody(a, `aws-api-${RUN}`));
   assetId = created.body.data.id;
+  await a.agent.patch(`/v1/assets/${assetId}/connection`).send({ role_arn: ROLE_ARN }).expect(200);
+  // El ExternalId lo genera Monkey al azar; las pruebas que miran el trabajo reclamado necesitan uno conocido.
+  await owner('update tenant.asset_provisionings set external_id = $2 where asset_id = $1', [assetId, `mk-${RUN}`]);
   await a.agent.post(`/v1/assets/${assetId}/validate`).expect(200);
   await owner('update tenant.asset_provisionings set regions = array[$2] where asset_id = $1', [assetId, 'us-east-1']);
 });
@@ -79,7 +82,7 @@ describe('El cliente: evaluar ahora, historial y estado de preparación', () => 
   });
 
   it('un activo sin validar no se puede evaluar (409 ASSET_NOT_VALIDATED)', async () => {
-    const r = await a.agent.post('/v1/assets').send({ name: `aws-nv-${RUN}`, connection_category: 'ac_01', platform: 'AWS', service_ids: [a.serviceId], credentials: { account_id: ACCOUNT, read_only_role: ROLE_ARN } });
+    const r = await a.agent.post('/v1/assets').send(awsBody(a, `aws-nv-${RUN}`));
     const res = await a.agent.post(`/v1/assets/${r.body.data.id}/executions`).expect(409);
     expect(res.body.error.code).toBe('ASSET_NOT_VALIDATED');
   });
@@ -93,7 +96,7 @@ describe('El cliente: evaluar ahora, historial y estado de preparación', () => 
   });
 
   it('antes de la primera corrida el estado es «Sin medir», no un fallo ni un 404', async () => {
-    const fresh = await a.agent.post('/v1/assets').send({ name: `aws-fresh-${RUN}`, connection_category: 'ac_01', platform: 'AWS', service_ids: [a.serviceId], credentials: { account_id: ACCOUNT, read_only_role: ROLE_ARN } });
+    const fresh = await a.agent.post('/v1/assets').send(awsBody(a, `aws-fresh-${RUN}`));
     const res = await a.agent.get(`/v1/assets/${fresh.body.data.id}/readiness`).expect(200);
     expect(res.body.data).toMatchObject({ readiness: 'not_measured', measured_at: null, coverage: { measured: 0, expected: 0 }, includes_proposed_mappings: false });
     expect(res.body.data.areas.map((x: { area: string }) => x.area).sort()).toEqual(['data_network', 'identity_access', 'logging_backup']);

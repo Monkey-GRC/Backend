@@ -191,11 +191,14 @@ describe('SEG-24 · las credenciales de los sistemas del cliente nunca salen y s
   it('ni la respuesta, ni el detalle, ni el listado las devuelven; en la base están cifradas', async () => {
     const secret = `S3cr3t-Plano-${RUN}!`;
     const created = await a.agent.post('/v1/assets').send({
-      name: `bd-secreta-${RUN}`,
-      connection_category: 'ac_03',
-      platform: 'PostgreSQL',
+      name: `aws-secreta-${RUN}`,
+      connection_category: 'ac_01',
+      platform: 'aws',
+      connection_method: 'access_keys',
+      external_account_id: '123456789012',
+      regions: ['us-east-1'],
       service_ids: [a.serviceId],
-      credentials: { db_user: 'monkey_ro', db_password: secret },
+      credentials: { access_key_id: 'AKIAIOSFODNN7EXAMPLE', secret_access_key: secret },
     });
     expect(created.status).toBe(201);
     const id = created.body.data.id as string;
@@ -204,11 +207,11 @@ describe('SEG-24 · las credenciales de los sistemas del cliente nunca salen y s
     for (const res of [created, detail, list]) {
       const text = JSON.stringify(res.body);
       expect(text).not.toContain(secret);
-      expect(text.toLowerCase()).not.toMatch(/encrypted|db_password/);
+      expect(text.toLowerCase()).not.toMatch(/encrypted|secret_access_key/);
     }
     const [row] = await owner<{ encrypted_credentials: string }>('select encrypted_credentials from tenant.asset_provisionings where asset_id = $1', [id]);
     expect(row.encrypted_credentials).toMatch(/^v1\./);
     expect(row.encrypted_credentials).not.toContain(secret);
-    expect(row.encrypted_credentials).not.toContain('monkey_ro');
+    expect(row.encrypted_credentials).not.toContain('AKIAIOSFODNN7EXAMPLE');
   });
 });

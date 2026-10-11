@@ -22,7 +22,6 @@ import {
   SCHEDULE_FREQUENCY_VALUES,
   CONNECTION_METHOD_VALUES,
   RESOURCE_KIND_VALUES,
-  AWS_REGION_VALUES,
 } from './technical-catalogs';
 
 export const SIZE_VALUES = [
@@ -157,9 +156,8 @@ export const ENUM_CATALOGS = {
   deployment_scenario: DEPLOYMENT_SCENARIO_VALUES,
   asset_criticality: ASSET_CRITICALITY_VALUES,
   schedule_frequency: SCHEDULE_FREQUENCY_VALUES,
-  // Conexión de nube (D53, D58)
+  // Conexión de nube (D53, D58). Las regiones (`aws_region`) salen de la base (D67).
   connection_method: CONNECTION_METHOD_VALUES,
-  aws_region: AWS_REGION_VALUES,
   resource_kind: RESOURCE_KIND_VALUES,
 } as const;
 

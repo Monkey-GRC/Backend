@@ -17,8 +17,8 @@ import { CredentialCipher } from '../../../../common/security/credential-cipher'
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { Asset, AssetEdit, AssetFilters, NewAsset, ResourceListing } from '../../domain/entities/technical-control.entities';
 import { ConnectionProbe } from '../../domain/ports/connection-probe';
+import { ConnectionCatalogRepository } from '../../domain/repositories/connection-catalog.repository';
 import { TechnicalControlRepository } from '../../domain/repositories/technical-control.repository';
-import { normalizeCredentials } from '../credentials.validation';
 import { checkCloudTarget, newExternalId, planConnection } from '../cloud-connection';
 
 const scopeOf = (p: Principal): TenantScope => ({ companyId: p.companyId, userId: p.userId, role: p.role });
@@ -62,6 +62,7 @@ const assetEntry = ({ principal, meta, action, before, after, result = 'success'
 export type NewAssetRequest = {
   name: string;
   connectionCategory: ConnectionCategory;
+  // El `code` de la plataforma que el cliente eligió en el marketplace (D67).
   platform: string;
   ipAddress: string | null;
   location: string | null;
@@ -70,7 +71,7 @@ export type NewAssetRequest = {
   serviceIds: string[];
   responsibleId: string | null;
   credentials?: Record<string, unknown>;
-  // Canal de conexión (D53). Sin él rige el formulario provisional del paso 3 (`credentials` por categoría), que se retira cuando la pantalla migre.
+  // Canal de conexión (D53): uno de los de su plataforma.
   connectionMethod?: ConnectionMethodValue;
   externalAccountId?: string | null;
   regions?: string[];
@@ -80,11 +81,29 @@ export type NewAssetRequest = {
 export class CreateAssetUseCase {
   constructor(
     private readonly repo: TechnicalControlRepository,
+    private readonly catalog: ConnectionCatalogRepository,
     private readonly cipher: CredentialCipher,
   ) {}
 
   async execute(principal: Principal, request: NewAssetRequest, meta: RequestMeta): Promise<Asset> {
-    const base = {
+    // La plataforma sale del catálogo (D67): tiene que existir dentro de esa conexión y estar disponible. Una bloqueada se muestra pero no se conecta.
+    const platform = await this.catalog.findPlatform(request.connectionCategory, request.platform.trim().toLowerCase());
+    if (!platform) throw new ValidationException([{ field: 'platform', code: 'platform.not_in_category' }]);
+    if (platform.availability !== 'available') throw new ValidationException([{ field: 'platform', code: 'connection.provider_not_supported' }]);
+    if (!request.connectionMethod) throw new ValidationException([{ field: 'connection_method', code: 'required' }]);
+
+    // Cuenta y regiones declaradas, ExternalId que genera Monkey y llaves cifradas solo en el canal de llaves.
+    const { errors, plan } = planConnection(
+      {
+        connectionMethod: request.connectionMethod,
+        externalAccountId: request.externalAccountId,
+        regions: request.regions,
+        credentials: request.credentials,
+      },
+      platform,
+    );
+    if (errors.length > 0 || !plan) throw new ValidationException(errors);
+    const input: NewAsset = {
       name: request.name,
       connectionCategory: request.connectionCategory,
       ipAddress: request.ipAddress,
@@ -93,41 +112,14 @@ export class CreateAssetUseCase {
       tags: request.tags ?? [],
       serviceIds: request.serviceIds,
       responsibleId: request.responsibleId,
+      platform: plan.platform,
+      platformId: plan.platformId,
+      encryptedCredentials: plan.secretToStore ? this.cipher.encrypt(plan.secretToStore) : null,
+      connectionMethod: plan.method,
+      externalAccountId: plan.externalAccountId,
+      regions: plan.regions,
+      externalId: plan.externalId,
     };
-    let input: NewAsset;
-    if (request.connectionMethod) {
-      // Con canal de conexión: cuenta y regiones declaradas, ExternalId que genera Monkey y llaves cifradas solo en el canal de llaves.
-      const { errors, plan } = planConnection({
-        connectionCategory: request.connectionCategory,
-        platform: request.platform,
-        connectionMethod: request.connectionMethod,
-        externalAccountId: request.externalAccountId,
-        regions: request.regions,
-        credentials: request.credentials,
-      });
-      if (errors.length > 0 || !plan) throw new ValidationException(errors);
-      input = {
-        ...base,
-        platform: plan.platform,
-        encryptedCredentials: plan.secretToStore ? this.cipher.encrypt(plan.secretToStore) : null,
-        connectionMethod: plan.method,
-        externalAccountId: plan.externalAccountId,
-        regions: plan.regions,
-        externalId: plan.externalId,
-      };
-    } else {
-      const { errors, toStore } = normalizeCredentials(request.connectionCategory, request.credentials);
-      if (errors.length > 0) throw new ValidationException(errors);
-      input = {
-        ...base,
-        platform: request.platform,
-        encryptedCredentials: toStore ? this.cipher.encrypt(toStore) : null,
-        connectionMethod: null,
-        externalAccountId: null,
-        regions: [],
-        externalId: null,
-      };
-    }
 
     return this.repo.createAsset(
       scopeOf(principal),
@@ -273,6 +265,7 @@ const sameSet = (a: string[], b: string[]): boolean => a.length === b.length && 
 export class UpdateAssetUseCase {
   constructor(
     private readonly repo: TechnicalControlRepository,
+    private readonly catalog: ConnectionCatalogRepository,
     private readonly cipher: CredentialCipher,
   ) {}
 
@@ -293,11 +286,13 @@ export class UpdateAssetUseCase {
       }
       const account = request.externalAccountId ?? asset.externalAccountId;
       const regions = request.regions ?? asset.provisioning.regions;
-      const errors = checkCloudTarget(account, regions).errors;
+      // Las regiones válidas son las de la plataforma del activo (catálogo, D67). Un activo anterior a D67 no la tiene guardada: se busca por su código.
+      const platform = asset.platformId ? await this.catalog.findPlatformById(asset.platformId) : await this.catalog.findPlatform(asset.connectionCategory, asset.platform.toLowerCase());
+      const errors = checkCloudTarget(account, regions, platform?.regionCodes ?? []).errors;
 
       if (request.credentials !== undefined) {
         // Solo el canal de llaves las admite; planConnection valida su forma y rechaza `credentials` en el canal de rol.
-        const { errors: credentialErrors, plan } = planConnection({ connectionCategory: asset.connectionCategory, platform: asset.platform, connectionMethod: method, externalAccountId: account, regions, credentials: request.credentials });
+        const { errors: credentialErrors, plan } = platform ? planConnection({ connectionMethod: method, externalAccountId: account, regions, credentials: request.credentials }, platform) : { errors: [], plan: null };
         errors.push(...credentialErrors.filter((e) => e.field.startsWith('credentials')));
         if (plan?.secretToStore) edit.encryptedCredentials = this.cipher.encrypt(plan.secretToStore);
       }

@@ -5,7 +5,7 @@
   "credentials_invalid": "Las credenciales no son válidas o están desactivadas. Revísalas e inténtalo de nuevo.",
   "regions_missing": "Aún no declaraste en qué regiones evaluar. Elige al menos una.",
   "not_configured": "Este activo todavía no tiene su conexión configurada.",
-  "provider_not_supported": "Por ahora solo podemos evaluar cuentas de AWS.",
+  "provider_not_supported": "Esta plataforma todavía no está disponible. Por ahora solo podemos evaluar cuentas de AWS.",
   "method_not_supported_by_runner": "Este tipo de conexión se evalúa de otra forma y no desde aquí.",
   "method_not_applicable": "Ese tipo de conexión no está disponible para este activo.",
   "access_keys": {

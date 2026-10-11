@@ -1,21 +1,17 @@
 import { randomBytes } from 'node:crypto';
 import {
   AWS_ACCOUNT_ID,
-  AWS_REGION_VALUES,
   CLOUD_PLATFORM_AWS,
-  ConnectionCategory,
   ConnectionMethodValue,
   MAX_REGIONS,
-  METHODS_BY_CATEGORY,
 } from '../../../common/catalogs/technical-catalogs';
 import { DomainError } from '../../../common/errors/domain-error';
 import { FieldError } from '../../../common/errors/validation.exception';
+import { PlatformRule } from '../domain/entities/technical-control.entities';
 
 // Reglas del alta de un activo con su canal de conexión (D53, D58; contracts/modules/onboarding-technical-control.md). Funciones puras: sin Nest ni base de datos.
 
 export type ConnectionRequest = {
-  connectionCategory: ConnectionCategory;
-  platform: string;
   connectionMethod: ConnectionMethodValue;
   externalAccountId?: string | null;
   regions?: string[];
@@ -24,6 +20,7 @@ export type ConnectionRequest = {
 
 export type ConnectionPlan = {
   method: ConnectionMethodValue;
+  platformId: string;
   platform: string;
   externalAccountId: string | null;
   regions: string[];
@@ -41,8 +38,12 @@ export function newExternalId(): string {
   return `mk-${randomBytes(10).toString('hex')}`;
 }
 
-// La cuenta y las regiones declaradas de una conexión de nube. Lo usan el alta y la edición.
-export function checkCloudTarget(externalAccountId: string | null | undefined, regionsInput: string[] | undefined): { errors: FieldError[]; account: string | null; regions: string[] } {
+// La cuenta y las regiones declaradas de una conexión de nube. Lo usan el alta y la edición. Las regiones válidas son las de la plataforma (catálogo, D67).
+export function checkCloudTarget(
+  externalAccountId: string | null | undefined,
+  regionsInput: string[] | undefined,
+  allowedRegions: readonly string[],
+): { errors: FieldError[]; account: string | null; regions: string[] } {
   const errors: FieldError[] = [];
   const account = text(externalAccountId);
   if (!account) errors.push({ field: 'external_account_id', code: 'required' });
@@ -52,24 +53,29 @@ export function checkCloudTarget(externalAccountId: string | null | undefined, r
   if (regions.length === 0) errors.push({ field: 'regions', code: 'array.min' });
   else if (regions.length > MAX_REGIONS) errors.push({ field: 'regions', code: 'array.max' });
   else if (new Set(regions).size !== regions.length) errors.push({ field: 'regions', code: 'array.unique' });
-  else if (!regions.every((r) => (AWS_REGION_VALUES as readonly string[]).includes(r))) errors.push({ field: 'regions', code: 'invalid' });
+  else if (!regions.every((r) => allowedRegions.includes(r))) errors.push({ field: 'regions', code: 'invalid' });
   return { errors, account, regions };
 }
 
-export function planConnection(req: ConnectionRequest): { errors: FieldError[]; plan: ConnectionPlan | null } {
-  // Un canal que no existe para esa categoría no es un error de formulario: es una combinación imposible (409).
-  if (!METHODS_BY_CATEGORY[req.connectionCategory].includes(req.connectionMethod)) throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
+// `platform` es la plataforma elegida, ya comprobada contra el catálogo: existe en la conexión y está disponible. Aquí se valida lo que sigue: el canal y los datos de la conexión.
+export function planConnection(req: ConnectionRequest, platform: PlatformRule): { errors: FieldError[]; plan: ConnectionPlan | null } {
+  // Un canal que la plataforma no tiene no es un error de formulario: es una combinación imposible (409).
+  if (!platform.connectionMethods.includes(req.connectionMethod)) throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
 
   if (req.connectionMethod === 'agent') {
     const errors: FieldError[] = [];
     if (req.credentials !== undefined) errors.push({ field: 'credentials', code: 'field.not_allowed' });
-    return { errors, plan: errors.length ? null : { method: 'agent', platform: req.platform, externalAccountId: null, regions: [], secretToStore: null, externalId: null } };
+    return {
+      errors,
+      plan: errors.length ? null : { method: 'agent', platformId: platform.id, platform: platform.code, externalAccountId: null, regions: [], secretToStore: null, externalId: null },
+    };
   }
 
-  // Nube (AWS): cuenta y regiones declaradas, y solo se evalúan esas regiones (D53).
+  // Nube: hoy solo el flujo de AWS (D58). Una plataforma con canal de nube que aún no tiene su flujo no llega aquí: se queda bloqueada en el catálogo.
   const errors: FieldError[] = [];
-  if (req.platform.trim().toLowerCase() !== CLOUD_PLATFORM_AWS) errors.push({ field: 'platform', code: 'enum.invalid' });
-  const target = checkCloudTarget(req.externalAccountId, req.regions);
+  if (platform.code !== CLOUD_PLATFORM_AWS) throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
+  // Cuenta y regiones declaradas, y solo se evalúan esas regiones (D53).
+  const target = checkCloudTarget(req.externalAccountId, req.regions, platform.regionCodes);
   errors.push(...target.errors);
   const { account, regions } = target;
 
@@ -92,7 +98,8 @@ export function planConnection(req: ConnectionRequest): { errors: FieldError[]; 
     errors,
     plan: {
       method: req.connectionMethod,
-      platform: CLOUD_PLATFORM_AWS,
+      platformId: platform.id,
+      platform: platform.code,
       externalAccountId: account,
       regions,
       secretToStore,
@@ -117,6 +124,8 @@ export type ConnectionSetup =
   | { method: 'agent'; steps: string[] };
 
 export const ROLE_NAME = 'MonkeyReadOnly';
+// Cómo se llama el archivo que el cliente descarga (la plantilla de CloudFormation).
+export const TEMPLATE_FILE_NAME = 'RoleMonkeyReadOnly.yaml';
 export const ROLE_TEMPLATE_PATH = '/v1/connection-templates/aws-readonly-role';
 
 export function buildConnectionSetup(

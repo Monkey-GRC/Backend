@@ -18,18 +18,34 @@ export class CapabilityCatalogPrismaRepository extends CapabilityCatalogReposito
       select: {
         catalogCode: true,
         category: true,
-        supportedPlatforms: true,
         method: true,
         requiredPermissions: true,
         baseFrequency: true,
         generatedEvidence: true,
+        // Las plataformas que el cliente elige (D67), en el orden del catálogo; el primer canal es el recomendado.
+        platforms: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            code: true,
+            name: true,
+            logoKey: true,
+            availability: true,
+            connectionMethods: { orderBy: { sortOrder: 'asc' }, select: { connectionMethod: true } },
+          },
+        },
       },
       orderBy: { catalogCode: 'asc' },
     });
-    return rows.map((r) => ({
+    return rows.map(({ platforms, ...r }) => ({
       ...r,
-      supportedPlatforms: asStrings(r.supportedPlatforms),
       requiredPermissions: asStrings(r.requiredPermissions),
+      platforms: platforms.map((p) => ({
+        code: p.code,
+        name: p.name,
+        logoKey: p.logoKey,
+        availability: p.availability,
+        connectionMethods: p.connectionMethods.map((m) => m.connectionMethod),
+      })),
     }));
   }
 }

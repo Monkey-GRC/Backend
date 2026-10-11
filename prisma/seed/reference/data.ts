@@ -106,7 +106,8 @@ export const FRAMEWORK_OFFERS: FrameworkOfferSeed[] = [
 export interface CapabilitySeed {
   catalogCode: string;
   category: string;
-  supportedPlatforms: string[];
+  // Tipo del activo que produce esta conexión (D46, D67).
+  assetType: 'server' | 'database' | 'cloud_service' | 'endpoint';
   method: string;
   requiredPermissions: string[];
   // INTERNO Y CONFIDENCIAL: nunca sale en una respuesta, pantalla, log o texto de IA (CLAUDE.md, MD-87).
@@ -128,7 +129,7 @@ export const CAPABILITIES: CapabilitySeed[] = [
   {
     catalogCode: 'ac_01',
     category: 'Servicios en nube (gestionados, sin servidor)',
-    supportedPlatforms: ['AWS', 'Azure', 'GCP', 'Microsoft 365', 'Google Workspace'],
+    assetType: 'cloud_service',
     method: 'Autorización API / rol de solo lectura u OAuth',
     requiredPermissions: ['Rol de solo lectura', 'Consentimiento OAuth'],
     provider: PROVIDER,
@@ -138,7 +139,7 @@ export const CAPABILITIES: CapabilitySeed[] = [
   {
     catalogCode: 'ac_02',
     category: 'Servidores en nube / VPS',
-    supportedPlatforms: ['Linux', 'Windows', 'HP-UX', 'AIX', 'Solaris'],
+    assetType: 'server',
     method: 'Instalar agente ligero de Monkey (o agentless SSH/WinRM)',
     requiredPermissions: [AGENT_PERMISSION],
     provider: PROVIDER,
@@ -148,7 +149,7 @@ export const CAPABILITIES: CapabilitySeed[] = [
   {
     catalogCode: 'ac_03',
     category: 'Bases de datos en nube',
-    supportedPlatforms: ['PostgreSQL', 'MySQL', 'SQL Server', 'Oracle', 'MongoDB'],
+    assetType: 'database',
     method: 'Agente en host + usuario de solo lectura',
     requiredPermissions: [DB_PERMISSION],
     provider: PROVIDER,
@@ -158,7 +159,7 @@ export const CAPABILITIES: CapabilitySeed[] = [
   {
     catalogCode: 'ac_04',
     category: 'Servidores on-premise',
-    supportedPlatforms: ['Linux', 'Windows', 'HP-UX', 'AIX', 'Solaris'],
+    assetType: 'server',
     method: 'Instalar agente ligero de Monkey (o agentless SSH/WinRM)',
     requiredPermissions: [AGENT_PERMISSION],
     provider: PROVIDER,
@@ -168,7 +169,7 @@ export const CAPABILITIES: CapabilitySeed[] = [
   {
     catalogCode: 'ac_05',
     category: 'Bases de datos on-premise',
-    supportedPlatforms: ['PostgreSQL', 'MySQL/MariaDB', 'SQL Server', 'Oracle', 'MongoDB'],
+    assetType: 'database',
     method: 'Agente en host + usuario de solo lectura',
     requiredPermissions: [DB_PERMISSION],
     provider: PROVIDER,
@@ -178,7 +179,7 @@ export const CAPABILITIES: CapabilitySeed[] = [
   {
     catalogCode: 'ac_06',
     category: 'Endpoints / estaciones de trabajo',
-    supportedPlatforms: ['Windows', 'macOS', 'Linux'],
+    assetType: 'endpoint',
     method: 'Instalar agente ligero de Monkey',
     requiredPermissions: ['Permisos de administrador local para la instalación'],
     provider: PROVIDER,
@@ -187,11 +188,108 @@ export const CAPABILITIES: CapabilitySeed[] = [
   },
 ];
 
-// Qué conexiones se ofrecen según el escenario de despliegue (contracts/enums.md `deployment_scenario`).
-// No se guarda en una tabla: es una regla que el servicio de catálogo aplica. `hybrid` ofrece las seis.
+// Qué conexiones se ofrecen según el escenario de despliegue (contracts/enums.md `deployment_scenario`). Es dato, no código (D67):
+// `catalog.deployment_scenario_capabilities`. `hybrid` son las seis filas, sin regla especial.
 export const CAPABILITIES_BY_SCENARIO: Record<string, string[]> = {
   cloud_managed_only: ['ac_01'],
   cloud_with_servers: ['ac_01', 'ac_02', 'ac_03'],
   on_premise: ['ac_04', 'ac_05', 'ac_06'],
   hybrid: ['ac_01', 'ac_02', 'ac_03', 'ac_04', 'ac_05', 'ac_06'],
+};
+
+// Con qué frecuencia puede correr cada conexión (`catalog.capability_frequencies`). ac_01 es por lotes; el resto, continuo (modelo-datos.md §6.3).
+export const FREQUENCIES_BY_CAPABILITY: Record<string, string[]> = {
+  ac_01: ['every_6h', 'every_24h'],
+  ac_02: ['continuous'],
+  ac_03: ['continuous'],
+  ac_04: ['continuous'],
+  ac_05: ['continuous'],
+  ac_06: ['continuous'],
+};
+
+export type ConnectionMethodSeed = 'readonly_role' | 'access_keys' | 'agent';
+
+export interface PlatformSeed {
+  capability: string;
+  code: string;
+  // La marca tal cual: no se traduce.
+  name: string;
+  // Nombre del SVG oficial en Frontend-Platform (`public/providers/<logoKey>.svg`).
+  logoKey: string;
+  availability: 'available' | 'coming_soon';
+  // Canales de la plataforma; el primero es el recomendado (D53). Vacío = aún no tiene canal.
+  methods: ConnectionMethodSeed[];
+}
+
+// Fuente: columna «plataformas» de la hoja «Activos del Servicio (SCOPE)» del comité (AC-01…AC-06), en su orden (D67). En nube son proveedores;
+// en servidores y equipos, el sistema operativo; en bases de datos, el motor. RDS, Cloud SQL, EC2, Azure VM… que el comité cita son DÓNDE vive, no la plataforma.
+// Solo AWS está `available`: es el único flujo construido (D58). Los demás se muestran bloqueados hasta tener su flujo.
+// Los sistemas operativos y los motores llevan `agent`, que es su diseño (DT-57), aunque estén bloqueados.
+const platform = (
+  capability: string,
+  code: string,
+  name: string,
+  methods: ConnectionMethodSeed[] = [],
+  logoKey: string = code,
+  availability: PlatformSeed['availability'] = 'coming_soon',
+): PlatformSeed => ({ capability, code, name, logoKey, availability, methods });
+const OS_SERVER = (capability: string): PlatformSeed[] => [
+  platform(capability, 'linux', 'Linux', ['agent']),
+  platform(capability, 'windows', 'Windows', ['agent']),
+  platform(capability, 'hp_ux', 'HP-UX', ['agent']),
+  platform(capability, 'aix', 'AIX', ['agent']),
+  platform(capability, 'solaris', 'Solaris', ['agent']),
+];
+
+export const PLATFORMS: PlatformSeed[] = [
+  platform('ac_01', 'aws', 'Amazon Web Services', ['readonly_role', 'access_keys'], 'aws', 'available'),
+  platform('ac_01', 'azure', 'Azure'),
+  platform('ac_01', 'gcp', 'GCP'),
+  platform('ac_01', 'microsoft_365', 'Microsoft 365'),
+  platform('ac_01', 'google_workspace', 'Google Workspace'),
+  ...OS_SERVER('ac_02'),
+  platform('ac_03', 'postgresql', 'PostgreSQL', ['agent']),
+  platform('ac_03', 'mysql', 'MySQL', ['agent']),
+  platform('ac_03', 'sql_server', 'SQL Server', ['agent']),
+  platform('ac_03', 'oracle', 'Oracle', ['agent']),
+  platform('ac_03', 'mongodb', 'MongoDB', ['agent']),
+  ...OS_SERVER('ac_04'),
+  platform('ac_05', 'postgresql', 'PostgreSQL', ['agent']),
+  platform('ac_05', 'mysql_mariadb', 'MySQL / MariaDB', ['agent'], 'mysql'),
+  platform('ac_05', 'sql_server', 'SQL Server', ['agent']),
+  platform('ac_05', 'oracle', 'Oracle', ['agent']),
+  platform('ac_05', 'mongodb', 'MongoDB', ['agent']),
+  platform('ac_06', 'windows', 'Windows', ['agent']),
+  platform('ac_06', 'macos', 'macOS', ['agent']),
+  platform('ac_06', 'linux', 'Linux', ['agent']),
+];
+
+export interface PlatformRegionSeed {
+  code: string;
+  // Nombre del proveedor. La etiqueta que ve el cliente sale de i18n (`catalogs.aws_region.<code>`) cuando existe.
+  name: string;
+}
+
+// Las regiones que el cliente puede declarar (y las únicas que se evalúan, D53), por plataforma. Hoy solo AWS tiene flujo. Todas las entiende el motor.
+export const PLATFORM_REGIONS: Record<string, PlatformRegionSeed[]> = {
+  'ac_01/aws': [
+    { code: 'us-east-1', name: 'N. Virginia' },
+    { code: 'us-east-2', name: 'Ohio' },
+    { code: 'us-west-1', name: 'N. California' },
+    { code: 'us-west-2', name: 'Oregon' },
+    { code: 'ca-central-1', name: 'Canada Central' },
+    { code: 'mx-central-1', name: 'Mexico Central' },
+    { code: 'sa-east-1', name: 'São Paulo' },
+    { code: 'eu-west-1', name: 'Ireland' },
+    { code: 'eu-west-2', name: 'London' },
+    { code: 'eu-west-3', name: 'Paris' },
+    { code: 'eu-central-1', name: 'Frankfurt' },
+    { code: 'eu-north-1', name: 'Stockholm' },
+    { code: 'eu-south-1', name: 'Milan' },
+    { code: 'ap-south-1', name: 'Mumbai' },
+    { code: 'ap-northeast-1', name: 'Tokyo' },
+    { code: 'ap-northeast-2', name: 'Seoul' },
+    { code: 'ap-southeast-1', name: 'Singapore' },
+    { code: 'ap-southeast-2', name: 'Sydney' }
+  ],
 };
