@@ -7,6 +7,7 @@ import { DomainError } from '../../../../common/errors/domain-error';
 import { Catalog } from '../../domain/entities/catalog-item';
 import { CapabilityCatalogRepository } from '../../domain/repositories/capability-catalog.repository';
 import { FrameworkCatalogRepository } from '../../domain/repositories/framework-catalog.repository';
+import { RegionCatalogRepository } from '../../domain/repositories/region-catalog.repository';
 import { RegulationCatalogRepository } from '../../domain/repositories/regulation-catalog.repository';
 
 // GET /v1/catalogs/{name}: las opciones de los formularios. El frontend no hardcodea listas.
@@ -16,6 +17,7 @@ export class GetCatalogUseCase {
     private readonly regulations: RegulationCatalogRepository,
     private readonly frameworks: FrameworkCatalogRepository,
     private readonly capabilities: CapabilityCatalogRepository,
+    private readonly regions: RegionCatalogRepository,
   ) {}
 
   async execute(name: string): Promise<Catalog> {
@@ -27,6 +29,13 @@ export class GetCatalogUseCase {
     }
     if (name === 'frameworks') {
       return { kind: 'frameworks', items: await this.frameworks.findAll() };
+    }
+    // `<plataforma>_region` (p. ej. `aws_region`): las regiones de esa plataforma salen de la base (D67), no de una lista del código.
+    const region = /^([a-z0-9_]+)_region$/.exec(name);
+    if (region) {
+      const items = await this.regions.findByPlatform(region[1]);
+      if (items.length === 0) throw new DomainError('NOT_FOUND');
+      return { kind: 'regions', items };
     }
     if (!Object.prototype.hasOwnProperty.call(ENUM_CATALOGS, name)) {
       throw new DomainError('NOT_FOUND');

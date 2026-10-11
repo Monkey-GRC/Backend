@@ -109,10 +109,12 @@ describe('A no puede modificar lo de B', () => {
   it('no se puede registrar un activo propio enlazado al servicio de B', async () => {
     const res = await a.agent.post('/v1/assets').send({
       name: `intruso-${Date.now()}`,
-      connection_category: 'ac_02',
-      platform: 'Ubuntu 22.04',
+      connection_category: 'ac_01',
+      platform: 'aws',
+      connection_method: 'readonly_role',
+      external_account_id: '123456789012',
+      regions: ['us-east-1'],
       service_ids: [b.serviceId],
-      credentials: { connection_method: 'agent' },
     });
     expect(res.status).not.toBe(201);
     expect(res.status).toBeLessThan(500);

@@ -130,11 +130,13 @@ describe('Si el rastro falla, la acción se revierte (y el rastro también)', ()
   it('registrar, validar, activar y programar un activo', async () => {
     const total = async () => (await a.agent.get('/v1/assets')).body.data.total as number;
     const assetBody = {
-      name: `srv-fallido-${RUN}`,
-      connection_category: 'ac_02',
-      platform: 'Ubuntu 22.04',
+      name: `aws-fallido-${RUN}`,
+      connection_category: 'ac_01',
+      platform: 'aws',
+      connection_method: 'readonly_role',
+      external_account_id: '123456789012',
+      regions: ['us-east-1'],
       service_ids: [a.serviceId],
-      credentials: { connection_method: 'agent' },
     };
     const count = await total();
     auditFailsAfterInsert();
@@ -156,7 +158,7 @@ describe('Si el rastro falla, la acción se revierte (y el rastro también)', ()
     expect((await a.agent.post(`/v1/assets/${a.assetId}/activate`)).status).toBe(200);
     const activated = await snapshot();
     auditFailsAfterInsert();
-    expect((await a.agent.put(`/v1/assets/${a.assetId}/schedule`).send({ frequency: 'continuous' })).status).toBe(500);
+    expect((await a.agent.put(`/v1/assets/${a.assetId}/schedule`).send({ frequency: 'every_6h' })).status).toBe(500);
     expect(await snapshot()).toBe(activated);
   });
 

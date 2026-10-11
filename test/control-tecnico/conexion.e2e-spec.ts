@@ -102,15 +102,18 @@ describe('Alta de una cuenta de nube con su canal de conexión', () => {
     ['sin regiones', { regions: [] }, 'regions', 'array.min'],
     ['región inventada', { regions: ['us-east-1; rm -rf /'] }, 'regions', 'invalid'],
     ['región repetida', { regions: ['us-east-1', 'us-east-1'] }, 'regions', 'array.unique'],
-    ['otro proveedor', { platform: 'azure' }, 'platform', 'enum.invalid'],
+    ['una plataforma bloqueada (Azure todavía no tiene flujo)', { platform: 'azure' }, 'platform', 'connection.provider_not_supported'],
+    ['una plataforma que no es de esa conexión (Linux no es de nube)', { platform: 'linux' }, 'platform', 'platform.not_in_category'],
+    ['una plataforma que no existe', { platform: 'no-existe' }, 'platform', 'platform.not_in_category'],
+    ['sin canal de conexión', { connection_method: undefined }, 'connection_method', 'enum.invalid'],
     ['credenciales con el canal de rol', { credentials: { access_key_id: 'x' } }, 'credentials', 'field.not_allowed'],
   ])('rechaza %s (422, con el campo y su texto)', async (_n, over, field, code) => {
     const res = await create(a, roleAsset(over)).expect(422);
     expect(res.body.error.fields).toEqual(expect.arrayContaining([expect.objectContaining({ field, code, message: expect.any(String) })]));
   });
 
-  it('un canal que no existe para la categoría es 409, no un error de formulario', async () => {
-    const res = await create(a, roleAsset({ connection_category: 'ac_02', connection_method: 'readonly_role' })).expect(409);
+  it('un canal que la plataforma no tiene es 409, no un error de formulario', async () => {
+    const res = await create(a, roleAsset({ connection_method: 'agent' })).expect(409);
     expect(res.body.error.code).toBe('CONNECTION_METHOD_NOT_APPLICABLE');
   });
 
@@ -138,6 +141,20 @@ describe('Las opciones de la pantalla vienen del backend, con su texto', () => {
   it('el alta solo acepta las regiones que se ofrecen', async () => {
     await create(a, roleAsset({ regions: ['us-gov-west-1'] })).expect(422); // existe en AWS, pero no se ofrece
     await create(a, roleAsset({ regions: ['eu-west-1'] })).expect(201);
+  });
+  // D67: las reglas son datos, no código. Agregar una región a la plataforma en la base cambia lo que el catálogo ofrece y lo que el alta acepta, sin tocar el código.
+  it('las regiones salen de la base: agregar una cambia el catálogo y lo que el alta acepta', async () => {
+    const REGION = 'us-gov-west-1';
+    const ids = await owner<{ id: string }>(`select p.id from catalog.capability_platforms p join catalog.automated_capabilities c on c.id = p.automated_capability_id where c.catalog_code = 'ac_01' and p.code = 'aws'`);
+    try {
+      await owner('insert into catalog.platform_regions (id, platform_id, code, name, sort_order) values (gen_random_uuid(), $1, $2, $3, 99)', [ids[0].id, REGION, 'GovCloud (US-West)']);
+      const items = (await a.agent.get('/v1/catalogs/aws_region').expect(200)).body.data.items as { value: string; label: string }[];
+      expect(items.find((r) => r.value === REGION)).toEqual({ value: REGION, label: 'GovCloud (US-West)' }); // sin etiqueta traducida: el nombre del proveedor
+      await create(a, roleAsset({ regions: [REGION] })).expect(201);
+    } finally {
+      await owner('delete from catalog.platform_regions where platform_id = $1 and code = $2', [ids[0].id, REGION]);
+    }
+    await create(a, roleAsset({ regions: [REGION] })).expect(422);
   });
 });
 
@@ -624,9 +641,17 @@ describe('Comprobar la conexión: validación REAL a través del trabajador', ()
     expect((await a.agent.get(`/v1/assets/${id}/readiness`).expect(200)).body.data.readiness).toBe('not_measured');
   });
 
-  it('los agentes no se validan desde el trabajador de la nube: 503 honesto', async () => {
-    const res = await create(a, { name: `srv-${RUN}`, connection_category: 'ac_02', connection_method: 'agent', platform: 'Ubuntu 22.04', service_ids: [a.serviceId] }).expect(201);
-    expect(res.body.data.connection_setup).toMatchObject({ method: 'agent' });
-    await validate(a, res.body.data.id).expect(503);
+  // D67: servidores, bases de datos y equipos se muestran bloqueados hasta que exista el canal de agente (DT-57): no se pueden registrar.
+  it.each([
+    ['ac_02', 'linux'],
+    ['ac_03', 'postgresql'],
+    ['ac_04', 'windows'],
+    ['ac_05', 'mysql_mariadb'],
+    ['ac_06', 'macos'],
+  ])('%s/%s está bloqueada: se muestra pero no se puede conectar, y no deja nada registrado', async (category, platform) => {
+    const before = (await a.agent.get('/v1/assets').expect(200)).body.data.total as number;
+    const res = await create(a, { name: `srv-${RUN}`, connection_category: category, connection_method: 'agent', platform, service_ids: [a.serviceId] }).expect(422);
+    expect(res.body.error.fields).toEqual(expect.arrayContaining([expect.objectContaining({ field: 'platform', code: 'connection.provider_not_supported' })]));
+    expect((await a.agent.get('/v1/assets').expect(200)).body.data.total).toBe(before);
   });
 });

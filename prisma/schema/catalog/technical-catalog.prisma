@@ -1,18 +1,105 @@
 model AutomatedCapability {
-  id                  String @id @default(uuid()) @db.Uuid
-  catalogCode         String @unique @map("catalog_code")
+  id                  String    @id @default(uuid()) @db.Uuid
+  catalogCode         String    @unique @map("catalog_code")
   category            String
-  supportedPlatforms  Json   @map("supported_platforms")
+  // Qué tipo de activo produce esta conexión (D46, D67): el cliente elige qué conectar y no lo clasifica dos veces.
+  assetType           AssetType @map("asset_type")
   method              String
-  requiredPermissions Json   @map("required_permissions")
+  requiredPermissions Json      @map("required_permissions")
   provider            String
-  baseFrequency       String @map("base_frequency")
-  generatedEvidence   String @map("generated_evidence") @db.Text
+  baseFrequency       String    @map("base_frequency")
+  generatedEvidence   String    @map("generated_evidence") @db.Text
 
   monitoringDomains  MonitoringDomainCapability[]
   assetProvisionings AssetProvisioning[]
+  platforms          CapabilityPlatform[]
+  frequencies        CapabilityFrequency[]
+  scenarios          DeploymentScenarioCapability[]
 
   @@map("automated_capabilities")
+  @@schema("catalog")
+}
+
+// Lo que el cliente elige al conectar (D67): un proveedor de nube, un sistema operativo o un motor de base de datos, según la conexión. Es la
+// columna «plataformas» de la hoja AC-01…AC-06 del comité, hecha dato. `availability` es el de los marcos (D50): solo se elige lo que
+// tiene un flujo real (`available`); el resto se muestra bloqueado (`coming_soon`).
+model CapabilityPlatform {
+  id                    String                @id @default(uuid()) @db.Uuid
+  automatedCapabilityId String                @map("automated_capability_id") @db.Uuid
+  // Único por conexión: `linux` existe en ac_02, ac_04 y ac_06 porque su disponibilidad y su flujo son de cada una.
+  code                  String
+  // La marca tal cual: no se traduce.
+  name                  String
+  // Nombre del SVG oficial en Frontend-Platform. La base nunca guarda el SVG: se muestra con <img>, no se inyecta.
+  logoKey               String                @map("logo_key")
+  availability          FrameworkAvailability @default(coming_soon)
+  sortOrder             Int                   @map("sort_order")
+
+  automatedCapability AutomatedCapability    @relation(fields: [automatedCapabilityId], references: [id])
+  connectionMethods   PlatformConnectionMethod[]
+  regions             PlatformRegion[]
+  assets              Asset[]
+
+  @@unique([automatedCapabilityId, code])
+  @@map("capability_platforms")
+  @@schema("catalog")
+}
+
+// Canales con los que se conecta una plataforma; el recomendado va marcado y primero (D53). Una plataforma sin canal aún no se puede conectar.
+model PlatformConnectionMethod {
+  id               String           @id @default(uuid()) @db.Uuid
+  platformId       String           @map("platform_id") @db.Uuid
+  connectionMethod ConnectionMethod @map("connection_method")
+  isRecommended    Boolean          @default(false) @map("is_recommended")
+  sortOrder        Int              @map("sort_order")
+
+  platform CapabilityPlatform @relation(fields: [platformId], references: [id])
+
+  @@unique([platformId, connectionMethod])
+  @@map("platform_connection_methods")
+  @@schema("catalog")
+}
+
+// Las regiones que el cliente puede declarar para una plataforma, y las únicas que se evalúan (D53). `name` es el nombre del proveedor; la etiqueta
+// que ve el cliente sale de i18n cuando existe.
+model PlatformRegion {
+  id         String @id @default(uuid()) @db.Uuid
+  platformId String @map("platform_id") @db.Uuid
+  code       String
+  name       String
+  sortOrder  Int    @map("sort_order")
+
+  platform CapabilityPlatform @relation(fields: [platformId], references: [id])
+
+  @@unique([platformId, code])
+  @@map("platform_regions")
+  @@schema("catalog")
+}
+
+// Cada cuánto puede correr una conexión (paso «programar»). ac_01 cada 6 o 24 horas; el resto, continuo.
+model CapabilityFrequency {
+  id                    String            @id @default(uuid()) @db.Uuid
+  automatedCapabilityId String            @map("automated_capability_id") @db.Uuid
+  scheduleFrequency     ScheduleFrequency @map("schedule_frequency")
+
+  automatedCapability AutomatedCapability @relation(fields: [automatedCapabilityId], references: [id])
+
+  @@unique([automatedCapabilityId, scheduleFrequency])
+  @@map("capability_frequencies")
+  @@schema("catalog")
+}
+
+// Qué conexiones se le ofrecen al cliente según el escenario de su servicio (D46). «Híbrido» son las seis filas, sin regla especial.
+model DeploymentScenarioCapability {
+  id                    String             @id @default(uuid()) @db.Uuid
+  deploymentScenario    DeploymentScenario @map("deployment_scenario")
+  automatedCapabilityId String             @map("automated_capability_id") @db.Uuid
+
+  automatedCapability AutomatedCapability @relation(fields: [automatedCapabilityId], references: [id])
+
+  @@unique([deploymentScenario, automatedCapabilityId])
+  @@index([automatedCapabilityId])
+  @@map("deployment_scenario_capabilities")
   @@schema("catalog")
 }
 

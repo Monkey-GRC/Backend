@@ -59,7 +59,7 @@ export class CreateAssetDto {
   @IsIn(CONNECTION_CATEGORY_VALUES)
   connection_category!: (typeof CONNECTION_CATEGORY_VALUES)[number];
 
-  @ApiProperty({ example: 'Linux' })
+  @ApiProperty({ example: 'aws', description: 'El `code` de la plataforma que el cliente eligió en el marketplace (D67). Debe pertenecer a la conexión y estar disponible.' })
   @Transform(trim)
   @IsString()
   @IsNotEmpty()
@@ -106,16 +106,15 @@ export class CreateAssetDto {
   responsible_id?: string | null;
 
   @ApiPropertyOptional({
-    description: 'Solo viaja al crear: se guarda cifrado y nunca se devuelve. Los campos dependen de la conexión.',
+    description: 'Solo viaja al crear en el canal de llaves: se guarda cifrado y nunca se devuelve.',
   })
   @IsOptional()
   @IsObject()
   credentials?: Record<string, unknown>;
 
-  @ApiPropertyOptional({ enum: CONNECTION_METHOD_VALUES, description: 'Canal de conexión (D53). Sin él rige el formulario provisional.' })
-  @IsOptional()
+  @ApiProperty({ enum: CONNECTION_METHOD_VALUES, description: 'Canal de conexión (D53): uno de los de su plataforma.' })
   @IsIn(CONNECTION_METHOD_VALUES)
-  connection_method?: (typeof CONNECTION_METHOD_VALUES)[number];
+  connection_method!: (typeof CONNECTION_METHOD_VALUES)[number];
 
   @ApiPropertyOptional({ nullable: true, example: '123456789012', description: 'Cuenta de AWS a la que apunta la conexión.' })
   @IsOptional()

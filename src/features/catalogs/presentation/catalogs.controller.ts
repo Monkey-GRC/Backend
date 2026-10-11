@@ -29,9 +29,23 @@ function toItems(catalog: Catalog) {
       method: c.method,
       required_permissions: c.requiredPermissions,
       base_frequency: c.baseFrequency,
-      supported_platforms: c.supportedPlatforms,
+      // Lo que el cliente elige al conectar (D67). `name` es la marca y no se traduce; `logo_key` es el nombre del SVG en la plataforma.
+      platforms: c.platforms.map((p) => ({
+        code: p.code,
+        name: p.name,
+        logo_key: p.logoKey,
+        availability: p.availability,
+        connection_methods: p.connectionMethods,
+      })),
       generated_evidence: c.generatedEvidence,
     }));
+  }
+  if (catalog.kind === 'regions') {
+    // La etiqueta sale de i18n cuando existe; si no, el nombre del proveedor.
+    return catalog.items.map((r) => {
+      const label = t(`catalogs.aws_region.${r.code}`);
+      return { value: r.code, label: label === `catalogs.aws_region.${r.code}` ? r.name : label };
+    });
   }
   if (catalog.kind === 'regulations') {
     return catalog.items.map((r) => ({

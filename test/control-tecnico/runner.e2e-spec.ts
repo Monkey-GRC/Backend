@@ -5,7 +5,7 @@ import { CredentialBroker, RunnerLogger, ScanEngine } from '../../src/runner/dom
 import { EngineInput, EngineRun, FAILURE, RunnerFailure, RunnerJob, TemporaryCredentials } from '../../src/runner/domain/runner.types';
 import { HttpRunnerApi } from '../../src/runner/infrastructure/http-runner-api';
 import { bootApp, owner, RUN, RUNNER_TOKEN } from '../support/app';
-import { dosEmpresas, Tenant } from '../support/escenario';
+import { awsBody, dosEmpresas, Tenant } from '../support/escenario';
 
 // D57: el trabajador de punta a punta. El bucle, el cliente HTTP y el backend son los REALES; solo el motor y las credenciales de AWS son
 // simulados (el adaptador de Docker se prueba aparte). Es lo más cercano a lo que pasa en la VPS sin gastar una llamada a AWS.
@@ -56,8 +56,10 @@ const runner = (engine: ScanEngine, broker: CredentialBroker, token = RUNNER_TOK
 
 /** Un activo de nube con conexión validada y regiones declaradas. */
 async function cloudAsset(t: Tenant, name: string): Promise<string> {
-  const res = await t.agent.post('/v1/assets').send({ name, connection_category: 'ac_01', platform: 'AWS', service_ids: [t.serviceId], credentials: { account_id: ACCOUNT, read_only_role: ROLE_ARN, external_id: `mk-${RUN}` } });
+  const res = await t.agent.post('/v1/assets').send(awsBody(t, name));
   if (res.status !== 201) throw new Error(`activo: ${res.status} ${JSON.stringify(res.body)}`);
+  await t.agent.patch(`/v1/assets/${res.body.data.id}/connection`).send({ role_arn: ROLE_ARN }).expect(200);
+  await owner('update tenant.asset_provisionings set external_id = $2 where asset_id = $1', [res.body.data.id, `mk-${RUN}`]);
   await t.agent.post(`/v1/assets/${res.body.data.id}/validate`).expect(200);
   await owner('update tenant.asset_provisionings set regions = array[$2] where asset_id = $1', [res.body.data.id, 'us-east-1']);
   return res.body.data.id;

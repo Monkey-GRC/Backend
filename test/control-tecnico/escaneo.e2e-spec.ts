@@ -10,7 +10,7 @@ import {
   QueueExecutionUseCase,
 } from '../../src/features/technical-control/application/use-cases/scan.use-cases';
 import { bootApp, owner, RUN } from '../support/app';
-import { dosEmpresas, Tenant } from '../support/escenario';
+import { awsBody, dosEmpresas, Tenant } from '../support/escenario';
 
 // D56, D57: una corrida de la sonda de nube se guarda entera o no se guarda (con su rastro, SEG-36), vive bajo RLS, sigue un ciclo de vida
 // (en cola → en curso → completada o fallida) y de ella se deriva el estado de preparación. Los checks usados existen en el catálogo real;
@@ -68,13 +68,18 @@ const importArgs = (assetId: string, raw: unknown, over: Record<string, unknown>
   ...over,
 });
 
-/** Un activo de nube con conexión ya validada, creado por la API real (el formulario provisional del paso 3). */
-async function cloudAsset(t: Tenant, name: string, credentials: Record<string, string>, extra: Record<string, unknown> = {}): Promise<string> {
-  const res = await t.agent.post('/v1/assets').send({ name, connection_category: 'ac_01', platform: 'AWS', service_ids: [t.serviceId], credentials, ...extra });
+/** Un activo de nube con conexión ya validada, creado por la API real como lo hace la pantalla (D67): alta con rol, ARN del rol y comprobación. */
+async function cloudAsset(t: Tenant, name: string, extra: Record<string, unknown> = {}): Promise<string> {
+  const res = await t.agent.post('/v1/assets').send(awsBody(t, name, extra));
   if (res.status !== 201) throw new Error(`activo de nube: ${res.status} ${JSON.stringify(res.body)}`);
-  const v = await t.agent.post(`/v1/assets/${res.body.data.id}/validate`);
+  const id = res.body.data.id as string;
+  const patched = await t.agent.patch(`/v1/assets/${id}/connection`).send({ role_arn: ROLE_ARN });
+  if (patched.status !== 200) throw new Error(`rol: ${patched.status} ${JSON.stringify(patched.body)}`);
+  // El ExternalId lo genera Monkey al azar; las pruebas que miran el trabajo reclamado necesitan uno conocido.
+  await owner('update tenant.asset_provisionings set external_id = $2 where asset_id = $1', [id, `mk-${RUN}`]);
+  const v = await t.agent.post(`/v1/assets/${id}/validate`);
   if (v.status !== 200) throw new Error(`validar: ${v.status} ${JSON.stringify(v.body)}`);
-  return res.body.data.id;
+  return id;
 }
 /** Las regiones declaradas viven en el aprovisionamiento (D53); aún no hay endpoint que las fije, así que se preparan como dueño. */
 const declareRegions = (assetId: string, regions: string[]) => owner('update tenant.asset_provisionings set regions = $2 where asset_id = $1', [assetId, regions]);
@@ -116,7 +121,7 @@ describe('Importar una corrida: se guarda y se lee bajo RLS', () => {
   let assetId: string;
   let executionId: string;
   beforeAll(async () => {
-    assetId = await cloudAsset(a, `aws-import-${RUN}`, { account_id: ACCOUNT, read_only_role: ROLE_ARN });
+    assetId = await cloudAsset(a, `aws-import-${RUN}`);
   });
 
   it('guarda ejecución, recursos y resultados, y NO guarda los checks sin filas', async () => {
@@ -191,7 +196,7 @@ describe('Importar una corrida: se guarda y se lee bajo RLS', () => {
 describe('Ciclo de vida: en cola → en curso → completada o fallida (D57)', () => {
   let assetId: string;
   beforeAll(async () => {
-    assetId = await cloudAsset(a, `aws-ciclo-${RUN}`, { account_id: ACCOUNT, read_only_role: ROLE_ARN, external_id: `mk-${RUN}` });
+    assetId = await cloudAsset(a, `aws-ciclo-${RUN}`);
     await declareRegions(assetId, ['us-east-1', 'us-east-2']);
   });
   beforeEach(drainQueue);
@@ -212,7 +217,7 @@ describe('Ciclo de vida: en cola → en curso → completada o fallida (D57)', (
   });
 
   it('un activo cuya conexión no se validó, o de otra empresa, no se puede evaluar', async () => {
-    const res = await a.agent.post('/v1/assets').send({ name: `aws-sin-validar-${RUN}`, connection_category: 'ac_01', platform: 'AWS', service_ids: [a.serviceId], credentials: { account_id: ACCOUNT, read_only_role: ROLE_ARN } });
+    const res = await a.agent.post('/v1/assets').send(awsBody(a, `aws-sin-validar-${RUN}`));
     await expect(queue.execute(principal(a, aUserId), res.body.data.id, meta)).rejects.toMatchObject({ code: 'ASSET_NOT_VALIDATED' });
     await expect(queue.execute(principal(b, aUserId), assetId, meta)).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
@@ -262,7 +267,8 @@ describe('Ciclo de vida: en cola → en curso → completada o fallida (D57)', (
   });
 
   it('una conexión que no sirve (sin regiones declaradas) se cierra como fallida y no se entrega al trabajador', async () => {
-    const sinRegiones = await cloudAsset(a, `aws-sin-regiones-${RUN}`, { account_id: ACCOUNT, read_only_role: ROLE_ARN });
+    const sinRegiones = await cloudAsset(a, `aws-sin-regiones-${RUN}`);
+    await declareRegions(sinRegiones, []);
     const { executionId } = await queue.execute(principal(a, aUserId), sinRegiones, meta);
     expect(await claim.execute()).toBeNull();
     const [ex] = await owner<{ status: string; failure_reason: string }>('select status, failure_reason from tenant.executions where id = $1', [executionId]);
@@ -270,9 +276,9 @@ describe('Ciclo de vida: en cola → en curso → completada o fallida (D57)', (
   });
 
   it('una conexión de llaves sin llaves guardadas falla en voz alta, y ningún secreto queda en el rastro', async () => {
-    const keys = await cloudAsset(a, `aws-llaves-${RUN}`, { account_id: ACCOUNT, read_only_role: ROLE_ARN });
+    const keys = await cloudAsset(a, `aws-llaves-${RUN}`);
     await owner(`update tenant.asset_provisionings set regions = array['us-east-1'], connection_method = 'access_keys' where asset_id = $1`, [keys]);
-    // el formulario provisional no guarda llaves: la conexión de llaves sin ellas falla en voz alta
+    // la conexión nació con rol y no guarda llaves: al pasarla a llaves sin ellas, falla en voz alta
     const { executionId } = await queue.execute(principal(a, aUserId), keys, meta);
     expect(await claim.execute()).toBeNull();
     const [ex] = await owner<{ failure_reason: string }>('select failure_reason from tenant.executions where id = $1', [executionId]);
@@ -306,7 +312,7 @@ describe('El estado de preparación de un servicio mide solo sus activos (D61)',
   const state = (serviceId?: string) => readiness.execute({ companyId: a.companyId }, assetId, { includeProposed: true, serviceId });
 
   beforeAll(async () => {
-    assetId = await cloudAsset(a, `aws-servicio-${RUN}`, { account_id: ACCOUNT, read_only_role: ROLE_ARN });
+    assetId = await cloudAsset(a, `aws-servicio-${RUN}`);
     await importScan.execute({ companyId: a.companyId }, importArgs(assetId, failing()));
     // El grupo de seguridad que falla es un ACTIVO del cliente (descubierto dentro de la conexión); lo demás (MFA, registro de actividad) es de toda la cuenta.
     childId = (

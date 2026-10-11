@@ -1,12 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import {
-  ASSET_TYPE_BY_CATEGORY,
   ConnectionCategory,
   ConnectionMethodValue,
   DeploymentScenarioValue,
-  FREQUENCIES_BY_CATEGORY,
   NO_COVERAGE,
-  SCENARIO_CAPABILITIES,
   ScheduleFrequencyValue,
 } from '../../../../common/catalogs/technical-catalogs';
 import { ResourceKindValue } from '../../../../common/catalogs/technical-catalogs';
@@ -50,7 +47,17 @@ const ASSET_INCLUDE = {
 const CAPABILITY_SELECT = {
   catalogCode: true,
   category: true,
-  supportedPlatforms: true,
+  // Las plataformas que el cliente elige (D67), en el orden del catálogo.
+  platforms: {
+    orderBy: { sortOrder: 'asc' as const },
+    select: {
+      code: true,
+      name: true,
+      logoKey: true,
+      availability: true,
+      connectionMethods: { orderBy: { sortOrder: 'asc' as const }, select: { connectionMethod: true } },
+    },
+  },
   method: true,
   requiredPermissions: true,
   baseFrequency: true,
@@ -68,6 +75,15 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
 
   // ---- escenario y scope ----------------------------------------------------------------------
 
+  // Qué conexiones ofrece cada escenario es un dato del catálogo (`deployment_scenario_capabilities`, D67), no una regla del código.
+  private async categoriesFor(tx: TransactionClient, scenario: DeploymentScenarioValue): Promise<ConnectionCategory[]> {
+    const rows = await tx.deploymentScenarioCapability.findMany({
+      where: { deploymentScenario: scenario },
+      select: { automatedCapability: { select: { catalogCode: true } } },
+    });
+    return rows.map((r) => r.automatedCapability.catalogCode as ConnectionCategory);
+  }
+
   setDeploymentScenario(
     scope: TenantScope,
     serviceId: string,
@@ -82,7 +98,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
       if (!service) return null;
 
       // Cambiar de escenario no puede dejar huérfana una conexión ya registrada en este servicio.
-      const allowed = SCENARIO_CAPABILITIES[scenario];
+      const allowed = await this.categoriesFor(tx, scenario);
       const orphaned = await tx.asset.findMany({
         where: { status: 'active', parentAssetId: null, serviceAssets: { some: { serviceId } }, connectionCategory: { notIn: [...allowed] } },
         select: { code: true },
@@ -129,7 +145,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
         if (!service.deploymentScenario) {
           throw new DomainError('DEPLOYMENT_SCENARIO_NOT_SET', { service: service.name });
         }
-        const allowed = SCENARIO_CAPABILITIES[service.deploymentScenario as DeploymentScenarioValue];
+        const allowed = await this.categoriesFor(tx, service.deploymentScenario as DeploymentScenarioValue);
         if (!allowed.includes(input.connectionCategory)) {
           throw new DomainError('CAPABILITY_NOT_APPLICABLE', { service: service.name });
         }
@@ -143,7 +159,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
       }
       const capability = await tx.automatedCapability.findUnique({
         where: { catalogCode: input.connectionCategory },
-        select: { id: true },
+        select: { id: true, assetType: true },
       });
       if (!capability) throw new Error(`Falta sembrar la capacidad ${input.connectionCategory}`);
 
@@ -160,9 +176,11 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
           responsibleId: input.responsibleId,
           code: `${ASSET_PREFIX}${String(next).padStart(4, '0')}`,
           connectionCategory: input.connectionCategory,
-          type: ASSET_TYPE_BY_CATEGORY[input.connectionCategory],
+          // El tipo del activo lo dice la conexión (D46, D67): el cliente no lo clasifica dos veces.
+          type: capability.assetType,
           name: input.name,
           platform: input.platform,
+          platformId: input.platformId,
           ipAddress: input.ipAddress,
           location: input.location,
           criticality: input.criticality as 'low',
@@ -450,11 +468,14 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
     return this.prisma.withScope(scope, async (tx) => {
       const before = await this.readAsset(tx, id);
       if (!before.provisioning.isActive) throw new DomainError('ASSET_NOT_ACTIVE');
-      if (!FREQUENCIES_BY_CATEGORY[before.connectionCategory].includes(frequency)) {
-        throw new DomainError('FREQUENCY_NOT_SUPPORTED', {
-          supported: FREQUENCIES_BY_CATEGORY[before.connectionCategory],
-        });
-      }
+      // Con qué frecuencia puede correr cada conexión es un dato del catálogo (`capability_frequencies`, D67).
+      const supported = (
+        await tx.capabilityFrequency.findMany({
+          where: { automatedCapability: { catalogCode: before.connectionCategory } },
+          select: { scheduleFrequency: true },
+        })
+      ).map((f) => f.scheduleFrequency as ScheduleFrequencyValue);
+      if (!supported.includes(frequency)) throw new DomainError('FREQUENCY_NOT_SUPPORTED', { supported });
       await tx.assetProvisioning.update({
         where: { id: before.provisioning.id },
         data: { connectionStatus: 'scheduled', scheduleFrequency: frequency },
@@ -482,6 +503,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
     connectionCategory: ConnectionCategory;
     type: string;
     platform: string;
+    platformId: string | null;
     ipAddress: string | null;
     location: string | null;
     criticality: string;
@@ -513,6 +535,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
       connectionCategory: row.connectionCategory,
       type: row.type,
       platform: row.platform,
+      platformId: row.platformId,
       ipAddress: row.ipAddress,
       location: row.location,
       criticality: row.criticality,
@@ -548,14 +571,20 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
     const capabilities: Capability[] = scenario
       ? (
           await tx.automatedCapability.findMany({
-            where: { catalogCode: { in: [...SCENARIO_CAPABILITIES[scenario]] } },
+            where: { catalogCode: { in: await this.categoriesFor(tx, scenario) } },
             select: CAPABILITY_SELECT,
             orderBy: { catalogCode: 'asc' },
           })
         ).map((c) => ({
           catalogCode: c.catalogCode as ConnectionCategory,
           category: c.category,
-          supportedPlatforms: asStrings(c.supportedPlatforms),
+          platforms: c.platforms.map((p) => ({
+            code: p.code,
+            name: p.name,
+            logoKey: p.logoKey,
+            availability: p.availability,
+            connectionMethods: p.connectionMethods.map((m) => m.connectionMethod as ConnectionMethodValue),
+          })),
           method: c.method,
           requiredPermissions: asStrings(c.requiredPermissions),
           baseFrequency: c.baseFrequency,

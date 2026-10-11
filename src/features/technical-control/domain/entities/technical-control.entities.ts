@@ -9,10 +9,29 @@ import {
 // Una conexión que el cliente puede usar (catalog.automated_capabilities). OJO: este tipo NO tiene
 // `provider`, a propósito. Es la única columna que nunca sale (confidencialidad): al no existir
 // aquí, ningún mapper ni response puede filtrarla por descuido.
+// Lo que el cliente elige al conectar (D67): un proveedor de nube, un sistema operativo o un motor de base de datos. Solo se elige la que está
+// `available`; el resto se muestra bloqueada. `logoKey` es el nombre del SVG en la plataforma (la base nunca guarda el SVG).
+export type PlatformView = {
+  code: string;
+  name: string;
+  logoKey: string;
+  availability: 'available' | 'coming_soon';
+  // Canales de la plataforma; el primero es el recomendado. Vacío si aún no tiene canal.
+  connectionMethods: ConnectionMethodValue[];
+};
+
+// Una plataforma con las reglas que el alta necesita validar (catálogo, D67).
+export type PlatformRule = PlatformView & {
+  id: string;
+  capabilityCode: ConnectionCategory;
+  // Regiones que el cliente puede declarar para ella.
+  regionCodes: string[];
+};
+
 export type Capability = {
   catalogCode: ConnectionCategory;
   category: string;
-  supportedPlatforms: string[];
+  platforms: PlatformView[];
   method: string;
   requiredPermissions: string[];
   baseFrequency: string;
@@ -46,6 +65,8 @@ export type Asset = {
   connectionCategory: ConnectionCategory;
   type: string;
   platform: string;
+  // La plataforma elegida al conectar (D67). Nula en un activo descubierto y en los registrados antes de D67 con el formulario provisional.
+  platformId: string | null;
   ipAddress: string | null;
   location: string | null;
   criticality: string;
@@ -64,7 +85,9 @@ export type Asset = {
 export type NewAsset = {
   name: string;
   connectionCategory: ConnectionCategory;
+  // El `code` de la plataforma elegida (etiqueta del activo) y su id en el catálogo (D67).
   platform: string;
+  platformId: string;
   ipAddress: string | null;
   location: string | null;
   criticality: string;
@@ -72,8 +95,8 @@ export type NewAsset = {
   serviceIds: string[];
   responsibleId: string | null;
   encryptedCredentials: string | null;
-  // Conexión de nube (D53, D58). Nulos en el formulario provisional y en los activos de agente.
-  connectionMethod: ConnectionMethodValue | null;
+  // Canal de la conexión (D53, D58). La cuenta y las regiones solo aplican a la nube.
+  connectionMethod: ConnectionMethodValue;
   externalAccountId: string | null;
   regions: string[];
   externalId: string | null;
