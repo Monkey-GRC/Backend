@@ -92,7 +92,7 @@ async function main() {
     assert.ok(Object.values(second).every((n) => n === 0));
     ok('clonar de nuevo no crea nada (idempotente)');
 
-    const own = await tx.clientControl.create({ data: { tenantId: sf.tenantId, serviceId: service.id, ownCode: 'C01', clientInterpretation: 'Mío', type: 'manual' } });
+    const own = await tx.clientControl.create({ data: { tenantId: sf.tenantId, serviceId: service.id, ownCode: 'C01', name: 'Control propio', trustCriterion: 'security', clientInterpretation: 'Mío', type: 'manual' } });
     const victim = await tx.clientControl.findFirstOrThrow({ where: { serviceId: service.id, controlId: { not: null } } });
     await tx.clientControl.update({ where: { id: victim.id }, data: { isActive: false } });
     const third = await svc.cloneForServiceFramework(tx, sf.id);

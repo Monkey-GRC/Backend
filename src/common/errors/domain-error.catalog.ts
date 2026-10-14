@@ -33,6 +33,9 @@ export const DOMAIN_ERROR_CATALOG: Record<
   ORGANIZATION_NOT_DECLARED: { status: HttpStatus.CONFLICT, messageKey: 'organization.not_declared' },
   SERVICE_NAME_TAKEN: { status: HttpStatus.CONFLICT, messageKey: 'service.name_taken' },
   SERVICE_HAS_EVALUATIONS: { status: HttpStatus.CONFLICT, messageKey: 'service.has_evaluations' },
+  // Acciones de protección (contracts/modules/compliance-controls.md).
+  CHANGE_ALREADY_PENDING: { status: HttpStatus.CONFLICT, messageKey: 'control_change.already_pending' },
+  CONTROL_RETIRED: { status: HttpStatus.CONFLICT, messageKey: 'control.retired' },
   FRAMEWORK_NOT_CONTRACTED: { status: HttpStatus.CONFLICT, messageKey: 'framework.not_contracted' },
   FRAMEWORK_NOT_AVAILABLE: { status: HttpStatus.CONFLICT, messageKey: 'framework.not_available' },
   FILE_REQUIRED: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'file.required' },

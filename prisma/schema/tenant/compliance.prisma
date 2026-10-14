@@ -107,7 +107,12 @@ model ClientControl {
   // por eso evaluations y evidence_requirements cuelgan de ESTA tabla, no del catálogo.
   controlId            String?              @map("control_id") @db.Uuid
   serviceId            String               @map("service_id") @db.Uuid
-  ownCode              String               @map("own_code") // "C01"
+  // El código del catálogo (`IAC-12`) en un control clonado; la numeración propia (`C01`) en uno que creó la empresa. El código del catálogo es técnico:
+  // la API no lo muestra al cliente.
+  ownCode              String               @map("own_code")
+  // Solo en un control propio (D79): en uno del catálogo salen de `controls.name` y de sus requisitos. Un CHECK exige ambos cuando `control_id` es nulo.
+  name                 String?
+  trustCriterion       TrustCriterionCode?  @map("trust_criterion")
   clientInterpretation String               @map("client_interpretation") @db.Text
   type                 ControlDimensionType // manual|automated|hybrid|technical_manual
   sourceRef            String?              @map("source_ref")
@@ -125,6 +130,7 @@ model ClientControl {
   evidenceRequirements  EvidenceRequirement[]
   dimensions            ClientControlDimension[]
   tests                 ClientControlTest[]
+  changes               ClientControlChange[]
 
   // Un control del catálogo se clona una sola vez por servicio (idempotencia del clonado, MD-80).
   // Los propios (control_id nulo) no chocan entre sí: en Postgres los nulos son distintos.
@@ -133,6 +139,54 @@ model ClientControl {
   @@index([tenantId])
   @@index([controlId])
   @@map("client_controls")
+  @@schema("tenant")
+}
+
+enum ClientControlChangeType {
+  create
+  retire
+  edit_dimensions
+  edit_interpretation
+
+  @@map("client_control_change_type")
+  @@schema("tenant")
+}
+
+enum ClientControlChangeStatus {
+  pending
+  approved
+  rejected
+
+  @@map("client_control_change_status")
+  @@schema("tenant")
+}
+
+// Crear un control propio, darlo de baja o editar sus dimensiones o su interpretación son PROPUESTAS que la empresa hace y el consultor decide (D65, §7.1).
+// Mientras está pendiente, el control sigue como estaba (y contando). Una por tipo y por control a la vez: lo impone un índice único parcial en la migración.
+model ClientControlChange {
+  id              String                    @id @default(uuid()) @db.Uuid
+  tenantId        String                    @map("tenant_id") @db.Uuid
+  serviceId       String                    @map("service_id") @db.Uuid
+  clientControlId String                    @map("client_control_id") @db.Uuid
+  changeType      ClientControlChangeType   @map("change_type")
+  proposedValues  Json                      @map("proposed_values")
+  status          ClientControlChangeStatus @default(pending)
+  requestedBy     String                    @map("requested_by") @db.Uuid
+  decidedBy       String?                   @map("decided_by") @db.Uuid
+  decisionNote    String?                   @map("decision_note") @db.Text
+  requestedAt     DateTime                  @default(now()) @map("requested_at")
+  decidedAt       DateTime?                 @map("decided_at")
+
+  clientControl   ClientControl @relation(fields: [clientControlId], references: [id])
+  service         Service       @relation(fields: [serviceId], references: [id])
+  requestedByUser User          @relation("ControlChangeRequestedBy", fields: [requestedBy], references: [id])
+  decidedByUser   User?         @relation("ControlChangeDecidedBy", fields: [decidedBy], references: [id], onDelete: Restrict)
+  tenant          Company       @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([serviceId, status])
+  @@index([clientControlId])
+  @@map("client_control_changes")
   @@schema("tenant")
 }
 

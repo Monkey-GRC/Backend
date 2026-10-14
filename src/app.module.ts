@@ -7,6 +7,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AuthModule } from './features/auth/auth.module';
 import { CatalogsModule } from './features/catalogs/catalogs.module';
 import { CompaniesModule } from './features/companies/companies.module';
+import { ComplianceModule } from './features/compliance/compliance.module';
 import { OnboardingModule } from './features/onboarding/onboarding.module';
 import { ServicesModule } from './features/services/services.module';
 import { TechnicalControlModule } from './features/technical-control/technical-control.module';
@@ -35,6 +36,7 @@ import { StorageModule } from './infrastructure/storage/storage.module';
     CatalogsModule,
     OnboardingModule,
     ServicesModule,
+    ComplianceModule,
     TechnicalControlModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],

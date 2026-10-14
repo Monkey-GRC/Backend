@@ -24,5 +24,8 @@
   "ip_invalid": "Enter a valid IP address.",
   "object_invalid": "The format is not valid.",
   "array_max": "You selected too many options.",
-  "platform_not_in_category": "That platform doesn't belong to this type of connection."
+  "platform_not_in_category": "That platform doesn't belong to this type of connection.",
+  "dimension_policy_only": "A custom control is document-only: its only dimension is the document one.",
+  "category_not_in_scope": "Your service has not contracted that category.",
+  "reason_required": "Say why this dimension does not apply."
 }

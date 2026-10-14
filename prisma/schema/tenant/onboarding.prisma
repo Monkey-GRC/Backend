@@ -385,6 +385,7 @@ model Service {
   clientCauses            ClientCause[]
   serviceAssets           ServiceAsset[]
   clientControls ClientControl[]
+  clientControlChanges ClientControlChange[]
   evaluations    Evaluation[]
 
   @@index([tenantId])
