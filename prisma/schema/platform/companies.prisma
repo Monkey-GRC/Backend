@@ -39,9 +39,8 @@ model Company {
   accessKeys AccessKey[]
   frameworks CompanyFramework[]
   users      User[]
-  customRoles CustomRole[]
   apiKeys    ApiKey[]
-  auditorAssignments AuditorAssignment[]
+  consultantAssignments ConsultantAssignment[]
   organization              Organization?
   organizationRegulations   OrganizationRegulation[]
   organizationResponsibles  OrganizationResponsible[]
