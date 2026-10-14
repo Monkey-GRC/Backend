@@ -142,6 +142,14 @@ model ClientControl {
   @@schema("tenant")
 }
 
+enum ClientCauseControlEffect {
+  probability
+  impact
+
+  @@map("cause_control_effect")
+  @@schema("tenant")
+}
+
 enum ClientControlChangeType {
   create
   retire
@@ -535,6 +543,10 @@ model ClientCauseControl {
   tenantId        String @map("tenant_id") @db.Uuid
   clientCauseId   String @map("client_cause_id") @db.Uuid
   clientControlId String @map("client_control_id") @db.Uuid
+  // D75: un control obligatorio de la causa, y si reduce la probabilidad o el impacto. Hoy solo 9 de las 209 relaciones del comité traen el efecto (`P22`):
+  // el resto queda en null y no participa del riesgo residual.
+  isMandatory     Boolean                @default(true) @map("is_mandatory")
+  effect          ClientCauseControlEffect?
 
   clientCause   ClientCause   @relation(fields: [clientCauseId], references: [id])
   clientControl ClientControl @relation(fields: [clientControlId], references: [id])

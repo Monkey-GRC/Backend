@@ -36,6 +36,12 @@ export const DOMAIN_ERROR_CATALOG: Record<
   // Acciones de protección (contracts/modules/compliance-controls.md).
   CHANGE_ALREADY_PENDING: { status: HttpStatus.CONFLICT, messageKey: 'control_change.already_pending' },
   CONTROL_RETIRED: { status: HttpStatus.CONFLICT, messageKey: 'control.retired' },
+  RESPONSIBLE_ALREADY_EXISTS: { status: HttpStatus.CONFLICT, messageKey: 'responsible.already_exists' },
+  RESPONSIBLE_IN_USE: { status: HttpStatus.CONFLICT, messageKey: 'responsible.in_use' },
+  CODE_ALREADY_EXISTS: { status: HttpStatus.CONFLICT, messageKey: 'risk.code_already_exists' },
+  LINK_ALREADY_EXISTS: { status: HttpStatus.CONFLICT, messageKey: 'risk.link_already_exists' },
+  RISK_INACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'risk.inactive' },
+  CAUSE_INACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'cause.inactive' },
   FRAMEWORK_NOT_CONTRACTED: { status: HttpStatus.CONFLICT, messageKey: 'framework.not_contracted' },
   FRAMEWORK_NOT_AVAILABLE: { status: HttpStatus.CONFLICT, messageKey: 'framework.not_available' },
   FILE_REQUIRED: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'file.required' },

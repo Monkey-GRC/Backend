@@ -1,0 +1,7 @@
+{
+  "list": "Responsible roles of your organization.",
+  "created": "Done, we registered the role.",
+  "updated": "Done, we updated who holds the role.",
+  "already_exists": "That role is already registered with that person.",
+  "in_use": "Evidence or assets depend on this role. Reassign them before removing it."
+}
