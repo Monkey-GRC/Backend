@@ -2,6 +2,7 @@ enum UserRole {
   admin_monkey
   admin_empresa
   funcional
+  consultor
   auditor
 
   @@map("user_role")
@@ -19,6 +20,16 @@ enum UserStatus {
   @@schema("platform")
 }
 
+// active: puede entrar · suspended: la empresa le cortó el acceso (solo la empresa lo reactiva) · revoked: admin_monkey la retiró.
+enum ConsultantAssignmentStatus {
+  active
+  suspended
+  revoked
+
+  @@map("consultant_assignment_status")
+  @@schema("platform")
+}
+
 enum ApiKeyStatus {
   active
   revoked
@@ -31,7 +42,6 @@ enum ApiKeyStatus {
 model User {
   id             String      @id @default(uuid()) @db.Uuid
   companyId      String      @map("company_id") @db.Uuid
-  customRoleId   String?     @map("custom_role_id") @db.Uuid
   // Único global (no por empresa): el login recibe solo el email y un auditor es un solo
   // usuario que audita varias empresas. Siempre en minúsculas (CHECK en la migración).
   email          String      @unique
@@ -52,12 +62,12 @@ model User {
   createdAt      DateTime    @default(now()) @map("created_at")
 
   company    Company     @relation(fields: [companyId], references: [id])
-  customRole CustomRole? @relation(fields: [customRoleId], references: [id])
 
   controlAssignments        UserControlAssignment[] @relation("AssignedUser")
   controlAssignmentsGranted UserControlAssignment[] @relation("AssignedByUser")
-  auditorAssignments        AuditorAssignment[]     @relation("AuditorUser")
-  auditorAssignmentsGranted AuditorAssignment[]     @relation("AuditorAssignedByUser")
+  consultantAssignments        ConsultantAssignment[]  @relation("ConsultantUser")
+  consultantAssignmentsGranted ConsultantAssignment[]  @relation("ConsultantAssignedByUser")
+  consultantAssignmentsChanged ConsultantAssignment[]  @relation("ConsultantStatusChangedByUser")
   sessions                  Session[]
   apiKeysCreated            ApiKey[]
   accessKeysCreated         AccessKey[]
@@ -76,23 +86,7 @@ model User {
   complianceEvents ComplianceEvent[]
 
   @@index([companyId])
-  @@index([customRoleId])
   @@map("users")
-  @@schema("platform")
-}
-
-model CustomRole {
-  id          String   @id @default(uuid()) @db.Uuid
-  companyId   String   @map("company_id") @db.Uuid
-  name        String
-  permissions Json
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  company Company @relation(fields: [companyId], references: [id])
-  users   User[]
-
-  @@index([companyId])
-  @@map("custom_roles")
   @@schema("platform")
 }
 
@@ -116,21 +110,26 @@ model UserControlAssignment {
   @@schema("platform")
 }
 
-model AuditorAssignment {
-  id            String    @id @default(uuid()) @db.Uuid
-  auditorUserId String    @map("auditor_user_id") @db.Uuid
-  companyId     String    @map("company_id") @db.Uuid
-  assignedBy    String    @map("assigned_by") @db.Uuid
-  assignedAt    DateTime  @default(now()) @map("assigned_at")
-  expiresAt     DateTime? @map("expires_at")
+// El único acceso entre empresas (modelo-datos.md §5.2, D64): el consultor es de Next y su cuenta vive en la empresa interna de Monkey; a cada
+// empresa que atiende entra solo por una asignación activa. La crea admin_monkey; la empresa puede suspenderla y solo la empresa la reactiva.
+model ConsultantAssignment {
+  id               String                     @id @default(uuid()) @db.Uuid
+  consultantUserId String                     @map("consultant_user_id") @db.Uuid
+  companyId        String                     @map("company_id") @db.Uuid
+  assignedBy       String                     @map("assigned_by") @db.Uuid
+  status           ConsultantAssignmentStatus @default(active)
+  statusChangedBy  String?                    @map("status_changed_by") @db.Uuid
+  assignedAt       DateTime                   @default(now()) @map("assigned_at")
+  statusChangedAt  DateTime?                  @map("status_changed_at")
 
-  auditorUser    User    @relation("AuditorUser", fields: [auditorUserId], references: [id])
-  assignedByUser User    @relation("AuditorAssignedByUser", fields: [assignedBy], references: [id])
-  company        Company @relation(fields: [companyId], references: [id])
+  consultantUser      User    @relation("ConsultantUser", fields: [consultantUserId], references: [id])
+  assignedByUser      User    @relation("ConsultantAssignedByUser", fields: [assignedBy], references: [id])
+  statusChangedByUser User?   @relation("ConsultantStatusChangedByUser", fields: [statusChangedBy], references: [id])
+  company             Company @relation(fields: [companyId], references: [id])
 
-  @@unique([auditorUserId, companyId])
+  @@unique([consultantUserId, companyId])
   @@index([companyId])
-  @@map("auditor_assignments")
+  @@map("consultant_assignments")
   @@schema("platform")
 }
 
