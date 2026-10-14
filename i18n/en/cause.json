@@ -1,0 +1,8 @@
+{
+  "list": "Causes of your service.",
+  "read": "Cause detail.",
+  "created": "Done, we registered the cause.",
+  "updated": "Done, we updated the cause.",
+  "control_linked": "Done, we linked the cause to the protection action.",
+  "inactive": "This cause has been retired."
+}

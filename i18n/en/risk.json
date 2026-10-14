@@ -1,11 +1,19 @@
 {
-    "CREATED": "Risk created successfully.",
-    "UPDATED": "Risk updated successfully.",
-    "DELETED": "Risk deleted successfully.",
-    "READ.ONE": "Risk retrieved successfully.",
-    "READ.ALL": "Risks retrieved successfully.",
-    "CREATE_FAILED": "Failed to create risk.",
-    "UPDATE_FAILED": "Failed to update risk.",
-    "DELETE_FAILED": "Failed to delete risk.",
-    "NOT_FOUND": "Risk not found."
+  "CREATED": "Risk created successfully.",
+  "UPDATED": "Risk updated successfully.",
+  "DELETED": "Risk deleted successfully.",
+  "READ.ONE": "Risk retrieved successfully.",
+  "READ.ALL": "Risks retrieved successfully.",
+  "CREATE_FAILED": "Failed to create risk.",
+  "UPDATE_FAILED": "Failed to update risk.",
+  "DELETE_FAILED": "Failed to delete risk.",
+  "NOT_FOUND": "Risk not found.",
+  "list": "Risks of your service.",
+  "read": "Risk detail.",
+  "created": "Done, we registered the risk.",
+  "updated": "Done, we updated the risk.",
+  "linked": "Done, we linked the risk to the cause.",
+  "code_already_exists": "There is already a risk or cause with that code in this service.",
+  "link_already_exists": "That link already exists.",
+  "inactive": "This risk has been retired."
 }

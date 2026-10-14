@@ -1,0 +1,13 @@
+{
+  "list": "Protection actions of your service.",
+  "read": "Protection action detail.",
+  "test": {
+    "policy": "Document review",
+    "server": "Server check",
+    "database": "Database check",
+    "app": "Application check",
+    "cloud": "Cloud check"
+  },
+  "created": "Done, we created your protection action. Your consultant will review it.",
+  "retired": "This protection action has already been retired."
+}

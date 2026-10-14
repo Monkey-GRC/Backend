@@ -60,6 +60,7 @@ model Company {
   serviceAssets             ServiceAsset[]
   assetProvisionings        AssetProvisioning[]
   clientControls        ClientControl[]
+  clientControlChanges  ClientControlChange[]
   clientControlDimensions ClientControlDimension[]
   clientControlTests    ClientControlTest[]
   userControlAssignments UserControlAssignment[]

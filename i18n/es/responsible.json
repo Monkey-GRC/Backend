@@ -1,0 +1,7 @@
+{
+  "list": "Cargos responsables de tu organización.",
+  "created": "Listo, registramos el cargo.",
+  "updated": "Listo, actualizamos quién ocupa el cargo.",
+  "already_exists": "Ese cargo ya está registrado con esa persona.",
+  "in_use": "Hay evidencias o activos que dependen de este cargo. Reasígnalos antes de quitarlo."
+}

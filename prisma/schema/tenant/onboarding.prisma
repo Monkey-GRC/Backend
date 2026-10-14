@@ -217,6 +217,8 @@ model OrganizationResponsible {
   assets Asset[]
   evidenceRequirements EvidenceRequirement[]
 
+  // Un mismo cargo con la misma persona no se repite (puede haber varios propietarios de activo, con nombres distintos).
+  @@unique([organizationId, type, personName])
   @@index([tenantId])
   @@index([organizationId])
   @@map("organization_responsibles")
@@ -385,6 +387,7 @@ model Service {
   clientCauses            ClientCause[]
   serviceAssets           ServiceAsset[]
   clientControls ClientControl[]
+  clientControlChanges ClientControlChange[]
   evaluations    Evaluation[]
 
   @@index([tenantId])

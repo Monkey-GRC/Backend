@@ -63,6 +63,8 @@ model Test {
   code                           String    @unique
   dimension                      Dimension
   name                           String
+  // El nombre neutro que ve el cliente (D70): lo escribe Monkey. `name` es del comité y puede nombrar al proveedor del motor, así que nunca sale de la API.
+  displayName                    String?   @map("display_name")
   objective                      String    @db.Text
   // Texto libre a propósito: en la hoja Pruebas del comité mezcla "Manual", "Mixta", "Técnica" y
   // descripciones largas ("Prueba de diseño y efectividad operativa (control automatizado…)").
