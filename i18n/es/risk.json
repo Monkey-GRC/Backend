@@ -15,5 +15,7 @@
   "linked": "Listo, vinculamos el riesgo con la causa.",
   "code_already_exists": "Ya hay un riesgo o una causa con ese código en este servicio.",
   "link_already_exists": "Ese vínculo ya existe.",
-  "inactive": "Este riesgo está dado de baja."
+  "inactive": "Este riesgo está dado de baja.",
+  "evaluated": "Listo, registramos la evaluación del riesgo.",
+  "evaluation_history": "Evaluaciones del riesgo."
 }

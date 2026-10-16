@@ -1,4 +1,5 @@
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
+import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 
 // Los riesgos y las causas de UN servicio (tenant.client_risks, client_causes) y sus vínculos (modelo-datos.md §7.2). Cada empresa trabaja sobre su propia copia
@@ -16,6 +17,24 @@ export type ControlLink = {
   assignedUserIds: string[];
 };
 
+/** Un cargo de la organización (`organization_responsibles`): el responsable de un tratamiento, no una persona con cuenta. */
+export type TreatmentResponsible = { id: string; type: string; personName: string };
+
+/** Una decisión de tratamiento (MD-123). La vigente de un riesgo es la última. */
+export type RiskTreatmentRecord = { id: string; riskId: string; decision: string; responsible: TreatmentResponsible; dueDate: Date; createdAt: Date };
+
+/** Los cuatro campos de la evaluación 5×5; todos `null` mientras el riesgo no se ha evaluado. */
+export type RiskEvaluation = { likelihood: number | null; impact: number | null; inherentRiskValue: number | null; inherentRiskLevel: string | null };
+
+/** Una evaluación registrada: lo nuevo, lo previo (null en la primera), quién la hizo y cuándo. Se lee de la auditoría. */
+export type EvaluationEntry = {
+  riskId: string;
+  current: Required<{ [K in keyof RiskEvaluation]: NonNullable<RiskEvaluation[K]> }>;
+  previous: RiskEvaluation | null;
+  evaluatedBy: { id: string; name: string | null; lastName: string | null } | null;
+  evaluatedAt: Date;
+};
+
 export type RiskNode = {
   id: string;
   serviceId: string;
@@ -31,6 +50,8 @@ export type RiskNode = {
   impact: number | null;
   inherentRiskValue: number | null;
   inherentRiskLevel: string | null;
+  /** La decisión de tratamiento vigente (la última), o null si no hay ninguna. */
+  treatment: RiskTreatmentRecord | null;
   causeIds: string[];
 };
 
@@ -85,5 +106,25 @@ export abstract class RiskRepository {
     options: { isMandatory: boolean; effect: 'probability' | 'impact' | null },
     audit: AuditIntent<{ causeId: string; controlId: string; isMandatory: boolean; effect: string | null }>,
   ): Promise<void>;
+  // Evaluación 5×5 (MD-123). Agrega una evaluación sin pisar el rastro: la auditoría guarda lo anterior y lo nuevo. null si el riesgo no existe;
+  // RISK_INACTIVE si está dado de baja. `audit` recibe el valor previo.
+  abstract evaluateRisk(
+    scope: TenantScope,
+    riskId: string,
+    next: { likelihood: number; impact: number; inherentRiskValue: number; inherentRiskLevel: string; evaluatedBy: string },
+    audit: AuditIntent<{ riskId: string; before: RiskEvaluation; after: RiskEvaluation }>,
+  ): Promise<{ before: RiskEvaluation; after: RiskEvaluation; evaluatedBy: EvaluationEntry['evaluatedBy']; evaluatedAt: Date } | null>;
+  // El historial se lee de la auditoría, de la más reciente a la más antigua. null si el riesgo no existe.
+  abstract evaluationHistory(scope: TenantScope, riskId: string, page: { page: number; pageSize: number }): Promise<Page<EvaluationEntry> | null>;
+
+  // Tratamiento (MD-123). Agrega una decisión; el cargo debe ser de la misma empresa (si no, NOT_FOUND). null si el riesgo no existe; RISK_INACTIVE si está de baja.
+  abstract createTreatment(
+    scope: TenantScope,
+    riskId: string,
+    input: { decision: string; responsibleId: string; dueDate: Date; createdBy: string },
+    audit: AuditIntent<RiskTreatmentRecord>,
+  ): Promise<RiskTreatmentRecord | null>;
+  abstract listTreatments(scope: TenantScope, riskId: string, page: { page: number; pageSize: number }): Promise<Page<RiskTreatmentRecord> | null>;
+
   abstract unlinkCauseControl(scope: TenantScope, causeId: string, controlId: string, audit: AuditIntent<{ causeId: string; controlId: string }>): Promise<boolean>;
 }

@@ -258,6 +258,7 @@ model ResidualRisk {
   @@schema("tenant")
 }
 
+// El tratamiento de un riesgo: una decisión por fila, la vigente es la última (MD-123). El responsable es un CARGO de la organización (D30), no una persona con cuenta.
 model RiskTreatment {
   id            String                @id @default(uuid()) @db.Uuid
   tenantId      String                @map("tenant_id") @db.Uuid
@@ -265,13 +266,17 @@ model RiskTreatment {
   responsibleId String                @map("responsible_id") @db.Uuid
   decision      RiskTreatmentDecision
   dueDate       DateTime              @map("due_date") @db.Date
+  // Quién registró la decisión; RESTRICT: el histórico no pierde atribución.
+  createdBy     String                @map("created_by") @db.Uuid
+  createdAt     DateTime              @default(now()) @map("created_at")
 
-  clientRisk      ClientRisk @relation(fields: [clientRiskId], references: [id])
-  responsibleUser User       @relation(fields: [responsibleId], references: [id])
-  tenant          Company    @relation(fields: [tenantId], references: [id])
+  clientRisk    ClientRisk              @relation(fields: [clientRiskId], references: [id])
+  responsible   OrganizationResponsible @relation(fields: [responsibleId], references: [id], onDelete: Restrict)
+  createdByUser User                    @relation("RiskTreatmentCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  tenant        Company                 @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
-  @@index([clientRiskId])
+  @@index([clientRiskId, createdAt])
   @@index([responsibleId])
   @@map("risk_treatments")
   @@schema("tenant")

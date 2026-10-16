@@ -6,11 +6,11 @@ import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.inser
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { Responsible, ResponsibleChange, ResponsibleRepository, ResponsibleType } from '../../domain/repositories/responsible.repository';
 
-const SELECT = { id: true, type: true, personName: true, _count: { select: { assets: true, evidenceRequirements: true } } } as const;
-type Row = { id: string; type: string; personName: string; _count: { assets: number; evidenceRequirements: number } };
+const SELECT = { id: true, type: true, personName: true, _count: { select: { assets: true, evidenceRequirements: true, riskTreatments: true } } } as const;
+type Row = { id: string; type: string; personName: string; _count: { assets: number; evidenceRequirements: number; riskTreatments: number } };
 
-// Está en uso si un activo o una evidencia requerida apunta al cargo. (El tratamiento de un riesgo se suma con MD-123.)
-const toResponsible = (r: Row): Responsible => ({ id: r.id, type: r.type as ResponsibleType, personName: r.personName, isInUse: r._count.assets + r._count.evidenceRequirements > 0 });
+// Está en uso si un activo, una evidencia requerida o el tratamiento de un riesgo apunta al cargo.
+const toResponsible = (r: Row): Responsible => ({ id: r.id, type: r.type as ResponsibleType, personName: r.personName, isInUse: r._count.assets + r._count.evidenceRequirements + r._count.riskTreatments > 0 });
 const isUniqueViolation = (e: unknown) => (e as { code?: string })?.code === 'P2002';
 
 @Injectable()

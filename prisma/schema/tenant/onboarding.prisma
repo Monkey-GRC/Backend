@@ -216,6 +216,7 @@ model OrganizationResponsible {
 
   assets Asset[]
   evidenceRequirements EvidenceRequirement[]
+  riskTreatments RiskTreatment[]
 
   // Un mismo cargo con la misma persona no se repite (puede haber varios propietarios de activo, con nombres distintos).
   @@unique([organizationId, type, personName])

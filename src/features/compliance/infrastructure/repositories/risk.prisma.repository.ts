@@ -4,9 +4,11 @@ import { DomainError } from '../../../../common/errors/domain-error';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
+import { Page } from '../../../../common/pagination/page';
 import { nextCode } from '../../domain/risk-types';
 import {
-  CauseInput, CauseNode, CausePatch, CauseRecord, Changed, ControlLink, GraphRef, RiskGraph, RiskInput, RiskNode, RiskPatch, RiskRecord, RiskRepository,
+  CauseInput, CauseNode, CausePatch, CauseRecord, Changed, ControlLink, EvaluationEntry, GraphRef, RiskEvaluation, RiskGraph, RiskInput, RiskNode, RiskPatch, RiskRecord, RiskRepository,
+  RiskTreatmentRecord,
 } from '../../domain/repositories/risk.repository';
 
 const isUniqueViolation = (e: unknown) => (e as { code?: string })?.code === 'P2002';
@@ -19,6 +21,17 @@ const causeRecord = (c: { id: string; code: string; name: string; description: s
   id: c.id, code: c.code, name: c.name, description: c.description, failureCategory: c.failureCategory, isActive: c.isActive,
 });
 
+type TreatmentRow = {
+  id: string; clientRiskId: string; decision: string; dueDate: Date; createdAt: Date;
+  responsible: { id: string; type: string; personName: string };
+};
+const TREATMENT_SELECT = { id: true, clientRiskId: true, decision: true, dueDate: true, createdAt: true, responsible: { select: { id: true, type: true, personName: true } } } as const;
+const toTreatment = (t: TreatmentRow): RiskTreatmentRecord => ({
+  id: t.id, riskId: t.clientRiskId, decision: t.decision, responsible: { id: t.responsible.id, type: t.responsible.type, personName: t.responsible.personName }, dueDate: t.dueDate, createdAt: t.createdAt,
+});
+const evaluationOf = (r: { likelihood: number | null; impact: number | null; inherentRiskValue: number | null; inherentRiskLevel: string | null }): RiskEvaluation => ({
+  likelihood: r.likelihood, impact: r.impact, inherentRiskValue: r.inherentRiskValue, inherentRiskLevel: r.inherentRiskLevel,
+});
 @Injectable()
 export class RiskPrismaRepository extends RiskRepository {
   constructor(private readonly prisma: PrismaService) {
@@ -31,7 +44,7 @@ export class RiskPrismaRepository extends RiskRepository {
       const serviceId = await this.serviceOf(tx, scope, ref);
       if (!serviceId) return null;
 
-      const risks = await tx.clientRisk.findMany({ where: { serviceId }, orderBy: { code: 'asc' }, include: { riskCauses: { select: { clientCauseId: true } } } });
+      const risks = await tx.clientRisk.findMany({ where: { serviceId }, orderBy: { code: 'asc' }, include: { riskCauses: { select: { clientCauseId: true } }, riskTreatments: { orderBy: { createdAt: 'desc' }, take: 1, select: TREATMENT_SELECT } } });
       const causes = await tx.clientCause.findMany({
         where: { serviceId },
         orderBy: { code: 'asc' },
@@ -57,7 +70,7 @@ export class RiskPrismaRepository extends RiskRepository {
         risks: risks.map<RiskNode>((r) => ({
           id: r.id, serviceId, code: r.code, name: r.name, description: r.description, trustCriterion: r.trustCriterion, potentialImpact: r.potentialImpact,
           origin: r.riskId ? 'catalog' : 'own', isActive: r.isActive, likelihood: r.likelihood, impact: r.impact, inherentRiskValue: r.inherentRiskValue,
-          inherentRiskLevel: r.inherentRiskLevel, causeIds: r.riskCauses.map((x) => x.clientCauseId),
+          inherentRiskLevel: r.inherentRiskLevel, treatment: r.riskTreatments[0] ? toTreatment(r.riskTreatments[0]) : null, causeIds: r.riskCauses.map((x) => x.clientCauseId),
         })),
         causes: causes.map<CauseNode>((c) => ({
           id: c.id, serviceId, code: c.code, name: c.name, description: c.description, failureCategory: c.failureCategory, origin: c.causeId ? 'catalog' : 'own',
@@ -245,6 +258,90 @@ export class RiskPrismaRepository extends RiskRepository {
       const { count } = await tx.clientCauseControl.deleteMany({ where: { clientCauseId: causeId, clientControlId: controlId } });
       if (count > 0) await insertAuditLog(tx, audit({ causeId, controlId }));
       return count > 0;
+    });
+  }
+
+  // ─── evaluación 5×5 y tratamiento (MD-123) ───────────────────────────────────────
+  evaluateRisk(
+    scope: TenantScope,
+    riskId: string,
+    next: { likelihood: number; impact: number; inherentRiskValue: number; inherentRiskLevel: string; evaluatedBy: string },
+    audit: Parameters<RiskRepository['evaluateRisk']>[3],
+  ): ReturnType<RiskRepository['evaluateRisk']> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const current = await tx.clientRisk.findFirst({ where: { id: riskId } });
+      if (!current) return null;
+      if (!current.isActive) throw new DomainError('RISK_INACTIVE');
+      const updated = await tx.clientRisk.update({
+        where: { id: riskId },
+        data: { likelihood: next.likelihood, impact: next.impact, inherentRiskValue: next.inherentRiskValue, inherentRiskLevel: next.inherentRiskLevel as never },
+      });
+      const change = { riskId, before: evaluationOf(current), after: evaluationOf(updated) };
+      await insertAuditLog(tx, audit(change));
+      const by = await tx.user.findFirst({ where: { id: next.evaluatedBy }, select: { id: true, name: true, lastName: true } });
+      return { before: change.before, after: change.after, evaluatedBy: by ? { id: by.id, name: by.name, lastName: by.lastName } : null, evaluatedAt: updated.updatedAt };
+    });
+  }
+
+  evaluationHistory(scope: TenantScope, riskId: string, page: { page: number; pageSize: number }): Promise<Page<EvaluationEntry> | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      if (!(await tx.clientRisk.findFirst({ where: { id: riskId }, select: { id: true } }))) return null;
+      // Cada evaluación es una fila de la auditoría con lo anterior (`before_state`) y lo nuevo (`after_state`); la auditoría no se edita ni se borra.
+      const where = { action: 'client_risk.evaluate', afterState: { path: ['risk_id'], equals: riskId } };
+      const total = await tx.auditLog.count({ where });
+      const rows = await tx.auditLog.findMany({
+        where, orderBy: { createdAt: 'desc' }, skip: (page.page - 1) * page.pageSize, take: page.pageSize,
+        select: { beforeState: true, afterState: true, createdAt: true, user: { select: { id: true, name: true, lastName: true } } },
+      });
+      const read = (state: unknown): RiskEvaluation | null => {
+        const v = state as { likelihood?: number | null; impact?: number | null; inherent_risk_value?: number | null; inherent_risk_level?: string | null } | null;
+        return v ? { likelihood: v.likelihood ?? null, impact: v.impact ?? null, inherentRiskValue: v.inherent_risk_value ?? null, inherentRiskLevel: v.inherent_risk_level ?? null } : null;
+      };
+      const items = rows.map<EvaluationEntry>((r) => {
+        const before = read(r.beforeState);
+        return {
+          riskId,
+          current: read(r.afterState) as EvaluationEntry['current'],
+          // La primera evaluación no tiene valor previo: todos sus campos eran nulos.
+          previous: before && before.likelihood !== null ? before : null,
+          evaluatedBy: r.user ? { id: r.user.id, name: r.user.name, lastName: r.user.lastName } : null,
+          evaluatedAt: r.createdAt,
+        };
+      });
+      return { items, total, page: page.page, pageSize: page.pageSize };
+    });
+  }
+
+  createTreatment(
+    scope: TenantScope,
+    riskId: string,
+    input: { decision: string; responsibleId: string; dueDate: Date; createdBy: string },
+    audit: Parameters<RiskRepository['createTreatment']>[3],
+  ): Promise<RiskTreatmentRecord | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const risk = await tx.clientRisk.findFirst({ where: { id: riskId }, select: { id: true, isActive: true } });
+      if (!risk) return null;
+      // El cargo debe ser de esta empresa (la RLS lo garantiza): uno ajeno es 404, nunca se revela.
+      if (!(await tx.organizationResponsible.findFirst({ where: { id: input.responsibleId }, select: { id: true } }))) throw new DomainError('NOT_FOUND');
+      if (!risk.isActive) throw new DomainError('RISK_INACTIVE');
+      const row = await tx.riskTreatment.create({
+        data: { tenantId: scope.companyId, clientRiskId: riskId, responsibleId: input.responsibleId, decision: input.decision as never, dueDate: input.dueDate, createdBy: input.createdBy },
+        select: TREATMENT_SELECT,
+      });
+      const created = toTreatment(row);
+      await insertAuditLog(tx, audit(created));
+      return created;
+    });
+  }
+
+  listTreatments(scope: TenantScope, riskId: string, page: { page: number; pageSize: number }): Promise<Page<RiskTreatmentRecord> | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      if (!(await tx.clientRisk.findFirst({ where: { id: riskId }, select: { id: true } }))) return null;
+      const total = await tx.riskTreatment.count({ where: { clientRiskId: riskId } });
+      const rows = await tx.riskTreatment.findMany({
+        where: { clientRiskId: riskId }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page.page - 1) * page.pageSize, take: page.pageSize, select: TREATMENT_SELECT,
+      });
+      return { items: rows.map(toTreatment), total, page: page.page, pageSize: page.pageSize };
     });
   }
 }

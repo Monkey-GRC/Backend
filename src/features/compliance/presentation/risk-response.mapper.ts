@@ -1,4 +1,4 @@
-import { CauseNode, ControlLink, RiskGraph, RiskNode } from '../domain/repositories/risk.repository';
+import { CauseNode, ControlLink, EvaluationEntry, RiskGraph, RiskNode, RiskTreatmentRecord } from '../domain/repositories/risk.repository';
 import { lossTypesOf } from '../domain/risk-types';
 import { activeCauses, activeRisks } from '../application/use-cases/risk.use-cases';
 
@@ -19,17 +19,40 @@ const evaluation = (r: RiskNode) => ({
   likelihood: r.likelihood, impact: r.impact, inherent_risk_value: r.inherentRiskValue, inherent_risk_level: r.inherentRiskLevel,
 });
 
+const day = (d: Date) => d.toISOString().slice(0, 10);
+const responsible = (r: RiskTreatmentRecord['responsible']) => ({ id: r.id, type: r.type, person_name: r.personName });
+
+// La decisión vigente de un riesgo dentro de su lista y su detalle; el historial completo es `GET /risks/{id}/treatments`.
+const currentTreatment = (r: RiskNode) => (r.treatment ? { decision: r.treatment.decision, due_date: day(r.treatment.dueDate), responsible: responsible(r.treatment.responsible) } : null);
+
+export const toRiskTreatment = (t: RiskTreatmentRecord) => ({
+  id: t.id, risk_id: t.riskId, decision: t.decision, responsible: responsible(t.responsible), due_date: day(t.dueDate), created_at: t.createdAt.toISOString(),
+});
+
+const person = (p: NonNullable<EvaluationEntry['evaluatedBy']>) => ({ id: p.id, name: p.name, last_name: p.lastName });
+export const toEvaluationEntry = (e: EvaluationEntry) => ({
+  risk_id: e.riskId,
+  likelihood: e.current.likelihood,
+  impact: e.current.impact,
+  inherent_risk_value: e.current.inherentRiskValue,
+  inherent_risk_level: e.current.inherentRiskLevel,
+  previous: e.previous
+    ? { likelihood: e.previous.likelihood, impact: e.previous.impact, inherent_risk_value: e.previous.inherentRiskValue, inherent_risk_level: e.previous.inherentRiskLevel }
+    : null,
+  evaluated_by: e.evaluatedBy ? person(e.evaluatedBy) : null,
+  evaluated_at: e.evaluatedAt.toISOString(),
+});
+
 export const toRiskListItem = (r: RiskNode, g: RiskGraph, on: boolean) => ({
   id: r.id, code: r.code, name: r.name, trust_criterion: r.trustCriterion, origin: r.origin, is_active: r.isActive, ...evaluation(r),
-  // El tratamiento llega con MD-123.
-  treatment: null,
+  treatment: currentTreatment(r),
   causes_count: activeCauses(g, r).length,
   ...technical(on, r.origin === 'catalog' ? r.code : null),
 });
 
 export const toRiskDetail = (r: RiskNode, g: RiskGraph, on: boolean) => ({
   id: r.id, service_id: r.serviceId, code: r.code, name: r.name, description: r.description, trust_criterion: r.trustCriterion,
-  potential_impact: lossTypesOf(r.potentialImpact), origin: r.origin, is_active: r.isActive, ...evaluation(r), treatment: null,
+  potential_impact: lossTypesOf(r.potentialImpact), origin: r.origin, is_active: r.isActive, ...evaluation(r), treatment: currentTreatment(r),
   causes: activeCauses(g, r).map((c) => ({
     id: c.id, code: c.code, name: c.name, failure_category: c.failureCategory,
     controls: c.controls.map((k) => controlLink(k, on)),
