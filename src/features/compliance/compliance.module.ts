@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DecideExclusionUseCase, ListExclusionsUseCase, RequestExclusionUseCase } from './application/use-cases/exclusion.use-cases';
 import { CreateControlUseCase } from './application/use-cases/create-control.use-case';
 import { GetControlUseCase } from './application/use-cases/get-control.use-case';
 import { ListChangesUseCase } from './application/use-cases/list-changes.use-case';
@@ -12,21 +13,24 @@ import {
 } from './application/use-cases/risk.use-cases';
 import { ControlChangeRepository } from './domain/repositories/control-change.repository';
 import { ControlRepository } from './domain/repositories/control.repository';
+import { ExclusionRepository } from './domain/repositories/exclusion.repository';
 import { RiskRepository } from './domain/repositories/risk.repository';
 import { ResponsibleRepository } from './domain/repositories/responsible.repository';
 import { ControlChangePrismaRepository } from './infrastructure/repositories/control-change.prisma.repository';
+import { ExclusionPrismaRepository } from './infrastructure/repositories/exclusion.prisma.repository';
 import { ControlPrismaRepository } from './infrastructure/repositories/control.prisma.repository';
 import { RiskPrismaRepository } from './infrastructure/repositories/risk.prisma.repository';
 import { ResponsiblePrismaRepository } from './infrastructure/repositories/responsible.prisma.repository';
 import { ControlChangesController } from './presentation/control-changes.controller';
 import { ControlsController } from './presentation/controls.controller';
+import { ExclusionsController } from './presentation/exclusions.controller';
 import { ResponsiblesController } from './presentation/responsibles.controller';
 import { RiskAssessmentController } from './presentation/risk-assessment.controller';
 import { RisksController } from './presentation/risks.controller';
 
 // Cumplimiento (modelo-datos.md §7 y §9). El motor de evaluación vive en `domain/engine/` (funciones puras).
 @Module({
-  controllers: [ControlsController, ControlChangesController, ResponsiblesController, RisksController, RiskAssessmentController],
+  controllers: [ControlsController, ControlChangesController, ResponsiblesController, RisksController, RiskAssessmentController, ExclusionsController],
   providers: [
     { provide: ControlRepository, useClass: ControlPrismaRepository },
     { provide: ControlChangeRepository, useClass: ControlChangePrismaRepository },
@@ -44,6 +48,8 @@ import { RisksController } from './presentation/risks.controller';
     ListRisksUseCase, GetRiskUseCase, CreateRiskUseCase, UpdateRiskUseCase, DeactivateRiskUseCase,
     ListCausesUseCase, GetCauseUseCase, CreateCauseUseCase, UpdateCauseUseCase, DeactivateCauseUseCase, LinkUseCases,
     EvaluateRiskUseCase, EvaluationHistoryUseCase, CreateTreatmentUseCase, ListTreatmentsUseCase,
+    { provide: ExclusionRepository, useClass: ExclusionPrismaRepository },
+    ListExclusionsUseCase, RequestExclusionUseCase, DecideExclusionUseCase,
   ],
 })
 export class ComplianceModule {}

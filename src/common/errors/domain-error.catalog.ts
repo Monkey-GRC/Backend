@@ -42,6 +42,10 @@ export const DOMAIN_ERROR_CATALOG: Record<
   LINK_ALREADY_EXISTS: { status: HttpStatus.CONFLICT, messageKey: 'risk.link_already_exists' },
   RISK_INACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'risk.inactive' },
   CAUSE_INACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'cause.inactive' },
+  // Exclusiones (contracts/modules/compliance-audit.md).
+  ALREADY_DECIDED: { status: HttpStatus.CONFLICT, messageKey: 'exclusion.already_decided' },
+  EXCLUSION_ALREADY_EXISTS: { status: HttpStatus.CONFLICT, messageKey: 'exclusion.already_exists' },
+  EVALUATION_NOT_DEFINED: { status: HttpStatus.CONFLICT, messageKey: 'exclusion.evaluation_not_defined' },
   FRAMEWORK_NOT_CONTRACTED: { status: HttpStatus.CONFLICT, messageKey: 'framework.not_contracted' },
   FRAMEWORK_NOT_AVAILABLE: { status: HttpStatus.CONFLICT, messageKey: 'framework.not_available' },
   FILE_REQUIRED: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'file.required' },

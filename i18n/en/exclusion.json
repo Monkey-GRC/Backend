@@ -1,0 +1,8 @@
+{
+  "list": "Exclusions of the service.",
+  "requested": "Done, we sent your exclusion proposal. Until it is approved, the asset keeps being measured.",
+  "decided": "Done, we recorded your decision on the exclusion.",
+  "already_decided": "This exclusion has already been decided.",
+  "already_exists": "There is already a pending or active exclusion for this asset in this test.",
+  "evaluation_not_defined": "The service's evaluation period is not defined yet: without it there is no end date for the exclusion."
+}
