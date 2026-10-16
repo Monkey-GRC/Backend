@@ -5,11 +5,14 @@
 //
 // Reglas (ver prisma/seed/README.md):
 //  - Solo INSERTA lo que falta, por clave natural. Nunca sobrescribe ni borra.
+//  - Única excepción: `tests.display_name` y `tests.display_description` (el nombre neutro D70 y la descripción corta D82 que ve el cliente). Son nullable y se cargan
+//    como dato: si están VACÍOS se completan; si ya tienen un valor distinto, es un conflicto como cualquier otro (no se pisa lo escrito).
 //  - Si una fila existe con contenido distinto, ABORTA y muestra el diff: cambiar el catálogo exige
 //    una versión nueva y aceptación (decisiones A4 y D33), no una recarga.
 //  - Las filas de la base que no están en la fuente se REPORTAN, no se tocan.
 //  - Se niega a correr como `monkey_app`.
 import { connectAsOwner, readCatalogJson, short } from './soc2/db';
+import { displayDescriptionOf, displayNameOf } from './soc2/display-names';
 import { validateCatalog } from './soc2/validate';
 
 const apply = process.argv.includes('--apply');
@@ -102,6 +105,25 @@ async function main() {
       exceptions: [d.exceptions, s.exceptions], exceptionsHandling: [d.exceptionsHandling, s.exceptionsHandling], evidenceToRetain: [d.evidenceToRetain, s.evidenceToRetain],
       automatedCoverage: [d.automatedCoverage, s.automatedCoverage], complementaryManualValidation: [d.complementaryManualValidation, s.complementaryManualValidation], limitations: [d.limitations, s.limitations],
     }));
+    // El nombre neutro (D70) y la descripción corta (D82) de cada prueba: las que ya existen y los tienen vacíos se completan; las nuevas los traen al insertarse; uno distinto es un conflicto.
+    const srcTest = new Map(cat.tests.map((t) => [t.code, t]));
+    const displayNameFill: string[] = [];
+    const displayDescriptionFill: string[] = [];
+    const displayFill = new Map<string, { displayName?: string; displayDescription?: string }>();
+    for (const d of testDb) {
+      const s = srcTest.get(d.code);
+      if (!s) continue;
+      const wanted = displayNameOf(s);
+      if (d.displayName === null) {
+        displayNameFill.push(d.code);
+        displayFill.set(d.code, { ...displayFill.get(d.code), displayName: wanted });
+      } else if (d.displayName !== wanted) conflicts.push(`prueba ${d.code}: displayName  BD=${short(d.displayName)}  fuente=${short(wanted)}`);
+      const wantedDescription = displayDescriptionOf(s);
+      if (d.displayDescription === null) {
+        displayDescriptionFill.push(d.code);
+        displayFill.set(d.code, { ...displayFill.get(d.code), displayDescription: wantedDescription });
+      } else if (d.displayDescription !== wantedDescription) conflicts.push(`prueba ${d.code}: displayDescription  BD=${short(d.displayDescription)}  fuente=${short(wantedDescription)}`);
+    }
     const ctMissing = diff('control↔prueba', cat.controlTests, ctrlTestDb, (r) => `${r.controlCode}#${r.testCode}`, (r) => `${r.control.code}#${r.test.code}`, () => ({}));
     const tplMissing = diff('plantilla de evidencia', cat.evidenceTemplates, tplDb, (t) => t.code, (t) => t.code, (d, s) => ({ description: [d.description, s.description], dimension: [d.dimension, s.dimension] }));
     const cetMissing = diff('control↔plantilla', cat.controlEvidenceTemplates, ctrlTplDb, (r) => `${r.controlCode}#${r.templateCode}`, (r) => `${r.control.code}#${r.evidenceTemplate.code}`, (d, s) => ({ sequence: [d.sequence, s.sequence] }));
@@ -124,6 +146,8 @@ async function main() {
       ['risk_causes', cat.riskCauses.length, rcMissing.length],
       ['cause_controls', cat.causeControls.length, ccMissing.length],
       ['tests', cat.tests.length, testMissing.length],
+      ['tests.display_name (a completar)', cat.tests.length, displayNameFill.length],
+      ['tests.display_description (a completar)', cat.tests.length, displayDescriptionFill.length],
       ['control_tests', cat.controlTests.length, ctMissing.length],
       ['evidence_templates', cat.evidenceTemplates.length, tplMissing.length],
       ['control_evidence_templates', cat.controlEvidenceTemplates.length, cetMissing.length],
@@ -186,7 +210,8 @@ async function main() {
         await tx.causeControl.createMany({ data: ccMissing.map((r) => ({ causeId: causeId.get(r.causeCode)!, controlId: ctrlId.get(r.controlCode)! })) });
 
         // Pruebas y su asignación a controles
-        await tx.test.createMany({ data: testMissing.map((t) => ({ ...t })) });
+        await tx.test.createMany({ data: testMissing.map((t) => ({ ...t, displayName: displayNameOf(t), displayDescription: displayDescriptionOf(t) })) });
+        for (const [code, data] of displayFill) await tx.test.update({ where: { code }, data });
         const testId = new Map((await tx.test.findMany()).map((t) => [t.code, t.id]));
         await tx.controlTest.createMany({ data: ctMissing.map((r) => ({ controlId: ctrlId.get(r.controlCode)!, testId: testId.get(r.testCode)! })) });
 

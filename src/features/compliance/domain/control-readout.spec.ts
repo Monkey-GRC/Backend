@@ -2,7 +2,7 @@ import { AssetResult } from './engine/states';
 import { compareOwnCode, dimensionOfAssetType, readControl, ReadoutAsset, ReadoutControl, ReadoutTest, readinessOf, resultKey, ResultsIndex } from './control-readout';
 
 const test = (id: string, dimension: ReadoutTest['dimension'], patch: Partial<ReadoutTest> = {}): ReadoutTest => ({
-  testId: id, code: `T-${id}`, displayName: null, dimension, mandatory: true, active: true, ...patch,
+  testId: id, code: `T-${id}`, displayName: null, displayDescription: null, dimension, mandatory: true, active: true, ...patch,
 });
 const asset = (id: string, type: string): ReadoutAsset => ({ id, name: `activo-${id}`, type });
 const control = (tests: ReadoutTest[], patch: Partial<ReadoutControl> = {}): ReadoutControl => ({

@@ -62,3 +62,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Claude
 CLAUDE.md
+# runner local (llaves AWS)
+deploy/runner.env
