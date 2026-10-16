@@ -28,6 +28,10 @@ export type DomainErrorCode =
   | 'LINK_ALREADY_EXISTS'
   | 'RISK_INACTIVE'
   | 'CAUSE_INACTIVE'
+  // Exclusiones (contracts/modules/compliance-audit.md, MD-144).
+  | 'ALREADY_DECIDED'
+  | 'EXCLUSION_ALREADY_EXISTS'
+  | 'EVALUATION_NOT_DEFINED'
   // D47: el marco no está entre los que Monkey Admin contrató para la empresa.
   | 'FRAMEWORK_NOT_CONTRACTED'
   // D50: el marco existe en el catálogo pero aún no está construido (`coming_soon`): no se contrata.

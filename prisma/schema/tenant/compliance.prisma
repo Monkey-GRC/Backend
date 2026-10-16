@@ -258,6 +258,7 @@ model ResidualRisk {
   @@schema("tenant")
 }
 
+// El tratamiento de un riesgo: una decisión por fila, la vigente es la última (MD-123). El responsable es un CARGO de la organización (D30), no una persona con cuenta.
 model RiskTreatment {
   id            String                @id @default(uuid()) @db.Uuid
   tenantId      String                @map("tenant_id") @db.Uuid
@@ -265,13 +266,17 @@ model RiskTreatment {
   responsibleId String                @map("responsible_id") @db.Uuid
   decision      RiskTreatmentDecision
   dueDate       DateTime              @map("due_date") @db.Date
+  // Quién registró la decisión; RESTRICT: el histórico no pierde atribución.
+  createdBy     String                @map("created_by") @db.Uuid
+  createdAt     DateTime              @default(now()) @map("created_at")
 
-  clientRisk      ClientRisk @relation(fields: [clientRiskId], references: [id])
-  responsibleUser User       @relation(fields: [responsibleId], references: [id])
-  tenant          Company    @relation(fields: [tenantId], references: [id])
+  clientRisk    ClientRisk              @relation(fields: [clientRiskId], references: [id])
+  responsible   OrganizationResponsible @relation(fields: [responsibleId], references: [id], onDelete: Restrict)
+  createdByUser User                    @relation("RiskTreatmentCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  tenant        Company                 @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
-  @@index([clientRiskId])
+  @@index([clientRiskId, createdAt])
   @@index([responsibleId])
   @@map("risk_treatments")
   @@schema("tenant")
@@ -329,23 +334,46 @@ model EvidenceSubmission {
   @@schema("tenant")
 }
 
-model Exclusion {
-  id              String    @id @default(uuid()) @db.Uuid
-  tenantId        String    @map("tenant_id") @db.Uuid
-  testId          String    @map("test_id") @db.Uuid
-  proposedBy      String    @map("proposed_by") @db.Uuid // consultor
-  approvedBy      String?   @map("approved_by") @db.Uuid // cliente; null mientras no la apruebe
-  excludedCheckId String    @map("excluded_check_id")
-  justification   String    @db.Text
-  validUntil      DateTime  @map("valid_until") @db.Date
+enum ExclusionStatus {
+  pending
+  approved
+  rejected
 
-  test               Test    @relation(fields: [testId], references: [id])
-  proposedByUser     User    @relation("ExclusionProposedBy", fields: [proposedBy], references: [id])
-  approvedByUser     User?   @relation("ExclusionApprovedBy", fields: [approvedBy], references: [id], onDelete: Restrict)
-  tenant             Company @relation(fields: [tenantId], references: [id])
+  @@map("exclusion_status")
+  @@schema("tenant")
+}
+
+// Excluir un ACTIVO de un test (o un check) cambia lo que se mide: la propone `admin_empresa` y la decide el `consultor` (D78). Mientras está `pending` no cambia nada.
+// `asset_id` nulo y `excluded_check_id` con valor es la exclusión de un check; hoy el contrato solo expone la de un activo (MD-144).
+model Exclusion {
+  id                     String          @id @default(uuid()) @db.Uuid
+  tenantId               String          @map("tenant_id") @db.Uuid
+  serviceId              String          @map("service_id") @db.Uuid
+  testId                 String          @map("test_id") @db.Uuid
+  assetId                String?         @map("asset_id") @db.Uuid
+  proposedBy             String          @map("proposed_by") @db.Uuid // admin_empresa
+  decidedBy              String?         @map("decided_by") @db.Uuid // el consultor; null mientras no decida
+  status                 ExclusionStatus @default(pending)
+  requestedAt            DateTime        @default(now()) @map("requested_at")
+  decidedAt              DateTime?       @map("decided_at")
+  decisionNote           String?         @map("decision_note") @db.Text
+  technicalJustification String?         @map("technical_justification") @db.Text
+  excludedCheckId        String?         @map("excluded_check_id")
+  justification          String          @db.Text
+  validFrom              DateTime        @map("valid_from") @db.Date
+  validUntil             DateTime        @map("valid_until") @db.Date
+
+  service        Service @relation(fields: [serviceId], references: [id])
+  test           Test    @relation(fields: [testId], references: [id])
+  asset          Asset?  @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  proposedByUser User    @relation("ExclusionProposedBy", fields: [proposedBy], references: [id])
+  decidedByUser  User?   @relation("ExclusionDecidedBy", fields: [decidedBy], references: [id], onDelete: Restrict)
+  tenant         Company @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
+  @@index([serviceId])
   @@index([testId])
+  @@index([assetId])
   @@map("exclusions")
   @@schema("tenant")
 }

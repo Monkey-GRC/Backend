@@ -1,0 +1,8 @@
+{
+  "list": "Exclusiones del servicio.",
+  "requested": "Listo, enviamos tu propuesta de exclusión. Mientras no se apruebe, el activo se sigue midiendo.",
+  "decided": "Listo, registramos tu decisión sobre la exclusión.",
+  "already_decided": "Esta exclusión ya fue decidida.",
+  "already_exists": "Ya hay una exclusión pendiente o vigente de este activo en esta prueba.",
+  "evaluation_not_defined": "Falta definir el período de evaluación del servicio: sin él no hay hasta cuándo excluir."
+}

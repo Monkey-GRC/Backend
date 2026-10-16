@@ -6,7 +6,7 @@ import { ControlDetail } from '../application/use-cases/get-control.use-case';
 type Translate = (key: string) => string;
 
 // Un test sin nombre neutro (D70) se muestra con un texto genérico de su dimensión: nunca el nombre del comité.
-const neutralName = (displayName: string | null, dimension: Dimension, t: Translate) => displayName ?? t(`control.test.${dimension}`);
+export const neutralName = (displayName: string | null, dimension: Dimension, t: Translate) => displayName ?? t(`control.test.${dimension}`);
 
 const assignee = (a: ControlReadout['control']['assignee']) => (a ? { user_id: a.userId, name: a.name, last_name: a.lastName } : null);
 

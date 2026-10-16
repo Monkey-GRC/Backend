@@ -27,5 +27,9 @@
   "platform_not_in_category": "That platform doesn't belong to this type of connection.",
   "dimension_policy_only": "A custom control is document-only: its only dimension is the document one.",
   "category_not_in_scope": "Your service has not contracted that category.",
-  "reason_required": "Say why this dimension does not apply."
+  "reason_required": "Say why this dimension does not apply.",
+  "number_range": "Must be between 1 and 5.",
+  "date_past": "The date cannot be earlier than today.",
+  "date_invalid": "Write the date as YYYY-MM-DD.",
+  "note_required": "Write the reason for the rejection."
 }

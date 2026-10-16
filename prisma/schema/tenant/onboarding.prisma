@@ -216,6 +216,7 @@ model OrganizationResponsible {
 
   assets Asset[]
   evidenceRequirements EvidenceRequirement[]
+  riskTreatments RiskTreatment[]
 
   // Un mismo cargo con la misma persona no se repite (puede haber varios propietarios de activo, con nombres distintos).
   @@unique([organizationId, type, personName])
@@ -386,6 +387,7 @@ model Service {
   clientRisks             ClientRisk[]
   clientCauses            ClientCause[]
   serviceAssets           ServiceAsset[]
+  exclusions              Exclusion[]
   clientControls ClientControl[]
   clientControlChanges ClientControlChange[]
   evaluations    Evaluation[]
@@ -422,6 +424,10 @@ model ServiceFramework {
   contractedAt     DateTime @map("contracted_at") @db.Date
   status           ServiceFrameworkStatus @default(active)
   evaluationPeriod String   @map("evaluation_period")
+  // El período auditado y la fecha de corte de la evaluación (D68, REQ-004). Nadie los llena todavía: quién los define es P26.
+  periodStart      DateTime? @map("period_start") @db.Date
+  periodEnd        DateTime? @map("period_end") @db.Date
+  cutoffDate       DateTime? @map("cutoff_date") @db.Date
 
   framework      Framework      @relation(fields: [frameworkId], references: [id])
   service        Service        @relation(fields: [serviceId], references: [id])
@@ -632,6 +638,7 @@ model Asset {
   tenant       Company                  @relation(fields: [tenantId], references: [id])
 
   serviceAssets ServiceAsset[]
+  exclusions    Exclusion[]
   provisionings AssetProvisioning[]
   evaluations     Evaluation[]
   vulnerabilities Vulnerability[]

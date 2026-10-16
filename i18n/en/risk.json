@@ -15,5 +15,7 @@
   "linked": "Done, we linked the risk to the cause.",
   "code_already_exists": "There is already a risk or cause with that code in this service.",
   "link_already_exists": "That link already exists.",
-  "inactive": "This risk has been retired."
+  "inactive": "This risk has been retired.",
+  "evaluated": "Done, we recorded the risk evaluation.",
+  "evaluation_history": "Evaluations of the risk."
 }

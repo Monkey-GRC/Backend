@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
-import { Dimension, ReadoutControl, ResultsIndex, resultKey } from '../../domain/control-readout';
+import { Dimension, ReadoutControl, resultKey } from '../../domain/control-readout';
 import { AssetResult } from '../../domain/engine/states';
 import { ControlDetailData, ControlRepository, ServiceReadoutData } from '../../domain/repositories/control.repository';
 
@@ -139,7 +139,19 @@ export class ControlPrismaRepository extends ControlRepository {
           select: { clientControlId: true, testId: true, assetId: true, result: true },
         })
       : [];
-    const results: ResultsIndex = new Map(latest.map((e) => [resultKey(e.clientControlId, e.testId, e.assetId), e.result as AssetResult]));
+    const results = new Map<string, AssetResult>(latest.map((e) => [resultKey(e.clientControlId, e.testId, e.assetId), e.result as AssetResult]));
+
+    // Una exclusión APROBADA y vigente saca al activo del universo del test (su resultado es `excluded`, RN-05); la pendiente, la rechazada y la vencida no cambian nada:
+    // el activo sigue contando. El veredicto de la sonda no se toca: la exclusión se superpone al leer (MD-144, D78).
+    const day = new Date();
+    const now = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate()));
+    const excluded = await tx.exclusion.findMany({
+      where: { serviceId, status: 'approved', assetId: { not: null }, validFrom: { lte: now }, validUntil: { gte: now } },
+      select: { testId: true, assetId: true },
+    });
+    for (const x of excluded) {
+      for (const c of controls) if (c.tests.some((t) => t.testId === x.testId)) results.set(resultKey(c.id, x.testId, x.assetId as string), 'excluded');
+    }
 
     return { serviceId, controls, assets, results };
   }
