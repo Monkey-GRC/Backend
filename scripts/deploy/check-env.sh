@@ -11,6 +11,7 @@ problems=0
 
 value() { grep -E "^$2=" "$1" | tail -1 | cut -d= -f2- | tr -d '"' || true; }
 fail() { echo "✗ $*"; problems=$((problems + 1)); }
+warn() { echo "⚠ $*"; }
 
 need() {
   local file=$1; shift
@@ -32,6 +33,15 @@ if [ -f "$ENV" ] && [ "$(value "$ENV" PROBE_MODE)" = "runner" ]; then
     # El trabajador solo recibe lo suyo: nunca los secretos del backend.
     ! grep -qE '^(JWT_SECRET|APP_DATABASE_URL|CREDENTIALS_ENCRYPTION_KEY|TOKEN_HASH_PEPPER)=' "$RUNNER" || fail "runner.env trae secretos del backend: quítalos"
   fi
+fi
+
+# Almacenamiento privado de archivos (MD-110). Es una ADVERTENCIA y no detiene el despliegue: sin él la app arranca, pero subir un archivo responde 503.
+if [ -f "$ENV" ]; then
+  missing_s3=""
+  for key in S3_ENDPOINT S3_BUCKET S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY S3_PUBLIC_ENDPOINT; do
+    [ -n "$(value "$ENV" "$key")" ] || missing_s3="$missing_s3 $key"
+  done
+  [ -z "$missing_s3" ] || warn "$ENV: almacenamiento de archivos incompleto, falta:$missing_s3 (subir evidencias o la Descripción del Sistema fallará; ver scripts/deploy/setup-storage.sh)"
 fi
 
 if [ "$problems" -gt 0 ]; then

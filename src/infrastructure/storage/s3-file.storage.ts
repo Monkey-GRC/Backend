@@ -11,6 +11,9 @@ export type S3StorageConfig = {
   secretAccessKey: string;
   // minio y la mayoría de S3 compatibles exigen `bucket` en la ruta y no en el subdominio.
   forcePathStyle: boolean;
+  // Dónde llega el NAVEGADOR del cliente. El backend sube por `endpoint` (la red interna de Docker, p. ej. http://minio:9000), pero un enlace firmado con ese
+  // nombre no abre fuera de la red. La firma incluye el host, así que el enlace se firma con ESTE: si falta, se usa `endpoint`.
+  publicEndpoint?: string;
 };
 
 // Adaptador S3 / minio (AWS SDK v3). Sirve igual contra AWS S3 (sin endpoint) que contra un
@@ -18,15 +21,14 @@ export type S3StorageConfig = {
 export class S3FileStorage extends FileStorage {
   private readonly logger = new Logger(S3FileStorage.name);
   private readonly client: S3Client;
+  // Firmar no hace ninguna llamada de red: este cliente solo existe para que el enlace lleve el host público.
+  private readonly signer: S3Client;
 
   constructor(private readonly config: S3StorageConfig) {
     super();
-    this.client = new S3Client({
-      region: config.region,
-      endpoint: config.endpoint,
-      forcePathStyle: config.forcePathStyle,
-      credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
-    });
+    const base = { region: config.region, forcePathStyle: config.forcePathStyle, credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey } };
+    this.client = new S3Client({ ...base, endpoint: config.endpoint });
+    this.signer = config.publicEndpoint ? new S3Client({ ...base, endpoint: config.publicEndpoint }) : this.client;
   }
 
   async put(key: string, body: Buffer, contentType: string): Promise<void> {
@@ -39,7 +41,7 @@ export class S3FileStorage extends FileStorage {
     // El nombre va entre comillas y sin saltos de línea: es lo único del cliente que entra al header.
     const safeName = fileName.replace(/["\r\n\\]/g, '_');
     return getSignedUrl(
-      this.client,
+      this.signer,
       new GetObjectCommand({
         Bucket: this.config.bucket,
         Key: key,

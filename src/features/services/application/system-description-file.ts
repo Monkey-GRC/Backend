@@ -3,6 +3,9 @@ import { DomainError } from '../../../common/errors/domain-error';
 
 // Descripción del Sistema como archivo (contrato del Componente 2): máximo 25 MB, PDF o .docx.
 export const SYSTEM_DESCRIPTION_MAX_BYTES = 25 * 1024 * 1024;
+// Multer (busboy) corta el archivo en cuanto LLEGA al límite, no cuando lo pasa: con `fileSize` igual al máximo, un archivo de exactamente 25 MB se rechazaba
+// con 413 aunque el caso de uso lo acepta. Con un byte más, el de 25 MB entra y el de 25 MB + 1 byte se corta. La regla real vive en `assertSystemDescriptionFile`.
+export const SYSTEM_DESCRIPTION_UPLOAD_LIMIT_BYTES = SYSTEM_DESCRIPTION_MAX_BYTES + 1;
 
 const PDF = 'application/pdf';
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
