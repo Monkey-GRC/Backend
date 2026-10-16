@@ -30,5 +30,6 @@
   "reason_required": "Indica por qué esta dimensión no aplica.",
   "number_range": "Debe estar entre 1 y 5.",
   "date_past": "La fecha no puede ser anterior a hoy.",
-  "date_invalid": "Escribe la fecha con el formato AAAA-MM-DD."
+  "date_invalid": "Escribe la fecha con el formato AAAA-MM-DD.",
+  "note_required": "Escribe el motivo del rechazo."
 }

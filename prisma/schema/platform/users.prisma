@@ -79,7 +79,7 @@ model User {
   evidenceSubmitted         EvidenceSubmission[] @relation("EvidenceSubmittedBy")
   evidenceApproved          EvidenceSubmission[] @relation("EvidenceApprovedBy")
   exclusionsProposed        Exclusion[]          @relation("ExclusionProposedBy")
-  exclusionsApproved        Exclusion[]          @relation("ExclusionApprovedBy")
+  exclusionsDecided         Exclusion[]          @relation("ExclusionDecidedBy")
   controlChangesRequested   ClientControlChange[] @relation("ControlChangeRequestedBy")
   controlChangesDecided     ClientControlChange[] @relation("ControlChangeDecidedBy")
   evaluationsConfirmed      Evaluation[]
