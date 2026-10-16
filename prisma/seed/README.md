@@ -31,6 +31,12 @@ Excel del comité ──extract──▶ data/soc2-catalog.json (git) ──load
   prefijo TSC. Informa **todos** los errores, no solo el primero.
 - **Solo inserta lo que falta.** Si una fila existe con contenido distinto, **aborta y muestra el diff**;
   nunca sobrescribe. Cambiar el catálogo exige una versión nueva (A4/D33).
+- **Una sola excepción: el nombre neutro de cada prueba** (`tests.display_name`, D70), que es lo que ve el cliente. Es nullable y se
+  carga como dato, no en la migración (en un entorno nuevo la migración corre antes de que existan las pruebas). Si está **vacío**, `catalog:load`
+  lo completa; si ya tiene un valor distinto, es un conflicto como cualquier otro y aborta. La regla vive en `soc2/display-names.ts`: el nombre
+  neutro es el del comité y solo se reescribe cuando ese nombre nombra al proveedor de la sonda (hoy `T-SRV-001`, `002`, `003` y `005`). El validador
+  rechaza un catálogo cuyo nombre visible nombre al proveedor (`[confidencialidad]`) y `catalog:verify` comprueba la base.
+  Lo mismo vale para la **descripción corta** (`tests.display_description`, D82): es el objetivo del comité, reescrito solo en esas mismas cuatro pruebas.
 - **No borra.** Lo que hay en la base y no en la fuente se reporta como huérfano.
 - **Idempotente**: correrlo dos veces no cambia nada.
 - **Se niega a correr como `monkey_app`.** Usa `DATABASE_URL` (rol dueño), como `migrate deploy`.

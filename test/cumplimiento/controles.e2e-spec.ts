@@ -109,11 +109,11 @@ describe('Quién puede pedir qué', () => {
     await monkey.get(listPath).expect(403);
   });
 
-  it('la vista técnica es solo del auditor y del consultor: el administrador y el funcional reciben 403', async () => {
-    await a.agent.get(`${listPath}?view=technical`).expect(403);
+  it('la vista técnica es del administrador, el auditor y el consultor (D81); el funcional recibe 403', async () => {
+    await a.agent.get(`${listPath}?view=technical`).expect(200);
     await funcional.get(`${listPath}?view=technical`).expect(403);
     const id = (await items(a.agent))[0].id;
-    await a.agent.get(`/v1/controls/${id}?view=technical`).expect(403);
+    await a.agent.get(`/v1/controls/${id}?view=technical`).expect(200);
   });
 
   it('el auditor de la empresa ve todas las acciones, también con el bloque técnico', async () => {

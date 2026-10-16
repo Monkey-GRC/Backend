@@ -79,7 +79,7 @@ export class ControlPrismaRepository extends ControlRepository {
           },
         },
         dimensions: { select: { dimension: true, type: true, reasonNotApplicable: true } },
-        tests: { select: { testId: true, test: { select: { code: true, dimension: true, displayName: true } } } },
+        tests: { select: { testId: true, test: { select: { code: true, dimension: true, displayName: true, displayDescription: true } } } },
         // Puede haber más de una persona asignada; el contrato muestra una (la primera) y el permiso cuenta todas. MD-158 define cómo se reparte.
         userControlAssignments: { orderBy: { assignedAt: 'asc' }, select: { user: { select: { id: true, name: true, lastName: true } } } },
       },
@@ -115,7 +115,7 @@ export class ControlPrismaRepository extends ControlRepository {
         catalogDescription: c.control?.description ?? null,
         dimensions: c.dimensions.map((d) => ({ dimension: d.dimension as Dimension, applies: d.reasonNotApplicable === null, type: d.type, reasonNotApplicable: d.reasonNotApplicable })),
         // `client_control_tests` todavía no guarda «obligatorio» ni «vigente» (D68): hasta entonces todo test vinculado es obligatorio y vigente.
-        tests: c.tests.map((t) => ({ testId: t.testId, code: t.test.code, displayName: t.test.displayName, dimension: t.test.dimension as Dimension, mandatory: true, active: true })),
+        tests: c.tests.map((t) => ({ testId: t.testId, code: t.test.code, displayName: t.test.displayName, displayDescription: t.test.displayDescription, dimension: t.test.dimension as Dimension, mandatory: true, active: true })),
         // Un control propio no llega a ningún requisito: su categoría es la que eligió la empresa.
         trustCriteria: c.control ? [...criteria].sort((a, b) => CRITERIA_ORDER.indexOf(a) - CRITERIA_ORDER.indexOf(b)) : c.trustCriterion ? [c.trustCriterion] : [],
         assignee: assigned ? { userId: assigned.id, name: assigned.name, lastName: assigned.lastName } : null,

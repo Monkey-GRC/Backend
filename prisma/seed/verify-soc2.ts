@@ -7,6 +7,7 @@
 import { createHash } from 'node:crypto';
 import { Client } from 'pg';
 import { connectAsOwner, readCatalogJson, short } from './soc2/db';
+import { PROVIDER_PATTERN, displayDescriptionOf, displayNameOf } from './soc2/display-names';
 import { EXPECTED_CAUSES_WITHOUT_RISK, PREFIX_TO_CRITERION } from './soc2/types';
 import { validateCatalog } from './soc2/validate';
 
@@ -158,6 +159,21 @@ async function main() {
     const ctrlWithTest = new Set(ctDb.map((r) => r.controlId));
     const ctrlNoTest = ctrlDb.filter((k) => !ctrlWithTest.has(k.id)).map((k) => k.code).sort();
     check(JSON.stringify(ctrlNoTest) === '["CPL-1"]', 'el único control sin prueba es CPL-1', `controles sin prueba: ${ctrlNoTest.join(', ')}`);
+    // El nombre neutro que ve el cliente (D70): todas lo tienen, es el del catálogo y ninguno nombra al proveedor de la sonda.
+    const srcTestByCode = new Map(cat.tests.map((t) => [t.code, t]));
+    const noDisplayName = testDb.filter((x) => !x.displayName?.trim()).map((x) => x.code).sort();
+    check(noDisplayName.length === 0, 'toda prueba tiene su nombre neutro (D70)', `${noDisplayName.length} pruebas sin nombre neutro: ${noDisplayName.slice(0, 8).join(', ')}${noDisplayName.length > 8 ? '…' : ''}`);
+    const wrongDisplayName = testDb.filter((x) => { const s = srcTestByCode.get(x.code); return !!x.displayName && !!s && x.displayName !== displayNameOf(s); }).map((x) => x.code).sort();
+    check(wrongDisplayName.length === 0, 'el nombre neutro de cada prueba es el que fija el catálogo', `nombre neutro distinto al del catálogo: ${wrongDisplayName.join(', ')}`);
+    const providerInName = testDb.filter((x) => !!x.displayName && PROVIDER_PATTERN.test(x.displayName)).map((x) => x.code).sort();
+    check(providerInName.length === 0, 'ningún nombre neutro nombra al proveedor de la sonda (SEG-39)', `nombran al proveedor: ${providerInName.join(', ')}`);
+    // La descripción corta que ve el cliente (D82): misma regla que el nombre.
+    const noDisplayDescription = testDb.filter((x) => !x.displayDescription?.trim()).map((x) => x.code).sort();
+    check(noDisplayDescription.length === 0, 'toda prueba tiene su descripción corta (D82)', `${noDisplayDescription.length} pruebas sin descripción: ${noDisplayDescription.slice(0, 8).join(', ')}${noDisplayDescription.length > 8 ? '…' : ''}`);
+    const wrongDisplayDescription = testDb.filter((x) => { const s = srcTestByCode.get(x.code); return !!x.displayDescription && !!s && x.displayDescription !== displayDescriptionOf(s); }).map((x) => x.code).sort();
+    check(wrongDisplayDescription.length === 0, 'la descripción corta de cada prueba es la que fija el catálogo', `descripción distinta a la del catálogo: ${wrongDisplayDescription.join(', ')}`);
+    const providerInDescription = testDb.filter((x) => !!x.displayDescription && PROVIDER_PATTERN.test(x.displayDescription)).map((x) => x.code).sort();
+    check(providerInDescription.length === 0, 'ninguna descripción corta nombra al proveedor de la sonda (SEG-39)', `nombran al proveedor: ${providerInDescription.join(', ')}`);
     const tplWithCtrl = new Set(cetDb.map((r) => r.evidenceTemplateId));
     const tplNoCtrl = tplDb.filter((x) => !tplWithCtrl.has(x.id)).length;
     check(tplNoCtrl === 0, 'toda plantilla de evidencia está ligada a un control', `${tplNoCtrl} plantillas sin control`);

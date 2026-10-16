@@ -12,7 +12,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "runner:local": "bash scripts/dev/runner-local.sh",
+    "runner:local": "node scripts/dev/runner-local.js",
     "env:vps": "bash scripts/deploy/vps-env.sh",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" \"prisma/seed/**/*.ts\" \"scripts/**/*.ts\" --fix",
     "lint:ci": "eslint \"{src,apps,libs,test}/**/*.ts\" \"prisma/seed/**/*.ts\" \"scripts/**/*.ts\"",

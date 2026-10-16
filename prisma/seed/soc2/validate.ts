@@ -1,4 +1,5 @@
 import { countsOf } from './build';
+import { NEUTRAL_DESCRIPTION_OVERRIDES, NEUTRAL_NAME_OVERRIDES, PROVIDER_PATTERN, displayDescriptionOf, displayNameOf } from './display-names';
 import {
   EXPECTED_CAUSES_WITHOUT_RISK,
   EXPECTED_COUNTS,
@@ -168,6 +169,23 @@ function validateExtras(c: Soc2Catalog): string[] {
   });
   c.evidenceTemplates.forEach((t) => {
     if (blank(t.code) || blank(t.description)) err('campos', `plantilla de evidencia ${t.code || '(sin código)'}: código o descripción vacíos`);
+  });
+
+  // confidencialidad: el nombre que ve el cliente de una prueba nunca nombra al proveedor de la sonda (D70) ------------------------------
+  const testCodesForNames = new Set(c.tests.map((t) => t.code));
+  for (const code of Object.keys(NEUTRAL_NAME_OVERRIDES)) {
+    if (!testCodesForNames.has(code)) err('confidencialidad', `nombre neutro para una prueba que no existe: ${code}`);
+  }
+  for (const code of Object.keys(NEUTRAL_DESCRIPTION_OVERRIDES)) {
+    if (!testCodesForNames.has(code)) err('confidencialidad', `descripción neutra para una prueba que no existe: ${code}`);
+  }
+  c.tests.forEach((t) => {
+    const shown = displayNameOf(t);
+    if (blank(shown)) err('confidencialidad', `prueba ${t.code}: nombre neutro vacío`);
+    else if (PROVIDER_PATTERN.test(shown)) err('confidencialidad', `prueba ${t.code}: el nombre que ve el cliente nombra al proveedor de la sonda («${shown}»); hace falta un nombre neutro`);
+    const described = displayDescriptionOf(t);
+    if (blank(described)) err('confidencialidad', `prueba ${t.code}: descripción neutra vacía`);
+    else if (PROVIDER_PATTERN.test(described)) err('confidencialidad', `prueba ${t.code}: la descripción que ve el cliente nombra al proveedor de la sonda; hace falta una descripción neutra`);
   });
 
   // unicidad --------------------------------------------------------------------------------

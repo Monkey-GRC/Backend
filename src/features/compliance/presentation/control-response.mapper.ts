@@ -63,7 +63,7 @@ export function toControlDetail(d: ControlDetail, t: Translate) {
       ? {
           technical: {
             ...technicalBlock(r),
-            tests: r.tests.map((x) => ({ test_code: x.test.code, display_name: neutralName(x.test.displayName, x.test.dimension, t), dimension: x.test.dimension, state: x.state })),
+            tests: r.tests.map((x) => ({ test_code: x.test.code, display_name: neutralName(x.test.displayName, x.test.dimension, t), display_description: x.test.displayDescription, dimension: x.test.dimension, state: x.state })),
           },
         }
       : {}),

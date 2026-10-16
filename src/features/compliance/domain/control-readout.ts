@@ -28,7 +28,7 @@ const DIMENSION_OF_ASSET_TYPE: Record<string, Dimension | null> = {
 };
 export const dimensionOfAssetType = (type: string): Dimension | null => DIMENSION_OF_ASSET_TYPE[type] ?? null;
 
-export type ReadoutTest = { testId: string; code: string; displayName: string | null; dimension: Dimension; mandatory: boolean; active: boolean };
+export type ReadoutTest = { testId: string; code: string; displayName: string | null; displayDescription: string | null; dimension: Dimension; mandatory: boolean; active: boolean };
 export type ReadoutAsset = { id: string; name: string; type: string };
 export type ReadoutDimension = { dimension: Dimension; applies: boolean; type: ControlType; reasonNotApplicable: string | null };
 export type ReadoutAssignee = { userId: string; name: string | null; lastName: string | null };
