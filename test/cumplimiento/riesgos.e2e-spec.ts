@@ -257,10 +257,12 @@ describe('Vista de cada rol', () => {
     await funcional.get(`/v1/risks/${myRisks[0].id}`).expect(200);
   });
 
-  it('la vista técnica trae los códigos del catálogo solo para el auditor; el administrador recibe 403', async () => {
-    await a.agent.get(risks(a, '?view=technical')).expect(403);
-    await a.agent.get(causes(a, '?view=technical')).expect(403);
+  it('la vista técnica trae los códigos del catálogo para el auditor y para el administrador (D81); el funcional recibe 403', async () => {
     await funcional.get(risks(a, '?view=technical')).expect(403);
+    await funcional.get(causes(a, '?view=technical')).expect(403);
+    const adminTech = await all(a.agent, risks(a, '?view=technical'));
+    expect(adminTech.find((r) => r.origin === 'catalog')!.technical).toEqual({ catalog_code: expect.any(String) });
+    expect((await a.agent.get(causes(a, '?view=technical')).expect(200)).body.data.items[0].technical).toBeDefined();
     const tech = await all(auditor, risks(a, '?view=technical'));
     const catalog = tech.find((r) => r.origin === 'catalog')!;
     expect(catalog.technical).toEqual({ catalog_code: catalog.code });

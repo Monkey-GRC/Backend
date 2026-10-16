@@ -3,9 +3,9 @@ import { DomainError } from '../../../common/errors/domain-error';
 
 export type ViewMode = 'business' | 'technical';
 
-// La vista técnica (códigos de requisito y de control, estados de evaluación) es de los roles `auditor` y `consultor` (D63, D64, SEG-54). Para
-// cualquier otro —incluido `admin_empresa`— pedirla es `403`: no es un modo que active el cliente.
-const TECHNICAL_ROLES = new Set(['auditor', 'consultor']);
+// La vista técnica (códigos de requisito y de control, estados de evaluación, todas las pruebas del control) la piden `auditor`, `consultor` y, mientras
+// los permisos por pantalla sigan abiertos (P3), `admin_empresa` (D81, SEG-54). Para el `funcional` y `admin_monkey` pedirla es `403`.
+const TECHNICAL_ROLES = new Set(['admin_empresa', 'auditor', 'consultor']);
 
 export function viewModeOf(principal: Principal, view: 'technical' | undefined): ViewMode {
   if (view !== 'technical') return 'business';

@@ -109,11 +109,32 @@ describe('Quién puede pedir qué', () => {
     await monkey.get(listPath).expect(403);
   });
 
-  it('la vista técnica es solo del auditor y del consultor: el administrador y el funcional reciben 403', async () => {
-    await a.agent.get(`${listPath}?view=technical`).expect(403);
+  it('la vista técnica la piden el administrador (D81), el auditor y el consultor; el funcional recibe 403', async () => {
     await funcional.get(`${listPath}?view=technical`).expect(403);
     const id = (await items(a.agent))[0].id;
-    await a.agent.get(`/v1/controls/${id}?view=technical`).expect(403);
+    await funcional.get(`/v1/controls/${id}?view=technical`).expect(403);
+    await monkey.get(`${listPath}?view=technical`).expect(403);
+  });
+
+  it('el administrador de la empresa recibe la misma vista técnica que el auditor, con todas las pruebas del control y su estado', async () => {
+    const admin = await items(a.agent, '?view=technical&page_size=100');
+    const audit = await items(auditor, '?view=technical&page_size=100');
+    expect(admin.length).toBe(audit.length);
+    expect(admin[0].technical).toEqual({
+      control_code: expect.stringMatching(/^[A-Z]+-\d+$/),
+      requirement_codes: expect.any(Array),
+      points_of_focus: expect.any(Array),
+      control_state: expect.any(String),
+      tests_count: expect.any(Number),
+    });
+    // Una prueba de una dimensión sin activos conectados sale igual, como «Sin activos»; las documentales, pendientes.
+    const detailOf = async (agent: Agent, id: string) => (await agent.get(`/v1/controls/${id}?view=technical`).expect(200)).body.data;
+    const withTests = admin.find((c) => c.technical.tests_count > 0)!;
+    const adminDetail = await detailOf(a.agent, withTests.id);
+    expect(adminDetail.technical.tests).toHaveLength(withTests.technical.tests_count);
+    expect(adminDetail.technical.tests[0]).toEqual({ test_code: expect.any(String), display_name: expect.any(String), dimension: expect.any(String), state: expect.any(String) });
+    expect(adminDetail.technical.tests.some((t: any) => t.state === 'no_assets' || t.state === 'pending')).toBe(true);
+    expect(adminDetail.technical).toEqual((await detailOf(auditor, withTests.id)).technical);
   });
 
   it('el auditor de la empresa ve todas las acciones, también con el bloque técnico', async () => {
