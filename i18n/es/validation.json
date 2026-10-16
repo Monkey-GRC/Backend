@@ -27,5 +27,8 @@
   "platform_not_in_category": "Esa plataforma no pertenece a este tipo de conexión.",
   "dimension_policy_only": "Un control propio es solo documental: su única dimensión es la documental.",
   "category_not_in_scope": "Tu servicio no tiene contratada esa categoría.",
-  "reason_required": "Indica por qué esta dimensión no aplica."
+  "reason_required": "Indica por qué esta dimensión no aplica.",
+  "number_range": "Debe estar entre 1 y 5.",
+  "date_past": "La fecha no puede ser anterior a hoy.",
+  "date_invalid": "Escribe la fecha con el formato AAAA-MM-DD."
 }

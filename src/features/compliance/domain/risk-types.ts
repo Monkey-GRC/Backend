@@ -2,6 +2,7 @@
 export const RISK_CRITERIA = ['confidentiality', 'integrity', 'availability', 'privacy', 'compliance', 'security', 'continuity', 'third_parties', 'fraud', 'reputation', 'operations'] as const;
 export const FAILURE_CATEGORIES = ['human_resource', 'processes', 'information_technology', 'infrastructure', 'external', 'governance'] as const;
 export const RISK_LEVELS = ['low', 'moderate', 'high', 'critical'] as const;
+export const TREATMENT_DECISIONS = ['mitigate', 'accept', 'transfer', 'avoid'] as const;
 export const CAUSE_CONTROL_EFFECTS = ['probability', 'impact'] as const;
 
 export const LOSS_TYPES = ['reputational', 'financial_loss', 'regulatory_sanction', 'litigation', 'customer_trust_loss', 'operation_interruption'] as const;
@@ -30,6 +31,12 @@ export function lossTypesOf(stored: unknown): LossType[] {
 
 /** De los valores de la API al texto que se guarda. */
 export const storedLossTypes = (values: readonly LossType[]): string[] => [...new Set(values)].map((v) => LABEL_OF[v]);
+
+/** La matriz es de 5×5: probabilidad e impacto van de 1 a 5 (D33). */
+export const RISK_SCALE = { min: 1, max: 5 } as const;
+
+/** El valor de un riesgo es probabilidad × impacto; lo calcula el servidor, el cliente nunca. */
+export const riskValueOf = (likelihood: number, impact: number): number => likelihood * impact;
 
 /** El nivel de un riesgo según su valor (probabilidad × impacto): Bajo 1–4 · Moderado 5–9 · Alto 10–16 · Crítico 17–25. */
 export function riskLevelOf(value: number): (typeof RISK_LEVELS)[number] {

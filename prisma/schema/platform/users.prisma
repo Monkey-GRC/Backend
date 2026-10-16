@@ -75,7 +75,7 @@ model User {
   catalogVersionsPublished  CatalogVersion[]
   actionPlansResponsible    ActionPlan[]
   residualRisksAccepted     ResidualRisk[]
-  riskTreatmentsResponsible RiskTreatment[]
+  riskTreatmentsCreated     RiskTreatment[] @relation("RiskTreatmentCreatedBy")
   evidenceSubmitted         EvidenceSubmission[] @relation("EvidenceSubmittedBy")
   evidenceApproved          EvidenceSubmission[] @relation("EvidenceApprovedBy")
   exclusionsProposed        Exclusion[]          @relation("ExclusionProposedBy")
