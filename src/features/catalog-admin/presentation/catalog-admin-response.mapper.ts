@@ -60,7 +60,7 @@ export const toControlDetail = (c: ControlDetail) => ({
   source_ref: c.sourceRef,
   origin: c.origin,
   is_active: c.isActive,
-  points_of_focus: c.pointsOfFocus.map((p) => ({ framework_code: p.frameworkCode, requirement_code: p.requirementCode, number: p.number, description: p.description })),
+  points_of_focus: c.pointsOfFocus.map((p) => ({ id: p.id, framework_code: p.frameworkCode, requirement_code: p.requirementCode, number: p.number, description: p.description })),
   dimensions: c.dimensions.map((d) => ({
     dimension: d.dimension,
     type: d.type,

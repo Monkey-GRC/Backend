@@ -48,7 +48,7 @@ export type ControlDetail = Stamped & {
   domain: string;
   sourceRef: string | null;
   isActive: boolean;
-  pointsOfFocus: Array<{ frameworkCode: string; requirementCode: string; number: number; description: string }>;
+  pointsOfFocus: Array<{ id: string; frameworkCode: string; requirementCode: string; number: number; description: string }>;
   dimensions: Array<{ dimension: string; type: string; requiresProbe: boolean; requiresAi: boolean; requiresComplianceConfirmation: boolean }>;
   tests: Array<{ id: string; code: string; dimension: string; displayName: string | null; isActive: boolean }>;
   evidenceTemplates: Array<{ id: string; code: string; description: string; sequence: number }>;
