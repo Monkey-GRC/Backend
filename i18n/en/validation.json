@@ -31,5 +31,9 @@
   "number_range": "Must be between 1 and 5.",
   "date_past": "The date cannot be earlier than today.",
   "date_invalid": "Write the date as YYYY-MM-DD.",
-  "note_required": "Write the reason for the rejection."
+  "note_required": "Write the reason for the rejection.",
+  "text_names_provider": "The client sees this text, so it cannot name the probe provider.",
+  "code_dimension_mismatch": "The code prefix does not match the dimension (T-DOC, T-SRV, T-BD, T-APP or T-CLD).",
+  "sequence_range": "The position must be between 1 and the next free one.",
+  "dimension_not_in_control": "The control does not have that test's dimension. Add it first."
 }

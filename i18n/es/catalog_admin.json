@@ -9,5 +9,11 @@
   "cause_read": "Detalle de la causa del catálogo.",
   "test_list": "Pruebas del catálogo maestro.",
   "test_read": "Detalle de la prueba del catálogo.",
-  "evidence_template_list": "Plantillas de evidencia del catálogo maestro."
+  "evidence_template_list": "Plantillas de evidencia del catálogo maestro.",
+  "evidence_template_read": "Detalle de la plantilla de evidencia.",
+  "points_of_focus_list": "Puntos de enfoque del marco.",
+  "created": "Listo, lo agregamos al catálogo.",
+  "updated": "Listo, guardamos los cambios.",
+  "linked": "Listo, quedó vinculado.",
+  "item_in_use": "No se puede: otro elemento activo del catálogo lo necesita. Primero da de baja o cambia ese elemento."
 }

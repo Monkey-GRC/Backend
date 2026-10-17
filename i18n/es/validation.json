@@ -31,5 +31,9 @@
   "number_range": "Debe estar entre 1 y 5.",
   "date_past": "La fecha no puede ser anterior a hoy.",
   "date_invalid": "Escribe la fecha con el formato AAAA-MM-DD.",
-  "note_required": "Escribe el motivo del rechazo."
+  "note_required": "Escribe el motivo del rechazo.",
+  "text_names_provider": "Este texto lo ve el cliente y no puede nombrar al proveedor de la sonda.",
+  "code_dimension_mismatch": "El prefijo del código no corresponde a la dimensión (T-DOC, T-SRV, T-BD, T-APP o T-CLD).",
+  "sequence_range": "La posición debe estar entre 1 y la siguiente libre.",
+  "dimension_not_in_control": "El control no tiene la dimensión de esa prueba. Agrégasela primero."
 }

@@ -71,7 +71,8 @@ describe('Marcos', () => {
 });
 
 describe('Controles del marco', () => {
-  const path = (query = '') => `/v1/catalog/frameworks/${frameworkId}/controls${query}`;
+  // Las pruebas de escritura agregan filas monkey_admin a la misma base: aquí se mira solo lo que viene del comité, que es lo que el JSON describe.
+  const path = (query = '') => `/v1/catalog/frameworks/${frameworkId}/controls${query.includes('origin=') ? query : `${query}${query ? '&' : '?'}origin=committee`}`;
 
   it('pagina y trae la forma del contrato', async () => {
     const page = await data(path('?page_size=10'));
@@ -137,13 +138,13 @@ describe('Controles del marco', () => {
 
 describe('Riesgos, causas, pruebas y plantillas de evidencia', () => {
   it('los riesgos y las causas son globales, no cuelgan de un marco', async () => {
-    const risks = await data('/v1/catalog/risks?page_size=100');
+    const risks = await data('/v1/catalog/risks?page_size=100&origin=committee');
     expect(risks.total).toBe(catalog.risks.length);
     expect(risks.items[0]).toEqual({ id: expect.any(String), code: expect.any(String), name: expect.any(String), trust_criterion: expect.any(String), origin: 'committee', is_active: true, causes_count: expect.any(Number) });
     const risk = await data(`/v1/catalog/risks/${risks.items[0].id}`);
     expect(risk.causes.length).toBe(risks.items[0].causes_count);
 
-    const causes = await data('/v1/catalog/causes?page_size=100');
+    const causes = await data('/v1/catalog/causes?page_size=100&origin=committee');
     expect(causes.total).toBe(catalog.causes.length);
     const cause = await data(`/v1/catalog/causes/${causes.items[0].id}`);
     expect(cause.risks.length).toBe(causes.items[0].risks_count);
@@ -151,7 +152,7 @@ describe('Riesgos, causas, pruebas y plantillas de evidencia', () => {
   });
 
   it('la prueba muestra al administrador de Monkey los textos del comité y el nombre neutro; filtra por dimensión', async () => {
-    const tests = await data('/v1/catalog/tests?page_size=100');
+    const tests = await data('/v1/catalog/tests?page_size=100&origin=committee');
     expect(tests.total).toBe(catalog.tests.length);
     const test = await data(`/v1/catalog/tests/${tests.items[0].id}`);
     expect(test.committee).toMatchObject({ objective: expect.any(String), tool: expect.any(String), step_by_step: expect.anything() });
@@ -159,35 +160,35 @@ describe('Riesgos, causas, pruebas y plantillas de evidencia', () => {
     expect(test.display_description).toEqual(expect.any(String));
 
     const dimension = catalog.tests[0].dimension as string;
-    const filtered = await data(`/v1/catalog/tests?dimension=${dimension}&page_size=100`);
+    const filtered = await data(`/v1/catalog/tests?dimension=${dimension}&page_size=100&origin=committee`);
     expect(filtered.items.every((t: Row) => t.dimension === dimension)).toBe(true);
     expect(filtered.total).toBe(catalog.tests.filter((t: { dimension: string }) => t.dimension === dimension).length);
   });
 
   it('las plantillas de evidencia dicen a cuántos controles sirven', async () => {
-    const templates = await data('/v1/catalog/evidence-templates?page_size=100');
+    const templates = await data('/v1/catalog/evidence-templates?page_size=100&origin=committee');
     expect(templates.total).toBe(catalog.evidenceTemplates.length);
     expect(templates.items[0]).toEqual({ id: expect.any(String), code: expect.any(String), description: expect.any(String), dimension: 'policy', origin: 'committee', is_active: true, controls_count: expect.any(Number) });
   });
 
-  it('is_active=false no trae nada mientras no se haya dado de baja ninguna fila', async () => {
+  it('ninguna fila del comité está dada de baja', async () => {
     for (const resource of ['risks', 'causes', 'tests', 'evidence-templates']) {
-      expect((await data(`/v1/catalog/${resource}?is_active=false`)).total).toBe(0);
+      expect((await data(`/v1/catalog/${resource}?is_active=false&origin=committee`)).total).toBe(0);
     }
-    expect((await data(`/v1/catalog/frameworks/${frameworkId}/controls?origin=monkey_admin`)).total).toBe(0);
+    expect((await data(`/v1/catalog/frameworks/${frameworkId}/controls?origin=committee&is_active=false`)).total).toBe(0);
   });
 });
 
 describe('Controles de todo el catálogo', () => {
   it('la lista global trae también los controles que no cuelgan de ningún requisito, como CPL-1', async () => {
-    const all = await data('/v1/catalog/controls?page_size=100');
+    const all = await data('/v1/catalog/controls?page_size=100&origin=committee');
     expect(all.total).toBe(catalog.controls.length);
-    const unlinked = await data('/v1/catalog/controls?unlinked=true');
+    const unlinked = await data('/v1/catalog/controls?unlinked=true&origin=committee');
     expect(unlinked.items.map((c: Row) => c.code)).toEqual(catalog.controls.filter((c: { code: string }) => !linked.has(c.code)).map((c: { code: string }) => c.code));
   });
 
   it('se puede acotar a un marco, y un framework_id mal escrito es 422', async () => {
-    expect((await data(`/v1/catalog/controls?framework_id=${frameworkId}&page_size=1`)).total).toBe(linked.size);
+    expect((await data(`/v1/catalog/controls?framework_id=${frameworkId}&page_size=1&origin=committee`)).total).toBe(linked.size);
     await monkey.get('/v1/catalog/controls?framework_id=no-es-un-id').expect(422);
   });
 });

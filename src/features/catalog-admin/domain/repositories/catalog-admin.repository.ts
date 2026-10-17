@@ -134,4 +134,5 @@ export abstract class CatalogAdminRepository {
   abstract listTests(filter: CatalogFilter & { dimension?: string }): Promise<Page<TestSummary>>;
   abstract findTest(id: string): Promise<TestDetail | null>;
   abstract listEvidenceTemplates(filter: CatalogFilter): Promise<Page<EvidenceTemplateSummary>>;
+  abstract findEvidenceTemplate(id: string): Promise<EvidenceTemplateSummary | null>;
 }

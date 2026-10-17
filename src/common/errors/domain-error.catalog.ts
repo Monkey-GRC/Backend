@@ -40,6 +40,7 @@ export const DOMAIN_ERROR_CATALOG: Record<
   RESPONSIBLE_IN_USE: { status: HttpStatus.CONFLICT, messageKey: 'responsible.in_use' },
   CODE_ALREADY_EXISTS: { status: HttpStatus.CONFLICT, messageKey: 'risk.code_already_exists' },
   LINK_ALREADY_EXISTS: { status: HttpStatus.CONFLICT, messageKey: 'risk.link_already_exists' },
+  CATALOG_ITEM_IN_USE: { status: HttpStatus.CONFLICT, messageKey: 'catalog_admin.item_in_use' },
   RISK_INACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'risk.inactive' },
   CAUSE_INACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'cause.inactive' },
   // Exclusiones (contracts/modules/compliance-audit.md).

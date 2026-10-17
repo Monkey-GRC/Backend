@@ -8,6 +8,7 @@ import { AllControlsListQuery, CatalogListQuery, CatalogPageQuery, ControlsListQ
 import {
   GetCatalogCauseUseCase,
   GetCatalogControlUseCase,
+  GetCatalogEvidenceTemplateUseCase,
   GetCatalogRiskUseCase,
   GetCatalogTestUseCase,
   GetFrameworkUseCase,
@@ -56,6 +57,7 @@ export class CatalogAdminController {
     private readonly listTests: ListCatalogTestsUseCase,
     private readonly getTest: GetCatalogTestUseCase,
     private readonly listEvidenceTemplates: ListCatalogEvidenceTemplatesUseCase,
+    private readonly getEvidenceTemplate: GetCatalogEvidenceTemplateUseCase,
   ) {}
 
   @Get('frameworks')
@@ -143,6 +145,11 @@ export class CatalogAdminController {
   async evidenceTemplates(@Query() q: CatalogListQuery) {
     const page = await this.listEvidenceTemplates.execute(this.filter(q));
     return new ResponseDto(HttpStatus.OK, t('catalog_admin.evidence_template_list'), toPageResponse(page, toEvidenceTemplate));
+  }
+
+  @Get('evidence-templates/:id')
+  async evidenceTemplate(@Param('id', uuid) id: string) {
+    return new ResponseDto(HttpStatus.OK, t('catalog_admin.evidence_template_read'), toEvidenceTemplate(await this.getEvidenceTemplate.execute(id)));
   }
 
   private filter(q: CatalogListQuery) {

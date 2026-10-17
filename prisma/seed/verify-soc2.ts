@@ -12,6 +12,8 @@ import { EXPECTED_CAUSES_WITHOUT_RISK, PREFIX_TO_CRITERION } from './soc2/types'
 import { validateCatalog } from './soc2/validate';
 
 let failed = 0;
+// Solo lo que viene del comité se compara con el JSON: lo agregado desde Monkey Admin (origin = monkey_admin) no es del Excel.
+const COMMITTEE = { origin: 'committee' } as const;
 const ok = (m: string) => console.log(`  ✓ ${m}`);
 const bad = (m: string) => {
   failed++;
@@ -56,8 +58,8 @@ async function main() {
       tc: await prisma.trustCriterion.count(),
       req: await prisma.requirement.count({ where: { frameworkId: fw.id } }),
       pof: await prisma.pointOfFocus.count({ where: { requirement: { frameworkId: fw.id } } }),
-      ctrl: await prisma.control.count(),
-      rel: await prisma.pointOfFocusControl.count({ where: { pointOfFocus: { requirement: { frameworkId: fw.id } } } }),
+      ctrl: await prisma.control.count({ where: COMMITTEE }),
+      rel: await prisma.pointOfFocusControl.count({ where: { pointOfFocus: { requirement: { frameworkId: fw.id } }, control: COMMITTEE } }),
       ver: await prisma.catalogVersion.count(),
       relations: await prisma.requirementRelation.count(),
     };
@@ -69,10 +71,10 @@ async function main() {
     check(count.ver >= 1, `catalog_versions = ${count.ver} (v1 publicada sin publicador humano)`, 'no hay ninguna fila en catalog_versions');
     ok(`requirement_relations = ${count.relations} (las hojas no traen fuente: queda vacía)`);
     const n = {
-      risks: await prisma.risk.count(), causes: await prisma.cause.count(), riskCauses: await prisma.riskCause.count(), causeControls: await prisma.causeControl.count(),
-      tests: await prisma.test.count(), controlTests: await prisma.controlTest.count(),
-      tpl: await prisma.evidenceTemplate.count(), cet: await prisma.controlEvidenceTemplate.count(),
-      pol: await prisma.policy.count(), cpol: await prisma.controlPolicy.count(), dim: await prisma.controlDimensionEntry.count(),
+      risks: await prisma.risk.count({ where: COMMITTEE }), causes: await prisma.cause.count({ where: COMMITTEE }), riskCauses: await prisma.riskCause.count({ where: { risk: COMMITTEE, cause: COMMITTEE } }), causeControls: await prisma.causeControl.count({ where: { cause: COMMITTEE, control: COMMITTEE } }),
+      tests: await prisma.test.count({ where: COMMITTEE }), controlTests: await prisma.controlTest.count({ where: { control: COMMITTEE, test: COMMITTEE } }),
+      tpl: await prisma.evidenceTemplate.count({ where: COMMITTEE }), cet: await prisma.controlEvidenceTemplate.count({ where: { control: COMMITTEE, evidenceTemplate: COMMITTEE } }),
+      pol: await prisma.policy.count(), cpol: await prisma.controlPolicy.count({ where: { control: COMMITTEE } }), dim: await prisma.controlDimensionEntry.count({ where: { control: COMMITTEE } }),
     };
     check(n.risks === c.risks, `risks = ${c.risks}`, `risks: ${n.risks} ≠ ${c.risks}`);
     check(n.causes === c.causes, `causes = ${c.causes}`, `causes: ${n.causes} ≠ ${c.causes}`);
@@ -93,34 +95,34 @@ async function main() {
     compareSets('requirements', reqDb.map((r) => `${r.code}|${r.tscCategory}|${r.criterion}|${r.trustCriterion.criterion}`), cat.requirements.map((r) => `${r.code}|${r.tscCategory}|${r.criterion}|${r.trustCriterion}`));
     const pofDb = await prisma.pointOfFocus.findMany({ where: { requirement: { frameworkId: fw.id } }, include: { requirement: true } });
     compareSets('points_of_focus', pofDb.map((p) => `${p.requirement.code}#${p.number}|${p.description}`), cat.pointsOfFocus.map((p) => `${p.requirementCode}#${p.number}|${p.description}`));
-    const ctrlDb = await prisma.control.findMany();
+    const ctrlDb = await prisma.control.findMany({ where: COMMITTEE });
     compareSets('controls', ctrlDb.map((k) => `${k.code}|${k.name}|${k.description}|${k.domain}|${k.sourceRef}`), cat.controls.map((k) => `${k.code}|${k.name}|${k.description}|${k.domain}|${k.sourceRef}`));
-    const relDb = await prisma.pointOfFocusControl.findMany({ where: { pointOfFocus: { requirement: { frameworkId: fw.id } } }, include: { pointOfFocus: { include: { requirement: true } }, control: true } });
+    const relDb = await prisma.pointOfFocusControl.findMany({ where: { pointOfFocus: { requirement: { frameworkId: fw.id } }, control: COMMITTEE }, include: { pointOfFocus: { include: { requirement: true } }, control: true } });
     compareSets('point_of_focus_controls', relDb.map((r) => `${r.pointOfFocus.requirement.code}#${r.pointOfFocus.number}#${r.control.code}`), cat.pointOfFocusControls.map((r) => `${r.requirementCode}#${r.pointNumber}#${r.controlCode}`));
 
-    const riskDb = await prisma.risk.findMany();
+    const riskDb = await prisma.risk.findMany({ where: COMMITTEE });
     compareSets('risks', riskDb.map((r) => `${r.code}|${r.name}|${r.description}|${r.trustCriterion}|${JSON.stringify(r.potentialImpact)}|${r.isActive}`), cat.risks.map((r) => `${r.code}|${r.name}|${r.description}|${r.trustCriterion}|${JSON.stringify(r.potentialImpact)}|${r.isActive}`));
-    const causeDb = await prisma.cause.findMany();
+    const causeDb = await prisma.cause.findMany({ where: COMMITTEE });
     compareSets('causes', causeDb.map((k) => `${k.code}|${k.name}|${k.failureCategory}|${k.description}`), cat.causes.map((k) => `${k.code}|${k.name}|${k.failureCategory}|${k.description}`));
-    const rcDb = await prisma.riskCause.findMany({ include: { risk: true, cause: true } });
+    const rcDb = await prisma.riskCause.findMany({ where: { risk: COMMITTEE, cause: COMMITTEE }, include: { risk: true, cause: true } });
     compareSets('risk_causes', rcDb.map((r) => `${r.code}|${r.risk.code}|${r.cause.code}`), cat.riskCauses.map((r) => `${r.code}|${r.riskCode}|${r.causeCode}`));
-    const ccDb = await prisma.causeControl.findMany({ include: { cause: true, control: true } });
+    const ccDb = await prisma.causeControl.findMany({ where: { cause: COMMITTEE, control: COMMITTEE }, include: { cause: true, control: true } });
     compareSets('cause_controls', ccDb.map((r) => `${r.cause.code}#${r.control.code}`), cat.causeControls.map((r) => `${r.causeCode}#${r.controlCode}`));
-    const testDb = await prisma.test.findMany();
+    const testDb = await prisma.test.findMany({ where: COMMITTEE });
     const tf = (x: { code: string; dimension: string; name: string; objective: string; type: string; tool: string; population: string; period: string; populationSize: string; suggestedSampleSize: string; selectionMethod: string; evidenceToRequest: string; prerequisites: string; stepByStep: unknown; attributesToValidate: unknown; complianceCriterion: string; exceptions: string; exceptionsHandling: string; evidenceToRetain: string; automatedCoverage: string; complementaryManualValidation: string; limitations: string }) =>
       [x.code, x.dimension, x.name, x.objective, x.type, x.tool, x.population, x.period, x.populationSize, x.suggestedSampleSize, x.selectionMethod, x.evidenceToRequest, x.prerequisites, JSON.stringify(x.stepByStep), JSON.stringify(x.attributesToValidate), x.complianceCriterion, x.exceptions, x.exceptionsHandling, x.evidenceToRetain, x.automatedCoverage, x.complementaryManualValidation, x.limitations].join('|');
     compareSets('tests', testDb.map(tf), cat.tests.map(tf));
-    const ctDb = await prisma.controlTest.findMany({ include: { control: true, test: true } });
+    const ctDb = await prisma.controlTest.findMany({ where: { control: COMMITTEE, test: COMMITTEE }, include: { control: true, test: true } });
     compareSets('control_tests', ctDb.map((r) => `${r.control.code}#${r.test.code}`), cat.controlTests.map((r) => `${r.controlCode}#${r.testCode}`));
-    const tplDb = await prisma.evidenceTemplate.findMany();
+    const tplDb = await prisma.evidenceTemplate.findMany({ where: COMMITTEE });
     compareSets('evidence_templates', tplDb.map((t) => `${t.code}|${t.description}|${t.dimension}`), cat.evidenceTemplates.map((t) => `${t.code}|${t.description}|${t.dimension}`));
-    const cetDb = await prisma.controlEvidenceTemplate.findMany({ include: { control: true, evidenceTemplate: true } });
+    const cetDb = await prisma.controlEvidenceTemplate.findMany({ where: { control: COMMITTEE, evidenceTemplate: COMMITTEE }, include: { control: true, evidenceTemplate: true } });
     compareSets('control_evidence_templates', cetDb.map((r) => `${r.control.code}#${r.evidenceTemplate.code}#${r.sequence}`), cat.controlEvidenceTemplates.map((r) => `${r.controlCode}#${r.templateCode}#${r.sequence}`));
     const polDb = await prisma.policy.findMany();
     compareSets('policies', polDb.map((p) => p.name), cat.policies.map((p) => p.name));
-    const cpolDb = await prisma.controlPolicy.findMany({ include: { control: true, policy: true } });
+    const cpolDb = await prisma.controlPolicy.findMany({ where: { control: COMMITTEE }, include: { control: true, policy: true } });
     compareSets('control_policies', cpolDb.map((r) => `${r.control.code}#${r.policy.name}#${r.requiresEmployeeAcceptance}`), cat.controlPolicies.map((r) => `${r.controlCode}#${r.policyName}#${r.requiresEmployeeAcceptance}`));
-    const dimDb = await prisma.controlDimensionEntry.findMany({ include: { control: true } });
+    const dimDb = await prisma.controlDimensionEntry.findMany({ where: { control: COMMITTEE }, include: { control: true } });
     const df = (code: string, d: string, t: string, a: boolean, b: boolean, g: boolean) => `${code}#${d}|${t}|${a}|${b}|${g}`;
     compareSets('control_dimensions', dimDb.map((r) => df(r.control.code, r.dimension, r.type, r.requiresProbe, r.requiresAi, r.requiresComplianceConfirmation)), cat.controlDimensions.map((r) => df(r.controlCode, r.dimension, r.type, r.requiresProbe, r.requiresAi, r.requiresComplianceConfirmation)));
 
@@ -200,7 +202,7 @@ async function main() {
       try {
         const who = (await client.query('select current_user')).rows[0].current_user;
         check(who === 'monkey_app', `conectado como ${who}`, `se esperaba monkey_app y es ${who}`);
-        const rd = async (tbl: string) => Number((await client.query(`select count(*) from catalog.${tbl}`)).rows[0].count);
+        const rd = async (tbl: string) => Number((await client.query(`select count(*) from catalog.${tbl} where origin = 'committee'`)).rows[0].count);
         const nc = await rd('controls');
         check(nc === c.controls, `la app lee los ${nc} controles`, `la app lee ${nc} controles, se esperaban ${c.controls}`);
         const nt = await rd('tests');

@@ -10,12 +10,17 @@
 //  - Si una fila existe con contenido distinto, ABORTA y muestra el diff: cambiar el catálogo exige
 //    una versión nueva y aceptación (decisiones A4 y D33), no una recarga.
 //  - Las filas de la base que no están en la fuente se REPORTAN, no se tocan.
+//  - Solo mira lo que viene del comité (`origin = committee`). Lo que se agregó desde Monkey Admin (`origin = monkey_admin`) y sus vínculos se IGNORAN: ni se
+//    comparan ni se reportan como huérfanos. Una fila del comité que se EDITÓ desde Admin aparece como conflicto, marcada «editado desde Monkey Admin», con el
+//    cambio en `audit.audit_logs` (`catalog.*`): hay que decidir con el comité qué versión queda.
 //  - Se niega a correr como `monkey_app`.
 import { connectAsOwner, readCatalogJson, short } from './soc2/db';
 import { displayDescriptionOf, displayNameOf } from './soc2/display-names';
 import { validateCatalog } from './soc2/validate';
 
 const apply = process.argv.includes('--apply');
+// Lo que se agregó desde Monkey Admin no es del Excel: el seed no lo compara ni lo toca.
+const COMMITTEE = { origin: 'committee' } as const;
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 async function main() {
@@ -42,21 +47,21 @@ async function main() {
     const tcDb = await prisma.trustCriterion.findMany();
     const reqDb = fwDb ? await prisma.requirement.findMany({ where: { frameworkId: fwDb.id }, include: { trustCriterion: true } }) : [];
     const pofDb = inFw ? await prisma.pointOfFocus.findMany({ where: inFw, include: { requirement: true } }) : [];
-    const ctrlDb = await prisma.control.findMany();
+    const ctrlDb = await prisma.control.findMany({ where: COMMITTEE });
     const relDb = fwDb
-      ? await prisma.pointOfFocusControl.findMany({ where: { pointOfFocus: inFw }, include: { pointOfFocus: { include: { requirement: true } }, control: true } })
+      ? await prisma.pointOfFocusControl.findMany({ where: { pointOfFocus: inFw, control: COMMITTEE }, include: { pointOfFocus: { include: { requirement: true } }, control: true } })
       : [];
-    const riskDb = await prisma.risk.findMany();
-    const causeDb = await prisma.cause.findMany();
-    const riskCauseDb = await prisma.riskCause.findMany({ include: { risk: true, cause: true } });
-    const causeCtrlDb = await prisma.causeControl.findMany({ include: { cause: true, control: true } });
-    const testDb = await prisma.test.findMany();
-    const ctrlTestDb = await prisma.controlTest.findMany({ include: { control: true, test: true } });
-    const tplDb = await prisma.evidenceTemplate.findMany();
-    const ctrlTplDb = await prisma.controlEvidenceTemplate.findMany({ include: { control: true, evidenceTemplate: true } });
+    const riskDb = await prisma.risk.findMany({ where: COMMITTEE });
+    const causeDb = await prisma.cause.findMany({ where: COMMITTEE });
+    const riskCauseDb = await prisma.riskCause.findMany({ where: { risk: COMMITTEE, cause: COMMITTEE }, include: { risk: true, cause: true } });
+    const causeCtrlDb = await prisma.causeControl.findMany({ where: { cause: COMMITTEE, control: COMMITTEE }, include: { cause: true, control: true } });
+    const testDb = await prisma.test.findMany({ where: COMMITTEE });
+    const ctrlTestDb = await prisma.controlTest.findMany({ where: { control: COMMITTEE, test: COMMITTEE }, include: { control: true, test: true } });
+    const tplDb = await prisma.evidenceTemplate.findMany({ where: COMMITTEE });
+    const ctrlTplDb = await prisma.controlEvidenceTemplate.findMany({ where: { control: COMMITTEE, evidenceTemplate: COMMITTEE }, include: { control: true, evidenceTemplate: true } });
     const polDb = await prisma.policy.findMany();
-    const ctrlPolDb = await prisma.controlPolicy.findMany({ include: { control: true, policy: true } });
-    const dimDb = await prisma.controlDimensionEntry.findMany({ include: { control: true } });
+    const ctrlPolDb = await prisma.controlPolicy.findMany({ where: { control: COMMITTEE }, include: { control: true, policy: true } });
+    const dimDb = await prisma.controlDimensionEntry.findMany({ where: { control: COMMITTEE }, include: { control: true } });
     const versions = await prisma.catalogVersion.count();
 
     // ---- 2. Diff contra la fuente ---------------------------------------------------------
@@ -159,14 +164,29 @@ async function main() {
     console.log('\ntabla                        fuente   a insertar');
     rows.forEach(([t, s, i]) => console.log(`${t.padEnd(28)} ${String(s).padStart(6)}   ${String(i).padStart(10)}`));
 
+    const ignored = {
+      controles: await prisma.control.count({ where: { origin: 'monkey_admin' } }),
+      riesgos: await prisma.risk.count({ where: { origin: 'monkey_admin' } }),
+      causas: await prisma.cause.count({ where: { origin: 'monkey_admin' } }),
+      pruebas: await prisma.test.count({ where: { origin: 'monkey_admin' } }),
+      plantillas: await prisma.evidenceTemplate.count({ where: { origin: 'monkey_admin' } }),
+    };
+    if (Object.values(ignored).some((n) => n > 0)) console.log(`\nIgnoradas (agregadas desde Monkey Admin, no son del Excel): ${Object.entries(ignored).filter(([, n]) => n > 0).map(([k, n]) => `${n} ${k}`).join(', ')}.`);
     if (orphans.length) {
       console.warn(`\n⚠ ${orphans.length} fila(s) de la base no están en la fuente (NO se tocan):`);
       orphans.slice(0, 15).forEach((m) => console.warn('  - ' + m));
       if (orphans.length > 15) console.warn(`  … y ${orphans.length - 15} más`);
     }
+    // Las filas del comité que alguien editó desde Monkey Admin: el rastro `catalog.*.update` de la auditoría dice cuáles.
+    const edited = new Set<string>();
+    for (const e of await prisma.auditLog.findMany({ where: { action: { startsWith: 'catalog.' } }, select: { action: true, afterState: true } })) {
+      const code = (e.afterState as { code?: unknown } | null)?.code;
+      if (typeof code === 'string' && /\.(update|deactivate|reactivate)$/.test(e.action)) edited.add(code);
+    }
+    const annotate = (c: string) => ([...edited].some((code) => c.includes(` ${code}:`)) ? `${c}  [editado desde Monkey Admin]` : c);
     if (conflicts.length) {
       console.error(`\n✗ ${conflicts.length} fila(s) existen con contenido DISTINTO al de la fuente. No se sobrescribe nada:`);
-      conflicts.slice(0, 25).forEach((m) => console.error('  - ' + m));
+      conflicts.slice(0, 25).forEach((m) => console.error('  - ' + annotate(m)));
       if (conflicts.length > 25) console.error(`  … y ${conflicts.length - 25} más`);
       console.error('  Cambiar el catálogo exige una versión nueva y aceptación (A4/D33), no una recarga.');
       process.exit(1);
