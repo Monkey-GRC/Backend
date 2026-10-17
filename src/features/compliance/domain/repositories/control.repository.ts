@@ -30,7 +30,30 @@ export type ControlDetailData = ServiceReadoutData & {
   causes: Array<{ id: string; name: string }>;
 };
 
+// Lo que el resumen del servicio necesita además de los controles: los marcos contratados con su evaluación, qué categorías están en alcance y en qué marco y
+// categoría cae cada control (por los requisitos a los que sirve; un control propio, por la categoría que eligió la empresa).
+export type OverviewFrameworkData = {
+  frameworkId: string;
+  code: string;
+  name: string;
+  catalogVersion: number;
+  periodStart: Date | null;
+  periodEnd: Date | null;
+  cutoffDate: Date | null;
+};
+export type OverviewCriterionData = { criterion: string; mandatory: boolean; selected: boolean };
+export type Placement = { frameworkId: string; criterion: string };
+
+export type ServiceOverviewData = ServiceReadoutData & {
+  frameworks: OverviewFrameworkData[];
+  criteria: OverviewCriterionData[];
+  placements: ReadonlyMap<string, Placement[]>;
+};
+
 export abstract class ControlRepository {
+  // null si el servicio no existe (o es de otra empresa). Los controles y resultados son los de `loadService`, más los marcos y la ubicación de cada control.
+  abstract loadOverview(scope: TenantScope, serviceId: string): Promise<ServiceOverviewData | null>;
+
   // null si el servicio no existe (o es de otra empresa: RLS no deja verlo).
   abstract loadService(scope: TenantScope, serviceId: string): Promise<ServiceReadoutData | null>;
 

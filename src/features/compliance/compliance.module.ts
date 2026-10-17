@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { DecideExclusionUseCase, ListExclusionsUseCase, RequestExclusionUseCase } from './application/use-cases/exclusion.use-cases';
 import { CreateControlUseCase } from './application/use-cases/create-control.use-case';
 import { GetControlUseCase } from './application/use-cases/get-control.use-case';
+import { GetOverviewUseCase } from './application/use-cases/get-overview.use-case';
 import { ListChangesUseCase } from './application/use-cases/list-changes.use-case';
 import { ListControlsUseCase } from './application/use-cases/list-controls.use-case';
 import { CreateTreatmentUseCase, EvaluateRiskUseCase, EvaluationHistoryUseCase, ListTreatmentsUseCase } from './application/use-cases/risk-assessment.use-cases';
@@ -24,18 +25,20 @@ import { ResponsiblePrismaRepository } from './infrastructure/repositories/respo
 import { ControlChangesController } from './presentation/control-changes.controller';
 import { ControlsController } from './presentation/controls.controller';
 import { ExclusionsController } from './presentation/exclusions.controller';
+import { OverviewController } from './presentation/overview.controller';
 import { ResponsiblesController } from './presentation/responsibles.controller';
 import { RiskAssessmentController } from './presentation/risk-assessment.controller';
 import { RisksController } from './presentation/risks.controller';
 
 // Cumplimiento (modelo-datos.md §7 y §9). El motor de evaluación vive en `domain/engine/` (funciones puras).
 @Module({
-  controllers: [ControlsController, ControlChangesController, ResponsiblesController, RisksController, RiskAssessmentController, ExclusionsController],
+  controllers: [ControlsController, ControlChangesController, ResponsiblesController, RisksController, RiskAssessmentController, ExclusionsController, OverviewController],
   providers: [
     { provide: ControlRepository, useClass: ControlPrismaRepository },
     { provide: ControlChangeRepository, useClass: ControlChangePrismaRepository },
     ListControlsUseCase,
     GetControlUseCase,
+    GetOverviewUseCase,
     CreateControlUseCase,
     ProposeChangeUseCase,
     ListChangesUseCase,
