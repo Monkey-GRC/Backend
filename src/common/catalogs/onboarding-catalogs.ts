@@ -5,6 +5,7 @@
 // Es dato de referencia compartido: lo validan los DTOs de onboarding y lo sirve la feature
 // `catalogs`. Los valores coinciden con los enums de Postgres del schema (tenant.*).
 
+import { COMPLIANCE_ENUM_CATALOGS } from './compliance-catalogs';
 import {
   ACTIVE_CLIENT_COUNT_VALUES,
   DATA_TYPE_VALUES,
@@ -159,6 +160,8 @@ export const ENUM_CATALOGS = {
   // Conexión de nube (D53, D58). Las regiones (`aws_region`) salen de la base (D67).
   connection_method: CONNECTION_METHOD_VALUES,
   resource_kind: RESOURCE_KIND_VALUES,
+  // Cumplimiento: criterios, categorías, niveles, decisiones, cargos, dimensiones… leídos de los enums de Postgres (compliance-catalogs.ts).
+  ...COMPLIANCE_ENUM_CATALOGS,
 } as const;
 
 export type EnumCatalogName = keyof typeof ENUM_CATALOGS;
