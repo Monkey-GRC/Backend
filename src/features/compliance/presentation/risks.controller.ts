@@ -15,6 +15,7 @@ import {
   CreateCauseUseCase, CreateRiskUseCase, DeactivateCauseUseCase, DeactivateRiskUseCase, GetCauseUseCase, GetRiskUseCase, LinkUseCases, ListCausesUseCase, ListRisksUseCase,
   UpdateCauseUseCase, UpdateRiskUseCase,
 } from '../application/use-cases/risk.use-cases';
+import { riskMatrix } from '../domain/risk-types';
 import { toCause, toRiskDetail, toRiskListItem } from './risk-response.mapper';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
@@ -34,6 +35,12 @@ export class RisksController {
     private readonly listCauses: ListCausesUseCase, private readonly getCause: GetCauseUseCase, private readonly createCause: CreateCauseUseCase,
     private readonly updateCause: UpdateCauseUseCase, private readonly deactivateCause: DeactivateCauseUseCase, private readonly links: LinkUseCases,
   ) {}
+
+  // La matriz 5×5 con el nivel de cada casilla: no depende de ningún servicio ni de ninguna empresa, así que la leen los cuatro roles.
+  @Get('risk-matrix')
+  matrix() {
+    return new ResponseDto(HttpStatus.OK, t('risk.matrix'), riskMatrix());
+  }
 
   // ── riesgos ──
   @Get('services/:serviceId/risks')
