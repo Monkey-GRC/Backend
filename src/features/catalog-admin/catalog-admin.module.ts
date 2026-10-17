@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import {
   GetCatalogCauseUseCase,
   GetCatalogControlUseCase,
+  GetCatalogEvidenceTemplateUseCase,
   GetCatalogRiskUseCase,
   GetCatalogTestUseCase,
   GetFrameworkUseCase,
@@ -13,15 +14,28 @@ import {
   ListFrameworkControlsUseCase,
   ListFrameworksUseCase,
 } from './application/use-cases/catalog-queries.use-cases';
+import { CatalogLinks, CauseWrites, ControlWrites, EvidenceTemplateWrites, ListPointsOfFocusUseCase, RiskWrites, TestWrites } from './application/use-cases/catalog-write.use-cases';
 import { CatalogAdminRepository } from './domain/repositories/catalog-admin.repository';
+import { CatalogAdminWriteRepository } from './domain/repositories/catalog-admin-write.repository';
 import { CatalogAdminPrismaRepository } from './infrastructure/repositories/catalog-admin.prisma.repository';
+import { CatalogAdminWritePrismaRepository } from './infrastructure/repositories/catalog-admin-write.prisma.repository';
 import { CatalogAdminController } from './presentation/catalog-admin.controller';
+import { CatalogAdminWriteController } from './presentation/catalog-admin-write.controller';
 
-// El catálogo maestro visto desde Monkey Admin (contracts/modules/monkey-admin-catalog.md). Hoy solo lectura; la escritura llega después.
+// El catálogo maestro visto desde Monkey Admin (contracts/modules/monkey-admin-catalog.md). Lectura y escritura (crear, editar, dar de baja y vincular); todo exclusivo de `admin_monkey`.
 @Module({
-  controllers: [CatalogAdminController],
+  controllers: [CatalogAdminController, CatalogAdminWriteController],
   providers: [
     { provide: CatalogAdminRepository, useClass: CatalogAdminPrismaRepository },
+    { provide: CatalogAdminWriteRepository, useClass: CatalogAdminWritePrismaRepository },
+    ControlWrites,
+    RiskWrites,
+    CauseWrites,
+    EvidenceTemplateWrites,
+    TestWrites,
+    CatalogLinks,
+    ListPointsOfFocusUseCase,
+    GetCatalogEvidenceTemplateUseCase,
     ListFrameworksUseCase,
     GetFrameworkUseCase,
     ListFrameworkControlsUseCase,

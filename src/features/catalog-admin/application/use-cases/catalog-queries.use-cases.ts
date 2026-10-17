@@ -122,3 +122,11 @@ export class ListCatalogEvidenceTemplatesUseCase {
     return this.catalog.listEvidenceTemplates(filter);
   }
 }
+
+@Injectable()
+export class GetCatalogEvidenceTemplateUseCase {
+  constructor(private readonly catalog: CatalogAdminRepository) {}
+  async execute(id: string): Promise<EvidenceTemplateSummary> {
+    return found(await this.catalog.findEvidenceTemplate(id));
+  }
+}

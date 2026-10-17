@@ -347,4 +347,9 @@ export class CatalogAdminPrismaRepository extends CatalogAdminRepository {
       filter,
     );
   }
+
+  async findEvidenceTemplate(id: string): Promise<EvidenceTemplateSummary | null> {
+    const e = await this.prisma.evidenceTemplate.findUnique({ where: { id }, include: { _count: { select: { controls: true } } } });
+    return e ? { id: e.id, code: e.code, origin: e.origin, description: e.description, dimension: e.dimension, isActive: e.isActive, controlsCount: e._count.controls } : null;
+  }
 }

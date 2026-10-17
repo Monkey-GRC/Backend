@@ -20,18 +20,19 @@ export class CloneCatalogService {
       select: { tenantId: true, serviceId: true, frameworkId: true, evaluationPeriod: true },
     });
 
+    // Lo que se dio de baja en el catálogo (`is_active = false`, Monkey Admin) deja de ofrecerse a los servicios NUEVOS; las copias que ya tienen las empresas no se tocan (D28).
     const [criteria, requirements, controls, dimensions, controlTests, templates, risks, causes, riskCauses, causeControls] = await Promise.all([
       tx.serviceTrustCriterion.findMany({ where: { serviceId: sf.serviceId }, select: { trustCriterionId: true } }),
       tx.requirement.findMany({
         where: { frameworkId: sf.frameworkId },
         select: { id: true, trustCriterionId: true, pointsOfFocus: { select: { pointOfFocusControls: { select: { controlId: true } } } } },
       }),
-      tx.control.findMany({ select: { id: true, code: true, description: true } }),
+      tx.control.findMany({ where: { isActive: true }, select: { id: true, code: true, description: true } }),
       tx.controlDimensionEntry.findMany(),
-      tx.controlTest.findMany({ select: { controlId: true, testId: true } }),
-      tx.controlEvidenceTemplate.findMany({ select: { controlId: true, sequence: true, evidenceTemplate: { select: { code: true, description: true, dimension: true } } } }),
-      tx.risk.findMany(),
-      tx.cause.findMany(),
+      tx.controlTest.findMany({ where: { test: { isActive: true } }, select: { controlId: true, testId: true } }),
+      tx.controlEvidenceTemplate.findMany({ where: { evidenceTemplate: { isActive: true } }, select: { controlId: true, sequence: true, evidenceTemplate: { select: { code: true, description: true, dimension: true } } } }),
+      tx.risk.findMany({ where: { isActive: true } }),
+      tx.cause.findMany({ where: { isActive: true } }),
       tx.riskCause.findMany({ select: { riskId: true, causeId: true } }),
       tx.causeControl.findMany({ select: { causeId: true, controlId: true } }),
     ]);

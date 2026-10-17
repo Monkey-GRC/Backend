@@ -26,6 +26,8 @@ export type DomainErrorCode =
   | 'RESPONSIBLE_IN_USE'
   | 'CODE_ALREADY_EXISTS'
   | 'LINK_ALREADY_EXISTS'
+  // Monkey Admin, catálogo maestro (contracts/modules/monkey-admin-catalog.md): lo que se quiere dar de baja o desvincular lo necesita otro elemento activo.
+  | 'CATALOG_ITEM_IN_USE'
   | 'RISK_INACTIVE'
   | 'CAUSE_INACTIVE'
   // Exclusiones (contracts/modules/compliance-audit.md, MD-144).
