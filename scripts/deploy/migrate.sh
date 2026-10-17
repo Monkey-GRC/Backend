@@ -7,6 +7,7 @@
 #   1. Construye la imagen de herramientas (la etapa `build` del Dockerfile: trae el CLI de Prisma y tsx;
 #      la imagen de runtime NO los trae a propósito).
 #   2. Si la base ya tiene datos, la respalda con pg_dump ANTES de tocarla. Guarda las últimas $KEEP copias.
+#   2b. Si hay una migración fallida cuya carpeta ya no existe, la marca como revertida (resolve-orphan-migrations.sh); si su carpeta existe, no la toca.
 #   3. Corre `prisma migrate deploy` en un contenedor desechable con el rol DUEÑO. Ese rol solo existe en este
 #      paso: el `.env` del backend sigue llevando únicamente `APP_DATABASE_URL` (rol `monkey_app`).
 #   4. Carga el catálogo de checks de nube (idempotente y NO bloqueante).
@@ -48,6 +49,11 @@ else
   # Conserva solo las últimas $KEEP copias.
   ls -1t "$BACKUP_DIR"/"${DB_NAME}"_pre-migrate_*.dump 2>/dev/null | tail -n +"$((KEEP + 1))" | xargs -r rm -f --
 fi
+
+# Una migración que falló y cuya carpeta ya no existe (se renombró o se borró tras un deploy) deja una fila fallida que bloquea TODOS los deploys siguientes (P3009).
+# Aquí se marca como revertida; una fallida cuya carpeta sí existe NO se toca. Va después del respaldo, nunca antes.
+echo "==> 2b/4 Migraciones fallidas que ya no existen en el código"
+bash "$(dirname "$0")/resolve-orphan-migrations.sh"
 
 echo "==> 3/4 prisma migrate deploy"
 export DATABASE_URL="$MIGRATE_DATABASE_URL"
