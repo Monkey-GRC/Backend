@@ -132,7 +132,10 @@ describe('Quién puede pedir qué', () => {
     const withTests = admin.find((c) => c.technical.tests_count > 0)!;
     const adminDetail = await detailOf(a.agent, withTests.id);
     expect(adminDetail.technical.tests).toHaveLength(withTests.technical.tests_count);
-    expect(adminDetail.technical.tests[0]).toEqual({ test_code: expect.any(String), display_name: expect.any(String), dimension: expect.any(String), state: expect.any(String) });
+    // `display_description` es la descripción corta del cliente (D82): texto, o nulo en una prueba que aún no la tiene.
+    const { display_description: description, ...firstTest } = adminDetail.technical.tests[0];
+    expect(firstTest).toEqual({ test_code: expect.any(String), display_name: expect.any(String), dimension: expect.any(String), state: expect.any(String) });
+    expect(description === null || typeof description === 'string').toBe(true);
     expect(adminDetail.technical.tests.some((t: any) => t.state === 'no_assets' || t.state === 'pending')).toBe(true);
     expect(adminDetail.technical).toEqual((await detailOf(auditor, withTests.id)).technical);
   });
