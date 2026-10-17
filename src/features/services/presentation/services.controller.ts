@@ -27,7 +27,7 @@ import { toPageResponse } from '../../../common/pagination/page';
 import { CreateServiceDto } from '../application/dtos/create-service.dto';
 import { ListServicesQuery } from '../application/dtos/list-services.query';
 import { SetSystemDescriptionDto } from '../application/dtos/system-description.dto';
-import { SYSTEM_DESCRIPTION_MAX_BYTES } from '../application/system-description-file';
+import { SYSTEM_DESCRIPTION_UPLOAD_LIMIT_BYTES } from '../application/system-description-file';
 import { GetSystemDescriptionFileUrlUseCase } from '../application/use-cases/get-system-description-file-url.use-case';
 import { UploadSystemDescriptionFileUseCase } from '../application/use-cases/upload-system-description-file.use-case';
 import { UpdateServiceDto } from '../application/dtos/update-service.dto';
@@ -193,7 +193,7 @@ export class ServicesController {
   @HttpCode(HttpStatus.OK)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
-    FileInterceptor('file', { limits: { fileSize: SYSTEM_DESCRIPTION_MAX_BYTES, files: 1 } }),
+    FileInterceptor('file', { limits: { fileSize: SYSTEM_DESCRIPTION_UPLOAD_LIMIT_BYTES, files: 1 } }),
   )
   async uploadSystemDescriptionFile(
     @CurrentUser() principal: Principal,
