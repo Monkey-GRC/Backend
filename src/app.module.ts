@@ -5,6 +5,7 @@ import { AcceptLanguageResolver, I18nModule } from 'nestjs-i18n';
 import path from 'path';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AuthModule } from './features/auth/auth.module';
+import { CatalogAdminModule } from './features/catalog-admin/catalog-admin.module';
 import { CatalogsModule } from './features/catalogs/catalogs.module';
 import { CompaniesModule } from './features/companies/companies.module';
 import { ComplianceModule } from './features/compliance/compliance.module';
@@ -34,6 +35,7 @@ import { StorageModule } from './infrastructure/storage/storage.module';
     AuthModule,
     CompaniesModule,
     CatalogsModule,
+    CatalogAdminModule,
     OnboardingModule,
     ServicesModule,
     ComplianceModule,

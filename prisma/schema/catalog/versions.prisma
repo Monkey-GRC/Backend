@@ -1,3 +1,12 @@
+// Quién escribió una fila del catálogo maestro. `committee`: viene del Excel del comité (seed). `monkey_admin`: la agregó alguien de Monkey desde Monkey Admin.
+enum CatalogOrigin {
+  committee
+  monkey_admin
+
+  @@map("catalog_origin")
+  @@schema("catalog")
+}
+
 model CatalogVersion {
   id                      String   @id @default(uuid()) @db.Uuid
   number                  Int

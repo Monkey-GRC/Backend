@@ -31,6 +31,10 @@ model Control {
   name        String
   description String  @db.Text
   sourceRef   String? @map("source_ref")
+  // De dónde viene la fila: el Excel del comité o Monkey Admin (contracts/modules/monkey-admin-catalog.md). El seed no toca las `monkey_admin`.
+  origin      CatalogOrigin @default(committee)
+  // Dar de baja no borra: las copias de cada empresa y las evaluaciones apuntan al catálogo.
+  isActive    Boolean @default(true) @map("is_active")
 
   pointOfFocusControls PointOfFocusControl[]
   dimensions           ControlDimensionEntry[]
@@ -128,6 +132,10 @@ model EvidenceTemplate {
   description String    @db.Text
   // El Excel no trae dimensión: son documentos, así que `policy` (documental).
   dimension   Dimension @default(policy)
+  // De dónde viene la fila: el Excel del comité o Monkey Admin (contracts/modules/monkey-admin-catalog.md). El seed no toca las `monkey_admin`.
+  origin      CatalogOrigin @default(committee)
+  // Dar de baja no borra: las copias de cada empresa y las evaluaciones apuntan al catálogo.
+  isActive    Boolean @default(true) @map("is_active")
 
   controls ControlEvidenceTemplate[]
 

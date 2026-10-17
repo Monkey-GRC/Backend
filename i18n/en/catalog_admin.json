@@ -1,0 +1,13 @@
+{
+  "framework_list": "Master catalog frameworks.",
+  "framework_read": "Framework detail.",
+  "control_list": "Framework controls.",
+  "control_read": "Catalog control detail.",
+  "risk_list": "Master catalog risks.",
+  "risk_read": "Catalog risk detail.",
+  "cause_list": "Master catalog causes.",
+  "cause_read": "Catalog cause detail.",
+  "test_list": "Master catalog tests.",
+  "test_read": "Catalog test detail.",
+  "evidence_template_list": "Master catalog evidence templates."
+}

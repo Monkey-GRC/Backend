@@ -53,6 +53,8 @@ model Risk {
   inherentRiskValue  Int?    @map("inherent_risk_value")
   inherentRiskLevel  RiskLevel? @map("inherent_risk_level")
   isActive           Boolean @default(true) @map("is_active")
+  // De dónde viene la fila: el Excel del comité o Monkey Admin (contracts/modules/monkey-admin-catalog.md). El seed no toca las `monkey_admin`.
+  origin      CatalogOrigin @default(committee)
 
   riskCauses  RiskCause[]
   clientRisks ClientRisk[] // copias que cada cliente particulariza (tenant.client_risks)
@@ -67,6 +69,10 @@ model Cause {
   name            String
   failureCategory FailureCategory @map("failure_category")
   description     String          @db.Text
+  // De dónde viene la fila: el Excel del comité o Monkey Admin (contracts/modules/monkey-admin-catalog.md). El seed no toca las `monkey_admin`.
+  origin      CatalogOrigin @default(committee)
+  // Dar de baja no borra: las copias de cada empresa y las evaluaciones apuntan al catálogo.
+  isActive    Boolean @default(true) @map("is_active")
 
   riskCauses    RiskCause[]
   causeControls CauseControl[]

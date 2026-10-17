@@ -1,0 +1,13 @@
+{
+  "framework_list": "Marcos del catálogo maestro.",
+  "framework_read": "Detalle del marco.",
+  "control_list": "Controles del marco.",
+  "control_read": "Detalle del control del catálogo.",
+  "risk_list": "Riesgos del catálogo maestro.",
+  "risk_read": "Detalle del riesgo del catálogo.",
+  "cause_list": "Causas del catálogo maestro.",
+  "cause_read": "Detalle de la causa del catálogo.",
+  "test_list": "Pruebas del catálogo maestro.",
+  "test_read": "Detalle de la prueba del catálogo.",
+  "evidence_template_list": "Plantillas de evidencia del catálogo maestro."
+}

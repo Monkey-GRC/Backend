@@ -93,6 +93,10 @@ model Test {
   automatedCoverage              String    @map("automated_coverage") @db.Text
   complementaryManualValidation  String    @map("complementary_manual_validation") @db.Text
   limitations                    String    @db.Text
+  // De dónde viene la fila: el Excel del comité o Monkey Admin (contracts/modules/monkey-admin-catalog.md). El seed no toca las `monkey_admin`.
+  origin      CatalogOrigin @default(committee)
+  // Dar de baja no borra: las copias de cada empresa y las evaluaciones apuntan al catálogo.
+  isActive    Boolean @default(true) @map("is_active")
 
   controlTests ControlTest[]
   testChecks   TestCheck[]
