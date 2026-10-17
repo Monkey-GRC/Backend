@@ -3,7 +3,7 @@ import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { Dimension, ReadoutControl, resultKey } from '../../domain/control-readout';
 import { AssetResult } from '../../domain/engine/states';
-import { ControlDetailData, ControlRepository, ServiceReadoutData } from '../../domain/repositories/control.repository';
+import { ControlDetailData, ControlRepository, Placement, ServiceOverviewData, ServiceReadoutData } from '../../domain/repositories/control.repository';
 
 // Orden canónico de las categorías (enums.md `trust_criterion`).
 const CRITERIA_ORDER = ['security', 'availability', 'confidentiality', 'integrity', 'privacy'];
@@ -18,6 +18,52 @@ export class ControlPrismaRepository extends ControlRepository {
     return this.prisma.withScope(scope, async (tx) => {
       const service = await tx.service.findFirst({ where: { id: serviceId, organization: { companyId: scope.companyId } }, select: { id: true } });
       return service ? this.snapshot(tx, serviceId) : null;
+    });
+  }
+
+  loadOverview(scope: TenantScope, serviceId: string): Promise<ServiceOverviewData | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const service = await tx.service.findFirst({ where: { id: serviceId, organization: { companyId: scope.companyId } }, select: { id: true } });
+      if (!service) return null;
+      const base = await this.snapshot(tx, serviceId);
+
+      // Solo los marcos activos del servicio.
+      const frameworks = (
+        await tx.serviceFramework.findMany({
+          where: { serviceId, status: 'active' },
+          orderBy: { contractedAt: 'asc' },
+          select: { frameworkId: true, periodStart: true, periodEnd: true, cutoffDate: true, framework: { select: { code: true, name: true } }, catalogVersion: { select: { number: true } } },
+        })
+      ).map((f) => ({
+        frameworkId: f.frameworkId, code: f.framework.code, name: f.framework.name, catalogVersion: f.catalogVersion.number,
+        periodStart: f.periodStart, periodEnd: f.periodEnd, cutoffDate: f.cutoffDate,
+      }));
+
+      // Una categoría está en alcance si es obligatoria (Seguridad en SOC 2) o si el servicio la eligió.
+      const selected = new Set((await tx.serviceTrustCriterion.findMany({ where: { serviceId }, select: { trustCriterion: { select: { criterion: true } } } })).map((r) => r.trustCriterion.criterion));
+      const criteria = (await tx.trustCriterion.findMany({ select: { criterion: true, isMandatory: true } })).map((c) => ({ criterion: c.criterion, mandatory: c.isMandatory, selected: selected.has(c.criterion) }));
+
+      // Dónde cae cada control: por los requisitos a los que sirve (marco y categoría del requisito); uno propio, en la categoría que eligió la empresa y en todos los marcos del servicio.
+      const rows = await tx.clientControl.findMany({
+        where: { serviceId, isActive: true },
+        select: { id: true, trustCriterion: true, control: { select: { pointOfFocusControls: { select: { pointOfFocus: { select: { requirement: { select: { frameworkId: true, trustCriterion: { select: { criterion: true } } } } } } } } } } },
+      });
+      const placements = new Map<string, Placement[]>();
+      for (const row of rows) {
+        const seen = new Set<string>();
+        const list: Placement[] = [];
+        const add = (frameworkId: string, criterion: string) => {
+          const key = `${frameworkId}|${criterion}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            list.push({ frameworkId, criterion });
+          }
+        };
+        if (row.control) for (const link of row.control.pointOfFocusControls) add(link.pointOfFocus.requirement.frameworkId, link.pointOfFocus.requirement.trustCriterion.criterion);
+        else if (row.trustCriterion) for (const f of frameworks) add(f.frameworkId, row.trustCriterion);
+        placements.set(row.id, list);
+      }
+      return { ...base, frameworks, criteria, placements };
     });
   }
 
