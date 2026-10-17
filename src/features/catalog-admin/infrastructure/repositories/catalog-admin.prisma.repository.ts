@@ -172,6 +172,7 @@ export class CatalogAdminPrismaRepository extends CatalogAdminRepository {
       isActive: c.isActive,
       pointsOfFocus: c.pointOfFocusControls
         .map((l) => ({
+          id: l.pointOfFocus.id,
           frameworkCode: l.pointOfFocus.requirement.framework.code,
           requirementCode: l.pointOfFocus.requirement.code,
           number: l.pointOfFocus.number,

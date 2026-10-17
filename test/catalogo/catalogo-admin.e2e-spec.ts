@@ -127,7 +127,7 @@ describe('Controles del marco', () => {
     const control = await data(`/v1/catalog/controls/${id}`);
     expect(control).toMatchObject({ code: withTests, origin: 'committee', is_active: true });
     expect(control.points_of_focus.length).toBeGreaterThan(0);
-    expect(control.points_of_focus[0]).toEqual({ framework_code: catalog.framework.code, requirement_code: expect.any(String), number: expect.any(Number), description: expect.any(String) });
+    expect(control.points_of_focus[0]).toEqual({ id: expect.any(String), framework_code: catalog.framework.code, requirement_code: expect.any(String), number: expect.any(Number), description: expect.any(String) });
     expect(control.tests.length).toBeGreaterThan(0);
     expect(control.tests[0]).toEqual({ id: expect.any(String), code: expect.any(String), dimension: expect.any(String), display_name: expect.any(String), is_active: true });
     const sequences = control.evidence_templates.map((e: Row) => e.sequence);
