@@ -227,5 +227,87 @@
     "storage": "Almacenamiento",
     "function": "Función",
     "other": "Otro"
+  },
+  "risk_criterion": {
+    "confidentiality": "Confidencialidad",
+    "integrity": "Integridad",
+    "availability": "Disponibilidad",
+    "privacy": "Privacidad",
+    "compliance": "Cumplimiento",
+    "security": "Seguridad",
+    "continuity": "Continuidad",
+    "third_parties": "Terceros",
+    "fraud": "Fraude",
+    "reputation": "Reputación",
+    "operations": "Operación"
+  },
+  "failure_category": {
+    "human_resource": "Recurso humano",
+    "processes": "Procesos",
+    "information_technology": "Tecnología de la información",
+    "infrastructure": "Infraestructura",
+    "external": "Externos",
+    "governance": "Gobierno"
+  },
+  "risk_level": {
+    "low": "Bajo",
+    "moderate": "Moderado",
+    "high": "Alto",
+    "critical": "Crítico"
+  },
+  "risk_treatment_decision": {
+    "mitigate": "Mitigar",
+    "accept": "Aceptar",
+    "transfer": "Transferir",
+    "avoid": "Evitar"
+  },
+  "responsible_type": {
+    "coo": "COO",
+    "it": "TI",
+    "compliance": "Cumplimiento",
+    "process": "Proceso",
+    "ciso": "CISO",
+    "asset_owner": "Propietario del activo"
+  },
+  "cause_control_effect": {
+    "probability": "Probabilidad",
+    "impact": "Impacto"
+  },
+  "exclusion_status": {
+    "pending": "Pendiente",
+    "approved": "Aprobada",
+    "rejected": "Rechazada"
+  },
+  "dimension": {
+    "policy": "Documental",
+    "server": "Servidor",
+    "database": "Base de datos",
+    "app": "Aplicación",
+    "cloud": "Nube"
+  },
+  "control_type": {
+    "manual": "Manual",
+    "automated": "Automática",
+    "hybrid": "Híbrida",
+    "technical_manual": "Técnica manual"
+  },
+  "catalog_origin": {
+    "committee": "Comité",
+    "monkey_admin": "Monkey Admin"
+  },
+  "loss_type": {
+    "reputational": "Reputacional",
+    "financial_loss": "Pérdida financiera",
+    "regulatory_sanction": "Sanción regulatoria",
+    "litigation": "Litigios",
+    "customer_trust_loss": "Pérdida de confianza de clientes",
+    "operation_interruption": "Interrupción de la operación"
+  },
+  "risk_scale": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "5": "5"
   }
 }

@@ -227,5 +227,87 @@
     "storage": "Storage",
     "function": "Function",
     "other": "Other"
+  },
+  "risk_criterion": {
+    "confidentiality": "Confidentiality",
+    "integrity": "Integrity",
+    "availability": "Availability",
+    "privacy": "Privacy",
+    "compliance": "Compliance",
+    "security": "Security",
+    "continuity": "Continuity",
+    "third_parties": "Third parties",
+    "fraud": "Fraud",
+    "reputation": "Reputation",
+    "operations": "Operations"
+  },
+  "failure_category": {
+    "human_resource": "Human resources",
+    "processes": "Processes",
+    "information_technology": "Information technology",
+    "infrastructure": "Infrastructure",
+    "external": "External",
+    "governance": "Governance"
+  },
+  "risk_level": {
+    "low": "Low",
+    "moderate": "Moderate",
+    "high": "High",
+    "critical": "Critical"
+  },
+  "risk_treatment_decision": {
+    "mitigate": "Mitigate",
+    "accept": "Accept",
+    "transfer": "Transfer",
+    "avoid": "Avoid"
+  },
+  "responsible_type": {
+    "coo": "COO",
+    "it": "IT",
+    "compliance": "Compliance",
+    "process": "Process",
+    "ciso": "CISO",
+    "asset_owner": "Asset owner"
+  },
+  "cause_control_effect": {
+    "probability": "Likelihood",
+    "impact": "Impact"
+  },
+  "exclusion_status": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "dimension": {
+    "policy": "Documentary",
+    "server": "Server",
+    "database": "Database",
+    "app": "Application",
+    "cloud": "Cloud"
+  },
+  "control_type": {
+    "manual": "Manual",
+    "automated": "Automated",
+    "hybrid": "Hybrid",
+    "technical_manual": "Technical manual"
+  },
+  "catalog_origin": {
+    "committee": "Committee",
+    "monkey_admin": "Monkey Admin"
+  },
+  "loss_type": {
+    "reputational": "Reputational",
+    "financial_loss": "Financial loss",
+    "regulatory_sanction": "Regulatory sanction",
+    "litigation": "Litigation",
+    "customer_trust_loss": "Loss of customer trust",
+    "operation_interruption": "Interruption of operations"
+  },
+  "risk_scale": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "5": "5"
   }
 }
