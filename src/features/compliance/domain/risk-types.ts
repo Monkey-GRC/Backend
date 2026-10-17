@@ -46,6 +46,23 @@ export function riskLevelOf(value: number): (typeof RISK_LEVELS)[number] {
   return 'critical';
 }
 
+export type RiskMatrixCell = { likelihood: number; impact: number; value: number; level: (typeof RISK_LEVELS)[number] };
+
+/**
+ * La matriz completa: cada casilla (probabilidad × impacto) con su valor y el nivel que le corresponde. Es la misma función que usa la evaluación de un riesgo, así que lo
+ * que la pantalla pinta en una casilla vacía es exactamente el nivel que tendría un riesgo evaluado ahí. De mayor a menor probabilidad no importa: la ordena el cliente.
+ */
+export function riskMatrix(): { min: number; max: number; cells: RiskMatrixCell[] } {
+  const cells: RiskMatrixCell[] = [];
+  for (let likelihood = RISK_SCALE.min; likelihood <= RISK_SCALE.max; likelihood++) {
+    for (let impact = RISK_SCALE.min; impact <= RISK_SCALE.max; impact++) {
+      const value = riskValueOf(likelihood, impact);
+      cells.push({ likelihood, impact, value, level: riskLevelOf(value) });
+    }
+  }
+  return { min: RISK_SCALE.min, max: RISK_SCALE.max, cells };
+}
+
 /** El siguiente código libre de una serie: `R011` después de `R010`, `F057` después de `F056`. */
 export function nextCode(prefix: string, used: readonly string[]): string {
   const re = new RegExp(`^${prefix}(\\d+)$`);

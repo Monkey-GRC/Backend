@@ -17,5 +17,6 @@
   "link_already_exists": "Ese vínculo ya existe.",
   "inactive": "Este riesgo está dado de baja.",
   "evaluated": "Listo, registramos la evaluación del riesgo.",
-  "evaluation_history": "Evaluaciones del riesgo."
+  "evaluation_history": "Evaluaciones del riesgo.",
+  "matrix": "Matriz de riesgo 5×5, con el nivel de cada casilla."
 }

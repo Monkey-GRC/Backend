@@ -17,5 +17,6 @@
   "link_already_exists": "That link already exists.",
   "inactive": "This risk has been retired.",
   "evaluated": "Done, we recorded the risk evaluation.",
-  "evaluation_history": "Evaluations of the risk."
+  "evaluation_history": "Evaluations of the risk.",
+  "matrix": "5×5 risk matrix, with the level of each cell."
 }
