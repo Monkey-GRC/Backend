@@ -15,7 +15,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiConsumes, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
@@ -39,6 +39,9 @@ import { SetSystemDescriptionUseCase } from '../application/use-cases/set-system
 import { UpdateServiceUseCase } from '../application/use-cases/update-service.use-case';
 import { ServiceInput, ServicePatch } from '../domain/entities/service.entity';
 import { toServiceListItem, toServiceResponse } from './service-response.mapper';
+import { API_TAGS } from '../../../common/swagger/api-docs.config';
+import { ApiData, ApiDomainErrors, ApiEmpty, ApiPaged } from '../../../common/swagger/api-envelope';
+import { ServiceListItemResponse, ServiceResponse, SystemDescriptionDownloadResponse } from './service.responses';
 
 const t = (key: string): string =>
   (I18nContext.current()?.t(key) as string | undefined) ?? key;
@@ -104,8 +107,7 @@ const toPatch = (dto: UpdateServiceDto): ServicePatch => {
 
 // Componente 2 del onboarding (contracts/modules/onboarding-service-context.md).
 // Solo el admin_empresa declara los servicios de su empresa.
-@ApiTags('services')
-@ApiCookieAuth()
+@ApiTags(API_TAGS.services)
 @Roles('admin_empresa')
 @Controller('services')
 export class ServicesController {
@@ -120,6 +122,9 @@ export class ServicesController {
     private readonly getSystemDescriptionFileUrl: GetSystemDescriptionFileUrlUseCase,
   ) {}
 
+  @ApiOperation({ summary: 'Declarar un servicio', description: 'Componente 2 del onboarding. Crea el servicio, lo vincula a los marcos contratados y **clona el catálogo** (controles, riesgos, pruebas y plantillas de evidencia) dentro de la misma transacción. Requiere que el contexto organizacional ya esté declarado. Queda registro de auditoría.' })
+  @ApiData(ServiceResponse, 'Servicio creado con su catálogo ya clonado.', { status: 201 })
+  @ApiDomainErrors('ORGANIZATION_NOT_DECLARED', 'SERVICE_NAME_TAKEN', 'FRAMEWORK_NOT_CONTRACTED')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(
@@ -131,6 +136,8 @@ export class ServicesController {
     return new ResponseDto(HttpStatus.CREATED, t('service.created'), toServiceResponse(service));
   }
 
+  @ApiOperation({ summary: 'Listar servicios', description: 'Los servicios de la empresa, con lo mínimo para pintar la lista: marcos, estado del catálogo y resumen del control técnico.' })
+  @ApiPaged(ServiceListItemResponse, 'Página de servicios.')
   @Get()
   async list(@CurrentUser() principal: Principal, @Query() query: ListServicesQuery) {
     const page = await this.listServices.execute(principal, {
@@ -140,12 +147,17 @@ export class ServicesController {
     return new ResponseDto(HttpStatus.OK, t('service.list'), toPageResponse(page, toServiceListItem));
   }
 
+  @ApiOperation({ summary: 'Detalle de un servicio', description: 'Todos los campos declarados (la pantalla de edición los necesita), más el catálogo clonado y el avance de llenado.' })
+  @ApiData(ServiceResponse, 'Detalle del servicio.')
   @Get(':id')
   async detail(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string) {
     const service = await this.getService.execute(principal, id);
     return new ResponseDto(HttpStatus.OK, t('service.detail'), toServiceResponse(service));
   }
 
+  @ApiOperation({ summary: 'Editar un servicio', description: 'Mismas claves que al crear, todas opcionales: solo se aplican las que vienen. `null` en un opcional lo borra; ausente no lo toca. Cambiar `trust_criteria` o `framework_codes` recalcula los requisitos aplicables. Queda registro de auditoría.' })
+  @ApiData(ServiceResponse, 'Servicio actualizado.')
+  @ApiDomainErrors('SERVICE_NAME_TAKEN', 'FRAMEWORK_NOT_CONTRACTED')
   @Patch(':id')
   async update(
     @CurrentUser() principal: Principal,
@@ -157,6 +169,9 @@ export class ServicesController {
     return new ResponseDto(HttpStatus.OK, t('service.updated'), toServiceResponse(service));
   }
 
+  @ApiOperation({ summary: 'Eliminar un servicio', description: 'Solo se puede eliminar un servicio que aún no tenga historial de evaluaciones; con historial responde `SERVICE_HAS_EVALUATIONS`. Queda registro de auditoría.' })
+  @ApiEmpty('Servicio eliminado. `data` es `null`.')
+  @ApiDomainErrors('SERVICE_HAS_EVALUATIONS')
   @Delete(':id')
   async remove(
     @CurrentUser() principal: Principal,
@@ -167,6 +182,8 @@ export class ServicesController {
     return new ResponseDto(HttpStatus.OK, t('service.deleted'), null);
   }
 
+  @ApiOperation({ summary: 'Declarar la Descripción del Sistema como enlace', description: 'Guarda (o reemplaza) el enlace a la Descripción del Sistema del servicio. Para subir un archivo se usa `POST /v1/services/{id}/system-description/file`.' })
+  @ApiData(ServiceResponse, 'Servicio con la Descripción del Sistema actualizada.')
   @Post(':id/system-description')
   @HttpCode(HttpStatus.OK)
   async saveSystemDescription(
@@ -189,6 +206,10 @@ export class ServicesController {
   }
 
   // Archivo en vez de enlace (multipart, campo `file`). Máximo 25 MB, PDF o .docx.
+  @ApiOperation({ summary: 'Subir la Descripción del Sistema como archivo', description: 'Multipart, campo `file`. PDF o DOCX, hasta 25 MB. Se valida el contenido, no solo la extensión. El archivo queda en almacenamiento privado.' })
+  @ApiBody({ schema: { type: 'object', required: ['file'], properties: { file: { type: 'string', format: 'binary', description: 'PDF o DOCX, máx. 25 MB.' } } } })
+  @ApiData(ServiceResponse, 'Servicio con el archivo registrado como Descripción del Sistema.')
+  @ApiDomainErrors('FILE_REQUIRED', 'FILE_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'STORAGE_UNAVAILABLE')
   @Post(':id/system-description/file')
   @HttpCode(HttpStatus.OK)
   @ApiConsumes('multipart/form-data')
@@ -215,6 +236,9 @@ export class ServicesController {
   }
 
   // Enlace temporal (5 min) para descargar el archivo; el bucket no es público.
+  @ApiOperation({ summary: 'Descargar la Descripción del Sistema (archivo)', description: 'Devuelve un enlace firmado de 5 minutos. El almacenamiento no es público.' })
+  @ApiData(SystemDescriptionDownloadResponse, 'Enlace temporal de descarga.')
+  @ApiDomainErrors('SYSTEM_DESCRIPTION_NOT_A_FILE', 'STORAGE_UNAVAILABLE')
   @Get(':id/system-description/file')
   async systemDescriptionFile(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string) {
     const link = await this.getSystemDescriptionFileUrl.execute(principal, id);

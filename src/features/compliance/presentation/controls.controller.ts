@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, Req } from '@nestjs/common';
-import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
@@ -14,6 +14,9 @@ import { CreateControlUseCase } from '../application/use-cases/create-control.us
 import { GetControlUseCase } from '../application/use-cases/get-control.use-case';
 import { ListControlsUseCase } from '../application/use-cases/list-controls.use-case';
 import { toControlDetail, toControlListItem } from './control-response.mapper';
+import { API_TAGS } from '../../../common/swagger/api-docs.config';
+import { ApiData, ApiPaged } from '../../../common/swagger/api-envelope';
+import { ControlDetailResponse, ControlListItemResponse } from './control.responses';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 
@@ -22,8 +25,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 
 // Acciones de protección de un servicio (contracts/modules/compliance-controls.md, MD-117). `admin_monkey` no entra al cumplimiento de una empresa por
 // aquí (MD-146 le dará su propio acceso). La vista técnica la restringe el caso de uso: `auditor` y `consultor`.
-@ApiTags('compliance')
-@ApiCookieAuth()
+@ApiTags(API_TAGS.controls)
 @Roles('admin_empresa', 'funcional', 'consultor', 'auditor')
 @Controller()
 export class ControlsController {
@@ -33,6 +35,8 @@ export class ControlsController {
     private readonly createControl: CreateControlUseCase,
   ) {}
 
+  @ApiOperation({ summary: 'Listar los controles de un servicio', description: 'Los controles del servicio con su estado, **avance y cobertura juntos**, quién los tiene a cargo y si hay un cambio pendiente. Filtros por criterio, tipo, estado, aprobación, responsable y origen. El `funcional` solo ve los que tiene asignados. Con `view=technical` (solo `auditor`, `consultor` y, por ahora, `admin_empresa`) agrega el bloque `technical`.' })
+  @ApiPaged(ControlListItemResponse, 'Página de controles.')
   @Get('services/:serviceId/controls')
   async list(@CurrentUser() principal: Principal, @Param('serviceId', idPipe) serviceId: string, @Query() q: ListControlsQuery) {
     const { view, page } = await this.listControls.execute(principal, serviceId, {
@@ -51,6 +55,8 @@ export class ControlsController {
   }
 
   // MD-150 · Solo el administrador de la empresa crea un control propio.
+  @ApiOperation({ summary: 'Crear un control propio', description: 'Solo `admin_empresa`. Crea un control propio del servicio (origen `own`, numeración `C01`…): es solo documental, por eso su única dimensión es `policy`. Nace `pending` hasta que el consultor lo apruebe. Queda registro de auditoría.' })
+  @ApiData(ControlDetailResponse, 'Control propio creado.', { status: 201 })
   @Post('services/:serviceId/controls')
   @Roles('admin_empresa')
   @HttpCode(HttpStatus.CREATED)
@@ -60,6 +66,8 @@ export class ControlsController {
     return new ResponseDto(HttpStatus.CREATED, t('control.created'), toControlDetail(detail, t));
   }
 
+  @ApiOperation({ summary: 'Detalle de un control', description: 'Estado, avance y cobertura; interpretación, dimensiones, evidencias requeridas con su última entrega, causas que trata y en qué falla. Un `funcional` que no tiene el control asignado recibe 403. Con `view=technical` (solo `auditor`, `consultor` y, por ahora, `admin_empresa`) agrega el bloque `technical`.' })
+  @ApiData(ControlDetailResponse, 'Detalle del control.')
   @Get('controls/:id')
   async detail(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Query() q: GetControlQuery) {
     const detail = await this.getControl.execute(principal, id, q.view);

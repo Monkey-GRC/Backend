@@ -10,7 +10,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
@@ -29,13 +29,15 @@ import {
   toCompanyListItem,
   toRegisteredCompanyResponse,
 } from './company-response.mapper';
+import { API_TAGS } from '../../../common/swagger/api-docs.config';
+import { ApiData, ApiDomainErrors, ApiPaged } from '../../../common/swagger/api-envelope';
+import { CompanyDetailResponse, CompanyListItemResponse, RegisteredCompanyResponse } from './company.responses';
 
 const t = (key: string): string =>
   (I18nContext.current()?.t(key) as string | undefined) ?? key;
 
 // contracts/modules/monkey-admin.md — todo el módulo es exclusivo de admin_monkey.
-@ApiTags('companies')
-@ApiCookieAuth()
+@ApiTags(API_TAGS.companies)
 @Roles('admin_monkey')
 @Controller('companies')
 export class CompaniesController {
@@ -45,6 +47,9 @@ export class CompaniesController {
     private readonly getCompany: GetCompanyUseCase,
   ) {}
 
+  @ApiOperation({ summary: 'Registrar una empresa cliente', description: 'Crea la empresa con su estrategia de aislamiento, le contrata los marcos indicados (por defecto SOC 2) y genera la clave de acceso de su primer administrador. **El código de la clave viaja en claro solo en esta respuesta**; hay que entregarlo al cliente. Queda registro de auditoría.' })
+  @ApiData(RegisteredCompanyResponse, 'Empresa registrada, con su clave de acceso en claro (única vez).', { status: 201 })
+  @ApiDomainErrors('COMPANY_NAME_TAKEN', 'ADMIN_EMAIL_TAKEN', 'FRAMEWORK_NOT_AVAILABLE', 'DEDICATED_DATABASE_NOT_AVAILABLE')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(
@@ -69,6 +74,8 @@ export class CompaniesController {
     );
   }
 
+  @ApiOperation({ summary: 'Listar empresas', description: 'Empresas clientes con su estado, marcos contratados y el estado de su clave de acceso. Nunca incluye el código de la clave.' })
+  @ApiPaged(CompanyListItemResponse, 'Página de empresas.')
   @Get()
   async list(@CurrentUser() principal: Principal, @Query() query: ListCompaniesQuery) {
     const page = await this.listCompanies.execute(principal, {
@@ -80,6 +87,8 @@ export class CompaniesController {
     return new ResponseDto(HttpStatus.OK, t('company.list'), toPageResponse(page, (item) => toCompanyListItem(item)));
   }
 
+  @ApiOperation({ summary: 'Detalle de una empresa', description: 'La empresa con su historial de claves de acceso (estado y fechas, nunca el código).' })
+  @ApiData(CompanyDetailResponse, 'Detalle de la empresa.')
   @Get(':id')
   async detail(
     @CurrentUser() principal: Principal,

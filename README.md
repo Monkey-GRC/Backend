@@ -92,6 +92,27 @@ Cada dominio de negocio vive en `src/features/<nombre>/` con todas sus capas enc
 
 ---
 
+## Documentación de la API (solo local)
+
+La API se documenta con OpenAPI (Swagger) y **solo existe en tu máquina**: no se publica en el dominio de la API.
+
+- **Encender:** pon `API_DOCS_ENABLED=true` en tu `.env` (viene así en `.env.example`) y arranca con `npm run start:dev`. Abre <http://localhost:3000/v1/docs>; el JSON está en `/v1/docs-json`.
+- **Apagada por defecto:** sin la variable, `/v1/docs` y `/v1/docs-json` responden 404 como cualquier ruta que no existe. Con `NODE_ENV=production` tampoco se sirven, aunque la variable esté puesta. Nunca la agregues al `.env` del servidor.
+- **Probar desde la página:** inicia sesión en *Autenticación → login*; el navegador guarda las cookies y las demás pruebas ya van con sesión.
+- **Qué muestra:** cada endpoint con resumen, descripción, roles que pueden llamarlo (salen de `@Roles`/`@Public`, así que no se desfasan), el sobre de respuesta con su `data` tipada, y los errores de negocio posibles. La descripción general trae las convenciones y el catálogo de errores.
+
+### Cómo documentar un endpoint nuevo
+
+1. **Grupo:** `@ApiTags(API_TAGS.<grupo>)` en el controlador (o en el método, si el controlador mezcla grupos). Un grupo nuevo se declara con título y descripción en `src/common/swagger/api-docs.config.ts`.
+2. **Operación:** `@ApiOperation({ summary, description })` en español, qué hace y cualquier regla que el frontend deba saber.
+3. **Respuesta:** `@ApiData(Modelo, 'descripción')`, `@ApiPaged(Modelo, …)`, `@ApiItems(Modelo, …)`, `@ApiEmpty(…)` o `@ApiNoBody(…)` (`src/common/swagger/api-envelope.ts`). `Modelo` es una clase solo de documentación junto al mapper (`*.responses.ts`) con `@ApiProperty({ description })` en cada campo.
+4. **Errores de negocio:** `@ApiDomainErrors('CODIGO', …)` con los `DomainError` que la operación puede lanzar. Los comunes (401, 403, 404 por id, 422) se agregan solos.
+5. **DTO de entrada:** `@ApiProperty({ description, example, enum, enumName })` en cada campo; los enums llevan `enumName` para que se muestren una sola vez.
+
+`npm test` falla si una operación queda sin resumen, sin respuesta de éxito, sin grupo con título, o si un campo o parámetro queda sin descripción (`src/common/swagger/api-docs.spec.ts`).
+
+---
+
 ## Estructura de directorios
 
 ```

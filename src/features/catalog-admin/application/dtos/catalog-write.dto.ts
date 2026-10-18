@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, ApiSchema } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, MaxLength, Min } from 'class-validator';
 
@@ -16,141 +16,146 @@ const TEXT = 20000;
 
 // ---- controles ----------------------------------------------------------------------------------------------------------------------------------
 
+@ApiSchema({ name: 'CatalogCreateControlDto' })
 export class CreateControlDto {
-  @ApiProperty({ example: 'CTL-1' }) @IsString() @Matches(CODE_PATTERN) code!: string;
-  @ApiProperty() @IsString() @IsNotEmpty() @MaxLength(255) name!: string;
-  @ApiProperty() @IsString() @IsNotEmpty() @MaxLength(TEXT) description!: string;
-  @ApiProperty({ description: 'Uno de los dominios del catálogo, tal cual' }) @IsString() @IsNotEmpty() @MaxLength(200) domain!: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(255) source_ref?: string;
+  @ApiProperty({ example: 'CTL-1', description: 'Código del control: sin espacios, empieza por letra o número; hasta 40 caracteres. No se repite.' }) @IsString() @Matches(CODE_PATTERN) code!: string;
+  @ApiProperty({ description: 'Nombre del control (máx. 255).' }) @IsString() @IsNotEmpty() @MaxLength(255) name!: string;
+  @ApiProperty({ description: 'Qué exige el control (texto largo, máx. 20 000).' }) @IsString() @IsNotEmpty() @MaxLength(TEXT) description!: string;
+  @ApiProperty({ description: 'Uno de los dominios del catálogo, tal cual (máx. 200).' }) @IsString() @IsNotEmpty() @MaxLength(200) domain!: string;
+  @ApiPropertyOptional({ description: 'Referencia de origen (máx. 255).' }) @IsOptional() @IsString() @MaxLength(255) source_ref?: string;
 }
 
 export class UpdateControlDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() @MaxLength(255) name?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() @MaxLength(TEXT) description?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() @MaxLength(200) domain?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(255) source_ref?: string;
-  @ApiPropertyOptional({ description: 'false da de baja; true la reactiva' }) @IsOptional() @IsBoolean() is_active?: boolean;
+  @ApiPropertyOptional({ description: 'Nuevo nombre (máx. 255).' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(255) name?: string;
+  @ApiPropertyOptional({ description: 'Nueva descripción (máx. 20 000).' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(TEXT) description?: string;
+  @ApiPropertyOptional({ description: 'Nuevo dominio, tal cual está en el catálogo (máx. 200).' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(200) domain?: string;
+  @ApiPropertyOptional({ description: 'Nueva referencia de origen (máx. 255).' }) @IsOptional() @IsString() @MaxLength(255) source_ref?: string;
+  @ApiPropertyOptional({ description: '`false` da de baja el control; `true` lo reactiva.' }) @IsOptional() @IsBoolean() is_active?: boolean;
 }
 
 // ---- riesgos y causas ---------------------------------------------------------------------------------------------------------------------------
 
+@ApiSchema({ name: 'CatalogCreateRiskDto' })
 export class CreateRiskDto {
-  @ApiPropertyOptional({ description: 'Si no viene, el servidor asigna el siguiente R0NN libre' }) @IsOptional() @IsString() @Matches(CODE_PATTERN) code?: string;
-  @ApiProperty() @IsString() @IsNotEmpty() @MaxLength(255) name!: string;
-  @ApiProperty() @IsString() @IsNotEmpty() @MaxLength(TEXT) description!: string;
-  @ApiProperty({ enum: RISK_CRITERIA }) @IsIn(RISK_CRITERIA) trust_criterion!: string;
-  @ApiProperty({ description: 'Los impactos tal como los escribe el comité («Reputacional»…)', type: [String] })
+  @ApiPropertyOptional({ description: 'Código del riesgo. Si no viene, el servidor asigna el siguiente `R0NN` libre.' }) @IsOptional() @IsString() @Matches(CODE_PATTERN) code?: string;
+  @ApiProperty({ description: 'Nombre del riesgo (máx. 255).' }) @IsString() @IsNotEmpty() @MaxLength(255) name!: string;
+  @ApiProperty({ description: 'Descripción del riesgo (máx. 20 000).' }) @IsString() @IsNotEmpty() @MaxLength(TEXT) description!: string;
+  @ApiProperty({ enum: RISK_CRITERIA, enumName: 'RiskCriterion', description: 'Criterio de confianza al que afecta el riesgo.' }) @IsIn(RISK_CRITERIA) trust_criterion!: string;
+  @ApiProperty({ type: [String], maxItems: 20, example: ['Reputacional'], description: 'Impactos potenciales, tal como los escribe el comité; hasta 20, ninguno vacío.' })
   @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @IsNotEmpty({ each: true }) potential_impact!: string[];
 }
 
+@ApiSchema({ name: 'CatalogUpdateRiskDto' })
 export class UpdateRiskDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() @MaxLength(255) name?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() @MaxLength(TEXT) description?: string;
-  @ApiPropertyOptional({ enum: RISK_CRITERIA }) @IsOptional() @IsIn(RISK_CRITERIA) trust_criterion?: string;
-  @ApiPropertyOptional({ type: [String] }) @IsOptional() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @IsNotEmpty({ each: true }) potential_impact?: string[];
-  @ApiPropertyOptional() @IsOptional() @IsBoolean() is_active?: boolean;
+  @ApiPropertyOptional({ description: 'Nuevo nombre (máx. 255).' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(255) name?: string;
+  @ApiPropertyOptional({ description: 'Nueva descripción (máx. 20 000).' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(TEXT) description?: string;
+  @ApiPropertyOptional({ enum: RISK_CRITERIA, enumName: 'RiskCriterion', description: 'Nuevo criterio de confianza.' }) @IsOptional() @IsIn(RISK_CRITERIA) trust_criterion?: string;
+  @ApiPropertyOptional({ type: [String], maxItems: 20, description: 'Reemplaza los impactos potenciales.' }) @IsOptional() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @IsNotEmpty({ each: true }) potential_impact?: string[];
+  @ApiPropertyOptional({ description: '`false` da de baja el riesgo; `true` lo reactiva.' }) @IsOptional() @IsBoolean() is_active?: boolean;
 }
 
+@ApiSchema({ name: 'CatalogCreateCauseDto' })
 export class CreateCauseDto {
-  @ApiPropertyOptional({ description: 'Si no viene, el servidor asigna el siguiente F0NN libre' }) @IsOptional() @IsString() @Matches(CODE_PATTERN) code?: string;
-  @ApiProperty() @IsString() @IsNotEmpty() @MaxLength(255) name!: string;
-  @ApiProperty() @IsString() @IsNotEmpty() @MaxLength(TEXT) description!: string;
-  @ApiProperty({ enum: FAILURE_CATEGORIES }) @IsIn(FAILURE_CATEGORIES) failure_category!: string;
+  @ApiPropertyOptional({ description: 'Código de la causa. Si no viene, el servidor asigna el siguiente `F0NN` libre.' }) @IsOptional() @IsString() @Matches(CODE_PATTERN) code?: string;
+  @ApiProperty({ description: 'Nombre de la causa (máx. 255).' }) @IsString() @IsNotEmpty() @MaxLength(255) name!: string;
+  @ApiProperty({ description: 'Descripción de la causa (máx. 20 000).' }) @IsString() @IsNotEmpty() @MaxLength(TEXT) description!: string;
+  @ApiProperty({ enum: FAILURE_CATEGORIES, enumName: 'FailureCategory', description: 'Categoría de falla a la que pertenece la causa.' }) @IsIn(FAILURE_CATEGORIES) failure_category!: string;
 }
 
+@ApiSchema({ name: 'CatalogUpdateCauseDto' })
 export class UpdateCauseDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() @MaxLength(255) name?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() @MaxLength(TEXT) description?: string;
-  @ApiPropertyOptional({ enum: FAILURE_CATEGORIES }) @IsOptional() @IsIn(FAILURE_CATEGORIES) failure_category?: string;
-  @ApiPropertyOptional() @IsOptional() @IsBoolean() is_active?: boolean;
+  @ApiPropertyOptional({ description: 'Nuevo nombre (máx. 255).' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(255) name?: string;
+  @ApiPropertyOptional({ description: 'Nueva descripción (máx. 20 000).' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(TEXT) description?: string;
+  @ApiPropertyOptional({ enum: FAILURE_CATEGORIES, enumName: 'FailureCategory', description: 'Nueva categoría de falla.' }) @IsOptional() @IsIn(FAILURE_CATEGORIES) failure_category?: string;
+  @ApiPropertyOptional({ description: '`false` da de baja la causa; `true` la reactiva.' }) @IsOptional() @IsBoolean() is_active?: boolean;
 }
 
 // ---- plantillas de evidencia --------------------------------------------------------------------------------------------------------------------
 
 export class CreateEvidenceTemplateDto {
-  @ApiProperty({ example: 'DOC-900' }) @IsString() @Matches(CODE_PATTERN) code!: string;
-  @ApiProperty() @IsString() @IsNotEmpty() @MaxLength(TEXT) description!: string;
-  @ApiPropertyOptional({ enum: DIMENSIONS, default: 'policy' }) @IsOptional() @IsIn(DIMENSIONS) dimension?: string;
+  @ApiProperty({ example: 'DOC-900', description: 'Código de la plantilla: sin espacios, hasta 40 caracteres. No se repite.' }) @IsString() @Matches(CODE_PATTERN) code!: string;
+  @ApiProperty({ description: 'Qué evidencia se pide (máx. 20 000).' }) @IsString() @IsNotEmpty() @MaxLength(TEXT) description!: string;
+  @ApiPropertyOptional({ enum: DIMENSIONS, enumName: 'Dimension', default: 'policy', description: 'Dimensión de la evidencia.' }) @IsOptional() @IsIn(DIMENSIONS) dimension?: string;
 }
 
 export class UpdateEvidenceTemplateDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() @MaxLength(TEXT) description?: string;
-  @ApiPropertyOptional() @IsOptional() @IsBoolean() is_active?: boolean;
+  @ApiPropertyOptional({ description: 'Nueva descripción (máx. 20 000).' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(TEXT) description?: string;
+  @ApiPropertyOptional({ description: '`false` da de baja la plantilla; `true` la reactiva.' }) @IsOptional() @IsBoolean() is_active?: boolean;
 }
 
 // ---- pruebas ------------------------------------------------------------------------------------------------------------------------------------
 
 /** Los textos del comité de una prueba: opcionales al crearla (llegan vacíos) y editables después. Nunca salen al cliente (D70). */
 class CommitteeTextsDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) tool?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) population?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) period?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) population_size?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) suggested_sample_size?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) selection_method?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) evidence_to_request?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) prerequisites?: string;
-  @ApiPropertyOptional({ type: [String] }) @IsOptional() @IsArray() @ArrayMaxSize(100) @IsString({ each: true }) step_by_step?: string[];
-  @ApiPropertyOptional({ type: [String] }) @IsOptional() @IsArray() @ArrayMaxSize(100) @IsString({ each: true }) attributes_to_validate?: string[];
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) compliance_criterion?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) exceptions?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) exceptions_handling?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) evidence_to_retain?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) automated_coverage?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) complementary_manual_validation?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(TEXT) limitations?: string;
+  @ApiPropertyOptional({ description: 'Herramienta con la que se ejecuta la prueba.' }) @IsOptional() @IsString() @MaxLength(TEXT) tool?: string;
+  @ApiPropertyOptional({ description: 'Población sobre la que se prueba.' }) @IsOptional() @IsString() @MaxLength(TEXT) population?: string;
+  @ApiPropertyOptional({ description: 'Periodo que cubre la prueba.' }) @IsOptional() @IsString() @MaxLength(TEXT) period?: string;
+  @ApiPropertyOptional({ description: 'Tamaño de la población.' }) @IsOptional() @IsString() @MaxLength(TEXT) population_size?: string;
+  @ApiPropertyOptional({ description: 'Tamaño de muestra sugerido.' }) @IsOptional() @IsString() @MaxLength(TEXT) suggested_sample_size?: string;
+  @ApiPropertyOptional({ description: 'Método de selección de la muestra.' }) @IsOptional() @IsString() @MaxLength(TEXT) selection_method?: string;
+  @ApiPropertyOptional({ description: 'Evidencia que se solicita.' }) @IsOptional() @IsString() @MaxLength(TEXT) evidence_to_request?: string;
+  @ApiPropertyOptional({ description: 'Prerrequisitos para ejecutar la prueba.' }) @IsOptional() @IsString() @MaxLength(TEXT) prerequisites?: string;
+  @ApiPropertyOptional({ type: [String], maxItems: 100, description: 'Pasos de la prueba, en orden.' }) @IsOptional() @IsArray() @ArrayMaxSize(100) @IsString({ each: true }) step_by_step?: string[];
+  @ApiPropertyOptional({ type: [String], maxItems: 100, description: 'Atributos que la prueba valida.' }) @IsOptional() @IsArray() @ArrayMaxSize(100) @IsString({ each: true }) attributes_to_validate?: string[];
+  @ApiPropertyOptional({ description: 'Criterio para considerar que cumple.' }) @IsOptional() @IsString() @MaxLength(TEXT) compliance_criterion?: string;
+  @ApiPropertyOptional({ description: 'Excepciones que se aceptan.' }) @IsOptional() @IsString() @MaxLength(TEXT) exceptions?: string;
+  @ApiPropertyOptional({ description: 'Cómo se tratan las excepciones.' }) @IsOptional() @IsString() @MaxLength(TEXT) exceptions_handling?: string;
+  @ApiPropertyOptional({ description: 'Evidencia que se conserva.' }) @IsOptional() @IsString() @MaxLength(TEXT) evidence_to_retain?: string;
+  @ApiPropertyOptional({ description: 'Qué cubre la parte automática.' }) @IsOptional() @IsString() @MaxLength(TEXT) automated_coverage?: string;
+  @ApiPropertyOptional({ description: 'Validación manual complementaria.' }) @IsOptional() @IsString() @MaxLength(TEXT) complementary_manual_validation?: string;
+  @ApiPropertyOptional({ description: 'Limitaciones de la prueba.' }) @IsOptional() @IsString() @MaxLength(TEXT) limitations?: string;
 }
 
 export class CreateTestDto extends CommitteeTextsDto {
-  @ApiProperty({ example: 'T-DOC-900', description: 'El prefijo dice la dimensión: T-DOC, T-SRV, T-BD, T-APP o T-CLD' }) @IsString() @Matches(CODE_PATTERN) code!: string;
-  @ApiProperty({ enum: DIMENSIONS }) @IsIn(DIMENSIONS) dimension!: string;
-  @ApiProperty({ description: 'El nombre interno (el del comité)' }) @IsString() @IsNotEmpty() @MaxLength(255) name!: string;
-  @ApiProperty({ description: 'El nombre neutro que ve el cliente (D70): no nombra al proveedor de la sonda' }) @IsString() @IsNotEmpty() @MaxLength(255) display_name!: string;
-  @ApiProperty({ description: 'La descripción corta que ve el cliente (D82): no nombra al proveedor de la sonda' }) @IsString() @IsNotEmpty() @MaxLength(TEXT) display_description!: string;
-  @ApiProperty() @IsString() @IsNotEmpty() @MaxLength(TEXT) objective!: string;
-  @ApiProperty({ description: 'Texto libre: Manual, Mixta, Técnica…' }) @IsString() @IsNotEmpty() @MaxLength(500) type!: string;
+  @ApiProperty({ example: 'T-DOC-900', description: 'Código de la prueba. El prefijo dice la dimensión: `T-DOC`, `T-SRV`, `T-BD`, `T-APP` o `T-CLD`, y debe coincidir con `dimension`.' }) @IsString() @Matches(CODE_PATTERN) code!: string;
+  @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension', description: 'Dimensión de la prueba.' }) @IsIn(DIMENSIONS) dimension!: string;
+  @ApiProperty({ description: 'Nombre interno (el del comité). Máx. 255.' }) @IsString() @IsNotEmpty() @MaxLength(255) name!: string;
+  @ApiProperty({ description: 'Nombre neutro que ve el cliente (D70): no nombra al proveedor de la sonda. Máx. 255.' }) @IsString() @IsNotEmpty() @MaxLength(255) display_name!: string;
+  @ApiProperty({ description: 'Descripción corta que ve el cliente (D82): no nombra al proveedor de la sonda.' }) @IsString() @IsNotEmpty() @MaxLength(TEXT) display_description!: string;
+  @ApiProperty({ description: 'Objetivo de la prueba.' }) @IsString() @IsNotEmpty() @MaxLength(TEXT) objective!: string;
+  @ApiProperty({ description: 'Texto libre del comité: Manual, Mixta, Técnica… (máx. 500).' }) @IsString() @IsNotEmpty() @MaxLength(500) type!: string;
 }
 
 export class UpdateTestDto extends CommitteeTextsDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() @MaxLength(255) name?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() @MaxLength(255) display_name?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() @MaxLength(TEXT) display_description?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() @MaxLength(TEXT) objective?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() @MaxLength(500) type?: string;
-  @ApiPropertyOptional() @IsOptional() @IsBoolean() is_active?: boolean;
+  @ApiPropertyOptional({ description: 'Nuevo nombre interno (máx. 255).' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(255) name?: string;
+  @ApiPropertyOptional({ description: 'Nuevo nombre que ve el cliente (máx. 255).' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(255) display_name?: string;
+  @ApiPropertyOptional({ description: 'Nueva descripción corta que ve el cliente.' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(TEXT) display_description?: string;
+  @ApiPropertyOptional({ description: 'Nuevo objetivo.' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(TEXT) objective?: string;
+  @ApiPropertyOptional({ description: 'Nuevo tipo, texto libre (máx. 500).' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(500) type?: string;
+  @ApiPropertyOptional({ description: '`false` da de baja la prueba; `true` la reactiva.' }) @IsOptional() @IsBoolean() is_active?: boolean;
 }
 
 // ---- vínculos -----------------------------------------------------------------------------------------------------------------------------------
 
 export class LinkEvidenceTemplateDto {
-  @ApiProperty() @IsUUID() evidence_template_id!: string;
-  @ApiPropertyOptional({ description: 'Posición (1…N+1); si no viene, al final' }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) sequence?: number;
+  @ApiProperty({ format: 'uuid', description: 'Plantilla de evidencia que se vincula.' }) @IsUUID() evidence_template_id!: string;
+  @ApiPropertyOptional({ minimum: 1, description: 'Posición dentro del control (1…N+1). Si no viene, va al final.' }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) sequence?: number;
 }
 
 export class LinkTestDto {
-  @ApiProperty() @IsUUID() test_id!: string;
+  @ApiProperty({ format: 'uuid', description: 'Prueba que se vincula.' }) @IsUUID() test_id!: string;
 }
 
 export class LinkPointOfFocusDto {
-  @ApiProperty() @IsUUID() point_of_focus_id!: string;
+  @ApiProperty({ format: 'uuid', description: 'Punto de enfoque al que se vincula el control (`GET /v1/catalog/frameworks/{id}/points-of-focus`).' }) @IsUUID() point_of_focus_id!: string;
 }
 
 export class LinkControlDto {
-  @ApiProperty() @IsUUID() control_id!: string;
+  @ApiProperty({ format: 'uuid', description: 'Control que se vincula.' }) @IsUUID() control_id!: string;
 }
 
 export class LinkCauseDto {
-  @ApiProperty() @IsUUID() cause_id!: string;
+  @ApiProperty({ format: 'uuid', description: 'Causa que se vincula.' }) @IsUUID() cause_id!: string;
 }
 
 export class AddDimensionDto {
-  @ApiProperty({ enum: DIMENSIONS }) @IsIn(DIMENSIONS) dimension!: string;
-  @ApiProperty({ enum: CONTROL_TYPES }) @IsIn(CONTROL_TYPES) type!: string;
-  @ApiPropertyOptional() @IsOptional() @IsBoolean() requires_probe?: boolean;
-  @ApiPropertyOptional() @IsOptional() @IsBoolean() requires_ai?: boolean;
-  @ApiPropertyOptional() @IsOptional() @IsBoolean() requires_compliance_confirmation?: boolean;
+  @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension', description: 'Dimensión en que se evalúa el control.' }) @IsIn(DIMENSIONS) dimension!: string;
+  @ApiProperty({ enum: CONTROL_TYPES, enumName: 'ControlType', description: 'Cómo se evalúa en esa dimensión: `manual`, `automated`, `hybrid` o `technical_manual`.' }) @IsIn(CONTROL_TYPES) type!: string;
+  @ApiPropertyOptional({ description: 'Si requiere la sonda (evaluación automática).' }) @IsOptional() @IsBoolean() requires_probe?: boolean;
+  @ApiPropertyOptional({ description: 'Si requiere apoyo de IA (siempre etiquetado como generado por IA).' }) @IsOptional() @IsBoolean() requires_ai?: boolean;
+  @ApiPropertyOptional({ description: 'Si requiere confirmación del consultor o auditor.' }) @IsOptional() @IsBoolean() requires_compliance_confirmation?: boolean;
 }
 
 export class PointsOfFocusQuery {
-  @ApiPropertyOptional({ description: 'Código del requisito' }) @IsOptional() @IsString() @MaxLength(50) requirement_code?: string;
+  @ApiPropertyOptional({ description: 'Solo los puntos de este requisito (por ejemplo `CC6.1`).' }) @IsOptional() @IsString() @MaxLength(50) requirement_code?: string;
 }
