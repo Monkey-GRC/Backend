@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Put, Req } from '@nestjs/common';
-import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
@@ -10,13 +10,15 @@ import { SaveOrganizationalContextDto } from '../application/dtos/save-organizat
 import { GetOrganizationalContextUseCase } from '../application/use-cases/get-organizational-context.use-case';
 import { SaveOrganizationalContextUseCase } from '../application/use-cases/save-organizational-context.use-case';
 import { toOrganizationalContextResponse } from './organizational-context-response.mapper';
+import { API_TAGS } from '../../../common/swagger/api-docs.config';
+import { ApiData } from '../../../common/swagger/api-envelope';
+import { OrganizationalContextResponse } from './organizational-context.responses';
 
 const t = (key: string): string =>
   (I18nContext.current()?.t(key) as string | undefined) ?? key;
 
 // Componente 1 del onboarding. Solo el admin_empresa declara el contexto de su empresa.
-@ApiTags('onboarding')
-@ApiCookieAuth()
+@ApiTags(API_TAGS.organizationalContext)
 @Roles('admin_empresa')
 @Controller('onboarding/organizational-context')
 export class OnboardingController {
@@ -25,6 +27,8 @@ export class OnboardingController {
     private readonly saveContext: SaveOrganizationalContextUseCase,
   ) {}
 
+  @ApiOperation({ summary: 'Leer el contexto organizacional', description: 'Devuelve lo declarado de la empresa. Si aún no se guardó, `id` es `null` y solo trae la razón social (precargada y bloqueada).' })
+  @ApiData(OrganizationalContextResponse, 'Contexto de la organización, con su avance de llenado.')
   @Get()
   async get(@CurrentUser() principal: Principal) {
     const ctx = await this.getContext.execute(principal);
@@ -32,6 +36,8 @@ export class OnboardingController {
   }
 
   // Crea la organización la primera vez y la actualiza las siguientes (mismo endpoint, idempotente).
+  @ApiOperation({ summary: 'Guardar el contexto organizacional', description: 'Guarda el formulario completo (9 campos obligatorios y 1 opcional). Crea la organización la primera vez y la actualiza las siguientes; es idempotente. La razón social no se envía: es de solo lectura. Queda registro de auditoría con el estado antes y después.' })
+  @ApiData(OrganizationalContextResponse, 'Contexto guardado. Las regulaciones vuelven con nombre y jurisdicción.')
   @Put()
   @HttpCode(HttpStatus.OK)
   async save(

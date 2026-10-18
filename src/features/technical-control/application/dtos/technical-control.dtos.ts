@@ -31,14 +31,14 @@ const trimOrNull = ({ value }: { value: unknown }) =>
 
 // PUT /v1/services/{id}/deployment-scenario
 export class DeploymentScenarioDto {
-  @ApiProperty({ enum: DEPLOYMENT_SCENARIO_VALUES })
+  @ApiProperty({ enum: DEPLOYMENT_SCENARIO_VALUES, enumName: 'DeploymentScenario', description: 'Dónde corre el servicio (`GET /v1/catalogs/deployment_scenario`).' })
   @IsIn(DEPLOYMENT_SCENARIO_VALUES)
   deployment_scenario!: (typeof DEPLOYMENT_SCENARIO_VALUES)[number];
 }
 
 // PUT /v1/services/{id}/connections/{assetId}/assets — los activos de la conexión que son de este servicio (los demás quedan fuera).
 export class ServiceAssetsDto {
-  @ApiProperty({ isArray: true, type: String })
+  @ApiProperty({ isArray: true, type: String, format: 'uuid', maxItems: 500, description: 'Activos de la conexión que pertenecen a este servicio, sin repetir. El conjunto es exacto: los que no vengan quedan fuera.' })
   @IsArray()
   @ArrayMaxSize(500)
   @ArrayUnique()
@@ -48,14 +48,14 @@ export class ServiceAssetsDto {
 
 // POST /v1/assets — registrar y conectar. El tipo del activo se deduce de la conexión (D46).
 export class CreateAssetDto {
-  @ApiProperty({ example: 'srv-app-prod-01' })
+  @ApiProperty({ example: 'srv-app-prod-01', maxLength: 200, description: 'Nombre del activo.' })
   @Transform(trim)
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
   name!: string;
 
-  @ApiProperty({ enum: CONNECTION_CATEGORY_VALUES })
+  @ApiProperty({ enum: CONNECTION_CATEGORY_VALUES, enumName: 'ConnectionCategory', description: 'Qué se quiere conectar (`ac_01`…`ac_06`, de `GET /v1/catalogs/automated-capabilities`). De aquí se deduce el tipo del activo.' })
   @IsIn(CONNECTION_CATEGORY_VALUES)
   connection_category!: (typeof CONNECTION_CATEGORY_VALUES)[number];
 
@@ -66,25 +66,25 @@ export class CreateAssetDto {
   @MaxLength(100)
   platform!: string;
 
-  @ApiPropertyOptional({ nullable: true, example: '10.20.3.14' })
+  @ApiPropertyOptional({ nullable: true, example: '10.20.3.14', description: 'Dirección IP, si aplica.' })
   @IsOptional()
   @Transform(trimOrNull)
   @IsIP()
   ip_address?: string | null;
 
-  @ApiPropertyOptional({ nullable: true, example: 'Azure East US' })
+  @ApiPropertyOptional({ nullable: true, example: 'Azure East US', maxLength: 200, description: 'Dónde está el activo.' })
   @IsOptional()
   @Transform(trimOrNull)
   @IsString()
   @MaxLength(200)
   location?: string | null;
 
-  @ApiPropertyOptional({ enum: ASSET_CRITICALITY_VALUES, default: 'medium' })
+  @ApiPropertyOptional({ enum: ASSET_CRITICALITY_VALUES, enumName: 'AssetCriticality', default: 'medium', description: 'Qué tan crítico es para el negocio.' })
   @IsOptional()
   @IsIn(ASSET_CRITICALITY_VALUES)
   criticality?: (typeof ASSET_CRITICALITY_VALUES)[number];
 
-  @ApiPropertyOptional({ isArray: true, type: String })
+  @ApiPropertyOptional({ isArray: true, type: String, maxItems: 20, description: 'Etiquetas libres (máx. 20, hasta 50 caracteres cada una, sin repetir).' })
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(20)
@@ -93,37 +93,35 @@ export class CreateAssetDto {
   @MaxLength(50, { each: true })
   tags?: string[];
 
-  @ApiProperty({ isArray: true, type: String, description: 'Servicios a los que da soporte (al menos uno).' })
+  @ApiProperty({ isArray: true, type: String, format: 'uuid', description: 'Servicios a los que da soporte; al menos uno, sin repetir.' })
   @IsArray()
   @ArrayMinSize(1)
   @ArrayUnique()
   @IsUUID('all', { each: true })
   service_ids!: string[];
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, format: 'uuid', description: 'Responsable del activo (`GET /v1/responsibles`).' })
   @IsOptional()
   @IsUUID()
   responsible_id?: string | null;
 
-  @ApiPropertyOptional({
-    description: 'Solo viaja al crear en el canal de llaves: se guarda cifrado y nunca se devuelve.',
-  })
+  @ApiPropertyOptional({ type: Object, description: 'Solo en el canal de llaves: se guardan cifradas y **nunca se devuelven**.' })
   @IsOptional()
   @IsObject()
   credentials?: Record<string, unknown>;
 
-  @ApiProperty({ enum: CONNECTION_METHOD_VALUES, description: 'Canal de conexión (D53): uno de los de su plataforma.' })
+  @ApiProperty({ enum: CONNECTION_METHOD_VALUES, enumName: 'ConnectionMethod', description: 'Canal de conexión (D53): uno de los de su plataforma.' })
   @IsIn(CONNECTION_METHOD_VALUES)
   connection_method!: (typeof CONNECTION_METHOD_VALUES)[number];
 
-  @ApiPropertyOptional({ nullable: true, example: '123456789012', description: 'Cuenta de AWS a la que apunta la conexión.' })
+  @ApiPropertyOptional({ nullable: true, example: '123456789012', maxLength: 20, description: 'Cuenta de AWS a la que apunta la conexión (12 dígitos).' })
   @IsOptional()
   @Transform(trimOrNull)
   @IsString()
   @MaxLength(20)
   external_account_id?: string | null;
 
-  @ApiPropertyOptional({ isArray: true, type: String, example: ['us-east-1'], description: 'Regiones a evaluar: las únicas que se miran (D53).' })
+  @ApiPropertyOptional({ isArray: true, type: String, example: ['us-east-1'], maxItems: 50, description: 'Regiones a evaluar: las únicas que se miran (D53). Opciones en `GET /v1/catalogs/aws_region`.' })
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(50)
@@ -133,7 +131,7 @@ export class CreateAssetDto {
 
 // PATCH /v1/assets/{id} — editar un sistema. Todo es opcional; lo que cambia la conexión (cuenta, regiones, rol, llaves) la devuelve a «pendiente».
 export class UpdateAssetDto {
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ maxLength: 200, description: 'Nuevo nombre.' })
   @IsOptional()
   @Transform(trim)
   @IsString()
@@ -141,12 +139,12 @@ export class UpdateAssetDto {
   @MaxLength(200)
   name?: string;
 
-  @ApiPropertyOptional({ enum: ASSET_CRITICALITY_VALUES })
+  @ApiPropertyOptional({ enum: ASSET_CRITICALITY_VALUES, enumName: 'AssetCriticality' })
   @IsOptional()
   @IsIn(ASSET_CRITICALITY_VALUES)
   criticality?: (typeof ASSET_CRITICALITY_VALUES)[number];
 
-  @ApiPropertyOptional({ isArray: true, type: String })
+  @ApiPropertyOptional({ isArray: true, type: String, maxItems: 20, description: 'Reemplaza las etiquetas.' })
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(20)
@@ -155,21 +153,21 @@ export class UpdateAssetDto {
   @MaxLength(50, { each: true })
   tags?: string[];
 
-  @ApiPropertyOptional({ example: '123456789012' })
+  @ApiPropertyOptional({ example: '123456789012', maxLength: 20, description: 'Cuenta nueva. **Reinicia la conexión** a `pending` y genera un identificador externo nuevo.' })
   @IsOptional()
   @Transform(trim)
   @IsString()
   @MaxLength(20)
   external_account_id?: string;
 
-  @ApiPropertyOptional({ isArray: true, type: String, example: ['us-east-1'] })
+  @ApiPropertyOptional({ isArray: true, type: String, example: ['us-east-1'], maxItems: 50, description: 'Regiones nuevas. Reinicia la conexión a `pending`.' })
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(50)
   @IsString({ each: true })
   regions?: string[];
 
-  @ApiPropertyOptional({ example: 'arn:aws:iam::123456789012:role/MonkeyReadOnly' })
+  @ApiPropertyOptional({ example: 'arn:aws:iam::123456789012:role/MonkeyReadOnly', maxLength: 700, description: 'Rol nuevo. Reinicia la conexión a `pending`.' })
   @IsOptional()
   @Transform(trim)
   @IsString()
@@ -177,7 +175,7 @@ export class UpdateAssetDto {
   @MaxLength(700)
   role_arn?: string;
 
-  @ApiPropertyOptional({ description: 'Solo en el canal de llaves: reemplaza las llaves. Se guardan cifradas y nunca se devuelven.' })
+  @ApiPropertyOptional({ type: Object, description: 'Solo en el canal de llaves: reemplaza las llaves. Se guardan cifradas y nunca se devuelven. Reinicia la conexión a `pending`.' })
   @IsOptional()
   @IsObject()
   credentials?: Record<string, unknown>;
@@ -185,7 +183,7 @@ export class UpdateAssetDto {
 
 // PATCH /v1/assets/{id}/connection — el cliente entrega el rol que creó con la plantilla.
 export class SetConnectionDto {
-  @ApiProperty({ example: 'arn:aws:iam::123456789012:role/MonkeyReadOnly' })
+  @ApiProperty({ example: 'arn:aws:iam::123456789012:role/MonkeyReadOnly', maxLength: 700, description: '`RoleArn` del rol de solo lectura que el cliente creó con la plantilla.' })
   @Transform(trim)
   @IsString()
   @IsNotEmpty()
@@ -195,15 +193,15 @@ export class SetConnectionDto {
 
 // PUT /v1/assets/{id}/schedule
 export class ScheduleDto {
-  @ApiProperty({ enum: SCHEDULE_FREQUENCY_VALUES })
+  @ApiProperty({ enum: SCHEDULE_FREQUENCY_VALUES, enumName: 'ScheduleFrequency', description: 'Cada cuánto se evalúa (`GET /v1/catalogs/schedule_frequency`).' })
   @IsIn(SCHEDULE_FREQUENCY_VALUES)
   frequency!: (typeof SCHEDULE_FREQUENCY_VALUES)[number];
 }
 
 // GET /v1/assets?page=1&page_size=25&service_id=…&connection_category=…&operational_status=…
 export class ListAssetsQuery {
-  @ApiPropertyOptional({ default: 1 }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
-  @ApiPropertyOptional({ default: 25, maximum: 100 })
+  @ApiPropertyOptional({ default: 1, minimum: 1, description: 'Página, desde 1.' }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
+  @ApiPropertyOptional({ default: 25, minimum: 1, maximum: 100, description: 'Elementos por página.' })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -211,14 +209,14 @@ export class ListAssetsQuery {
   @Max(100)
   page_size = 25;
 
-  @ApiPropertyOptional() @IsOptional() @IsUUID() service_id?: string;
+  @ApiPropertyOptional({ format: 'uuid', description: 'Solo los activos de este servicio.' }) @IsOptional() @IsUUID() service_id?: string;
 
-  @ApiPropertyOptional({ enum: CONNECTION_CATEGORY_VALUES })
+  @ApiPropertyOptional({ enum: CONNECTION_CATEGORY_VALUES, enumName: 'ConnectionCategory', description: 'Solo esta categoría de conexión.' })
   @IsOptional()
   @IsIn(CONNECTION_CATEGORY_VALUES)
   connection_category?: (typeof CONNECTION_CATEGORY_VALUES)[number];
 
-  @ApiPropertyOptional({ enum: ['operational', 'warning', 'error', 'not_monitored'] })
+  @ApiPropertyOptional({ enum: ['operational', 'warning', 'error', 'not_monitored'], enumName: 'OperationalStatus', description: 'Solo este estado operativo.' })
   @IsOptional()
   @IsIn(['operational', 'warning', 'error', 'not_monitored'])
   operational_status?: string;

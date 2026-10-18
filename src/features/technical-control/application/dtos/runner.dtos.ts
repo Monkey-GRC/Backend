@@ -55,20 +55,20 @@ export class RunnerFailDto {
 
 // GET /v1/assets/{id}/readiness — con `service_id` solo mide lo que es de ese servicio (D61).
 export class ReadinessQuery {
-  @ApiProperty({ required: false }) @IsOptional() @IsUUID() service_id?: string;
+  @ApiProperty({ required: false, format: 'uuid', description: 'Solo mide lo que es de este servicio (D61).' }) @IsOptional() @IsUUID() service_id?: string;
 }
 
 // GET /v1/assets/{id}/resources
 export class ListResourcesQuery {
-  @ApiProperty({ required: false, default: 1 }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
-  @ApiProperty({ required: false, default: 50, maximum: 100 }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) page_size = 50;
-  @ApiProperty({ required: false, enum: RESOURCE_KIND_VALUES }) @IsOptional() @IsIn(RESOURCE_KIND_VALUES) kind?: (typeof RESOURCE_KIND_VALUES)[number];
+  @ApiProperty({ required: false, default: 1, minimum: 1, description: 'Página, desde 1.' }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
+  @ApiProperty({ required: false, default: 50, minimum: 1, maximum: 100, description: 'Elementos por página.' }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) page_size = 50;
+  @ApiProperty({ required: false, enum: RESOURCE_KIND_VALUES, enumName: 'ResourceKind', description: 'Solo esta clase de activo.' }) @IsOptional() @IsIn(RESOURCE_KIND_VALUES) kind?: (typeof RESOURCE_KIND_VALUES)[number];
   // Para saber cuáles de los activos de la conexión pertenecen a este servicio (D61).
-  @ApiProperty({ required: false }) @IsOptional() @IsUUID() service_id?: string;
+  @ApiProperty({ required: false, format: 'uuid', description: 'Marca cuáles de los activos de la conexión pertenecen a este servicio (D61).' }) @IsOptional() @IsUUID() service_id?: string;
 }
 
 // GET /v1/assets/{id}/executions
 export class ListExecutionsQuery {
-  @ApiProperty({ required: false, default: 1 }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
-  @ApiProperty({ required: false, default: 25, maximum: 100 }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) page_size = 25;
+  @ApiProperty({ required: false, default: 1, minimum: 1, description: 'Página, desde 1.' }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
+  @ApiProperty({ required: false, default: 25, minimum: 1, maximum: 100, description: 'Elementos por página.' }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) page_size = 25;
 }

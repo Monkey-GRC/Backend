@@ -14,7 +14,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
@@ -39,6 +39,9 @@ import {
 } from '../application/use-cases/asset.use-cases';
 import { ConnectionProbe } from '../domain/ports/connection-probe';
 import { toAssetListItem, toAssetResponse } from './technical-control-response.mapper';
+import { API_TAGS } from '../../../common/swagger/api-docs.config';
+import { ApiData, ApiDomainErrors, ApiEmpty, ApiPaged } from '../../../common/swagger/api-envelope';
+import { AssetListItemResponse, AssetResponse, AssetValidationResponse, DiscoveredResourcesResponse } from './technical-control.responses';
 
 const t = (key: string): string =>
   (I18nContext.current()?.t(key) as string | undefined) ?? key;
@@ -47,8 +50,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 
 // Componente 3, parte de los activos: registrar y conectar → validar → activar → programar.
 // Solo admin_empresa. Las credenciales entran en el POST y no vuelven a salir.
-@ApiTags('assets')
-@ApiCookieAuth()
+@ApiTags(API_TAGS.assets)
 @Roles('admin_empresa')
 @Controller('assets')
 export class AssetsController {
@@ -72,6 +74,9 @@ export class AssetsController {
     return this.config.get<string>('MONKEY_AWS_PRINCIPAL_ARN')?.trim() || null;
   }
 
+  @ApiOperation({ summary: 'Registrar y conectar un activo', description: 'Primer paso del flujo **conectar → validar → activar → programar**. El tipo del activo se deduce de la conexión elegida (D46). Con el canal de rol de solo lectura la respuesta trae `connection_setup`: el identificador externo y los pasos para crear el rol en la cuenta del cliente. Las credenciales (canal de llaves) solo entran aquí, se guardan cifradas y **nunca se devuelven**. Requiere el escenario de despliegue.' })
+  @ApiData(AssetResponse, 'Activo registrado, con las instrucciones para completar la conexión.', { status: 201 })
+  @ApiDomainErrors('DEPLOYMENT_SCENARIO_NOT_SET', 'CAPABILITY_NOT_APPLICABLE', 'CONNECTION_METHOD_NOT_APPLICABLE', 'ORGANIZATION_NOT_DECLARED')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@CurrentUser() principal: Principal, @Body() dto: CreateAssetDto, @Req() req: Request) {
@@ -97,6 +102,8 @@ export class AssetsController {
     return new ResponseDto(HttpStatus.CREATED, t('asset.created'), toAssetResponse(asset, this.principalArn(), t));
   }
 
+  @ApiOperation({ summary: 'Listar activos', description: 'Activos de la empresa, filtrables por servicio, categoría de conexión y estado operativo. No incluye los dados de baja.' })
+  @ApiPaged(AssetListItemResponse, 'Página de activos.')
   @Get()
   async list(@CurrentUser() principal: Principal, @Query() query: ListAssetsQuery) {
     const page = await this.listAssets.execute(
@@ -111,12 +118,16 @@ export class AssetsController {
     return new ResponseDto(HttpStatus.OK, t('asset.list'), toPageResponse(page, toAssetListItem));
   }
 
+  @ApiOperation({ summary: 'Detalle de un activo', description: 'El activo con su conexión y, si falta completarla, las instrucciones (`connection_setup`). Nunca incluye credenciales.' })
+  @ApiData(AssetResponse, 'Detalle del activo.')
   @Get(':id')
   async detail(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string) {
     return new ResponseDto(HttpStatus.OK, t('asset.detail'), toAssetResponse(await this.getAsset.execute(principal, id), this.principalArn(), t));
   }
 
   // Los activos que la conexión reconoció dentro de la cuenta, en las regiones declaradas (D59).
+  @ApiOperation({ summary: 'Activos descubiertos por una conexión', description: 'Lo que la conexión reconoció dentro de la cuenta del cliente, en las regiones declaradas (D59), con un conteo por clase. Con `service_id` marca cuáles ya son de ese servicio.' })
+  @ApiData(DiscoveredResourcesResponse, 'Inventario descubierto, paginado, con su resumen por clase.')
   @Get(':id/resources')
   async resources(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Query() query: ListResourcesQuery) {
     const listing = await this.listResources.execute(principal, id, { kind: query.kind, serviceId: query.service_id }, { page: query.page, pageSize: query.page_size });
@@ -148,6 +159,9 @@ export class AssetsController {
   }
 
   // Editar un sistema. Lo que cambia la conexión (cuenta, regiones, rol, llaves) la devuelve a «pendiente».
+  @ApiOperation({ summary: 'Editar un activo', description: 'Todo es opcional. Lo que cambia la conexión (cuenta, regiones, rol o llaves) la devuelve a `pending`: hay que validarla de nuevo. Una cuenta nueva genera un identificador externo nuevo. Queda registro de auditoría.' })
+  @ApiData(AssetResponse, 'Activo actualizado.')
+  @ApiDomainErrors('CONNECTION_METHOD_NOT_APPLICABLE')
   @Patch(':id')
   async update(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Body() dto: UpdateAssetDto, @Req() req: Request) {
     const asset = await this.updateAsset.execute(
@@ -168,6 +182,9 @@ export class AssetsController {
   }
 
   // Dar de baja: el sistema deja de listarse y de evaluarse; su historial se conserva.
+  @ApiOperation({ summary: 'Dar de baja un activo', description: 'El activo deja de listarse y de evaluarse; su historial se conserva. Queda registro de auditoría.' })
+  @ApiEmpty('Activo dado de baja. `data` es `null`.')
+  @ApiDomainErrors('EXECUTION_IN_PROGRESS')
   @Delete(':id')
   async remove(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Req() req: Request) {
     await this.retireAsset.execute(principal, id, metaOf(req));
@@ -175,12 +192,18 @@ export class AssetsController {
   }
 
   // El cliente entrega el rol que creó en su cuenta con la plantilla. La conexión vuelve a «pendiente»: hay que comprobarla de nuevo.
+  @ApiOperation({ summary: 'Entregar el rol de la conexión', description: 'El cliente pega el `RoleArn` del rol que creó en su cuenta con la plantilla. La conexión vuelve a `pending`: hay que validarla de nuevo.' })
+  @ApiData(AssetResponse, 'Activo con el rol registrado.')
+  @ApiDomainErrors('CONNECTION_METHOD_NOT_APPLICABLE')
   @Patch(':id/connection')
   async connection(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Body() dto: SetConnectionDto, @Req() req: Request) {
     const asset = await this.setConnection.execute(principal, id, dto.role_arn, metaOf(req));
     return new ResponseDto(HttpStatus.OK, t('asset.connection_set'), toAssetResponse(asset, this.principalArn(), t));
   }
 
+  @ApiOperation({ summary: 'Validar la conexión', description: 'Comprueba que Monkey puede leer la cuenta del cliente. Deja la conexión en `validated` (o `failed`, con el motivo). En modo `demo` la comprobación es simulada y así se indica; en `live` es real. Con un descubrimiento exitoso se actualiza el inventario (D59).' })
+  @ApiData(AssetValidationResponse, 'Resultado de la validación.')
+  @ApiDomainErrors('EXECUTION_IN_PROGRESS', 'CONNECTION_METHOD_NOT_APPLICABLE', 'CONNECTION_UNAVAILABLE')
   @Post(':id/validate')
   @HttpCode(HttpStatus.OK)
   async validate(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Req() req: Request) {
@@ -196,6 +219,9 @@ export class AssetsController {
     });
   }
 
+  @ApiOperation({ summary: 'Activar la evaluación automática', description: 'Solo una conexión ya validada. Activarla permite programar y lanzar evaluaciones. Queda registro de auditoría.' })
+  @ApiData(AssetResponse, 'Activo con la evaluación activada.')
+  @ApiDomainErrors('ASSET_NOT_VALIDATED', 'ASSET_ALREADY_ACTIVE')
   @Post(':id/activate')
   @HttpCode(HttpStatus.OK)
   async activate(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Req() req: Request) {
@@ -203,6 +229,9 @@ export class AssetsController {
     return new ResponseDto(HttpStatus.OK, t('asset.activated'), toAssetResponse(asset, this.principalArn(), t));
   }
 
+  @ApiOperation({ summary: 'Programar la frecuencia de evaluación', description: 'Cada cuánto se evalúa el activo de forma automática. Solo un activo ya activado. Queda registro de auditoría.' })
+  @ApiData(AssetResponse, 'Activo con la frecuencia programada.')
+  @ApiDomainErrors('ASSET_NOT_ACTIVE', 'FREQUENCY_NOT_SUPPORTED')
   @Put(':id/schedule')
   @HttpCode(HttpStatus.OK)
   async schedule(

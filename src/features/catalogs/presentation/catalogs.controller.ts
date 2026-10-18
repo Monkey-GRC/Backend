@@ -1,5 +1,5 @@
 import { Controller, Get, HttpStatus, Param } from '@nestjs/common';
-import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { I18nContext } from 'nestjs-i18n';
 import { SERVICE_COUNTRY_REGIONS } from '../../../common/catalogs/service-catalogs';
 import type { Principal } from '../../../common/auth/principal';
@@ -9,6 +9,10 @@ import { ResponseDto } from '../../../common/dtos/response.dto';
 import { GetCatalogUseCase } from '../application/use-cases/get-catalog.use-case';
 import { GetContractedFrameworksUseCase } from '../application/use-cases/get-contracted-frameworks.use-case';
 import { Catalog } from '../domain/entities/catalog-item';
+import { ENUM_CATALOG_NAMES } from '../../../common/catalogs/onboarding-catalogs';
+import { API_TAGS } from '../../../common/swagger/api-docs.config';
+import { ApiItems, ApiItemsOneOf } from '../../../common/swagger/api-envelope';
+import { CapabilityOptionResponse, CatalogOptionResponse, FrameworkOptionResponse, RegulationOptionResponse } from './catalogs.responses';
 
 const t = (key: string): string =>
   (I18nContext.current()?.t(key) as string | undefined) ?? key;
@@ -76,8 +80,7 @@ function toItems(catalog: Catalog) {
 }
 
 // Las opciones las puede leer cualquier usuario con sesión; no llevan datos de ninguna empresa.
-@ApiTags('catalogs')
-@ApiCookieAuth()
+@ApiTags(API_TAGS.catalogs)
 @Controller('catalogs')
 export class CatalogsController {
   constructor(
@@ -86,6 +89,8 @@ export class CatalogsController {
   ) {}
 
   // Va antes de `:name` para que no se confunda con un catálogo. Solo el cliente: es lo suyo.
+  @ApiOperation({ summary: 'Marcos contratados por la empresa', description: 'Los marcos que Monkey contrató para la empresa de la sesión (D47). Es lo que el cliente puede elegir al declarar un servicio.' })
+  @ApiItems(FrameworkOptionResponse, 'Marcos contratados.')
   @Get('contracted-frameworks')
   @Roles('admin_empresa')
   async contracted(@CurrentUser() principal: Principal) {
@@ -95,6 +100,9 @@ export class CatalogsController {
     });
   }
 
+  @ApiOperation({ summary: 'Opciones de una lista', description: 'Las opciones de un formulario. **El frontend nunca escribe estas listas a mano**: manda el `value` (`snake_case`) y muestra el `label` ya traducido. Cualquier usuario con sesión puede leerlas; no llevan datos de ninguna empresa. Un nombre que no existe responde 404. Contrato: `contracts/enums.md`.' })
+  @ApiParam({ name: 'name', description: 'Nombre del catálogo. Además de las listas fijas: `regulations`, `frameworks`, `automated-capabilities` y `<plataforma>_region` (por ejemplo `aws_region`).', enum: [...ENUM_CATALOG_NAMES, 'regulations', 'frameworks', 'automated-capabilities', 'aws_region'] })
+  @ApiItemsOneOf([CatalogOptionResponse, RegulationOptionResponse, FrameworkOptionResponse, CapabilityOptionResponse], 'Opciones del catálogo. La forma depende del nombre: lista simple (`value`/`label`), `regulations`, `frameworks` o `automated-capabilities`.')
   @Get(':name')
   async get(@Param('name') name: string) {
     const catalog = await this.getCatalog.execute(name);
