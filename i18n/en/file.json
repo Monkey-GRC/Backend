@@ -1,7 +1,7 @@
 {
   "required": "Attach a file in the \"file\" field.",
   "too_large": "The file is larger than the 25 MB limit.",
-  "unsupported_type": "Only PDF or Word (.docx) files are accepted.",
+  "unsupported_type": "We don't accept this type of file, or its content doesn't match its extension. Check the allowed types.",
   "storage_unavailable": "We can't store files on your account yet. Share a link to the document in the meantime.",
   "not_a_file": "This service's system description is a link, not a file."
 }

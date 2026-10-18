@@ -1,5 +1,6 @@
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { ReadoutAsset, ReadoutControl, ResultsIndex } from '../control-readout';
+import type { EvidenceState } from '../evidence';
 
 // Las acciones de protección de UN servicio (tenant.client_controls) y todo lo que hace falta para leerlas, cargado EN BLOQUE: la lista de un
 // servicio recién clonado trae unas 80 y no puede hacer una consulta por control. Todo pasa por withScope: RLS impone el aislamiento entre empresas.
@@ -22,7 +23,7 @@ export type ControlEvidence = {
   validityWithinPeriod: string;
   origin: 'catalog' | 'own';
   responsible: { id: string; type: string; personName: string } | null;
-  latestSubmission: { id: string; version: number; validationStatus: string } | null;
+  latestSubmission: { id: string; version: number; evidenceState: EvidenceState } | null;
 };
 
 export type ControlDetailData = ServiceReadoutData & {

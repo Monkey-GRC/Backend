@@ -1,0 +1,24 @@
+import { DomainError } from '../../src/common/errors/domain-error';
+import { FileStorage } from '../../src/common/storage/file-storage';
+
+/** Almacenamiento de archivos en memoria para las pruebas e2e: guarda los objetos y firma enlaces falsos. Lo real contra un S3 está en `test/almacenamiento`. */
+export class StorageEnMemoria extends FileStorage {
+  readonly objects = new Map<string, { body: Buffer; contentType: string }>();
+  readonly links: Array<{ key: string; fileName: string; expiresInSeconds: number }> = [];
+  available = true;
+
+  async put(key: string, body: Buffer, contentType: string): Promise<void> {
+    if (!this.available) throw new DomainError('STORAGE_UNAVAILABLE');
+    this.objects.set(key, { body, contentType });
+  }
+
+  async downloadUrl(key: string, fileName: string, expiresInSeconds: number): Promise<string> {
+    if (!this.available) throw new DomainError('STORAGE_UNAVAILABLE');
+    this.links.push({ key, fileName, expiresInSeconds });
+    return `https://storage.prueba/${key}?X-Signature=firma&X-Expires=${expiresInSeconds}`;
+  }
+
+  async remove(key: string): Promise<void> {
+    this.objects.delete(key);
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "list": "Evidencias que pide este control.",
+  "submission_list": "Versiones entregadas de esta evidencia.",
+  "submitted": "Listo, recibimos tu evidencia. Un consultor la revisará.",
+  "download": "Enlace temporal para ver o descargar la evidencia.",
+  "version_conflict": "Alguien subió otra versión al mismo tiempo. Vuelve a intentarlo."
+}

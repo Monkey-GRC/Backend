@@ -1,0 +1,7 @@
+{
+  "list": "Evidence this control asks for.",
+  "submission_list": "Submitted versions of this evidence.",
+  "submitted": "Done, we received your evidence. A consultant will review it.",
+  "download": "Temporary link to view or download the evidence.",
+  "version_conflict": "Someone uploaded another version at the same time. Please try again."
+}

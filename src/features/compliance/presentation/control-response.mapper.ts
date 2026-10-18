@@ -52,7 +52,7 @@ export function toControlDetail(d: ControlDetail, t: Translate) {
       requirement_id: e.requirementId,
       description: e.description,
       responsible: e.responsible ? { id: e.responsible.id, type: e.responsible.type, person_name: e.responsible.personName } : null,
-      latest_submission: e.latestSubmission ? { id: e.latestSubmission.id, version: e.latestSubmission.version, validation_status: e.latestSubmission.validationStatus } : null,
+      latest_submission: e.latestSubmission ? { id: e.latestSubmission.id, version: e.latestSubmission.version, evidence_state: e.latestSubmission.evidenceState } : null,
     })),
     causes: d.causes,
     failing: r.failing.map((f) => ({

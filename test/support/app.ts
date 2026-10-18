@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+import { Test, TestingModuleBuilder } from '@nestjs/testing';
 import bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
@@ -22,7 +22,8 @@ function appDatabaseUrl(): string {
 }
 
 /** `env` sobrescribe lo de por defecto solo para esta app (p. ej. PROBE_MODE=runner). Cada llamada vuelve a fijar los valores base. */
-export async function bootApp(env: Record<string, string> = {}): Promise<INestApplication> {
+/** `configure` deja sustituir proveedores solo para esta app (p. ej. el almacenamiento por uno en memoria). */
+export async function bootApp(env: Record<string, string> = {}, configure?: (builder: TestingModuleBuilder) => TestingModuleBuilder): Promise<INestApplication> {
   Object.assign(process.env, {
     APP_DATABASE_URL: appDatabaseUrl(),
     JWT_SECRET: randomBytes(64).toString('base64url'),
@@ -41,7 +42,8 @@ export async function bootApp(env: Record<string, string> = {}): Promise<INestAp
     ...env,
   });
   // Las variables se fijan antes de compilar el módulo: es cuando los servicios leen la configuración.
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+  const builder = Test.createTestingModule({ imports: [AppModule] });
+  const moduleRef = await (configure ? configure(builder) : builder).compile();
   const app = moduleRef.createNestApplication();
   // Los errores que las pruebas provocan a propósito (p. ej. un rastro que falla) no deben llenar la salida.
   app.useLogger(false);
