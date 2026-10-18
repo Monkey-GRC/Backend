@@ -69,15 +69,6 @@ enum ActionPlanStatus {
   @@schema("tenant")
 }
 
-// Solo admin_empresa aprueba o rechaza (§7.3). La IA sugiere ai_verdict pero no cambia este estado.
-enum EvidenceValidationStatus {
-  pending
-  approved
-  rejected
-
-  @@map("evidence_validation_status")
-  @@schema("tenant")
-}
 
 // Quién produjo la evaluación: la sonda (R-04), el consultor con evidencia (R-03) o la revisión documental con IA (§2, dimensión policy).
 enum EvaluationOrigin {
@@ -312,23 +303,22 @@ model EvidenceSubmission {
   id                     String   @id @default(uuid()) @db.Uuid
   tenantId               String   @map("tenant_id") @db.Uuid
   evidenceRequirementId  String   @map("evidence_requirement_id") @db.Uuid
-  submittedBy            String   @map("submitted_by") @db.Uuid
-  approvedBy             String?  @map("approved_by") @db.Uuid // solo admin_empresa
-  filePath               String   @map("file_path")
+  submittedBy            String   @map("submitted_by") @db.Uuid // admin_empresa o funcional: la empresa solo aporta, no aprueba (D84)
+  submittedAt            DateTime @default(now()) @map("submitted_at")
+  filePath               String   @map("file_path") // la llave del objeto en el almacenamiento privado
   fileType               String   @map("file_type")
   fileSize               Int      @map("file_size")
   storageLocation        String   @map("storage_location")
   integrityHash          String   @map("integrity_hash")
-  version                String
-  validationStatus       EvidenceValidationStatus @default(pending) @map("validation_status")
+  version                String // entero creciente por requerimiento, guardado como texto (§7.3); una versión nueva nunca pisa la anterior
   aiVerdict              String?  @map("ai_verdict") @db.Text // siempre etiquetado como generado por IA
 
   evidenceRequirement EvidenceRequirement @relation(fields: [evidenceRequirementId], references: [id])
   submittedByUser     User                @relation("EvidenceSubmittedBy", fields: [submittedBy], references: [id])
-  approvedByUser      User?               @relation("EvidenceApprovedBy", fields: [approvedBy], references: [id], onDelete: Restrict)
   tenant              Company             @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
+  @@unique([evidenceRequirementId, version])
   @@index([evidenceRequirementId])
   @@map("evidence_submissions")
   @@schema("tenant")

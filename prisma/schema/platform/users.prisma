@@ -77,7 +77,6 @@ model User {
   residualRisksAccepted     ResidualRisk[]
   riskTreatmentsCreated     RiskTreatment[] @relation("RiskTreatmentCreatedBy")
   evidenceSubmitted         EvidenceSubmission[] @relation("EvidenceSubmittedBy")
-  evidenceApproved          EvidenceSubmission[] @relation("EvidenceApprovedBy")
   exclusionsProposed        Exclusion[]          @relation("ExclusionProposedBy")
   exclusionsDecided         Exclusion[]          @relation("ExclusionDecidedBy")
   controlChangesRequested   ClientControlChange[] @relation("ControlChangeRequestedBy")

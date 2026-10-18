@@ -4,6 +4,7 @@ import { PrismaService, TransactionClient } from '../../../../infrastructure/dat
 import { Dimension, ReadoutControl, resultKey } from '../../domain/control-readout';
 import { AssetResult } from '../../domain/engine/states';
 import { ControlDetailData, ControlRepository, Placement, ServiceOverviewData, ServiceReadoutData } from '../../domain/repositories/control.repository';
+import { evidenceStateOf } from '../../domain/evidence';
 
 // Orden canónico de las categorías (enums.md `trust_criterion`).
 const CRITERIA_ORDER = ['security', 'availability', 'confidentiality', 'integrity', 'privacy'];
@@ -79,7 +80,7 @@ export class ControlPrismaRepository extends ControlRepository {
         select: {
           id: true, code: true, sequence: true, description: true, dimension: true, validityWithinPeriod: true, sourceRef: true,
           responsible: { select: { id: true, type: true, personName: true } },
-          submissions: { select: { id: true, version: true, validationStatus: true } },
+          submissions: { select: { id: true, version: true, aiVerdict: true } },
         },
       });
       const links = await tx.clientCauseControl.findMany({
@@ -97,7 +98,7 @@ export class ControlPrismaRepository extends ControlRepository {
             validityWithinPeriod: r.validityWithinPeriod,
             origin: r.sourceRef ? ('catalog' as const) : ('own' as const),
             responsible: r.responsible ? { id: r.responsible.id, type: r.responsible.type, personName: r.responsible.personName } : null,
-            latestSubmission: latest ? { id: latest.id, version: Number(latest.version) || 0, validationStatus: latest.validationStatus } : null,
+            latestSubmission: latest ? { id: latest.id, version: Number(latest.version) || 0, evidenceState: evidenceStateOf(latest) } : null,
           };
         }),
         causes: links.map((l) => ({ id: l.clientCause.id, name: l.clientCause.name })),

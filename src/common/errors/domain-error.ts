@@ -34,6 +34,8 @@ export type DomainErrorCode =
   | 'ALREADY_DECIDED'
   | 'EXCLUSION_ALREADY_EXISTS'
   | 'EVALUATION_NOT_DEFINED'
+  // Evidencias (contracts/modules/compliance-evidence.md, MD-126): dos subidas a la vez pidieron la misma versión; se reintenta.
+  | 'EVIDENCE_VERSION_CONFLICT'
   // D47: el marco no está entre los que Monkey Admin contrató para la empresa.
   | 'FRAMEWORK_NOT_CONTRACTED'
   // D50: el marco existe en el catálogo pero aún no está construido (`coming_soon`): no se contrata.

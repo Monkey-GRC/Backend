@@ -1,7 +1,7 @@
 {
   "required": "Adjunta un archivo en el campo «file».",
   "too_large": "El archivo supera el máximo de 25 MB.",
-  "unsupported_type": "Solo se aceptan archivos PDF o Word (.docx).",
+  "unsupported_type": "No aceptamos este tipo de archivo, o su contenido no coincide con su extensión. Revisa los tipos permitidos.",
   "storage_unavailable": "Por ahora no podemos guardar archivos en tu cuenta. Comparte el enlace al documento mientras tanto.",
   "not_a_file": "La descripción del sistema de este servicio es un enlace, no un archivo."
 }
