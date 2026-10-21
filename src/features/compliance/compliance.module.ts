@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { SetEvaluationPeriodUseCase } from './application/use-cases/evaluation-period.use-cases';
 import { DecideExclusionUseCase, ListExclusionsUseCase, RequestExclusionUseCase } from './application/use-cases/exclusion.use-cases';
 import { GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListSubmissionsUseCase, UploadEvidenceUseCase } from './application/use-cases/evidence.use-cases';
 import { CreateControlUseCase } from './application/use-cases/create-control.use-case';
@@ -16,17 +17,20 @@ import {
 import { ControlChangeRepository } from './domain/repositories/control-change.repository';
 import { ControlRepository } from './domain/repositories/control.repository';
 import { EvidenceRepository } from './domain/repositories/evidence.repository';
+import { EvaluationPeriodRepository } from './domain/repositories/evaluation-period.repository';
 import { ExclusionRepository } from './domain/repositories/exclusion.repository';
 import { RiskRepository } from './domain/repositories/risk.repository';
 import { ResponsibleRepository } from './domain/repositories/responsible.repository';
 import { ControlChangePrismaRepository } from './infrastructure/repositories/control-change.prisma.repository';
 import { EvidencePrismaRepository } from './infrastructure/repositories/evidence.prisma.repository';
+import { EvaluationPeriodPrismaRepository } from './infrastructure/repositories/evaluation-period.prisma.repository';
 import { ExclusionPrismaRepository } from './infrastructure/repositories/exclusion.prisma.repository';
 import { ControlPrismaRepository } from './infrastructure/repositories/control.prisma.repository';
 import { RiskPrismaRepository } from './infrastructure/repositories/risk.prisma.repository';
 import { ResponsiblePrismaRepository } from './infrastructure/repositories/responsible.prisma.repository';
 import { ControlChangesController } from './presentation/control-changes.controller';
 import { ControlsController } from './presentation/controls.controller';
+import { EvaluationPeriodController } from './presentation/evaluation-period.controller';
 import { EvidenceController } from './presentation/evidence.controller';
 import { ExclusionsController } from './presentation/exclusions.controller';
 import { OverviewController } from './presentation/overview.controller';
@@ -36,7 +40,7 @@ import { RisksController } from './presentation/risks.controller';
 
 // Cumplimiento (modelo-datos.md §7 y §9). El motor de evaluación vive en `domain/engine/` (funciones puras).
 @Module({
-  controllers: [ControlsController, ControlChangesController, ResponsiblesController, RisksController, RiskAssessmentController, ExclusionsController, EvidenceController, OverviewController],
+  controllers: [ControlsController, ControlChangesController, ResponsiblesController, RisksController, RiskAssessmentController, ExclusionsController, EvidenceController, OverviewController, EvaluationPeriodController],
   providers: [
     { provide: ControlRepository, useClass: ControlPrismaRepository },
     { provide: ControlChangeRepository, useClass: ControlChangePrismaRepository },
@@ -57,6 +61,8 @@ import { RisksController } from './presentation/risks.controller';
     EvaluateRiskUseCase, EvaluationHistoryUseCase, CreateTreatmentUseCase, ListTreatmentsUseCase,
     { provide: ExclusionRepository, useClass: ExclusionPrismaRepository },
     ListExclusionsUseCase, RequestExclusionUseCase, DecideExclusionUseCase,
+    { provide: EvaluationPeriodRepository, useClass: EvaluationPeriodPrismaRepository },
+    SetEvaluationPeriodUseCase,
     { provide: EvidenceRepository, useClass: EvidencePrismaRepository },
     ListEvidenceUseCase, ListSubmissionsUseCase, UploadEvidenceUseCase, GetEvidenceDownloadUseCase,
   ],

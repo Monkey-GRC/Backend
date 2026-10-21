@@ -48,6 +48,7 @@ const ID_OWNER: Record<string, string> = {
 };
 const NAMED_PARAMS: Record<string, string> = {
   serviceId: 'el servicio',
+  frameworkCode: 'el código del marco contratado (p. ej. `soc2`)',
   controlId: 'el control',
   riskId: 'el riesgo',
   causeId: 'la causa',

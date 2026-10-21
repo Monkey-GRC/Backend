@@ -43,7 +43,7 @@ const category = (c: OverviewCategory, technical: boolean, t: Translate) => ({
 export const toOverview = (serviceId: string, frameworks: OverviewFramework[], technical: boolean, t: Translate) => ({
   service_id: serviceId,
   frameworks: frameworks.map((f) => {
-    // Sin período auditado ni fecha de corte (P26) no hay evaluación que mostrar: los cuatro datos van en nulo.
+    // Sin período auditado (D87) no hay evaluación que mostrar: los cinco datos van en nulo. La fecha de corte efectiva ya viene calculada (hoy o la congelada).
     const defined = f.evaluation.periodStart !== null && f.evaluation.periodEnd !== null && f.evaluation.cutoffDate !== null;
     return {
       framework_code: f.frameworkCode,
@@ -52,8 +52,14 @@ export const toOverview = (serviceId: string, frameworks: OverviewFramework[], t
       progress: f.progress,
       coverage: f.coverage,
       evaluation: defined
-        ? { catalog_version: String(f.evaluation.catalogVersion), period_start: day(f.evaluation.periodStart), period_end: day(f.evaluation.periodEnd), cutoff_date: day(f.evaluation.cutoffDate) }
-        : { catalog_version: null, period_start: null, period_end: null, cutoff_date: null },
+        ? {
+            catalog_version: String(f.evaluation.catalogVersion),
+            period_start: day(f.evaluation.periodStart),
+            period_end: day(f.evaluation.periodEnd),
+            cutoff_date: day(f.evaluation.cutoffDate),
+            cutoff_frozen: f.evaluation.cutoffFrozen,
+          }
+        : { catalog_version: null, period_start: null, period_end: null, cutoff_date: null, cutoff_frozen: null },
       categories: f.categories.map((c) => category(c, technical, t)),
       ...(technical
         ? {

@@ -43,10 +43,11 @@ export class OverviewCategoryResponse {
 }
 
 export class OverviewEvaluationResponse {
-  @ApiProperty({ nullable: true, example: '1', description: 'Versión del catálogo con la que se evalúa. Nula si el servicio no tiene período definido (P26).' }) catalog_version!: string | null;
+  @ApiProperty({ nullable: true, example: '1', description: 'Versión del catálogo con la que se evalúa. Nula si el servicio no tiene período definido (D87).' }) catalog_version!: string | null;
   @ApiProperty({ nullable: true, example: '2026-01-01', description: 'Inicio del período evaluado (YYYY-MM-DD).' }) period_start!: string | null;
   @ApiProperty({ nullable: true, example: '2026-12-31', description: 'Fin del período evaluado (YYYY-MM-DD).' }) period_end!: string | null;
-  @ApiProperty({ nullable: true, example: '2026-10-15', description: 'Fecha de corte de la evaluación.' }) cutoff_date!: string | null;
+  @ApiProperty({ nullable: true, example: '2026-10-15', description: 'Fecha de corte con la que se evalúa: la congelada o, si no hay, hoy (sin salirse del período). Nula solo si no hay período definido.' }) cutoff_date!: string | null;
+  @ApiProperty({ nullable: true, example: false, description: '`true` si la fecha de corte está congelada; `false` si es «hoy». Nulo si no hay período definido.' }) cutoff_frozen!: boolean | null;
 }
 
 export class OverviewAssessmentsResponse {
