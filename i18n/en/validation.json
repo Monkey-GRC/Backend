@@ -35,5 +35,8 @@
   "text_names_provider": "The client sees this text, so it cannot name the probe provider.",
   "code_dimension_mismatch": "The code prefix does not match the dimension (T-DOC, T-SRV, T-BD, T-APP or T-CLD).",
   "sequence_range": "The position must be between 1 and the next free one.",
-  "dimension_not_in_control": "The control does not have that test's dimension. Add it first."
+  "dimension_not_in_control": "The control does not have that test's dimension. Add it first.",
+  "period_invalid_range": "The end of the period cannot be before the start.",
+  "cutoff_out_of_period": "The cutoff date must fall within the period.",
+  "cutoff_in_future": "The cutoff date cannot be in the future."
 }

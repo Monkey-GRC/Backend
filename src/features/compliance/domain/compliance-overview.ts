@@ -1,4 +1,5 @@
 import { ControlReadout, Readiness, ALMOST_READY_CUTOFF } from './control-readout';
+import { effectiveCutoff, isPeriodDefined } from './evaluation-period';
 import { evaluateCategory, evaluateFramework } from './engine/rollup';
 import { ControlState, RollupState, TestState } from './engine/states';
 import type { OverviewCriterionData, OverviewFrameworkData, Placement } from './repositories/control.repository';
@@ -36,7 +37,8 @@ export type OverviewFramework = {
   readiness: Readiness;
   progress: Ratio;
   coverage: Coverage;
-  evaluation: { catalogVersion: number; periodStart: Date | null; periodEnd: Date | null; cutoffDate: Date | null };
+  // `cutoffDate` es la fecha de corte EFECTIVA (D87): la congelada o, si no la hay, hoy sin salirse del período. Nula solo si el período no está definido.
+  evaluation: { catalogVersion: number; periodStart: Date | null; periodEnd: Date | null; cutoffDate: Date | null; cutoffFrozen: boolean | null };
   categories: OverviewCategory[];
   technical: { state: RollupState; uniqueControls: number; failing: string[]; pending: string[] };
 };
@@ -76,6 +78,8 @@ export type OverviewInput = {
   placements: ReadonlyMap<string, readonly Placement[]>;
   /** Un `funcional` ve el marco y las categorías completos, pero solo los controles que falla entre los que tiene asignados. */
   onlyFailingOf?: string | null;
+  /** Hoy como día UTC, para la fecha de corte efectiva (por defecto, el día de hoy). */
+  today?: Date;
 };
 
 export function buildOverview(input: OverviewInput): OverviewFramework[] {
@@ -85,8 +89,10 @@ export function buildOverview(input: OverviewInput): OverviewFramework[] {
   };
 
   return input.frameworks.map((fw) => {
-    // Sin período auditado ni fecha de corte el motor no ejecuta (REQ-004, P26): el marco queda «Sin medir» y no se inventa ningún resultado.
-    const defined = fw.periodStart !== null && fw.periodEnd !== null && fw.cutoffDate !== null;
+    // Sin período auditado el motor no ejecuta (REQ-004, D87): el marco queda «Sin medir» y no se inventa ningún resultado. La fecha de corte no hace falta
+    // guardarla: sin valor es «hoy».
+    const defined = isPeriodDefined(fw);
+    const cutoff = effectiveCutoff(fw, input.today);
     const criteria = input.criteria
       .filter((c) => inScope(c.criterion))
       .map((c) => c.criterion)
@@ -135,7 +141,7 @@ export function buildOverview(input: OverviewInput): OverviewFramework[] {
       readiness: defined ? readinessOfRollup({ total: shown.progress.total, measured: shown.coverage.measured, done: shown.progress.done, failing: shown.failing }) : 'not_measured',
       progress: shown.progress,
       coverage: shown.coverage,
-      evaluation: { catalogVersion: fw.catalogVersion, periodStart: fw.periodStart, periodEnd: fw.periodEnd, cutoffDate: fw.cutoffDate },
+      evaluation: { catalogVersion: fw.catalogVersion, periodStart: fw.periodStart, periodEnd: fw.periodEnd, cutoffDate: cutoff?.date ?? null, cutoffFrozen: cutoff?.frozen ?? null },
       categories,
       technical: {
         state: defined ? engine.state : 'evaluating',

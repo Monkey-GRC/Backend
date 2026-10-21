@@ -44,7 +44,7 @@ describe('Resumen del servicio — la evaluación aún sin definir (P26)', () =>
     expect(res.body.data.service_id).toBe(a.serviceId);
     const fw = soc2(res.body.data);
     expect(fw).toMatchObject({ framework_code: 'soc2', name: 'SOC 2', readiness: 'not_measured' });
-    expect(fw.evaluation).toEqual({ catalog_version: null, period_start: null, period_end: null, cutoff_date: null });
+    expect(fw.evaluation).toEqual({ catalog_version: null, period_start: null, period_end: null, cutoff_date: null, cutoff_frozen: null });
     expect(fw.progress.done).toBe(0);
     expect(fw.progress.total).toBeGreaterThan(20);
     expect(fw.coverage).toEqual({ measured: 0, applicable: fw.progress.total });
@@ -88,7 +88,8 @@ describe('Resumen del servicio — con la evaluación definida y resultados', ()
 
   it('la evaluación sale con la versión del catálogo, el período y la fecha de corte', async () => {
     const fw = soc2(await read(a.agent));
-    expect(fw.evaluation).toEqual({ catalog_version: expect.stringMatching(/^\d+$/), period_start: '2026-01-01', period_end: '2026-12-31', cutoff_date: '2026-10-14' });
+    // La fecha de corte está guardada (congelada): sale tal cual, sin importar qué día sea hoy (D87).
+    expect(fw.evaluation).toEqual({ catalog_version: expect.stringMatching(/^\d+$/), period_start: '2026-01-01', period_end: '2026-12-31', cutoff_date: '2026-10-14', cutoff_frozen: true });
   });
 
   it('un control que no cumple aparece donde falla, con su código, sus requisitos y el activo afectado', async () => {
