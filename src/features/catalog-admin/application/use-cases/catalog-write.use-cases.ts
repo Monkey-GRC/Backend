@@ -4,6 +4,7 @@ import type { Principal } from '../../../../common/auth/principal';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { FieldError, ValidationException } from '../../../../common/errors/validation.exception';
 import { RequestMeta } from '../../../../common/http/request-meta';
+import { namesProvider } from '../../../../common/text/provider-names';
 import { Audit, CatalogAdminWriteRepository, Change, NewTest, PointOfFocusRef, TestPatch } from '../../domain/repositories/catalog-admin-write.repository';
 import {
   AddDimensionDto,
@@ -46,13 +47,12 @@ function assertNotEmpty(patch: Record<string, unknown>): void {
 }
 
 // El proveedor de la sonda es confidencial frente al cliente (SEG-39, D70). Es el mismo patrón que valida `catalog:load` (prisma/seed/soc2/display-names.ts):
-// lo que ve el cliente de una prueba —su nombre y su descripción— nunca lo nombra.
-const PROVIDER_PATTERN = /wazuh|prowler/i;
+// lo que ve el cliente de una prueba —su nombre y su descripción— nunca lo nombra. Las palabras viven en `common/text/provider-names`.
 const TEST_PREFIX_TO_DIMENSION: Record<string, string> = { DOC: 'policy', SRV: 'server', BD: 'database', CLD: 'cloud', APP: 'app' };
 
 function assertNeutral(texts: Record<string, string | undefined>): void {
   const fields: FieldError[] = Object.entries(texts)
-    .filter(([, value]) => value !== undefined && PROVIDER_PATTERN.test(value))
+    .filter(([, value]) => value !== undefined && namesProvider(value))
     .map(([field]) => ({ field, code: 'text.names_provider' }));
   if (fields.length) throw new ValidationException(fields);
 }
