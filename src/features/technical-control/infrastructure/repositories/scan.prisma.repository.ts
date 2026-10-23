@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ConnectionCategory, DEFAULT_CRITICALITY, NO_COVERAGE, ResourceKindValue } from '../../../../common/catalogs/technical-catalogs';
 import { DiscoveredResource, Inventory } from '../../domain/entities/technical-control.entities';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
@@ -7,6 +8,7 @@ import { Page, PageRequest } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
+import { interpretTestResult } from '../../domain/scan/interpret-evaluations';
 import { TestCheckLink } from '../../domain/scan/readiness';
 import { InterpretedResult } from '../../domain/scan/scan.types';
 import {
@@ -60,7 +62,10 @@ const chunks = <T>(items: T[], size = CHUNK): T[][] => Array.from({ length: Math
 
 @Injectable()
 export class ScanPrismaRepository extends ScanRepository {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {
     super();
   }
 
@@ -417,7 +422,87 @@ export class ScanPrismaRepository extends ScanRepository {
         data: run.logs.map((l) => ({ tenantId: scope.companyId, executionId, loggedAt: run.finishedAt, level: l.level, message: l.message })),
       });
     }
+    await this.writeEvaluations(tx, scope, executionId, assetId, run.finishedAt);
     return { executionId, resultCount: persisted.length, resourceCount: uids.length };
+  }
+
+  // Lo que una corrida devolvió, ya interpretado. Con un servicio, un recurso con activo propio que NO es de ese servicio no se mide para él.
+  private async executionResults(tx: TransactionClient, executionId: string, serviceId?: string): Promise<(InterpretedResult & { checkUuid: string })[]> {
+    const rows = await tx.checkResult.findMany({
+      where: { executionId },
+      select: {
+        result: true,
+        region: true,
+        statusDetail: true,
+        engineSeverity: true,
+        check: { select: { id: true, checkId: true } },
+        assetResource: {
+          select: {
+            resourceUid: true,
+            resourceType: true,
+            name: true,
+            childAsset: { select: { serviceAssets: { where: serviceId ? { serviceId } : {}, select: { id: true } } } },
+          },
+        },
+      },
+    });
+    const scoped = serviceId ? rows.filter((r) => !r.assetResource?.childAsset || r.assetResource.childAsset.serviceAssets.length > 0) : rows;
+    return scoped.map((r) => ({
+      checkUuid: r.check.id,
+      checkId: r.check.checkId,
+      resourceKey: r.assetResource?.resourceUid ?? null,
+      resourceUid: r.assetResource?.resourceUid ?? null,
+      resourceType: r.assetResource?.resourceType ?? null,
+      resourceName: r.assetResource?.name ?? null,
+      regions: r.region ? [r.region] : [],
+      result: r.result,
+      severity: r.engineSeverity,
+      detail: r.statusDetail,
+    }));
+  }
+
+  // DT-50: lo que la corrida dijo de cada test pasa a `evaluations`, que es lo que lee el cumplimiento (controles, categorías, marco). Una fila por control del
+  // servicio, test de nube y activo; el histórico no se pisa: la lectura toma la más reciente. Solo cuentan los checks que el comité ratificó (D56), salvo en
+  // desarrollo y demostración (`READINESS_INCLUDE_PROPOSED`), igual que la preparación del activo. Corre en la misma transacción que los resultados.
+  private async writeEvaluations(tx: TransactionClient, scope: TenantScope, executionId: string, assetId: string, evaluatedAt: Date): Promise<number> {
+    const includeProposed = this.config.get<string>('READINESS_INCLUDE_PROPOSED')?.trim().toLowerCase() === 'true';
+    const services = await tx.serviceAsset.findMany({ where: { assetId }, select: { serviceId: true } });
+    let written = 0;
+    for (const { serviceId } of services) {
+      // La versión del catálogo con la que se evalúa: la del marco contratado más antiguo del servicio (D36; hoy un servicio clona de una sola versión).
+      const framework = await tx.serviceFramework.findFirst({ where: { serviceId, status: 'active' }, orderBy: { contractedAt: 'asc' }, select: { catalogVersionId: true } });
+      if (!framework) continue;
+      const links = await tx.clientControlTest.findMany({
+        where: { clientControl: { serviceId, isActive: true }, test: { dimension: 'cloud' } },
+        select: { clientControlId: true, testId: true, test: { select: { testChecks: { select: { provenance: true, check: { select: { checkId: true } } } } } } },
+      });
+      if (links.length === 0) continue;
+      const results = await this.executionResults(tx, executionId, serviceId);
+      const rows = links.flatMap((l) => {
+        const checkIds = new Set(l.test.testChecks.filter((t) => includeProposed || t.provenance === 'committee_ratified').map((t) => t.check.checkId));
+        if (checkIds.size === 0) return []; // sin checks ratificados, la sonda no mide este test: queda pendiente, no «no aplica»
+        const out = interpretTestResult(checkIds, results);
+        return [
+          {
+            tenantId: scope.companyId,
+            serviceId,
+            clientControlId: l.clientControlId,
+            testId: l.testId,
+            assetId,
+            catalogVersionId: framework.catalogVersionId,
+            evaluatedAt,
+            dimension: 'cloud' as const,
+            result: out.result,
+            rawProbeResult: out.rawProbeResult,
+            diagnosticPercentage: out.diagnosticPercentage,
+            origin: 'automated' as const,
+          },
+        ];
+      });
+      for (const part of chunks(rows)) await tx.evaluation.createMany({ data: part });
+      written += rows.length;
+    }
+    return written;
   }
 
   loadLatestScan(scope: TenantScope, assetId: string, serviceId?: string): Promise<LoadedScan | null> {
@@ -429,46 +514,16 @@ export class ScanPrismaRepository extends ScanRepository {
       });
       if (!execution) return null;
 
-      const rows = await tx.checkResult.findMany({
-        where: { executionId: execution.id },
-        select: {
-          result: true,
-          region: true,
-          statusDetail: true,
-          engineSeverity: true,
-          check: { select: { id: true, checkId: true } },
-          assetResource: {
-            select: {
-              resourceUid: true,
-              resourceType: true,
-              name: true,
-              childAsset: { select: { serviceAssets: { where: serviceId ? { serviceId } : {}, select: { id: true } } } },
-            },
-          },
-        },
-      });
-      // Un recurso con activo propio que NO es de este servicio no se mide para él.
-      const scoped = serviceId ? rows.filter((r) => !r.assetResource?.childAsset || r.assetResource.childAsset.serviceAssets.length > 0) : rows;
-      const results: InterpretedResult[] = scoped.map((r) => ({
-        checkId: r.check.checkId,
-        resourceKey: r.assetResource?.resourceUid ?? null,
-        resourceUid: r.assetResource?.resourceUid ?? null,
-        resourceType: r.assetResource?.resourceType ?? null,
-        resourceName: r.assetResource?.name ?? null,
-        regions: r.region ? [r.region] : [],
-        result: r.result,
-        severity: r.engineSeverity,
-        detail: r.statusDetail,
-      }));
+      const results = await this.executionResults(tx, execution.id, serviceId);
 
-      const checkUuids = [...new Set(scoped.map((r) => r.check.id))];
+      const checkUuids = [...new Set(results.map((r) => r.checkUuid))];
       const linkRows = await tx.testCheck.findMany({
         where: { checkId: { in: checkUuids }, test: { code: { startsWith: 'T-CLD-' } } },
         select: { provenance: true, check: { select: { checkId: true } }, test: { select: { code: true } } },
       });
       const links: TestCheckLink[] = linkRows.map((l) => ({ testCode: l.test.code, checkId: l.check.checkId, provenance: l.provenance }));
 
-      return { executionId: execution.id, finishedAt: execution.finishedAt, engineVersion: execution.engineVersion, regions: execution.regions, checksExecuted: execution.checksExecuted, results, links };
+      return { executionId: execution.id, finishedAt: execution.finishedAt, engineVersion: execution.engineVersion, regions: execution.regions, checksExecuted: execution.checksExecuted, results: results.map(({ checkUuid: _checkUuid, ...r }) => r), links };
     });
   }
 }
