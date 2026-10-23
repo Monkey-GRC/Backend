@@ -2,6 +2,7 @@ import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { Page, PageRequest } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { Inventory } from '../entities/technical-control.entities';
+import { FailedRow } from '../scan/findings';
 import { TestCheckLink } from '../scan/readiness';
 import { InterpretedResult } from '../scan/scan.types';
 
@@ -113,4 +114,10 @@ export abstract class ScanRepository {
   // Con `serviceId`, deja fuera los resultados de los activos de la conexión que NO son de ese servicio. Lo que no tiene activo propio (usuarios, políticas, la
   // cuenta entera) es de toda la cuenta y cuenta para todos los servicios que la usan (D61).
   abstract loadLatestScan(scope: TenantScope, assetId: string, serviceId?: string): Promise<LoadedScan | null>;
-}
+
+  // D90 · ¿Es `testId` una prueba de nube de ese control del cliente? Devuelve el servicio del control, o null si el control o la prueba no existen para esta empresa
+  // (o la prueba no es de nube: no hay nada técnico que explicar).
+  abstract findCloudTestOfControl(scope: TenantScope, controlId: string, testId: string): Promise<{ serviceId: string } | null>;
+  // D90 · Lo que falló en la última evaluación completada de cada conexión de nube del servicio, solo en los checks de esa prueba. Con `includeProposed`, también cuentan
+  // los vínculos que el comité aún no ratificó (igual que `writeEvaluations`). `measuredAt` es la fecha de la evaluación más reciente; null si ninguna conexión se evaluó.
+  abstract loadFailedRows(scope: TenantScope, input: { serviceId: string; testId: string; includeProposed: boolean }): Promise<{ measuredAt: Date | null; rows: FailedRow[] }>;}

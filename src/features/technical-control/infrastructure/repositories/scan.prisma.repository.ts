@@ -8,6 +8,7 @@ import { Page, PageRequest } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
+import { FailedRow } from '../../domain/scan/findings';
 import { interpretTestResult } from '../../domain/scan/interpret-evaluations';
 import { TestCheckLink } from '../../domain/scan/readiness';
 import { InterpretedResult } from '../../domain/scan/scan.types';
@@ -526,4 +527,65 @@ export class ScanPrismaRepository extends ScanRepository {
       return { executionId: execution.id, finishedAt: execution.finishedAt, engineVersion: execution.engineVersion, regions: execution.regions, checksExecuted: execution.checksExecuted, results: results.map(({ checkUuid: _checkUuid, ...r }) => r), links };
     });
   }
-}
+
+  findCloudTestOfControl(scope: TenantScope, controlId: string, testId: string): Promise<{ serviceId: string } | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const link = await tx.clientControlTest.findFirst({
+        where: { clientControlId: controlId, testId, test: { dimension: 'cloud' }, clientControl: { isActive: true } },
+        select: { clientControl: { select: { serviceId: true } } },
+      });
+      return link ? { serviceId: link.clientControl.serviceId } : null;
+    });
+  }
+
+  // D90 · Misma regla de alcance que las evaluaciones: un recurso con activo propio solo cuenta si es de este servicio; lo demás (la cuenta entera) es de todos.
+  loadFailedRows(scope: TenantScope, input: { serviceId: string; testId: string; includeProposed: boolean }): Promise<{ measuredAt: Date | null; rows: FailedRow[] }> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const connections = await tx.serviceAsset.findMany({ where: { serviceId: input.serviceId, asset: { parentAssetId: null, status: 'active' } }, select: { assetId: true } });
+      const links = await tx.testCheck.findMany({
+        where: { testId: input.testId, ...(input.includeProposed ? {} : { provenance: 'committee_ratified' as const }) },
+        select: { checkId: true },
+      });
+      const checkIds = links.map((l) => l.checkId);
+      let measuredAt: Date | null = null;
+      const rows: FailedRow[] = [];
+      if (checkIds.length === 0) return { measuredAt, rows };
+      for (const { assetId } of connections) {
+        const execution = await tx.execution.findFirst({ where: { assetId, status: 'completed', kind: 'assessment' }, orderBy: { finishedAt: 'desc' }, select: { id: true, finishedAt: true } });
+        if (!execution) continue;
+        if (execution.finishedAt && (!measuredAt || execution.finishedAt > measuredAt)) measuredAt = execution.finishedAt;
+        const failed = await tx.checkResult.findMany({
+          where: { executionId: execution.id, result: 'failed', checkId: { in: checkIds } },
+          select: {
+            region: true,
+            engineSeverity: true,
+            check: { select: { id: true, titleEn: true, titleEs: true, remediation: true, remediationEs: true, translationOrigin: true } },
+            assetResource: {
+              select: {
+                resourceUid: true,
+                name: true,
+                region: true,
+                childAsset: { select: { serviceAssets: { where: { serviceId: input.serviceId }, select: { id: true } } } },
+              },
+            },
+          },
+        });
+        for (const r of failed) {
+          if (r.assetResource?.childAsset && r.assetResource.childAsset.serviceAssets.length === 0) continue;
+          rows.push({
+            checkUuid: r.check.id,
+            severity: r.engineSeverity,
+            titleEn: r.check.titleEn,
+            titleEs: r.check.titleEs,
+            remediation: r.check.remediation,
+            remediationEs: r.check.remediationEs,
+            translationOrigin: r.check.translationOrigin,
+            resourceName: r.assetResource?.name ?? null,
+            resourceUid: r.assetResource?.resourceUid ?? null,
+            region: r.region ?? r.assetResource?.region ?? null,
+          });
+        }
+      }
+      return { measuredAt, rows };
+    });
+  }}

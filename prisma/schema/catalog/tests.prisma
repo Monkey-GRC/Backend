@@ -125,6 +125,14 @@ model ControlTest {
   @@schema("catalog")
 }
 
+enum CheckTranslationOrigin {
+  machine
+  reviewed
+
+  @@map("check_translation_origin")
+  @@schema("catalog")
+}
+
 model Check {
   id                 String      @id @default(uuid()) @db.Uuid
   platform           String
@@ -135,6 +143,10 @@ model Check {
   titleEn            String      @map("title_en")
   condition          String      @db.Text
   remediation        String      @db.Text
+  // D90 · La guía de corrección en español. El original (`remediation`) es interno y está en inglés; esta es la traducción de Monkey. `translation_origin` dice quién la
+  // escribió: `machine` es una traducción automática sin revisar (y se etiqueta así al cliente); `reviewed`, una persona la revisó. Nula = aún sin traducir.
+  remediationEs      String?     @map("remediation_es") @db.Text
+  translationOrigin  CheckTranslationOrigin? @map("translation_origin")
   // Nullable: el motor de nube no expone una regla de verificación propia, y no se inventa una.
   verificationRule   String?     @map("verification_rule") @db.Text
   origin             CheckOrigin

@@ -1,4 +1,5 @@
 import { ExecutionSummary } from '../domain/repositories/scan.repository';
+import { Finding } from '../domain/scan/findings';
 import { AssetReadiness, READINESS_AREAS, ReadinessArea } from '../domain/scan/readiness';
 
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
@@ -45,3 +46,12 @@ export const toReadinessResponse = (assetId: string, r: ReadinessView | null) =>
         areas: (Object.keys(READINESS_AREAS) as ReadinessArea[]).map((area) => ({ area, readiness: 'not_measured', open_findings: 0, not_measured: 0 })),
         needs_manual_review: 0,
       };
+
+export const toFindingResponse = (f: Finding) => ({
+  id: f.id,
+  title: f.title,
+  severity: f.severity,
+  resources: f.resources,
+  resources_total: f.resourcesTotal,
+  remediation: f.remediation ? { text: f.remediation.text, language: f.remediation.language, is_ai_generated: f.remediation.isAiGenerated } : null,
+});

@@ -31,6 +31,7 @@ import {
   ListExecutionsUseCase,
   QueueExecutionUseCase,
 } from './application/use-cases/scan.use-cases';
+import { ListFindingsUseCase } from './application/use-cases/findings.use-cases';
 import { EngineOutputParser } from './domain/ports/engine-output-parser';
 import { OcsfEngineOutputParser } from './infrastructure/engine/ocsf-parser';
 import { createConnectionProbe } from './infrastructure/probes/connection-probe.factory';
@@ -40,12 +41,13 @@ import { TechnicalControlPrismaRepository } from './infrastructure/repositories/
 import { AssetsController } from './presentation/assets.controller';
 import { ConnectionTemplatesController } from './presentation/connection-templates.controller';
 import { ExecutionsController } from './presentation/executions.controller';
+import { FindingsController } from './presentation/findings.controller';
 import { RunnerController } from './presentation/runner.controller';
 import { RunnerTokenGuard } from './presentation/runner-token.guard';
 import { TechnicalControlController } from './presentation/technical-control.controller';
 
 @Module({
-  controllers: [TechnicalControlController, AssetsController, ConnectionTemplatesController, ExecutionsController, RunnerController],
+  controllers: [TechnicalControlController, AssetsController, ConnectionTemplatesController, ExecutionsController, FindingsController, RunnerController],
   providers: [
     { provide: TechnicalControlRepository, useClass: TechnicalControlPrismaRepository },
     { provide: ScanRepository, useClass: ScanPrismaRepository },
@@ -70,6 +72,7 @@ import { TechnicalControlController } from './presentation/technical-control.con
     QueueExecutionUseCase,
     ListExecutionsUseCase,
     GetAssetReadinessUseCase,
+    ListFindingsUseCase,
     ImportScanUseCase,
     ClaimExecutionUseCase,
     CompleteExecutionUseCase,

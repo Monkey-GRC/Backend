@@ -191,3 +191,25 @@ export class AssetReadinessResponse {
   @ApiProperty({ type: ReadinessAreaResponse, isArray: true, description: 'Preparación por área, en lenguaje de negocio.' }) areas!: ReadinessAreaResponse[];
   @ApiProperty({ example: 0, description: 'Cuántas comprobaciones necesitan revisión manual.' }) needs_manual_review!: number;
 }
+
+// D90 · Qué falló y cómo corregirlo.
+export class FindingResourceResponse {
+  @ApiProperty({ nullable: true, example: 'bucket-facturas', description: 'Nombre del recurso.' }) name!: string | null;
+  @ApiProperty({ nullable: true, example: 'arn:aws:s3:::bucket-facturas', description: 'Identificador del recurso en la nube del cliente.' }) uid!: string | null;
+  @ApiProperty({ nullable: true, example: 'us-east-1', description: 'Región donde está el recurso.' }) region!: string | null;
+}
+
+export class FindingRemediationResponse {
+  @ApiProperty({ description: 'Cómo corregirlo, en texto plano.' }) text!: string;
+  @ApiProperty({ enum: ['es', 'en'], enumName: 'FindingLanguage', description: '`es` si hay traducción de Monkey; `en` si se muestra el original por no tenerla.' }) language!: string;
+  @ApiProperty({ description: 'La traducción la hizo una IA y nadie la ha revisado: la pantalla debe decirlo.' }) is_ai_generated!: boolean;
+}
+
+export class FindingResponse {
+  @ApiProperty({ format: 'uuid', description: 'Identifica la comprobación dentro del catálogo de Monkey.' }) id!: string;
+  @ApiProperty({ example: 'El almacenamiento permite acceso público', description: 'Qué no se cumple, en el idioma de la petición.' }) title!: string;
+  @ApiProperty({ enum: ['critical', 'high', 'medium', 'low', 'informational'], enumName: 'FindingSeverity' }) severity!: string;
+  @ApiProperty({ type: [FindingResourceResponse], description: 'Hasta 50 recursos afectados.' }) resources!: FindingResourceResponse[];
+  @ApiProperty({ example: 3, description: 'Cuántos recursos están afectados en total (puede ser más de los que se listan).' }) resources_total!: number;
+  @ApiProperty({ type: FindingRemediationResponse, nullable: true, description: 'Null si la comprobación no trae una guía que se pueda mostrar.' }) remediation!: FindingRemediationResponse | null;
+}
