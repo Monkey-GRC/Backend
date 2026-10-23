@@ -7,6 +7,10 @@ import { ControlDetailData, ControlRepository, Placement, ServiceOverviewData, S
 import { DocumentaryEvidence, evidenceStateOf } from '../../domain/evidence';
 import { requirementState, reviewsOf, toReviewRecord } from './evidence-review.mapper';
 
+// Una lectura del cumplimiento junta controles, evaluaciones y exclusiones de un servicio en una sola transacción: con la base lejos (desarrollo contra una base remota)
+// los 5 s por defecto de Prisma no alcanzan y el resumen responde 500.
+const READ_TRANSACTION = { timeoutMs: 30_000 };
+
 // Orden canónico de las categorías (enums.md `trust_criterion`).
 const CRITERIA_ORDER = ['security', 'availability', 'confidentiality', 'integrity', 'privacy'];
 
@@ -20,7 +24,7 @@ export class ControlPrismaRepository extends ControlRepository {
     return this.prisma.withScope(scope, async (tx) => {
       const service = await tx.service.findFirst({ where: { id: serviceId, organization: { companyId: scope.companyId } }, select: { id: true } });
       return service ? this.snapshot(tx, serviceId) : null;
-    });
+    }, READ_TRANSACTION);
   }
 
   loadOverview(scope: TenantScope, serviceId: string): Promise<ServiceOverviewData | null> {
@@ -66,7 +70,7 @@ export class ControlPrismaRepository extends ControlRepository {
         placements.set(row.id, list);
       }
       return { ...base, frameworks, criteria, placements };
-    });
+    }, READ_TRANSACTION);
   }
 
   loadControl(scope: TenantScope, controlId: string): Promise<ControlDetailData | null> {
@@ -105,7 +109,7 @@ export class ControlPrismaRepository extends ControlRepository {
         }),
         causes: links.map((l) => ({ id: l.clientCause.id, name: l.clientCause.name })),
       };
-    });
+    }, READ_TRANSACTION);
   }
 
   // Un número fijo de consultas, sin importar cuántos controles tenga el servicio.
