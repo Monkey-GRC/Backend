@@ -3,5 +3,7 @@
   "submission_list": "Versiones entregadas de esta evidencia.",
   "submitted": "Listo, recibimos tu evidencia. Un consultor la revisará.",
   "download": "Enlace temporal para ver o descargar la evidencia.",
+  "reviewed": "Listo, guardamos tu revisión de esta evidencia.",
+  "requirement_created": "Listo, agregamos la evidencia a este control.",
   "version_conflict": "Alguien subió otra versión al mismo tiempo. Vuelve a intentarlo."
 }

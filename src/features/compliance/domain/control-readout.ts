@@ -1,5 +1,7 @@
 import { evaluateAutomatedTestFromAssets } from './engine/automated-test';
 import { evaluateControl } from './engine/control';
+import { evaluateDocumentaryTest } from './engine/documentary-test';
+import type { DocumentaryEvidence } from './evidence';
 import { AssetResult, ControlState, TestState } from './engine/states';
 
 // De lo que dice la base a lo que se muestra de una acción de protección (MD-117, modelo-datos.md §9 y contracts/modules/compliance-controls.md).
@@ -54,6 +56,8 @@ export type ReadoutControl = {
   catalogCode: string | null;
   requirementCodes: string[];
   pointsOfFocus: string[];
+  /** Las evidencias requeridas del control con el estado de su última entrega: de ellas sale el estado de sus pruebas documentales (D88). */
+  documentary: DocumentaryEvidence[];
 };
 
 /** Último resultado de cada activo en cada test de cada control: `${controlId}|${testId}|${assetId}`. */
@@ -92,11 +96,16 @@ export function readinessOf(input: { state: ControlState; done: number; total: n
  * Estado de un test de una dimensión de activos: cada activo de ESA dimensión dice su último resultado, y el que todavía no lo dijo está pendiente
  * (lo que no se midió nunca es cumplimiento). Sin activos de la dimensión, el test no tiene sobre qué correr.
  *
- * Un test de la dimensión documental (`policy`) se resuelve por sus evidencias y el veredicto del consultor, cuyos datos todavía no se guardan
- * (`P25`, MD-155): mientras tanto está pendiente, nunca cumplido.
+ * Un test de la dimensión documental (`policy`) se resuelve por las evidencias que la persona entregó PARA ESE TEST EN ESTE CONTROL (D88, `testId` igual), con la
+ * agregación de RN-04. La revisión del consultor es el veredicto. Un documento que el catálogo sugiere para el control sin decir a qué prueba sirve (`testId` nulo) no
+ * cuenta para ninguna. Sin evidencias, o sin revisar, está pendiente: nunca cumplido.
  */
-function stateOfTest(controlId: string, test: ReadoutTest, assets: readonly ReadoutAsset[], results: ResultsIndex): { state: TestState; failed: ReadoutAsset[] } {
-  if (test.dimension === 'policy') return { state: 'pending', failed: [] };
+function stateOfTest(control: ReadoutControl, test: ReadoutTest, assets: readonly ReadoutAsset[], results: ResultsIndex): { state: TestState; failed: ReadoutAsset[] } {
+  const controlId = control.id;
+  if (test.dimension === 'policy') {
+    const applicable = control.documentary.filter((e) => e.testId === test.testId);
+    return { state: evaluateDocumentaryTest(applicable.map((e) => e.state)), failed: [] };
+  }
   const universe = assets.filter((a) => dimensionOfAssetType(a.type) === test.dimension);
   const perAsset = universe.map((a) => ({ asset: a, result: results.get(resultKey(controlId, test.testId, a.id)) ?? ('pending' as AssetResult) }));
   const state = evaluateAutomatedTestFromAssets(perAsset.map((p) => p.result)).state;
@@ -104,7 +113,7 @@ function stateOfTest(controlId: string, test: ReadoutTest, assets: readonly Read
 }
 
 export function readControl(control: ReadoutControl, assets: readonly ReadoutAsset[], results: ResultsIndex): ControlReadout {
-  const evaluated = control.tests.map((test) => ({ test, ...stateOfTest(control.id, test, assets, results) }));
+  const evaluated = control.tests.map((test) => ({ test, ...stateOfTest(control, test, assets, results) }));
   const counted = control.tests.filter((t) => t.mandatory && t.active);
   // Una dimensión que el control exige y se queda sin ningún test vigente lo deja incompleto (RN-14).
   const missingDimensions = control.dimensions.filter((d) => d.applies && !counted.some((t) => t.dimension === d.dimension)).length;

@@ -221,11 +221,12 @@ describe('MD-126 · subir una evidencia', () => {
     expect(objectsBefore).toBeLessThan(storage.objects.size);
   });
 
-  it('en la técnica trae la revisión de quien pregunta, vacía hasta MD-127', async () => {
+  it('en la técnica trae la revisión de quien pregunta, vacía mientras nadie la haya hecho (la revisión está en revision-evidencia.e2e-spec.ts)', async () => {
     const res = await a.agent.get(`/v1/evidence-requirements/${requirementId}/submissions?view=technical`).expect(200);
     expect(res.body.data.items[0].technical).toEqual({
       review: 'pending_review',
       attributes: { type_ok: null, period_ok: null, valid_ok: null, approved_ok: null, signed_ok: null, content_ok: null },
+      note: null,
       reviewed_by: null,
       reviewed_at: null,
     });

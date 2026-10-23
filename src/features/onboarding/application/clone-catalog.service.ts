@@ -30,7 +30,7 @@ export class CloneCatalogService {
       tx.control.findMany({ where: { isActive: true }, select: { id: true, code: true, description: true } }),
       tx.controlDimensionEntry.findMany(),
       tx.controlTest.findMany({ where: { test: { isActive: true } }, select: { controlId: true, testId: true } }),
-      tx.controlEvidenceTemplate.findMany({ where: { evidenceTemplate: { isActive: true } }, select: { controlId: true, sequence: true, evidenceTemplate: { select: { code: true, description: true, dimension: true } } } }),
+      tx.controlEvidenceTemplate.findMany({ where: { evidenceTemplate: { isActive: true } }, select: { controlId: true, sequence: true, testId: true, evidenceTemplate: { select: { code: true, description: true, dimension: true } } } }),
       tx.risk.findMany({ where: { isActive: true } }),
       tx.cause.findMany({ where: { isActive: true } }),
       tx.riskCause.findMany({ select: { riskId: true, causeId: true } }),

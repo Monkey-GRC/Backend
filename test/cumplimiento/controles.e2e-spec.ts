@@ -134,7 +134,8 @@ describe('Quién puede pedir qué', () => {
     expect(adminDetail.technical.tests).toHaveLength(withTests.technical.tests_count);
     // `display_description` es la descripción corta del cliente (D82): texto, o nulo en una prueba que aún no la tiene.
     const { display_description: description, ...firstTest } = adminDetail.technical.tests[0];
-    expect(firstTest).toEqual({ test_code: expect.any(String), display_name: expect.any(String), dimension: expect.any(String), state: expect.any(String) });
+    // `test_id` enlaza cada prueba con las evidencias que la respaldan en este control (D88) y lo piden las exclusiones.
+    expect(firstTest).toEqual({ test_id: expect.stringMatching(/^[0-9a-f-]{36}$/), test_code: expect.any(String), display_name: expect.any(String), dimension: expect.any(String), state: expect.any(String) });
     expect(description === null || typeof description === 'string').toBe(true);
     expect(adminDetail.technical.tests.some((t: any) => t.state === 'no_assets' || t.state === 'pending')).toBe(true);
     expect(adminDetail.technical).toEqual((await detailOf(auditor, withTests.id)).technical);

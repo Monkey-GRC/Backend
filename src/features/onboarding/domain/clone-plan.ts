@@ -29,7 +29,8 @@ export interface CatalogSnapshot {
     reasonNotApplicable: string | null;
   }[];
   controlTests: { controlId: string; testId: string }[];
-  evidenceTemplates: { controlId: string; code: string; description: string; dimension: Dimension; sequence: number }[];
+  // `testId`: la prueba documental a la que sirve el documento en este control; ausente o nulo = compartido con todas las del control (D88).
+  evidenceTemplates: { controlId: string; code: string; description: string; dimension: Dimension; sequence: number; testId?: string | null }[];
   risks: { id: string; code: string; name: string; description: string; trustCriterion: string; potentialImpact: unknown; isActive: boolean }[];
   causes: { id: string; code: string; name: string; failureCategory: string; description: string }[];
   riskCauses: { riskId: string; causeId: string }[];
@@ -66,7 +67,7 @@ export interface ClonePlan {
   clientControlTests: { tenantId: string; clientControlId: string; testId: string }[];
   evidenceRequirements: {
     tenantId: string; clientControlId: string; responsibleId: null; code: string; sequence: number;
-    description: string; dimension: Dimension; validityWithinPeriod: string; sourceRef: string;
+    description: string; dimension: Dimension; testId: string | null; validityWithinPeriod: string; sourceRef: string;
   }[];
   clientRisks: {
     id: string; tenantId: string; serviceId: string; riskId: string; code: string; name: string; description: string;
@@ -146,7 +147,7 @@ export function buildClonePlan(input: CloneInput): ClonePlan {
     for (const t of (templatesByControl.get(controlId) ?? []).slice().sort((a, b) => a.sequence - b.sequence)) {
       plan.evidenceRequirements.push({
         tenantId, clientControlId: id, responsibleId: null, code: t.code, sequence: t.sequence, description: t.description,
-        dimension: t.dimension, validityWithinPeriod: input.evaluationPeriod, sourceRef: t.code,
+        dimension: t.dimension, testId: t.testId ?? null, validityWithinPeriod: input.evaluationPeriod, sourceRef: t.code,
       });
     }
   }

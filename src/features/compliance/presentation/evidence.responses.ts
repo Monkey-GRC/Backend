@@ -17,8 +17,9 @@ export class AiSuggestionResponse {
 }
 
 export class EvidenceTechnicalResponse {
-  @ApiProperty({ enum: ['pending_review', 'ai_prevalidated', 'approved', 'rejected'], description: 'Revisión humana. Hasta MD-127 no hay ninguna.' }) review!: string;
-  @ApiProperty({ type: Object, description: 'Atributos del test de evidencia que la revisión marca (`type_ok`, `period_ok`, `valid_ok`, `approved_ok`, `signed_ok`, `content_ok`); `null` hasta que se revise.' }) attributes!: Record<string, boolean | null>;
+  @ApiProperty({ enum: ['pending_review', 'ai_prevalidated', 'human_validated'], description: 'Revisión de quien pregunta: la del consultor para la empresa y el consultor, la del auditor para el auditor (D84). `ai_prevalidated` lo deriva el servidor.' }) review!: string;
+  @ApiProperty({ type: Object, description: 'Atributos que la revisión marca (`type_ok`, `period_ok`, `valid_ok`, `approved_ok`, `signed_ok`, `content_ok`); `null` hasta que se valoren.' }) attributes!: Record<string, boolean | null>;
+  @ApiProperty({ nullable: true, example: null, description: 'Observación de quien revisó; `null` si no hay.' }) note!: string | null;
   @ApiProperty({ nullable: true, example: null, description: 'Quién hizo la revisión; `null` mientras no haya ninguna.' }) reviewed_by!: PersonResponse | null;
   @ApiProperty({ format: 'date-time', nullable: true, example: null }) reviewed_at!: string | null;
 }
@@ -38,12 +39,19 @@ export class EvidenceSubmissionResponse {
   @ApiProperty({ type: EvidenceTechnicalResponse, required: false, description: 'Solo en la vista técnica (`view=technical`).' }) technical?: EvidenceTechnicalResponse;
 }
 
+export class EvidenceTestRefResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ example: 'T-DOC-001', description: 'Código de la prueba.' }) code!: string;
+  @ApiProperty({ nullable: true, description: 'Nombre neutro de la prueba (D70); el texto del comité no sale.' }) display_name!: string | null;
+}
+
 export class EvidenceRequirementResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ example: 'DOC-001', description: 'Código del requerimiento.' }) code!: string;
   @ApiProperty({ example: 1, description: 'Posición dentro del control.' }) sequence!: number;
   @ApiProperty({ description: 'Qué evidencia se pide.' }) description!: string;
   @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension', description: 'Dimensión de la evidencia.' }) dimension!: string;
+  @ApiProperty({ type: EvidenceTestRefResponse, nullable: true, description: 'La prueba documental de este control a la que sirve la evidencia. `null`: está **compartida** con todas las pruebas documentales del control (así llegan las plantillas del catálogo; D88).' }) test!: EvidenceTestRefResponse | null;
   @ApiProperty({ description: 'Si la evidencia debe estar vigente dentro del período evaluado.' }) validity_within_period!: boolean;
   @ApiProperty({ enum: ['catalog', 'own'], enumName: 'ControlOrigin', description: '`catalog` viene del catálogo clonado · `own` la creó la empresa.' }) origin!: string;
   @ApiProperty({ type: ResponsibleRefResponse, nullable: true, description: 'Cargo responsable de aportarla; `null` si no se asignó.' }) responsible!: ResponsibleRefResponse | null;

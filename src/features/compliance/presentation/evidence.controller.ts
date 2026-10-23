@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, Req, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Put, Query, Req, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -9,9 +9,11 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
 import { toPageResponse } from '../../../common/pagination/page';
-import { ListEvidenceQuery, ListSubmissionsQuery } from '../application/dtos/evidence.dto';
+import { CreateEvidenceRequirementDto, ListEvidenceQuery, ListSubmissionsQuery, ReviewEvidenceDto } from '../application/dtos/evidence.dto';
 import { EVIDENCE_UPLOAD_LIMIT_BYTES } from '../application/evidence-file';
-import { GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListSubmissionsUseCase, UploadEvidenceUseCase } from '../application/use-cases/evidence.use-cases';
+import {
+  CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListSubmissionsUseCase, ReviewEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
+} from '../application/use-cases/evidence.use-cases';
 import { toRequirement, toSubmission } from './evidence-response.mapper';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiItems, ApiPaged } from '../../../common/swagger/api-envelope';
@@ -32,6 +34,9 @@ export class EvidenceController {
     private readonly listSubmissions: ListSubmissionsUseCase,
     private readonly upload: UploadEvidenceUseCase,
     private readonly download: GetEvidenceDownloadUseCase,
+    private readonly reviewEvidence: ReviewEvidenceUseCase,
+    private readonly createRequirement: CreateEvidenceRequirementUseCase,
+    private readonly uploadForTest: UploadTestEvidenceUseCase,
   ) {}
 
   @ApiOperation({ summary: 'Evidencias de un control', description: 'Los requerimientos de evidencia del control, cada uno con su responsable y todas sus entregas (la más reciente primero). Un `funcional` solo ve los controles que tiene asignados. Con `view=technical` (solo `auditor`, `consultor` y, por ahora, `admin_empresa`) agrega el bloque `technical`.' })
@@ -68,6 +73,49 @@ export class EvidenceController {
   async submissions(@CurrentUser() p: Principal, @Param('requirementId', idPipe) requirementId: string, @Query() q: ListSubmissionsQuery) {
     const { view, page } = await this.listSubmissions.execute(p, requirementId, q.page, q.page_size, q.view);
     return new ResponseDto(HttpStatus.OK, t('evidence.submission_list'), toPageResponse(page, (s) => toSubmission(s, view, true)));
+  }
+
+  // D88 · La persona lee lo que pide la prueba y sube su documento, en un solo paso. El consultor lo revisa después.
+  @ApiOperation({ summary: 'Subir la evidencia de una prueba documental', description: 'Multipart, campo `file` (PDF, DOCX, XLSX, PNG o JPG, hasta 25 MB). La evidencia es **de esa prueba en este control** (D88): en la primera entrega se crea el lugar donde queda y las siguientes son versiones nuevas. Suben `admin_empresa` y el `funcional` dueño del control. La prueba debe ser documental (`policy`) y del control; si no, 404 o `422 test.not_documentary`. Subir **no cumple** la prueba: la deja en revisión hasta que el consultor valide la evidencia (D84). Queda registro de auditoría.' })
+  @ApiBody({ schema: { type: 'object', required: ['file'], properties: { file: { type: 'string', format: 'binary', description: 'PDF, DOCX, XLSX, PNG o JPG; máx. 25 MB.' } } } })
+  @ApiConsumes('multipart/form-data')
+  @ApiData(EvidenceSubmissionResponse, 'Entrega registrada para esa prueba.', { status: 201 })
+  @ApiDomainErrors('FILE_REQUIRED', 'FILE_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'CONTROL_RETIRED', 'STORAGE_UNAVAILABLE')
+  @Post('controls/:controlId/tests/:testId/evidence')
+  @Roles('admin_empresa', 'funcional')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: EVIDENCE_UPLOAD_LIMIT_BYTES, files: 1 } }))
+  async submitForTest(
+    @CurrentUser() p: Principal,
+    @Param('controlId', idPipe) controlId: string,
+    @Param('testId', idPipe) testId: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Req() req: Request,
+  ) {
+    const created = await this.uploadForTest.execute(p, controlId, testId, file && { buffer: file.buffer, originalName: file.originalname, mimeType: file.mimetype }, metaOf(req));
+    return new ResponseDto(HttpStatus.CREATED, t('evidence.submitted'), toSubmission(created, 'business', true));
+  }
+
+  // D84 · La empresa solo aporta: revisan el consultor y el auditor, cada uno la suya. El rol sale de la sesión; el cuerpo no lo lleva.
+  @ApiOperation({ summary: 'Revisar una evidencia', description: 'Solo `consultor` y `auditor`, **cada uno la suya** (D84): crea o reemplaza la revisión del rol de quien llama; la del otro rol no se ve ni se toca (SEG-61). Marca los seis atributos (`true`, `false` o sin valorar) y la validación humana (`review`). Solo una evidencia **validada por una persona** puede cumplir (RN-03); `ai_prevalidated` lo deriva el sistema y no se acepta. De la revisión del consultor sale el estado de las pruebas documentales del control (D88). Responde con la entrega y su `evidence_state` desde la revisión de quien llama. Queda registro de auditoría.' })
+  @ApiData(EvidenceSubmissionResponse, 'La entrega, con la revisión de quien la hizo en el bloque `technical`.')
+  @Put('evidence-submissions/:submissionId/review')
+  @Roles('consultor', 'auditor')
+  async review(@CurrentUser() p: Principal, @Param('submissionId', idPipe) submissionId: string, @Body() dto: ReviewEvidenceDto, @Req() req: Request) {
+    const reviewed = await this.reviewEvidence.execute(p, submissionId, dto, metaOf(req));
+    return new ResponseDto(HttpStatus.OK, t('evidence.reviewed'), toSubmission(reviewed, 'technical', true));
+  }
+
+  // D88 · Una evidencia propia en un control: de una prueba documental concreta, o compartida con todas las del control.
+  @ApiOperation({ summary: 'Agregar una evidencia propia a un control', description: 'Solo `admin_empresa`. Agrega al control una evidencia requerida **propia** (`origin: "own"`). Con `test_id` sirve solo a esa prueba documental del control; sin él queda compartida con todas (D88). Así todo control puede respaldar sus pruebas manuales aunque el catálogo no le haya traído un documento. `dimension` debe ser una que el control exige; con `test_id` debe ser `policy`. Queda registro de auditoría.' })
+  @ApiData(EvidenceRequirementResponse, 'Evidencia requerida creada.', { status: 201 })
+  @ApiDomainErrors('CONTROL_RETIRED')
+  @Post('controls/:controlId/evidence-requirements')
+  @Roles('admin_empresa')
+  @HttpCode(HttpStatus.CREATED)
+  async addRequirement(@CurrentUser() p: Principal, @Param('controlId', idPipe) controlId: string, @Body() dto: CreateEvidenceRequirementDto, @Req() req: Request) {
+    const created = await this.createRequirement.execute(p, controlId, dto, metaOf(req));
+    return new ResponseDto(HttpStatus.CREATED, t('evidence.requirement_created'), toRequirement(created, 'business'));
   }
 
   // El archivo nunca es público: un enlace firmado de 5 minutos. Cada enlace generado queda en el rastro.

@@ -4,7 +4,8 @@ import { PrismaService, TransactionClient } from '../../../../infrastructure/dat
 import { Dimension, ReadoutControl, resultKey } from '../../domain/control-readout';
 import { AssetResult } from '../../domain/engine/states';
 import { ControlDetailData, ControlRepository, Placement, ServiceOverviewData, ServiceReadoutData } from '../../domain/repositories/control.repository';
-import { evidenceStateOf } from '../../domain/evidence';
+import { DocumentaryEvidence, evidenceStateOf } from '../../domain/evidence';
+import { requirementState, reviewsOf, toReviewRecord } from './evidence-review.mapper';
 
 // Orden canónico de las categorías (enums.md `trust_criterion`).
 const CRITERIA_ORDER = ['security', 'availability', 'confidentiality', 'integrity', 'privacy'];
@@ -80,7 +81,8 @@ export class ControlPrismaRepository extends ControlRepository {
         select: {
           id: true, code: true, sequence: true, description: true, dimension: true, validityWithinPeriod: true, sourceRef: true,
           responsible: { select: { id: true, type: true, personName: true } },
-          submissions: { select: { id: true, version: true, aiVerdict: true } },
+          // La revisión del consultor: es la que ven la empresa y el consultor, y la que consume el motor (D84).
+          submissions: { select: { id: true, version: true, aiVerdict: true, reviews: reviewsOf('consultor') } },
         },
       });
       const links = await tx.clientCauseControl.findMany({
@@ -98,7 +100,7 @@ export class ControlPrismaRepository extends ControlRepository {
             validityWithinPeriod: r.validityWithinPeriod,
             origin: r.sourceRef ? ('catalog' as const) : ('own' as const),
             responsible: r.responsible ? { id: r.responsible.id, type: r.responsible.type, personName: r.responsible.personName } : null,
-            latestSubmission: latest ? { id: latest.id, version: Number(latest.version) || 0, evidenceState: evidenceStateOf(latest) } : null,
+            latestSubmission: latest ? { id: latest.id, version: Number(latest.version) || 0, evidenceState: evidenceStateOf({ aiVerdict: latest.aiVerdict, review: latest.reviews[0] ? toReviewRecord(latest.reviews[0]) : null }) } : null,
           };
         }),
         causes: links.map((l) => ({ id: l.clientCause.id, name: l.clientCause.name })),
@@ -137,6 +139,18 @@ export class ControlPrismaRepository extends ControlRepository {
       ? await tx.clientControlChange.findMany({ where: { serviceId, clientControlId: { in: rows.map((r) => r.id) } }, select: { clientControlId: true, changeType: true, status: true } })
       : [];
 
+    // D88 · Las evidencias requeridas de estas acciones, con el estado de su última entrega según la revisión del CONSULTOR (la que consume el motor, D84): de ellas sale el estado
+    // de cada prueba documental en su control. Una sola consulta para todo el servicio.
+    const documentaryRows = rows.length
+      ? await tx.evidenceRequirement.findMany({
+          // Solo lo entregado PARA una prueba (D88): un documento que el catálogo sugiere sin decir a qué prueba sirve no cuenta para ninguna.
+          where: { clientControlId: { in: rows.map((r) => r.id) }, dimension: 'policy', testId: { not: null } },
+          select: { clientControlId: true, testId: true, submissions: { select: { version: true, aiVerdict: true, reviews: reviewsOf('consultor') } } },
+        })
+      : [];
+    const documentaryOf = new Map<string, DocumentaryEvidence[]>();
+    for (const d of documentaryRows) documentaryOf.set(d.clientControlId, [...(documentaryOf.get(d.clientControlId) ?? []), { testId: d.testId as string, state: requirementState(d.submissions) }]);
+
     const controls: ReadoutControl[] = rows.map((c) => {
       const criteria = new Set<string>();
       const requirementCodes = new Set<string>();
@@ -172,6 +186,7 @@ export class ControlPrismaRepository extends ControlRepository {
         catalogCode: c.control?.code ?? null,
         requirementCodes: [...requirementCodes].sort(),
         pointsOfFocus: [...pointsOfFocus].sort(),
+        documentary: documentaryOf.get(c.id) ?? [],
       };
     });
 

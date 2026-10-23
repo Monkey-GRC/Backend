@@ -92,6 +92,16 @@ describe('buildClonePlan (MD-80)', () => {
     expect(ev[0]).toMatchObject({ validityWithinPeriod: '12 meses', responsibleId: null, sourceRef: 'DOC-a', dimension: 'policy' });
   });
 
+  it('las plantillas llegan compartidas (sin prueba) y, si la asignación del catálogo ya nombra una prueba documental, el clon la conserva (D88)', () => {
+    const snapshot = catalog();
+    snapshot.evidenceTemplates = [
+      { controlId: 'k1', code: 'DOC-a', description: 'Primero', dimension: 'policy', sequence: 1 },
+      { controlId: 'k1', code: 'DOC-b', description: 'Segundo', dimension: 'policy', sequence: 2, testId: 't1' },
+    ];
+    const ev = buildClonePlan(input({ catalog: snapshot })).evidenceRequirements;
+    expect(ev.map((e) => [e.code, e.testId])).toEqual([['DOC-a', null], ['DOC-b', 't1']]);
+  });
+
   it('clona el set base completo de riesgos y causas, aunque la causa no tenga riesgo', () => {
     const plan = buildClonePlan(input());
     expect(plan.clientRisks.map((r) => r.code)).toEqual(['R001']);

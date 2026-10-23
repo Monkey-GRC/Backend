@@ -148,13 +148,18 @@ model ControlEvidenceTemplate {
   controlId          String @map("control_id") @db.Uuid
   evidenceTemplateId String @map("evidence_template_id") @db.Uuid
   sequence           Int // orden en que el comité lista los documentos del control
+  // D88: la prueba documental a la que sirve el documento en este control. Nulo = compartido con todas las pruebas documentales del control
+  // (así llegan las 89 asignaciones del Excel, que no dicen a cuál sirve cada una; DT-76).
+  testId             String? @map("test_id") @db.Uuid
 
   control          Control          @relation(fields: [controlId], references: [id])
   evidenceTemplate EvidenceTemplate @relation(fields: [evidenceTemplateId], references: [id])
+  test             Test?            @relation(fields: [testId], references: [id], onDelete: Restrict)
 
   @@unique([controlId, evidenceTemplateId])
   @@unique([controlId, sequence])
   @@index([evidenceTemplateId])
+  @@index([testId])
   @@map("control_evidence_templates")
   @@schema("catalog")
 }

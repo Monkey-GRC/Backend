@@ -282,11 +282,14 @@ model EvidenceRequirement {
   sequence             Int
   description          String    @db.Text
   dimension            Dimension
+  // D88: la prueba documental de ESTE control a la que sirve la evidencia. Nulo = compartida con todas las pruebas documentales del control.
+  testId               String?   @map("test_id") @db.Uuid
   validityWithinPeriod String    @map("validity_within_period")
   sourceRef            String?   @map("source_ref") // código de la plantilla (catalog.evidence_templates); null si la creó el cliente
 
   clientControl ClientControl          @relation(fields: [clientControlId], references: [id])
   responsible OrganizationResponsible? @relation(fields: [responsibleId], references: [id])
+  test        Test?                    @relation(fields: [testId], references: [id], onDelete: Restrict)
   tenant      Company                  @relation(fields: [tenantId], references: [id])
 
   submissions EvidenceSubmission[]
@@ -295,6 +298,7 @@ model EvidenceRequirement {
   @@index([tenantId])
   @@index([clientControlId])
   @@index([responsibleId])
+  @@index([testId])
   @@map("evidence_requirements")
   @@schema("tenant")
 }
@@ -317,10 +321,58 @@ model EvidenceSubmission {
   submittedByUser     User                @relation("EvidenceSubmittedBy", fields: [submittedBy], references: [id])
   tenant              Company             @relation(fields: [tenantId], references: [id])
 
+  reviews EvidenceReview[]
+
   @@index([tenantId])
   @@unique([evidenceRequirementId, version])
   @@index([evidenceRequirementId])
   @@map("evidence_submissions")
+  @@schema("tenant")
+}
+
+// Quién revisó una entrega: el consultor y el auditor, cada uno la suya (D84). Una fila por entrega y por rol; `PUT` la crea o la reemplaza (queda en el rastro).
+// `ai_prevalidated` no se guarda: se deriva (la entrega tiene `ai_verdict` y ninguna revisión humana). La del auditor no mueve el cálculo (D77).
+enum EvidenceReviewerRole {
+  consultor
+  auditor
+
+  @@map("evidence_reviewer_role")
+  @@schema("tenant")
+}
+
+enum EvidenceReviewState {
+  pending_review
+  human_validated
+
+  @@map("evidence_review")
+  @@schema("tenant")
+}
+
+model EvidenceReview {
+  id                   String               @id @default(uuid()) @db.Uuid
+  tenantId             String               @map("tenant_id") @db.Uuid
+  evidenceSubmissionId String               @map("evidence_submission_id") @db.Uuid
+  reviewerRole         EvidenceReviewerRole @map("reviewer_role")
+  reviewedBy           String               @map("reviewed_by") @db.Uuid
+  reviewedAt           DateTime             @default(now()) @map("reviewed_at")
+  // Los seis atributos de la evidencia (RN-01 a RN-03). Nulo = sin valorar.
+  typeOk               Boolean?             @map("type_ok")
+  periodOk             Boolean?             @map("period_ok")
+  validOk              Boolean?             @map("valid_ok")
+  approvedOk           Boolean?             @map("approved_ok")
+  signedOk             Boolean?             @map("signed_ok")
+  contentOk            Boolean?             @map("content_ok")
+  review               EvidenceReviewState  @default(pending_review)
+  note                 String?              @db.Text
+
+  evidenceSubmission EvidenceSubmission @relation(fields: [evidenceSubmissionId], references: [id])
+  reviewedByUser     User                @relation("EvidenceReviewedBy", fields: [reviewedBy], references: [id])
+  tenant             Company             @relation(fields: [tenantId], references: [id])
+
+  @@unique([evidenceSubmissionId, reviewerRole])
+  @@index([tenantId])
+  @@index([reviewedBy])
+  @@map("evidence_reviews")
   @@schema("tenant")
 }
 

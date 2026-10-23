@@ -70,6 +70,7 @@ model Company {
   riskTreatments        RiskTreatment[]
   evidenceRequirements  EvidenceRequirement[]
   evidenceSubmissions   EvidenceSubmission[]
+  evidenceReviews       EvidenceReview[]
   exclusions            Exclusion[]
   evaluations           Evaluation[]
   findings              Finding[]
