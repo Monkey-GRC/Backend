@@ -1,13 +1,15 @@
 import { INestApplication } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { ModulesContainer } from '@nestjs/core';
-import { DECORATORS } from '@nestjs/swagger/dist/constants';
 import type { OpenAPIObject } from '@nestjs/swagger';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import type { UserRole } from '../enums/user-role.enum';
 import { API_TAG_DESCRIPTIONS } from './api-docs.config';
 import { ERROR_SCHEMAS, errorExample } from './api-envelope';
+
+// La clave de metadatos de @ApiExcludeController(). @nestjs/swagger no exporta `dist/constants` (su `exports` lo impide), así que se repite aquí.
+const API_EXCLUDE_CONTROLLER = 'swagger/apiExcludeController';
 
 // Completa cada operación con lo que el código YA dice y que no conviene repetir a mano: quién puede llamarla (@Roles / @Public, los mismos metadatos que lee el
 // guard, así la documentación no se desfasa) y los errores comunes de toda ruta (401, 403, 404 por id, 422 por cuerpo o consulta). Los errores propios de cada
@@ -127,7 +129,7 @@ export function enrichApiDocument(app: INestApplication, document: OpenAPIObject
   for (const module of modules.values()) {
     for (const wrapper of module.controllers.values()) {
       const controller = wrapper.metatype as (new (...args: never[]) => unknown) | null;
-      if (!controller || Reflect.getMetadata(DECORATORS.API_EXCLUDE_CONTROLLER, controller)) continue;
+      if (!controller || Reflect.getMetadata(API_EXCLUDE_CONTROLLER, controller)) continue;
 
       const base = Reflect.getMetadata(PATH_METADATA, controller) as string | string[] | undefined;
       const basePath = Array.isArray(base) ? base[0] : (base ?? '');
