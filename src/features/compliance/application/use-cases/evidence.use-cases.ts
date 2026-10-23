@@ -8,7 +8,10 @@ import { RequestMeta } from '../../../../common/http/request-meta';
 import { Page } from '../../../../common/pagination/page';
 import { FileStorage } from '../../../../common/storage/file-storage';
 import type { UploadedFile } from '../../../../common/storage/uploaded-file';
+import { ValidationException } from '../../../../common/errors/validation.exception';
+import { evidenceStateOf, reviewerRoleFor } from '../../domain/evidence';
 import { EvidenceAccess, EvidenceRepository, RequirementRecord, SubmissionRecord } from '../../domain/repositories/evidence.repository';
+import { CreateEvidenceRequirementDto, ReviewEvidenceDto } from '../dtos/evidence.dto';
 import { assertEvidenceFile, evidenceKey, fileNameOfKey } from '../evidence-file';
 import { ViewMode, viewModeOf } from '../view-access';
 
@@ -28,7 +31,7 @@ export class ListEvidenceUseCase {
 
   async execute(p: Principal, controlId: string, view: 'technical' | undefined): Promise<{ view: ViewMode; requirements: RequirementRecord[] }> {
     const mode = viewModeOf(p, view);
-    const data = await this.repo.listByControl(scopeOf(p), controlId);
+    const data = await this.repo.listByControl(scopeOf(p), controlId, reviewerRoleFor(p.role));
     if (!data) throw new DomainError('NOT_FOUND');
     assertCanTouch(p, data.assignedUserIds);
     return { view: mode, requirements: data.requirements };
@@ -44,7 +47,7 @@ export class ListSubmissionsUseCase {
     const access = await this.repo.findRequirement(scopeOf(p), requirementId);
     if (!access) throw new DomainError('NOT_FOUND');
     assertCanTouch(p, access.assignedUserIds);
-    const result = await this.repo.listSubmissions(scopeOf(p), requirementId, page, pageSize);
+    const result = await this.repo.listSubmissions(scopeOf(p), requirementId, page, pageSize, reviewerRoleFor(p.role));
     if (!result) throw new DomainError('NOT_FOUND');
     return { view: mode, page: result };
   }
@@ -91,12 +94,106 @@ export class UploadEvidenceUseCase {
   }
 }
 
+// D84 · La revisión de una entrega: la hacen el consultor y el auditor, cada uno la suya (el rol sale de la sesión, no del cuerpo). Crea o reemplaza la propia; la del otro rol
+// no se ve ni se toca. De la revisión del consultor sale el estado de la evidencia y, con él, el de las pruebas documentales de su control (D88).
+@Injectable()
+export class ReviewEvidenceUseCase {
+  constructor(private readonly repo: EvidenceRepository) {}
+
+  async execute(p: Principal, submissionId: string, dto: ReviewEvidenceDto, meta: RequestMeta): Promise<SubmissionRecord> {
+    const reviewerRole = reviewerRoleFor(p.role);
+    const saved = await this.repo.saveReview(
+      scopeOf(p), submissionId,
+      {
+        reviewerRole, reviewedBy: p.userId, typeOk: dto.type_ok ?? null, periodOk: dto.period_ok ?? null, validOk: dto.valid_ok ?? null, approvedOk: dto.approved_ok ?? null,
+        signedOk: dto.signed_ok ?? null, contentOk: dto.content_ok ?? null, review: dto.review, note: dto.note?.trim() || null,
+      },
+      // Sin los atributos en el detalle (compliance-audit.md): se audita quién revisó qué entrega y con qué resultado global.
+      (done): AuditEntry => ({
+        tenantId: p.companyId, userId: p.userId, action: 'evidence_review.update', resource: 'evidence_review', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
+        beforeState: done.before ? { submission_id: done.submission.id, reviewer_role: reviewerRole, review: done.before.review } : null,
+        afterState: { submission_id: done.submission.id, requirement_id: done.submission.requirementId, version: done.submission.version, reviewer_role: reviewerRole, review: done.after.review, evidence_state: evidenceStateOf(done.submission) },
+      }),
+    );
+    if (!saved) throw new DomainError('NOT_FOUND');
+    return saved.submission;
+  }
+}
+
+// D88 · Entregar la evidencia de UNA prueba documental en un control, en un solo paso: la persona lee lo que la prueba pide y sube su documento. El lugar donde queda
+// (el requerimiento de esa prueba) se crea en la primera entrega y las siguientes son versiones nuevas. Después el consultor lo revisa (D84).
+@Injectable()
+export class UploadTestEvidenceUseCase {
+  constructor(private readonly repo: EvidenceRepository, private readonly upload: UploadEvidenceUseCase) {}
+
+  async execute(p: Principal, controlId: string, testId: string, file: UploadedFile | undefined, meta: RequestMeta): Promise<SubmissionRecord> {
+    if (!file) throw new DomainError('FILE_REQUIRED');
+    const facts = await this.repo.controlEvidenceFacts(scopeOf(p), controlId);
+    if (!facts) throw new DomainError('NOT_FOUND');
+    assertCanTouch(p, facts.assignedUserIds);
+    if (!facts.active) throw new DomainError('CONTROL_RETIRED');
+    const test = facts.tests.find((t) => t.id === testId);
+    if (!test) throw new DomainError('NOT_FOUND');
+    if (test.dimension !== 'policy') throw new ValidationException([{ field: 'test_id', code: 'test.not_documentary' }]);
+    // El archivo se comprueba ANTES de crear el lugar donde quedará: uno rechazado no deja un requerimiento vacío.
+    assertEvidenceFile(file);
+
+    const slot = await this.repo.findOrCreateTestRequirement(
+      scopeOf(p), controlId, testId,
+      { description: test.displayName ?? test.code, dimension: 'policy', testId, validityWithinPeriod: facts.validityWithinPeriod ?? 'Dentro del período de evaluación' },
+      (done): AuditEntry => ({
+        tenantId: p.companyId, userId: p.userId, action: 'evidence_requirement.create', resource: 'evidence_requirement', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
+        beforeState: null,
+        afterState: { id: done.id, control_id: controlId, code: done.code, dimension: done.dimension, test_id: done.test?.id ?? null, description: done.description },
+      }),
+    );
+    if (!slot) throw new DomainError('NOT_FOUND');
+    return this.upload.execute(p, slot.requirementId, file, meta);
+  }
+}
+
+// D88 · Agrega una evidencia propia al control, para una prueba documental concreta o compartida. Así todo control puede respaldar sus pruebas manuales aunque el catálogo
+// no le haya traído un documento (los 52 controles sin plantilla, B7). La empresa decide qué documento aporta; el consultor lo revisa.
+@Injectable()
+export class CreateEvidenceRequirementUseCase {
+  constructor(private readonly repo: EvidenceRepository) {}
+
+  async execute(p: Principal, controlId: string, dto: CreateEvidenceRequirementDto, meta: RequestMeta): Promise<RequirementRecord> {
+    const facts = await this.repo.controlEvidenceFacts(scopeOf(p), controlId);
+    if (!facts) throw new DomainError('NOT_FOUND');
+    if (!facts.active) throw new DomainError('CONTROL_RETIRED');
+
+    const errors: Array<{ field: string; code: string }> = [];
+    const description = dto.description.trim();
+    if (!description) errors.push({ field: 'description', code: 'required' });
+    if (!facts.dimensions.includes(dto.dimension)) errors.push({ field: 'dimension', code: 'dimension.not_in_control' });
+    if (dto.test_id) {
+      const test = facts.tests.find((t) => t.id === dto.test_id);
+      if (!test) errors.push({ field: 'test_id', code: 'test.not_in_control' });
+      else if (test.dimension !== 'policy' || dto.dimension !== 'policy') errors.push({ field: 'test_id', code: 'test.not_documentary' });
+    }
+    if (errors.length > 0) throw new ValidationException(errors);
+
+    const created = await this.repo.createRequirement(
+      scopeOf(p), controlId,
+      { description, dimension: dto.dimension, testId: dto.test_id ?? null, validityWithinPeriod: facts.validityWithinPeriod ?? 'Dentro del período de evaluación' },
+      (done): AuditEntry => ({
+        tenantId: p.companyId, userId: p.userId, action: 'evidence_requirement.create', resource: 'evidence_requirement', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
+        beforeState: null,
+        afterState: { id: done.id, control_id: controlId, code: done.code, dimension: done.dimension, test_id: done.test?.id ?? null, description: done.description },
+      }),
+    );
+    if (!created) throw new DomainError('NOT_FOUND');
+    return created;
+  }
+}
+
 @Injectable()
 export class GetEvidenceDownloadUseCase {
   constructor(private readonly repo: EvidenceRepository, private readonly storage: FileStorage, private readonly audit: AuditLogWriter) {}
 
   async execute(p: Principal, submissionId: string, meta: RequestMeta): Promise<{ url: string; fileName: string; fileType: string; expiresIn: number }> {
-    const found = await this.repo.findSubmission(scopeOf(p), submissionId);
+    const found = await this.repo.findSubmission(scopeOf(p), submissionId, reviewerRoleFor(p.role));
     if (!found) throw new DomainError('NOT_FOUND');
     assertCanTouch(p, found.access.assignedUserIds);
 

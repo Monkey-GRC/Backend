@@ -45,6 +45,7 @@ export class FailingResponse {
 }
 
 export class ControlTechnicalTestResponse {
+  @ApiProperty({ format: 'uuid', description: 'Identificador de la prueba: lo piden las exclusiones y enlaza cada prueba documental con sus evidencias (`test.id` de una evidencia requerida, D88).' }) test_id!: string;
   @ApiProperty({ example: 'T-CLD-001', description: 'Código de la prueba en el catálogo.' }) test_code!: string;
   @ApiProperty({ description: 'Nombre neutro de la prueba.' }) display_name!: string;
   @ApiProperty({ nullable: true, description: 'Descripción corta de la prueba para el cliente.' }) display_description!: string | null;

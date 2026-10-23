@@ -3,5 +3,7 @@
   "submission_list": "Submitted versions of this evidence.",
   "submitted": "Done, we received your evidence. A consultant will review it.",
   "download": "Temporary link to view or download the evidence.",
+  "reviewed": "Done, we saved your review of this evidence.",
+  "requirement_created": "Done, we added the evidence to this control.",
   "version_conflict": "Someone uploaded another version at the same time. Please try again."
 }

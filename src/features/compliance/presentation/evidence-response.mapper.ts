@@ -15,20 +15,25 @@ export function toSubmission(s: SubmissionRecord, view: ViewMode, includeRequire
     integrity_hash: s.integrityHash,
     submitted_by: { id: s.submittedBy.id, name: s.submittedBy.name, last_name: s.submittedBy.lastName },
     submitted_at: s.submittedAt.toISOString(),
-    // D84 · Lo deriva el servidor de la revisión; sin la revisión de MD-127 una entrega espera.
+    // D84 · Lo deriva el servidor de la revisión de quien pregunta (la del consultor para la empresa y el consultor, la del auditor para el auditor).
     evidence_state: evidenceStateOf(s),
     // La IA sugiere y siempre va marcada; el contrato prevé una confianza que hoy no se guarda.
     ai: s.aiVerdict ? { is_ai_generated: true, ai_confidence: null, verdict: s.aiVerdict } : null,
   };
   if (view !== 'technical') return base;
-  // La revisión de quien pregunta; hasta MD-127 no hay ninguna (ai_prevalidated lo deriva el servidor, nunca lo manda una persona).
+  // La revisión de quien pregunta (`ai_prevalidated` lo deriva el servidor, nunca lo manda una persona). Sin revisión humana, todo queda sin valorar.
+  const r = s.review;
   return {
     ...base,
     technical: {
-      review: s.aiVerdict ? 'ai_prevalidated' : 'pending_review',
-      attributes: { type_ok: null, period_ok: null, valid_ok: null, approved_ok: null, signed_ok: null, content_ok: null },
-      reviewed_by: null,
-      reviewed_at: null,
+      review: r ? r.review : s.aiVerdict ? 'ai_prevalidated' : 'pending_review',
+      attributes: {
+        type_ok: r?.typeOk ?? null, period_ok: r?.periodOk ?? null, valid_ok: r?.validOk ?? null,
+        approved_ok: r?.approvedOk ?? null, signed_ok: r?.signedOk ?? null, content_ok: r?.contentOk ?? null,
+      },
+      note: r?.note ?? null,
+      reviewed_by: r ? { id: r.reviewedBy.id, name: r.reviewedBy.name, last_name: r.reviewedBy.lastName } : null,
+      reviewed_at: r ? r.reviewedAt.toISOString() : null,
     },
   };
 }
@@ -40,6 +45,8 @@ export function toRequirement(r: RequirementRecord, view: ViewMode) {
     sequence: r.sequence,
     description: r.description,
     dimension: r.dimension,
+    // D88 · `null` = compartida con todas las pruebas documentales del control; si no, la prueba de este control a la que sirve.
+    test: r.test ? { id: r.test.id, code: r.test.code, display_name: r.test.displayName } : null,
     validity_within_period: r.validityWithinPeriod,
     origin: r.origin,
     responsible: r.responsible ? { id: r.responsible.id, type: r.responsible.type, person_name: r.responsible.personName } : null,

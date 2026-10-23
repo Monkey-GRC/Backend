@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { SetEvaluationPeriodUseCase } from './application/use-cases/evaluation-period.use-cases';
 import { DecideExclusionUseCase, ListExclusionsUseCase, RequestExclusionUseCase } from './application/use-cases/exclusion.use-cases';
-import { GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListSubmissionsUseCase, UploadEvidenceUseCase } from './application/use-cases/evidence.use-cases';
+import {
+  CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListSubmissionsUseCase, ReviewEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
+} from './application/use-cases/evidence.use-cases';
 import { CreateControlUseCase } from './application/use-cases/create-control.use-case';
 import { GetControlUseCase } from './application/use-cases/get-control.use-case';
 import { GetOverviewUseCase } from './application/use-cases/get-overview.use-case';
@@ -64,7 +66,7 @@ import { RisksController } from './presentation/risks.controller';
     { provide: EvaluationPeriodRepository, useClass: EvaluationPeriodPrismaRepository },
     SetEvaluationPeriodUseCase,
     { provide: EvidenceRepository, useClass: EvidencePrismaRepository },
-    ListEvidenceUseCase, ListSubmissionsUseCase, UploadEvidenceUseCase, GetEvidenceDownloadUseCase,
+    ListEvidenceUseCase, ListSubmissionsUseCase, UploadEvidenceUseCase, GetEvidenceDownloadUseCase, ReviewEvidenceUseCase, CreateEvidenceRequirementUseCase, UploadTestEvidenceUseCase,
   ],
 })
 export class ComplianceModule {}
