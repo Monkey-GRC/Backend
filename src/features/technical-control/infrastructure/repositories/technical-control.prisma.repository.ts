@@ -219,6 +219,8 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
         status: 'active' as const,
         // Las conexiones (y lo que el cliente registró a mano). Los activos descubiertos viven dentro de su conexión y se ven ahí (D61).
         parentAssetId: null,
+        // Un activo sin aprovisionamiento no se puede mostrar como conexión (no tiene método, estado ni regiones): se omite en vez de tumbar toda la lista.
+        provisionings: { some: {} },
         ...(filters.serviceId ? { serviceAssets: { some: { serviceId: filters.serviceId } } } : {}),
         ...(filters.connectionCategory ? { connectionCategory: filters.connectionCategory } : {}),
         ...(filters.operationalStatus ? { operationalStatus: filters.operationalStatus as 'operational' } : {}),
@@ -238,7 +240,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
   findAsset(scope: TenantScope, id: string): Promise<Asset | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const row = await tx.asset.findUnique({ where: { id }, include: ASSET_INCLUDE });
-      return row && row.status === 'active' && !row.parentAssetId ? this.toAsset(row) : null;
+      return row && row.status === 'active' && !row.parentAssetId && row.provisionings.length > 0 ? this.toAsset(row) : null;
     });
   }
 
