@@ -669,3 +669,46 @@ model ClientControlTest {
   @@map("client_control_tests")
   @@schema("tenant")
 }
+
+// Quién emite una evaluación del servicio (D77): el consultor prepara a la empresa y el auditor certifica.
+enum AssessorRole {
+  consultor
+  auditor
+
+  @@map("assessor_role")
+  @@schema("tenant")
+}
+
+// `ready`/`not_ready` son del consultor; `certified`/`not_certified`, del auditor (un CHECK de la base lo impone, SEG-56).
+enum AssessmentVerdict {
+  ready
+  not_ready
+  certified
+  not_certified
+
+  @@map("assessment_verdict")
+  @@schema("tenant")
+}
+
+// La evaluación del consultor y la del auditor sobre un servicio y un marco (modelo-datos.md §7.5, D77, MD-155). Inmutable una vez emitida: para cambiar de opinión se
+// emite otra y la vigente es la última de ese rol sobre esa evaluación del servicio. No cambia el estado calculado.
+model FrameworkAssessment {
+  id                 String            @id @default(uuid()) @db.Uuid
+  tenantId           String            @map("tenant_id") @db.Uuid
+  serviceFrameworkId String            @map("service_framework_id") @db.Uuid
+  assessorRole       AssessorRole      @map("assessor_role")
+  verdict            AssessmentVerdict
+  rationale          String            @db.Text
+  issuedBy           String            @map("issued_by") @db.Uuid
+  issuedAt           DateTime          @default(now()) @map("issued_at")
+
+  serviceFramework ServiceFramework @relation(fields: [serviceFrameworkId], references: [id])
+  issuedByUser     User             @relation("AssessmentIssuedBy", fields: [issuedBy], references: [id])
+  tenant           Company          @relation(fields: [tenantId], references: [id])
+
+  @@index([serviceFrameworkId, assessorRole, issuedAt])
+  @@index([tenantId])
+  @@index([issuedBy])
+  @@map("framework_assessments")
+  @@schema("tenant")
+}

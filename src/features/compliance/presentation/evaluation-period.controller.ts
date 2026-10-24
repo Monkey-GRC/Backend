@@ -8,7 +8,7 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
-import { ApiData } from '../../../common/swagger/api-envelope';
+import { ApiData, ApiDomainErrors } from '../../../common/swagger/api-envelope';
 import { SetEvaluationPeriodDto } from '../application/dtos/evaluation-period.dto';
 import { SetEvaluationPeriodUseCase } from '../application/use-cases/evaluation-period.use-cases';
 import { toEvaluationPeriod } from './evaluation-period-response.mapper';
@@ -35,6 +35,7 @@ export class EvaluationPeriodController {
       'Con el período definido el resumen deja de responder «Sin medir» por esta causa y se pueden proponer exclusiones. Reemplaza lo anterior y se puede repetir. Queda registro de auditoría con el valor anterior y el nuevo.',
   })
   @ApiData(EvaluationPeriodResponse, 'La evaluación del marco: período y fecha de corte efectiva.')
+  @ApiDomainErrors('EVALUATION_ALREADY_ISSUED')
   @Put('services/:serviceId/frameworks/:frameworkCode/evaluation-period')
   async set(
     @CurrentUser() p: Principal,

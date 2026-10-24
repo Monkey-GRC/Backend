@@ -1,0 +1,7 @@
+{
+  "issued": "Done, we recorded the test verdict.",
+  "list": "Test verdicts.",
+  "test_not_manual": "This test is resolved by the automatic evaluation: it does not accept a manual verdict.",
+  "decided_by_evidence": "This documentary test is resolved by reviewing its evidence, not with a verdict.",
+  "test_has_no_assets": "The service has no assets of this test's dimension: there is nothing to give the verdict on."
+}

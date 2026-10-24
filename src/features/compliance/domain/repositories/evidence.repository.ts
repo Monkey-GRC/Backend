@@ -51,7 +51,7 @@ export type EvidenceAccess = {
   assignedUserIds: string[];
 };
 
-export type NewSubmission = { fileKey: string; fileType: string; fileSize: number; integrityHash: string; submittedBy: string };
+export type NewSubmission = { fileKey: string; fileType: string; fileSize: number; integrityHash: string; submittedBy: string; meta: { ipAddress: string; userAgent: string } };
 
 export type NewReview = {
   reviewerRole: ReviewerRole;
@@ -64,6 +64,7 @@ export type NewReview = {
   contentOk: EvidenceAttribute;
   review: StoredReview;
   note: string | null;
+  meta: { ipAddress: string; userAgent: string };
 };
 
 /** Lo que cambió al revisar: la revisión anterior del mismo rol (si la había) y la nueva, para el rastro. La entrega ya trae SOLO la revisión de quien revisó. */

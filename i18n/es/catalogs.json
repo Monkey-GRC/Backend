@@ -309,5 +309,15 @@
     "3": "3",
     "4": "4",
     "5": "5"
+  },
+  "assessor_role": {
+    "consultor": "Consultor",
+    "auditor": "Auditor"
+  },
+  "assessment_verdict": {
+    "ready": "Lista para la auditoría",
+    "not_ready": "No lista para la auditoría",
+    "certified": "Certifica",
+    "not_certified": "No certifica"
   }
 }

@@ -40,16 +40,17 @@ model AuditLog {
 model ComplianceEvent {
   id            String   @id @default(uuid()) @db.Uuid
   tenantId      String   @map("tenant_id") @db.Uuid
-  userId        String   @map("user_id") @db.Uuid
+  // Nulo = lo cambió el sistema, sin una persona detrás (la sonda al escribir un resultado, D91).
+  userId        String?  @map("user_id") @db.Uuid
   changedField  String   @map("changed_field")
   // Nullable: el primer evento de un campo no tiene valor previo.
   previousValue Json?    @map("previous_value")
   newValue      Json     @map("new_value")
-  ipAddress     String   @map("ip_address")
-  userAgent     String   @map("user_agent")
+  ipAddress     String?  @map("ip_address")
+  userAgent     String?  @map("user_agent")
   createdAt     DateTime @default(now()) @map("created_at")
 
-  user   User    @relation(fields: [userId], references: [id])
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Restrict)
   tenant Company @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, createdAt])

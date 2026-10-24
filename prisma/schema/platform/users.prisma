@@ -78,6 +78,7 @@ model User {
   riskTreatmentsCreated     RiskTreatment[] @relation("RiskTreatmentCreatedBy")
   evidenceSubmitted         EvidenceSubmission[] @relation("EvidenceSubmittedBy")
   evidenceReviewed          EvidenceReview[]     @relation("EvidenceReviewedBy")
+  assessmentsIssued         FrameworkAssessment[] @relation("AssessmentIssuedBy")
   exclusionsProposed        Exclusion[]          @relation("ExclusionProposedBy")
   exclusionsDecided         Exclusion[]          @relation("ExclusionDecidedBy")
   controlChangesRequested   ClientControlChange[] @relation("ControlChangeRequestedBy")

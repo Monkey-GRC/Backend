@@ -62,6 +62,10 @@ const stateOfTest = async (): Promise<string> => {
   return detail.technical.tests.find((t: any) => t.test_code === testCode).state;
 };
 let testCode: string;
+const controlState = async () => {
+  const d = (await a.agent.get(`/v1/controls/${controlId}?view=technical`).expect(200)).body.data;
+  return { state: d.technical.control_state as string, readiness: d.readiness as string };
+};
 const definePeriod = (end: string | null) =>
   owner(`update tenant.service_frameworks set period_start = $2, period_end = $3, cutoff_date = $2 where service_id = $1`, [a.serviceId, end ? day(-30) : null, end]);
 
@@ -182,8 +186,22 @@ describe('Decidir una exclusión', () => {
   it('aprobarla saca al activo del universo del test hasta que venza, y deja su rastro y su evento de cumplimiento', async () => {
     expect(await stateOfTest()).not.toBe('no_assets');
     const eventsBefore = await approvalEvents(a.companyId);
+    const controlBefore = await controlState();
     const id = (await propose(a.agent).expect(201)).body.data.id;
     const res = await decide(consultor, id, { status: 'approved' }).expect(200);
+    // D91 · Aprobarla mueve el estado del control, o no; y el historial lo dice exactamente: un evento si cambió, ninguno si no.
+    const controlAfter = await controlState();
+    const stateEvents = await owner<{ previous_value: any; new_value: any; user_id: string }>(
+      `select previous_value, new_value, user_id from audit.compliance_events where tenant_id = $1 and changed_field = 'control.state' and new_value->>'cause' = 'exclusion_approved' and new_value->>'control_id' = $2`,
+      [a.companyId, controlId],
+    );
+    if (controlBefore.state === controlAfter.state && controlBefore.readiness === controlAfter.readiness) expect(stateEvents).toHaveLength(0);
+    else {
+      expect(stateEvents).toHaveLength(1);
+      expect(stateEvents[0].user_id).toBe(consultorId);
+      expect(stateEvents[0].previous_value).toMatchObject(controlBefore);
+      expect(stateEvents[0].new_value).toMatchObject(controlAfter);
+    }
     expect(res.body.data).toMatchObject({ id, status: 'approved', decided_by: { id: consultorId }, awaiting_consultant: false, is_expired: false });
     expect(res.body.data.decided_at).toEqual(expect.any(String));
     // La única cuenta de nube de la empresa quedó excluida de ese test: el test no tiene sobre qué correr.
