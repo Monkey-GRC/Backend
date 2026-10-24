@@ -1,4 +1,4 @@
-// Comprueba que el audit trail es inmutable en la base de datos (MD-92), para TODOS los roles.
+// Comprueba que el audit trail (MD-92) y las evaluaciones (MD-145) son inmutables en la base de datos, para TODOS los roles.
 // Todo ocurre dentro de una transacción que se REVIERTE: no deja ningún rastro y no toca el histórico real.
 //
 //   npm run audit:verify     (usa DATABASE_URL, el rol dueño)
@@ -67,13 +67,27 @@ async function main() {
       ok('la app sí puede AGREGAR');
       await tx.$executeRawUnsafe('RESET ROLE');
 
+      // Las evaluaciones (MD-145, SEG-38): nacen de una cadena de filas (servicio, control, test, activo), así que el
+      // vaciado se prueba siempre y UPDATE/DELETE sobre una evaluación real si hay alguna; las dos son pruebas por fila
+      // completas en test/auditoria/evaluaciones-inmutables.e2e-spec.ts.
+      console.log('\n3. Evaluaciones (tenant.evaluations), como el dueño');
+      const immutable = /es inmutable|permission denied|permiso denegado/i;
+      await mustFail(tx, 'truncate tenant.evaluations cascade', 'TRUNCATE sobre tenant.evaluations falla', immutable);
+      const [evaluation] = await tx.$queryRaw<{ id: string }[]>`select id from tenant.evaluations limit 1`;
+      if (evaluation) {
+        await mustFail(tx, `update tenant.evaluations set evaluated_at = now() where id = '${evaluation.id}'::uuid`, 'UPDATE de lo medido en tenant.evaluations falla', immutable);
+        await mustFail(tx, `delete from tenant.evaluations where id = '${evaluation.id}'::uuid`, 'DELETE sobre tenant.evaluations falla', immutable);
+      } else {
+        console.log('  · no hay evaluaciones en esta base: UPDATE y DELETE por fila quedan para la prueba e2e');
+      }
+
       throw new Rollback();
     }, { timeout: 120_000, maxWait: 10_000 });
   } catch (e) {
     if (!(e instanceof Rollback)) throw e;
   }
   assert.equal(failures, 0, `${failures} comprobación(es) fallaron`);
-  console.log('\n✓ El audit trail es inmutable para todos los roles. Todo se revirtió: la base quedó como estaba.');
+  console.log('\n✓ El audit trail y las evaluaciones son inmutables para todos los roles. Todo se revirtió: la base quedó como estaba.');
 }
 
 main()

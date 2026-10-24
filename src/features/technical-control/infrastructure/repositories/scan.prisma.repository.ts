@@ -8,6 +8,7 @@ import { Page, PageRequest } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
+import { captureControlStates, recordControlStateChanges } from '../../../compliance/infrastructure/control-state-events';
 import { FailedRow } from '../../domain/scan/findings';
 import { interpretTestResult } from '../../domain/scan/interpret-evaluations';
 import { TestCheckLink } from '../../domain/scan/readiness';
@@ -478,6 +479,8 @@ export class ScanPrismaRepository extends ScanRepository {
         select: { clientControlId: true, testId: true, test: { select: { testChecks: { select: { provenance: true, check: { select: { checkId: true } } } } } } },
       });
       if (links.length === 0) continue;
+      // D91 · Si lo que la sonda midió mueve el estado de un control, queda su evento: sin persona detrás (usuario nulo).
+      const before = await captureControlStates(tx, serviceId);
       const results = await this.executionResults(tx, executionId, serviceId);
       const rows = links.flatMap((l) => {
         const checkIds = new Set(l.test.testChecks.filter((t) => includeProposed || t.provenance === 'committee_ratified').map((t) => t.check.checkId));
@@ -502,6 +505,7 @@ export class ScanPrismaRepository extends ScanRepository {
       });
       for (const part of chunks(rows)) await tx.evaluation.createMany({ data: part });
       written += rows.length;
+      await recordControlStateChanges(tx, { tenantId: scope.companyId, serviceId, before, cause: 'probe_result', actor: { userId: null, ipAddress: null, userAgent: null } });
     }
     return written;
   }

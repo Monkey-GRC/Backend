@@ -9,6 +9,7 @@ import { ReviewerRole } from '../../domain/evidence';
 import {
   ControlEvidenceFacts, EvidenceAccess, EvidenceRepository, NewRequirement, NewReview, NewSubmission, RequirementRecord, ReviewSaved, SubmissionRecord,
 } from '../../domain/repositories/evidence.repository';
+import { captureControlStates, recordControlStateChanges } from '../control-state-events';
 import { reviewsOf, toReviewRecord, versionOf } from './evidence-review.mapper';
 
 const PERSON = { select: { id: true, name: true, lastName: true } } as const;
@@ -81,7 +82,10 @@ export class EvidencePrismaRepository extends EvidenceRepository {
   async createSubmission(scope: TenantScope, requirementId: string, input: NewSubmission, audit: Parameters<EvidenceRepository['createSubmission']>[3]): Promise<SubmissionRecord | null> {
     try {
       return await this.prisma.withScope(scope, async (tx) => {
-        if (!(await this.accessOf(tx, requirementId))) return null;
+        const access = await this.accessOf(tx, requirementId);
+        if (!access) return null;
+        // D91 · Una entrega nueva devuelve la prueba a revisión: si eso mueve el estado de un control, queda su evento.
+        const before = await captureControlStates(tx, access.serviceId);
         // Dos subidas a la vez al mismo requerimiento no pueden quedarse con la misma versión: se bloquea la fila del requerimiento mientras se calcula la siguiente.
         // (El índice único (requerimiento, versión) es la red de seguridad.)
         await tx.$queryRaw`select id from tenant.evidence_requirements where id = ${requirementId}::uuid for update`;
@@ -96,6 +100,10 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         });
         const created = toSubmission(row);
         await insertAuditLog(tx, audit(created));
+        await recordControlStateChanges(tx, {
+          tenantId: scope.companyId, serviceId: access.serviceId, before, cause: 'evidence_submission',
+          actor: { userId: input.submittedBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent },
+        });
         return created;
       });
     } catch (e) {
@@ -120,6 +128,8 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       if (!found) return null;
       const access = await this.accessOf(tx, found.evidenceRequirementId);
       if (!access) return null;
+      // D91 · Solo la revisión del consultor mueve el estado de las pruebas (D84): la del auditor no deja evento.
+      const before = input.reviewerRole === 'consultor' ? await captureControlStates(tx, access.serviceId) : null;
       const key = { evidenceSubmissionId_reviewerRole: { evidenceSubmissionId: submissionId, reviewerRole: input.reviewerRole } };
       const previous = await tx.evidenceReview.findUnique({ where: key, select: reviewsOf(input.reviewerRole).select });
       const values = {
@@ -135,6 +145,12 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       const submission = toSubmission(row);
       const saved: ReviewSaved = { submission, access, before: previous ? toReviewRecord(previous) : null, after: submission.review! };
       await insertAuditLog(tx, audit(saved));
+      if (before) {
+        await recordControlStateChanges(tx, {
+          tenantId: scope.companyId, serviceId: access.serviceId, before, cause: 'evidence_review',
+          actor: { userId: input.reviewedBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent },
+        });
+      }
       return saved;
     });
   }

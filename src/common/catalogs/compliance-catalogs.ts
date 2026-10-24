@@ -1,4 +1,6 @@
 import {
+  AssessmentVerdict,
+  AssessorRole,
   CatalogOrigin,
   ClientCauseControlEffect,
   ControlDimensionType,
@@ -25,6 +27,8 @@ export const COMPLIANCE_ENUM_CATALOGS = {
   responsible_type: values(OrganizationResponsibleType),
   cause_control_effect: values(ClientCauseControlEffect),
   exclusion_status: values(ExclusionStatus),
+  assessor_role: values(AssessorRole),
+  assessment_verdict: values(AssessmentVerdict),
   dimension: values(Dimension),
   control_type: values(ControlDimensionType),
   catalog_origin: values(CatalogOrigin),

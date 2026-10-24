@@ -7,6 +7,7 @@ import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { dimensionOfAssetType } from '../../domain/control-readout';
+import { captureControlStates, recordControlStateChanges } from '../control-state-events';
 import { ExclusionFilters, ExclusionRecord, ExclusionRepository, ExclusionStatus } from '../../domain/repositories/exclusion.repository';
 
 const PERSON = { select: { id: true, name: true, lastName: true } } as const;
@@ -125,6 +126,8 @@ export class ExclusionPrismaRepository extends ExclusionRepository {
       if (!found) return null;
       const before = toRecord(found);
       if (before.status !== 'pending') throw new DomainError('ALREADY_DECIDED');
+      // D91 · Aprobar saca al activo del test: si eso mueve el estado de un control, queda su evento.
+      const states = decision.status === 'approved' ? await captureControlStates(tx, before.serviceId) : null;
 
       // El estado se vuelve a comprobar en el UPDATE: dos decisiones a la vez no pisan una a la otra.
       const { count } = await tx.exclusion.updateMany({
@@ -145,6 +148,12 @@ export class ExclusionPrismaRepository extends ExclusionRepository {
         });
       }
       await insertAuditLog(tx, audit({ before, after }));
+      if (states) {
+        await recordControlStateChanges(tx, {
+          tenantId: scope.companyId, serviceId: after.serviceId, before: states, cause: 'exclusion_approved',
+          actor: { userId: decision.decidedBy, ipAddress: decision.meta.ipAddress, userAgent: decision.meta.userAgent },
+        });
+      }
       return { before, after };
     });
   }

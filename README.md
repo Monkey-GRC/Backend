@@ -475,9 +475,9 @@ Luego agrega el módulo en `src/app.module.ts` y está listo.
 | Lint (sin `--fix`, como en CI) | `npm run lint:ci` | nada |
 | Aislamiento entre empresas: base de datos (RLS) y API (HTTP) | `npm run test:e2e` | `TEST_DATABASE_URL`: un Postgres **desechable** con migraciones, catálogo y `monkey_app` con contraseña (`TEST_APP_PASSWORD`, por defecto `test`) |
 | &nbsp;&nbsp;↳ `test/aislamiento/` | RLS en la base de datos y aislamiento por HTTP entre empresas | (lo mismo) |
-| &nbsp;&nbsp;↳ `test/auditoria/` | **Auditoría atómica** (SEG-36): cada acción deja su rastro y, si el rastro falla, la acción se revierte | (lo mismo) |
+| &nbsp;&nbsp;↳ `test/auditoria/` | **Auditoría atómica** (SEG-36): cada acción deja su rastro y, si el rastro falla, la acción se revierte. **Evaluaciones inmutables** (SEG-38): ni la app ni el dueño de la tabla pueden modificar lo medido, borrar ni vaciar | (lo mismo) |
 | &nbsp;&nbsp;↳ `test/autenticacion/` | Política de contraseña, bloqueo, sesión (30 min / 8 h), cookies, tokens hasheados, secretos del cliente y freno de la clave de acceso | (lo mismo) |
-| Catálogo, clonado y audit trail | `npm run catalog:verify` · `clone:verify` · `audit:verify` | base con las migraciones y el catálogo cargados |
+| Catálogo, clonado, audit trail y evaluaciones | `npm run catalog:verify` · `clone:verify` · `audit:verify` | base con las migraciones y el catálogo cargados |
 
 Las pruebas de RLS escriben dentro de una transacción que se revierte. **Las de HTTP no**: crean empresas, servicios y activos reales
 por la API (con nombres únicos por corrida), así que solo sirven sobre una base desechable. Ambas se niegan a correr contra un

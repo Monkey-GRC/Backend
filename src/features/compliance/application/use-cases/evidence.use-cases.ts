@@ -73,7 +73,7 @@ export class UploadEvidenceUseCase {
     try {
       created = await this.repo.createSubmission(
         scopeOf(p), requirementId,
-        { fileKey: key, fileType: contentType, fileSize: file.buffer.length, integrityHash: createHash('sha256').update(file.buffer).digest('hex'), submittedBy: p.userId },
+        { fileKey: key, fileType: contentType, fileSize: file.buffer.length, integrityHash: createHash('sha256').update(file.buffer).digest('hex'), submittedBy: p.userId, meta },
         // Se audita la huella y el nombre, nunca el contenido ni la llave del objeto.
         (done): AuditEntry => ({
           tenantId: p.companyId, userId: p.userId, action: 'evidence.submit', resource: 'evidence_submission', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
@@ -106,7 +106,7 @@ export class ReviewEvidenceUseCase {
       scopeOf(p), submissionId,
       {
         reviewerRole, reviewedBy: p.userId, typeOk: dto.type_ok ?? null, periodOk: dto.period_ok ?? null, validOk: dto.valid_ok ?? null, approvedOk: dto.approved_ok ?? null,
-        signedOk: dto.signed_ok ?? null, contentOk: dto.content_ok ?? null, review: dto.review, note: dto.note?.trim() || null,
+        signedOk: dto.signed_ok ?? null, contentOk: dto.content_ok ?? null, review: dto.review, note: dto.note?.trim() || null, meta,
       },
       // Sin los atributos en el detalle (compliance-audit.md): se audita quién revisó qué entrega y con qué resultado global.
       (done): AuditEntry => ({

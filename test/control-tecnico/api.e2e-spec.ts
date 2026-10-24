@@ -154,6 +154,18 @@ describe('El trabajador: API interna', () => {
 
     const hist = await a.agent.get(`/v1/assets/${assetId}/executions`).expect(200);
     expect(hist.body.data.items[0]).toMatchObject({ id: executionId, status: 'completed' });
+
+    // D91 · Lo que midió la sonda movió el estado de los controles de nube: queda un evento por cada uno, sin persona detrás.
+    const events = await owner<{ user_id: string | null; ip_address: string | null; previous_value: any; new_value: any }>(
+      `select user_id, ip_address, previous_value, new_value from audit.compliance_events where tenant_id = $1 and changed_field = 'control.state' and new_value->>'cause' = 'probe_result'`,
+      [a.companyId],
+    );
+    expect(events.length).toBeGreaterThan(0);
+    for (const e of events) {
+      expect(e.user_id).toBeNull();
+      expect(e.ip_address).toBeNull();
+      expect([e.previous_value.state, e.previous_value.readiness]).not.toEqual([e.new_value.state, e.new_value.readiness]);
+    }
   });
 
   it('una salida mal formada se rechaza (422) diciendo qué fila, y la ejecución sigue en curso', async () => {

@@ -434,6 +434,8 @@ model ServiceFramework {
   catalogVersion CatalogVersion @relation(fields: [catalogVersionId], references: [id])
   tenant         Company        @relation(fields: [tenantId], references: [id])
 
+  assessments FrameworkAssessment[]
+
   @@unique([serviceId, frameworkId])
   @@index([tenantId])
   @@index([catalogVersionId])

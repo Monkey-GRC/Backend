@@ -1,0 +1,7 @@
+{
+  "issued": "Listo, registramos el veredicto de la prueba.",
+  "list": "Veredictos de la prueba.",
+  "test_not_manual": "Esta prueba la resuelve la evaluación automática: no admite un veredicto manual.",
+  "decided_by_evidence": "Esta prueba documental se resuelve revisando su evidencia, no con un veredicto.",
+  "test_has_no_assets": "El servicio no tiene activos de la dimensión de esta prueba: no hay sobre qué dar el veredicto."
+}
