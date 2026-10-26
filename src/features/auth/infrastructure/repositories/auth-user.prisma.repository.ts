@@ -6,6 +6,24 @@ import { AuthUserRepository } from '../../domain/repositories/auth-user.reposito
 
 type LoginCandidateRow = { id: string; company_id: string; password_hash: string };
 
+const CREDENTIAL_FIELDS = {
+  role: true,
+  status: true,
+  failedLoginAttempts: true,
+  lockedUntil: true,
+  isMfaEnabled: true,
+  mfaSecretEncrypted: true,
+  mfaLastUsedStep: true,
+} as const;
+
+const toCredentials = (
+  id: string,
+  companyId: string,
+  passwordHash: string,
+  u: { role: UserCredentials['role']; status: UserCredentials['status']; failedLoginAttempts: number; lockedUntil: Date | null; isMfaEnabled: boolean; mfaSecretEncrypted: string | null; mfaLastUsedStep: number | null },
+): UserCredentials =>
+  new UserCredentials(id, companyId, passwordHash, u.role, u.status, u.failedLoginAttempts, u.lockedUntil, u.isMfaEnabled, u.mfaSecretEncrypted, u.mfaLastUsedStep);
+
 @Injectable()
 export class AuthUserPrismaRepository extends AuthUserRepository {
   constructor(private readonly prisma: PrismaService) {
@@ -27,20 +45,19 @@ export class AuthUserPrismaRepository extends AuthUserRepository {
       (tx) =>
         tx.user.findUnique({
           where: { id: candidate.id },
-          select: { role: true, status: true, failedLoginAttempts: true, lockedUntil: true },
+          select: CREDENTIAL_FIELDS,
         }),
     );
     if (!user) return null;
 
-    return new UserCredentials(
-      candidate.id,
-      candidate.company_id,
-      candidate.password_hash,
-      user.role,
-      user.status,
-      user.failedLoginAttempts,
-      user.lockedUntil,
+    return toCredentials(candidate.id, candidate.company_id, candidate.password_hash, user);
+  }
+
+  async findCredentialsById(scope: TenantScope, userId: string): Promise<UserCredentials | null> {
+    const user = await this.prisma.withScope(scope, (tx) =>
+      tx.user.findUnique({ where: { id: userId }, select: { ...CREDENTIAL_FIELDS, passwordHash: true } }),
     );
+    return user ? toCredentials(userId, scope.companyId, user.passwordHash, user) : null;
   }
 
   async findById(scope: TenantScope, userId: string): Promise<AuthUser | null> {

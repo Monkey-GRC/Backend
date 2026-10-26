@@ -34,6 +34,8 @@ export async function bootApp(env: Record<string, string> = {}, configure?: (bui
     SESSION_MAX_DURATION: '28800',
     ACCESS_KEY_TTL_HOURS: '168',
     PROBE_MODE: 'simulated',
+    // D94 · El segundo factor es obligatorio; las pruebas de siempre entran solo con contraseña. Las del segundo factor lo encienden (test/autenticacion/mfa.e2e-spec.ts).
+    MFA_REQUIRED: 'false',
     RUNNER_TOKEN: RUNNER_TOKEN,
     READINESS_INCLUDE_PROPOSED: 'true',
     MONKEY_AWS_PRINCIPAL_ARN: MONKEY_PRINCIPAL_ARN,

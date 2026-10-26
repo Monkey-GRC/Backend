@@ -10,6 +10,8 @@ import { PasswordHasher } from '../../domain/ports/password-hasher';
 import { AccessKeyRedemptionRepository } from '../../domain/repositories/access-key-redemption.repository';
 import { AuthUserRepository } from '../../domain/repositories/auth-user.repository';
 import { AccessKeyAttemptLimiter } from '../services/access-key-attempt-limiter.service';
+import { MfaChallengeService, OpenedChallenge } from '../services/mfa-challenge.service';
+import { MfaPolicy } from '../services/mfa-policy.service';
 import { IssuedSession, SessionIssuer } from '../services/session-issuer.service';
 
 export type RedeemInput = {
@@ -18,7 +20,8 @@ export type RedeemInput = {
   password: string;
 };
 
-export type RedeemResult = IssuedSession & { user: AuthUser };
+// D94 · Con el segundo factor obligatorio, la cuenta recién creada no abre sesión: primero configura el segundo factor (un desafío de configuración).
+export type RedeemResult = ({ kind: 'session'; user: AuthUser } & IssuedSession) | { kind: 'mfa'; challenge: OpenedChallenge };
 
 // Primer acceso del cliente (modelo-datos.md §4.2 paso 4, contrato de auth): canjea la clave de un
 // solo uso, crea la cuenta admin_empresa de su empresa y deja la sesión abierta. Desde ahí, el
@@ -33,6 +36,8 @@ export class RedeemAccessKeyUseCase {
     private readonly sessionIssuer: SessionIssuer,
     private readonly limiter: AccessKeyAttemptLimiter,
     private readonly audit: AuditLogWriter,
+    private readonly mfaPolicy: MfaPolicy,
+    private readonly challenges: MfaChallengeService,
   ) {}
 
   async execute(input: RedeemInput, meta: RequestMeta): Promise<RedeemResult> {
@@ -117,6 +122,11 @@ export class RedeemAccessKeyUseCase {
     }
 
     const userScope: TenantScope = { ...scope, userId: outcome.userId };
+    if (this.mfaPolicy.isRequired()) {
+      const challenge = await this.challenges.open(userScope, outcome.userId, 'setup', meta, now);
+      this.limiter.clear(meta.ipAddress);
+      return { kind: 'mfa', challenge };
+    }
     await this.users.registerSuccessfulLogin(userScope, outcome.userId, now);
     const user = await this.users.findById(userScope, outcome.userId);
     if (!user) throw new DomainError('ACCESS_KEY_INVALID');
@@ -125,7 +135,7 @@ export class RedeemAccessKeyUseCase {
     const issued = await this.sessionIssuer.issue(user, meta, null, now);
     this.limiter.clear(meta.ipAddress);
 
-    return { user, ...issued };
+    return { kind: 'session', user, ...issued };
   }
 
   // Solo intentos FALLIDOS: no hay efecto con el que ser atómico, así que se escriben aparte (de mejor esfuerzo) y
