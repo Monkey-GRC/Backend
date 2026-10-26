@@ -175,12 +175,6 @@
     "gdpr": "GDPR",
     "none": "None"
   },
-  "deployment_scenario": {
-    "cloud_managed_only": "Cloud only (managed services)",
-    "cloud_with_servers": "In the cloud, with servers and databases",
-    "on_premise": "On my own premises",
-    "hybrid": "Mixed: cloud and my own premises"
-  },
   "asset_criticality": {
     "low": "Low",
     "medium": "Medium",

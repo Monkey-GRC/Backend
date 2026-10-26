@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import {
   ConnectionCategory,
   ConnectionMethodValue,
-  DeploymentScenarioValue,
   NO_COVERAGE,
   ScheduleFrequencyValue,
 } from '../../../../common/catalogs/technical-catalogs';
@@ -27,7 +26,6 @@ import {
 } from '../../domain/entities/technical-control.entities';
 import {
   AssetChange,
-  ScenarioChange,
   TechnicalControlRepository,
 } from '../../domain/repositories/technical-control.repository';
 
@@ -73,49 +71,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
     super();
   }
 
-  // ---- escenario y scope ----------------------------------------------------------------------
-
-  // Qué conexiones ofrece cada escenario es un dato del catálogo (`deployment_scenario_capabilities`, D67), no una regla del código.
-  private async categoriesFor(tx: TransactionClient, scenario: DeploymentScenarioValue): Promise<ConnectionCategory[]> {
-    const rows = await tx.deploymentScenarioCapability.findMany({
-      where: { deploymentScenario: scenario },
-      select: { automatedCapability: { select: { catalogCode: true } } },
-    });
-    return rows.map((r) => r.automatedCapability.catalogCode as ConnectionCategory);
-  }
-
-  setDeploymentScenario(
-    scope: TenantScope,
-    serviceId: string,
-    scenario: DeploymentScenarioValue,
-    audit: AuditIntent<ScenarioChange>,
-  ) {
-    return this.prisma.withScope(scope, async (tx) => {
-      const service = await tx.service.findUnique({
-        where: { id: serviceId },
-        select: { id: true, deploymentScenario: true },
-      });
-      if (!service) return null;
-
-      // Cambiar de escenario no puede dejar huérfana una conexión ya registrada en este servicio.
-      const allowed = await this.categoriesFor(tx, scenario);
-      const orphaned = await tx.asset.findMany({
-        where: { status: 'active', parentAssetId: null, serviceAssets: { some: { serviceId } }, connectionCategory: { notIn: [...allowed] } },
-        select: { code: true },
-      });
-      if (orphaned.length > 0) {
-        throw new DomainError('CAPABILITY_NOT_APPLICABLE', { assets: orphaned.map((a) => a.code) });
-      }
-
-      await tx.service.update({ where: { id: serviceId }, data: { deploymentScenario: scenario } });
-      const change = {
-        before: service.deploymentScenario as DeploymentScenarioValue | null,
-        state: await this.state(tx, serviceId),
-      };
-      await insertAuditLog(tx, audit(change));
-      return change;
-    });
-  }
+  // ---- estado del servicio --------------------------------------------------------------------
 
   getState(scope: TenantScope, serviceId: string): Promise<TechnicalControlState | null> {
     return this.prisma.withScope(scope, async (tx) => {
@@ -136,19 +92,10 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
 
       const services = await tx.service.findMany({
         where: { id: { in: input.serviceIds }, organizationId: organization.id },
-        select: { id: true, name: true, deploymentScenario: true },
+        select: { id: true },
       });
       if (services.length !== new Set(input.serviceIds).size) {
         throw new ValidationException([{ field: 'service_ids', code: 'invalid' }]);
-      }
-      for (const service of services) {
-        if (!service.deploymentScenario) {
-          throw new DomainError('DEPLOYMENT_SCENARIO_NOT_SET', { service: service.name });
-        }
-        const allowed = await this.categoriesFor(tx, service.deploymentScenario as DeploymentScenarioValue);
-        if (!allowed.includes(input.connectionCategory)) {
-          throw new DomainError('CAPABILITY_NOT_APPLICABLE', { service: service.name });
-        }
       }
       if (input.responsibleId) {
         const responsible = await tx.organizationResponsible.findFirst({
@@ -564,36 +511,30 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
   }
 
   private async state(tx: TransactionClient, serviceId: string): Promise<TechnicalControlState> {
-    const service = await tx.service.findUniqueOrThrow({
-      where: { id: serviceId },
-      select: { deploymentScenario: true },
-    });
-    const scenario = service.deploymentScenario as DeploymentScenarioValue | null;
+    // El cliente no declara dónde vive su servicio: elige la plataforma del catálogo y eso ya lo dice. Se ofrecen todas las conexiones.
+    await tx.service.findUniqueOrThrow({ where: { id: serviceId }, select: { id: true } });
 
-    const capabilities: Capability[] = scenario
-      ? (
-          await tx.automatedCapability.findMany({
-            where: { catalogCode: { in: await this.categoriesFor(tx, scenario) } },
-            select: CAPABILITY_SELECT,
-            orderBy: { catalogCode: 'asc' },
-          })
-        ).map((c) => ({
-          catalogCode: c.catalogCode as ConnectionCategory,
-          category: c.category,
-          platforms: c.platforms.map((p) => ({
-            code: p.code,
-            name: p.name,
-            logoKey: p.logoKey,
-            availability: p.availability,
-            connectionMethods: p.connectionMethods.map((m) => m.connectionMethod as ConnectionMethodValue),
-          })),
-          method: c.method,
-          requiredPermissions: asStrings(c.requiredPermissions),
-          baseFrequency: c.baseFrequency,
-          generatedEvidence: c.generatedEvidence,
-        }))
-      : [];
+    const capabilities: Capability[] = (
+      await tx.automatedCapability.findMany({
+        select: CAPABILITY_SELECT,
+        orderBy: { catalogCode: 'asc' },
+      })
+    ).map((c) => ({
+      catalogCode: c.catalogCode as ConnectionCategory,
+      category: c.category,
+      platforms: c.platforms.map((p) => ({
+        code: p.code,
+        name: p.name,
+        logoKey: p.logoKey,
+        availability: p.availability,
+        connectionMethods: p.connectionMethods.map((m) => m.connectionMethod as ConnectionMethodValue),
+      })),
+      method: c.method,
+      requiredPermissions: asStrings(c.requiredPermissions),
+      baseFrequency: c.baseFrequency,
+      generatedEvidence: c.generatedEvidence,
+    }));
 
-    return { deploymentScenario: scenario, applicableCapabilities: capabilities };
+    return { applicableCapabilities: capabilities };
   }
 }

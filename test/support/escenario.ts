@@ -61,7 +61,6 @@ async function crearTenant(app: INestApplication, admin: Agent, k: string): Prom
   must(await agent.put('/v1/onboarding/organizational-context').send(orgPayload), 200, `contexto organizacional ${k}`);
   const serviceName = `Servicio ${k} ${RUN}`;
   const service = must(await agent.post('/v1/services').send(servicePayload(serviceName)), 201, `servicio ${k}`);
-  must(await agent.put(`/v1/services/${service.id}/deployment-scenario`).send({ deployment_scenario: 'cloud_with_servers' }), 200, `escenario ${k}`);
   // Una cuenta de AWS: es la única plataforma con flujo (D67). Servidores y bases se muestran bloqueados hasta tener su canal de agente (DT-57).
   const assetName = `aws-${k.toLowerCase()}-${RUN}`;
   const asset = must(

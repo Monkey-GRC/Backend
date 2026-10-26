@@ -158,7 +158,7 @@ export function buildCatalog(rows: SourceRows, meta: SourceMeta): { catalog: Soc
     pointsOfFocus: [...pofs.values()].sort((a, b) => codeOrder(a.requirementCode, b.requirementCode) || a.number - b.number),
     controls: [...controls.entries()]
       .sort(([a], [b]) => codeOrder(a, b))
-      .map(([code, k]) => ({ code, name: k.name, description: k.description, domain: k.domain, sourceRef: `vanta:${code}` })),
+      .map(([code, k]) => ({ code, name: k.name, description: k.description, domain: k.domain, sourceRef: `comite:${code}` })),
     pointOfFocusControls: [...relations]
       .map((k) => {
         const [requirementCode, n, controlCode] = k.split('#');

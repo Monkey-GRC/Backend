@@ -28,7 +28,7 @@ describe('buildCatalog (consistencia de la fuente)', () => {
     const { catalog, errors } = build([rel()], [ctl()]);
     expect(errors).toEqual([]);
     expect(catalog.requirements).toEqual([{ code: 'CC1.1', tscCategory: 'Entorno de control', criterion: 'Criterio uno', trustCriterion: 'security' }]);
-    expect(catalog.controls[0]).toMatchObject({ code: 'GOV-1', domain: 'Gobierno', sourceRef: 'vanta:GOV-1' });
+    expect(catalog.controls[0]).toMatchObject({ code: 'GOV-1', domain: 'Gobierno', sourceRef: 'comite:GOV-1' });
     expect(catalog.pointOfFocusControls).toEqual([{ requirementCode: 'CC1.1', pointNumber: 1, controlCode: 'GOV-1' }]);
   });
 

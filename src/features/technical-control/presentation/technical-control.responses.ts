@@ -3,7 +3,6 @@ import {
   ASSET_CRITICALITY_VALUES,
   CONNECTION_CATEGORY_VALUES,
   CONNECTION_METHOD_VALUES,
-  DEPLOYMENT_SCENARIO_VALUES,
   RESOURCE_KIND_VALUES,
   SCHEDULE_FREQUENCY_VALUES,
 } from '../../../common/catalogs/technical-catalogs';
@@ -18,13 +17,8 @@ const ASSET_TYPE = ['server', 'database', 'cloud_service', 'application', 'endpo
 const READINESS = ['ready', 'almost_ready', 'needs_work', 'not_measured'] as const;
 const PROBE_MODE = ['simulated', 'unavailable', 'runner'] as const;
 
-export class DeploymentScenarioResponse {
-  @ApiProperty({ enum: DEPLOYMENT_SCENARIO_VALUES, enumName: 'DeploymentScenario', nullable: true, description: 'Escenario declarado; `null` mientras no se haya elegido.' }) deployment_scenario!: string | null;
-  @ApiProperty({ type: CapabilityOptionResponse, isArray: true, description: 'Capacidades automáticas que aplican a ese escenario.' }) applicable_capabilities!: CapabilityOptionResponse[];
-}
-
-export class TechnicalControlStateResponse extends DeploymentScenarioResponse {
-  @ApiProperty({ description: 'El paso 3 se da por hecho con el escenario de despliegue (D60); registrar activos se recomienda pero puede esperar.' }) is_complete!: boolean;
+export class TechnicalControlStateResponse {
+  @ApiProperty({ type: CapabilityOptionResponse, isArray: true, description: 'Conexiones que el cliente puede registrar: todas las del catálogo. El cliente no declara dónde vive su servicio, elige la plataforma (D92).' }) applicable_capabilities!: CapabilityOptionResponse[];
   @ApiProperty({ enum: PROBE_MODE, enumName: 'ProbeMode', description: '`simulated` demostración · `runner` comprobación real contra la cuenta del cliente · `unavailable` esta instalación aún no puede comprobar conexiones.' }) probe_mode!: string;
 }
 

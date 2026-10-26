@@ -19,7 +19,6 @@ import {
 } from './service-catalogs';
 import {
   ASSET_CRITICALITY_VALUES,
-  DEPLOYMENT_SCENARIO_VALUES,
   SCHEDULE_FREQUENCY_VALUES,
   CONNECTION_METHOD_VALUES,
   RESOURCE_KIND_VALUES,
@@ -154,7 +153,6 @@ export const ENUM_CATALOGS = {
   expected_availability: EXPECTED_AVAILABILITY_VALUES,
   previous_certification: PREVIOUS_CERTIFICATION_VALUES,
   // Componente 3 — el control técnico
-  deployment_scenario: DEPLOYMENT_SCENARIO_VALUES,
   asset_criticality: ASSET_CRITICALITY_VALUES,
   schedule_frequency: SCHEDULE_FREQUENCY_VALUES,
   // Conexión de nube (D53, D58). Las regiones (`aws_region`) salen de la base (D67).

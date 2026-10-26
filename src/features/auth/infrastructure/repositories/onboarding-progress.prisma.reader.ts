@@ -34,7 +34,7 @@ export class OnboardingProgressPrismaReader extends OnboardingProgressReader {
       tx.service.count({
         where: {
           organization: { companyId: scope.companyId },
-          deploymentScenario: { not: null },
+          serviceAssets: { some: {} },
         },
       }),
     );

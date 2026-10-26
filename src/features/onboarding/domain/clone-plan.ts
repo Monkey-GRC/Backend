@@ -135,7 +135,7 @@ export function buildClonePlan(input: CloneInput): ClonePlan {
     const dims = dimsByControl.get(controlId) ?? [];
     plan.clientControls.push({
       id, tenantId, serviceId, controlId, ownCode: control.code, clientInterpretation: control.description,
-      type: controlTypeOf(dims.map((d) => d.type)), sourceRef: `vanta:${control.code}`, isActive: true,
+      type: controlTypeOf(dims.map((d) => d.type)), sourceRef: `comite:${control.code}`, isActive: true,
     });
     for (const d of dims) {
       plan.clientControlDimensions.push({

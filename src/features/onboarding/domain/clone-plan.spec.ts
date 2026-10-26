@@ -66,7 +66,7 @@ describe('buildClonePlan (MD-80)', () => {
 
   it('copia al control del cliente su plantilla, interpretación inicial y rastro de origen', () => {
     const [k1] = buildClonePlan(input()).clientControls;
-    expect(k1).toMatchObject({ controlId: 'k1', clientInterpretation: 'Descripción 1', sourceRef: 'vanta:GOV-1', isActive: true, tenantId: 'tenant-1', serviceId: 'svc-1' });
+    expect(k1).toMatchObject({ controlId: 'k1', clientInterpretation: 'Descripción 1', sourceRef: 'comite:GOV-1', isActive: true, tenantId: 'tenant-1', serviceId: 'svc-1' });
   });
 
   it('clona dimensiones y el vínculo con las pruebas, no las pruebas', () => {

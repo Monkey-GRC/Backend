@@ -154,6 +154,18 @@ export class RiskPrismaRepository extends RiskRepository {
     });
   }
 
+  reactivateRisk(scope: TenantScope, id: string, audit: Parameters<RiskRepository['reactivateRisk']>[2]): Promise<Changed<RiskRecord> | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const before = await tx.clientRisk.findFirst({ where: { id } });
+      if (!before) return null;
+      if (before.isActive) return { before: riskRecord(before), after: riskRecord(before) }; // ya estaba vigente: no hay cambio ni rastro
+      const after = await tx.clientRisk.update({ where: { id }, data: { isActive: true } });
+      const change = { before: riskRecord(before), after: riskRecord(after) };
+      await insertAuditLog(tx, audit(change));
+      return change;
+    });
+  }
+
   // ─── causas ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   async createCause(scope: TenantScope, serviceId: string, input: CauseInput, audit: Parameters<RiskRepository['createCause']>[3]): Promise<CauseRecord | null> {
     for (let attempt = 0; ; attempt++) {

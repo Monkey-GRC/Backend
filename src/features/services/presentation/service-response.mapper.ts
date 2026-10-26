@@ -59,7 +59,6 @@ export function toServiceResponse(service: ServiceDetail, catalogMessage = 'cata
 // GET /v1/services/{id}/technical-control.
 function toTechnicalControlSummary(service: ServiceDetail) {
   return {
-    deployment_scenario: service.data.deploymentScenario,
     connection_count: service.data.connectionCount,
     is_complete: service.technicalControlDone,
   };

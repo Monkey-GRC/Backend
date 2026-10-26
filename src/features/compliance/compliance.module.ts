@@ -15,7 +15,7 @@ import { IssueVerdictUseCase, ListVerdictsUseCase } from './application/use-case
 import { ProposeChangeUseCase } from './application/use-cases/propose-change.use-case';
 import { CreateResponsibleUseCase, DeleteResponsibleUseCase, ListResponsiblesUseCase, UpdateResponsibleUseCase } from './application/use-cases/responsible.use-cases';
 import {
-  CreateCauseUseCase, CreateRiskUseCase, DeactivateCauseUseCase, DeactivateRiskUseCase, GetCauseUseCase, GetRiskUseCase, LinkUseCases, ListCausesUseCase, ListRisksUseCase,
+  CreateCauseUseCase, CreateRiskUseCase, DeactivateCauseUseCase, DeactivateRiskUseCase, GetCauseUseCase, GetRiskUseCase, LinkUseCases, ListCausesUseCase, ListRisksUseCase, ReactivateRiskUseCase,
   UpdateCauseUseCase, UpdateRiskUseCase,
 } from './application/use-cases/risk.use-cases';
 import { ControlChangeRepository } from './domain/repositories/control-change.repository';
@@ -66,7 +66,7 @@ import { RisksController } from './presentation/risks.controller';
     UpdateResponsibleUseCase,
     DeleteResponsibleUseCase,
     { provide: RiskRepository, useClass: RiskPrismaRepository },
-    ListRisksUseCase, GetRiskUseCase, CreateRiskUseCase, UpdateRiskUseCase, DeactivateRiskUseCase,
+    ListRisksUseCase, GetRiskUseCase, CreateRiskUseCase, UpdateRiskUseCase, DeactivateRiskUseCase, ReactivateRiskUseCase,
     ListCausesUseCase, GetCauseUseCase, CreateCauseUseCase, UpdateCauseUseCase, DeactivateCauseUseCase, LinkUseCases,
     EvaluateRiskUseCase, EvaluationHistoryUseCase, CreateTreatmentUseCase, ListTreatmentsUseCase,
     { provide: ExclusionRepository, useClass: ExclusionPrismaRepository },

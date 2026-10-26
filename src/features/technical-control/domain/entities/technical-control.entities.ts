@@ -1,6 +1,5 @@
 import {
   ConnectionCategory,
-  DeploymentScenarioValue,
   ScheduleFrequencyValue,
   ConnectionMethodValue,
   ResourceKindValue,
@@ -39,7 +38,6 @@ export type Capability = {
 };
 
 export type TechnicalControlState = {
-  deploymentScenario: DeploymentScenarioValue | null;
   applicableCapabilities: Capability[];
 };
 

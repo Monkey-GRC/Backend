@@ -54,8 +54,6 @@ export type DomainErrorCode =
   // Activación de cuenta: demasiados intentos con la clave desde una misma dirección.
   | 'ACCESS_KEY_RATE_LIMITED'
   // Componente 3 (contracts/modules/onboarding-technical-control.md).
-  | 'DEPLOYMENT_SCENARIO_NOT_SET'
-  | 'CAPABILITY_NOT_APPLICABLE'
   | 'ASSET_NOT_VALIDATED'
   | 'ASSET_ALREADY_ACTIVE'
   | 'ASSET_NOT_ACTIVE'

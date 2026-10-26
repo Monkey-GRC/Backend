@@ -95,17 +95,6 @@ describe('A no puede modificar lo de B', () => {
     expect((await a.agent.put(`/v1/assets/${b.assetId}/schedule`).send({ frequency: 'continuous' })).status).toBe(404);
   });
 
-  it('cambiar el escenario del servicio de B → 404', async () => {
-    const escenario = await a.agent.put(`/v1/services/${b.serviceId}/deployment-scenario`).send({ deployment_scenario: 'hybrid' });
-    expect(escenario.status).toBe(404);
-  });
-
-  it('el servicio de B sigue en su escenario original', async () => {
-    const res = await b.agent.get(`/v1/services/${b.serviceId}/technical-control`);
-    expect(res.status).toBe(200);
-    expect(JSON.stringify(res.body)).toContain('cloud_with_servers');
-  });
-
   it('no se puede registrar un activo propio enlazado al servicio de B', async () => {
     const res = await a.agent.post('/v1/assets').send({
       name: `intruso-${Date.now()}`,

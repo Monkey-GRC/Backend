@@ -46,9 +46,8 @@ export class ServiceCatalogResponse {
 }
 
 export class TechnicalControlSummaryResponse {
-  @ApiProperty({ nullable: true, example: 'hybrid', description: 'Escenario de despliegue declarado; `null` si el Componente 3 aún no se hizo.' }) deployment_scenario!: string | null;
   @ApiProperty({ example: 2, description: 'Activos conectados registrados para este servicio.' }) connection_count!: number;
-  @ApiProperty({ description: 'El Componente 3 se da por hecho con el escenario de despliegue (D60); registrar activos se recomienda pero puede esperar.' }) is_complete!: boolean;
+  @ApiProperty({ description: 'El Componente 3 está hecho cuando el servicio tiene al menos una conexión (D92: ya no hay escenario de despliegue que declarar).' }) is_complete!: boolean;
 }
 
 export class ServiceResponse {

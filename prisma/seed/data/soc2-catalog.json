@@ -1958,833 +1958,833 @@
       "name": "Procedimientos de disposición de activos utilizados",
       "description": "La empresa depura o destruye los medios electrónicos que contienen información confidencial conforme a las mejores prácticas, y emite certificados de destrucción por cada dispositivo destruido.",
       "domain": "Tecnología Artificial y Autónoma",
-      "sourceRef": "vanta:AST-1"
+      "sourceRef": "comite:AST-1"
     },
     {
       "code": "AST-2",
       "name": "Procedimientos de retención de datos establecidos",
       "description": "La empresa cuenta con procedimientos formales de retención y disposición que orientan la retención y eliminación segura de los datos de la empresa y de los clientes.",
       "domain": "Gestión de Activos",
-      "sourceRef": "vanta:AST-2"
+      "sourceRef": "comite:AST-2"
     },
     {
       "code": "AST-3",
       "name": "Inventario de producción mantenido",
       "description": "La empresa mantiene un inventario formal de los activos del sistema de producción.",
       "domain": "Gestión de Activos",
-      "sourceRef": "vanta:AST-3"
+      "sourceRef": "comite:AST-3"
     },
     {
       "code": "BCD-1",
       "name": "Planes de Continuidad y Recuperación ante Desastres establecidos",
       "description": "La empresa cuenta con Planes de Continuidad del Negocio y de Recuperación ante Desastres que definen los planes de comunicación necesarios para mantener la continuidad de la seguridad de la información ante la indisponibilidad de personal clave.",
       "domain": "Continuidad del Negocio y Recuperación ante Desastres",
-      "sourceRef": "vanta:BCD-1"
+      "sourceRef": "comite:BCD-1"
     },
     {
       "code": "BCD-2",
       "name": "Planes de Continuidad y Recuperación ante Desastres probados",
       "description": "La empresa cuenta con un plan documentado de Continuidad del Negocio / Recuperación ante Desastres (BC/DR) y lo pone a prueba al menos una vez al año.",
       "domain": "Continuidad del Negocio y Recuperación ante Desastres",
-      "sourceRef": "vanta:BCD-2"
+      "sourceRef": "comite:BCD-2"
     },
     {
       "code": "BCD-3",
       "name": "Seguro de ciberseguridad mantenido",
       "description": "La empresa mantiene un seguro de ciberseguridad para mitigar el impacto financiero de las interrupciones del negocio.",
       "domain": "Continuidad del Negocio y Recuperación ante Desastres",
-      "sourceRef": "vanta:BCD-3"
+      "sourceRef": "comite:BCD-3"
     },
     {
       "code": "BCD-4",
       "name": "Replicación de bases de datos utilizada",
       "description": "Las bases de datos de la empresa se replican en tiempo real a un centro de datos secundario. Se configuran alertas para notificar a los administradores en caso de que la replicación falle.",
       "domain": "Continuidad del Negocio y Recuperación ante Desastres",
-      "sourceRef": "vanta:BCD-4"
+      "sourceRef": "comite:BCD-4"
     },
     {
       "code": "BCD-5",
       "name": "Respaldos de datos de producción realizados",
       "description": "La empresa realiza respaldos periódicos de los datos de producción. Los datos se respaldan en una ubicación distinta a la del sistema de producción.",
       "domain": "Continuidad del Negocio y Recuperación ante Desastres",
-      "sourceRef": "vanta:BCD-5"
+      "sourceRef": "comite:BCD-5"
     },
     {
       "code": "BCD-6",
       "name": "Zonas de disponibilidad múltiples en producción establecidas",
       "description": "La empresa aplica una estrategia multiubicación para los entornos de producción, que permite reanudar las operaciones en otros centros de datos de la empresa en caso de pérdida de una instalación.",
       "domain": "Continuidad del Negocio y Recuperación ante Desastres",
-      "sourceRef": "vanta:BCD-6"
+      "sourceRef": "comite:BCD-6"
     },
     {
       "code": "CAP-1",
       "name": "Capacidad del sistema revisada",
       "description": "La empresa evalúa la capacidad del sistema de forma continua e implementa cambios en el sistema para ayudar a asegurar que la capacidad de procesamiento pueda satisfacer la demanda.",
       "domain": "Planificación de Capacidad y Rendimiento",
-      "sourceRef": "vanta:CAP-1"
+      "sourceRef": "comite:CAP-1"
     },
     {
       "code": "CFG-1",
       "name": "Sistema de gestión de configuración establecido",
       "description": "La empresa cuenta con un procedimiento de gestión de configuración que asegura que las configuraciones del sistema se desplieguen de manera consistente en todo el entorno.",
       "domain": "Gestión de Configuración",
-      "sourceRef": "vanta:CFG-1"
+      "sourceRef": "comite:CFG-1"
     },
     {
       "code": "CHG-1",
       "name": "Procedimientos de gestión de cambios aplicados",
       "description": "La empresa exige que los cambios en los componentes de software e infraestructura del servicio sean autorizados, documentados formalmente, probados, revisados y aprobados antes de implementarse en el entorno de producción.",
       "domain": "Gestión de Cambios",
-      "sourceRef": "vanta:CHG-1"
+      "sourceRef": "comite:CHG-1"
     },
     {
       "code": "CHG-2",
       "name": "Acceso a despliegues en producción restringido",
       "description": "La empresa restringe el acceso para migrar cambios a producción únicamente al personal autorizado.",
       "domain": "Gestión de Cambios",
-      "sourceRef": "vanta:CHG-2"
+      "sourceRef": "comite:CHG-2"
     },
     {
       "code": "CHG-3",
       "name": "Ciclo de vida de desarrollo establecido",
       "description": "La empresa cuenta con una metodología formal de ciclo de vida de desarrollo de sistemas (SDLC) que rige el desarrollo, la adquisición, la implementación, los cambios (incluidos los cambios de emergencia) y el mantenimiento de los sistemas de información y los requisitos tecnológicos relacionados.",
       "domain": "Gestión de Cambios",
-      "sourceRef": "vanta:CHG-3"
+      "sourceRef": "comite:CHG-3"
     },
     {
       "code": "CPL-1",
       "name": "SOC 2 - Descripción del Sistema",
       "description": "Completar una descripción del sistema para la Sección III del informe de auditoría.",
       "domain": "Cumplimiento",
-      "sourceRef": "vanta:CPL-1"
+      "sourceRef": "comite:CPL-1"
     },
     {
       "code": "CPL-2",
       "name": "Política de denuncias (whistleblower) establecida",
       "description": "La empresa ha establecido una política formal de denuncias (whistleblower) y dispone de un canal de comunicación anónimo para que los usuarios reporten posibles incidencias o sospechas de fraude.",
       "domain": "Cumplimiento",
-      "sourceRef": "vanta:CPL-2"
+      "sourceRef": "comite:CPL-2"
     },
     {
       "code": "CRY-1",
       "name": "Autenticación única en bases de datos de producción exigida",
       "description": "La empresa exige que la autenticación a los almacenes de datos de producción utilice mecanismos de autenticación seguros y autorizados, como claves SSH únicas.",
       "domain": "Protecciones Criptográficas",
-      "sourceRef": "vanta:CRY-1"
+      "sourceRef": "comite:CRY-1"
     },
     {
       "code": "CRY-2",
       "name": "Acceso a claves de cifrado restringido",
       "description": "La empresa restringe el acceso privilegiado a las claves de cifrado a los usuarios autorizados con una necesidad de negocio.",
       "domain": "Protecciones Criptográficas",
-      "sourceRef": "vanta:CRY-2"
+      "sourceRef": "comite:CRY-2"
     },
     {
       "code": "CRY-3",
       "name": "Medios portátiles cifrados",
       "description": "La empresa cifra los dispositivos de medios portátiles y extraíbles cuando se utilizan.",
       "domain": "Protecciones Criptográficas",
-      "sourceRef": "vanta:CRY-3"
+      "sourceRef": "comite:CRY-3"
     },
     {
       "code": "CRY-4",
       "name": "Cifrado de datos utilizado",
       "description": "Los almacenes de datos de la empresa que contienen datos confidenciales de clientes se cifran en reposo.",
       "domain": "Protecciones Criptográficas",
-      "sourceRef": "vanta:CRY-4"
+      "sourceRef": "comite:CRY-4"
     },
     {
       "code": "CRY-5",
       "name": "Autenticación única de cuentas exigida",
       "description": "La empresa exige que la autenticación a los sistemas y aplicaciones utilice nombre de usuario y contraseña únicos o claves Secure Socket Shell (SSH) autorizadas.",
       "domain": "Protecciones Criptográficas",
-      "sourceRef": "vanta:CRY-5"
+      "sourceRef": "comite:CRY-5"
     },
     {
       "code": "DCH-1",
       "name": "Datos de clientes eliminados al finalizar la relación",
       "description": "La empresa depura o elimina los datos de clientes que contienen información confidencial del entorno de la aplicación, conforme a las mejores prácticas, cuando los clientes dejan de utilizar el servicio.",
       "domain": "Clasificación y Tratamiento de Datos",
-      "sourceRef": "vanta:DCH-1"
+      "sourceRef": "comite:DCH-1"
     },
     {
       "code": "DCH-2",
       "name": "Datos de clientes retenidos",
       "description": "La empresa retiene los datos transaccionales del cliente durante la vigencia de la cuenta. No se depura ningún dato transaccional histórico hasta que se elimina la cuenta del cliente.",
       "domain": "Clasificación y Tratamiento de Datos",
-      "sourceRef": "vanta:DCH-2"
+      "sourceRef": "comite:DCH-2"
     },
     {
       "code": "DCH-3",
       "name": "Modificaciones de transacciones de clientes restringidas",
       "description": "La empresa garantiza que ni los clientes ni los administradores tengan la capacidad de modificar los datos transaccionales de los clientes dentro de la aplicación de producción.",
       "domain": "Clasificación y Tratamiento de Datos",
-      "sourceRef": "vanta:DCH-3"
+      "sourceRef": "comite:DCH-3"
     },
     {
       "code": "DCH-4",
       "name": "Portal de transacciones para clientes disponible",
       "description": "La empresa proporciona a los clientes portales que contienen tableros, reportes o histórico de información transaccional y de la cuenta.",
       "domain": "Clasificación y Tratamiento de Datos",
-      "sourceRef": "vanta:DCH-4"
+      "sourceRef": "comite:DCH-4"
     },
     {
       "code": "DCH-5",
       "name": "Política de clasificación de datos establecida",
       "description": "La empresa cuenta con una política de clasificación de datos que ayuda a asegurar que los datos confidenciales estén debidamente protegidos y restringidos al personal autorizado.",
       "domain": "Clasificación y Tratamiento de Datos",
-      "sourceRef": "vanta:DCH-5"
+      "sourceRef": "comite:DCH-5"
     },
     {
       "code": "DCH-6",
       "name": "Solicitudes de eliminación de datos gestionadas",
       "description": "La empresa valida las solicitudes de eliminación y, una vez confirmadas, se marcan y la información solicitada se elimina, conforme a las leyes y regulaciones aplicables.",
       "domain": "Clasificación y Tratamiento de Datos",
-      "sourceRef": "vanta:DCH-6"
+      "sourceRef": "comite:DCH-6"
     },
     {
       "code": "DCH-7",
       "name": "Cambios en información personal comunicados",
       "description": "La empresa comunica las correcciones o eliminaciones de la información personal de un individuo a los usuarios autorizados y a los terceros pertinentes con quienes se haya compartido o transferido dicha información.",
       "domain": "Clasificación y Tratamiento de Datos",
-      "sourceRef": "vanta:DCH-7"
+      "sourceRef": "comite:DCH-7"
     },
     {
       "code": "DCH-8",
       "name": "Verificación de identidad realizada",
       "description": "La empresa, antes de otorgar a un individuo la capacidad de acceder y revisar su información personal, autentica la identidad del individuo o de su representante autorizado, con un nivel de aseguramiento apropiado, y verifica que dicho acceso no esté prohibido por ley.",
       "domain": "Clasificación y Tratamiento de Datos",
-      "sourceRef": "vanta:DCH-8"
+      "sourceRef": "comite:DCH-8"
     },
     {
       "code": "DCH-9",
       "name": "Consultas de privacidad gestionadas",
       "description": "La empresa cuenta con procesos y procedimientos para capturar, registrar y verificar solicitudes, consultas, quejas o disputas relacionadas con los derechos de privacidad del individuo respecto al acceso, revisión, modificación o eliminación de su información personal. Las solicitudes de acceso a información personal se registran en el sistema de seguimiento designado por la empresa con fines históricos y de auditoría.",
       "domain": "Clasificación y Tratamiento de Datos",
-      "sourceRef": "vanta:DCH-9"
+      "sourceRef": "comite:DCH-9"
     },
     {
       "code": "DCH-10",
       "name": "Información personal eliminada de forma segura",
       "description": "La empresa dispone de forma segura de la información personal conforme a las políticas y procedimientos documentados. La información personal se anonimiza, borra de forma segura o destruye cuando deja de ser necesaria.",
       "domain": "Clasificación y Tratamiento de Datos",
-      "sourceRef": "vanta:DCH-10"
+      "sourceRef": "comite:DCH-10"
     },
     {
       "code": "DCH-11",
       "name": "Datos de producción segmentados",
       "description": "La empresa prohíbe, mediante política, el uso o almacenamiento de datos confidenciales o sensibles de clientes en sistemas o entornos que no sean de producción.",
       "domain": "Clasificación y Tratamiento de Datos",
-      "sourceRef": "vanta:DCH-11"
+      "sourceRef": "comite:DCH-11"
     },
     {
       "code": "END-1",
       "name": "Tecnología antimalware utilizada",
       "description": "La empresa implementa tecnología antimalware en los entornos comúnmente susceptibles a ataques maliciosos y la configura para actualizarse periódicamente, registrar eventos e instalarse en todos los sistemas pertinentes.",
       "domain": "Seguridad de Endpoints",
-      "sourceRef": "vanta:END-1"
+      "sourceRef": "comite:END-1"
     },
     {
       "code": "GOV-1",
       "name": "Sesiones informativas de supervisión al Consejo realizadas",
       "description": "El consejo de administración de la empresa, o un subcomité pertinente, recibe al menos una vez al año información de la alta dirección sobre el estado del riesgo de ciberseguridad y privacidad de la empresa. El consejo proporciona retroalimentación y directrices a la dirección según sea necesario.",
       "domain": "Gobierno de Seguridad y Privacidad",
-      "sourceRef": "vanta:GOV-1"
+      "sourceRef": "comite:GOV-1"
     },
     {
       "code": "GOV-2",
       "name": "Estatuto del Consejo documentado",
       "description": "El consejo de administración de la empresa cuenta con un estatuto documentado que define sus responsabilidades de supervisión del control interno.",
       "domain": "Gobierno de Seguridad y Privacidad",
-      "sourceRef": "vanta:GOV-2"
+      "sourceRef": "comite:GOV-2"
     },
     {
       "code": "GOV-3",
       "name": "Experiencia del Consejo desarrollada",
       "description": "Los miembros del consejo de administración de la empresa cuentan con la experiencia suficiente para supervisar la capacidad de la dirección de diseñar, implementar y operar controles de seguridad de la información. El consejo recurre a expertos y consultores externos en seguridad de la información según sea necesario.",
       "domain": "Gobierno de Seguridad y Privacidad",
-      "sourceRef": "vanta:GOV-3"
+      "sourceRef": "comite:GOV-3"
     },
     {
       "code": "GOV-4",
       "name": "Reuniones del Consejo realizadas",
       "description": "El consejo de administración de la empresa se reúne al menos una vez al año y mantiene actas formales de sus reuniones. El consejo incluye consejeros independientes de la empresa.",
       "domain": "Gobierno de Seguridad y Privacidad",
-      "sourceRef": "vanta:GOV-4"
+      "sourceRef": "comite:GOV-4"
     },
     {
       "code": "GOV-5",
       "name": "Procesos de respaldo establecidos",
       "description": "La política de respaldo de datos de la empresa documenta los requisitos para el respaldo y la recuperación de los datos de los clientes.",
       "domain": "Gobierno de Seguridad y Privacidad",
-      "sourceRef": "vanta:GOV-5"
+      "sourceRef": "comite:GOV-5"
     },
     {
       "code": "GOV-6",
       "name": "Cambios en el sistema comunicados externamente",
       "description": "La empresa notifica a los clientes sobre cambios críticos en el sistema que puedan afectar su procesamiento.",
       "domain": "Gobierno de Seguridad y Privacidad",
-      "sourceRef": "vanta:GOV-6"
+      "sourceRef": "comite:GOV-6"
     },
     {
       "code": "GOV-7",
       "name": "Roles y responsabilidades de la dirección definidos",
       "description": "La dirección de la empresa ha establecido roles y responsabilidades definidos para supervisar el diseño y la implementación de los controles de seguridad de la información.",
       "domain": "Gobierno de Seguridad y Privacidad",
-      "sourceRef": "vanta:GOV-7"
+      "sourceRef": "comite:GOV-7"
     },
     {
       "code": "GOV-8",
       "name": "Estructura organizacional documentada",
       "description": "La empresa mantiene un organigrama que describe la estructura organizacional y las líneas de reporte.",
       "domain": "Gobierno de Seguridad y Privacidad",
-      "sourceRef": "vanta:GOV-8"
+      "sourceRef": "comite:GOV-8"
     },
     {
       "code": "GOV-9",
       "name": "Alertas de procesamiento disponibles",
       "description": "Los clientes de la empresa pueden optar por recibir correos de alerta sobre transacciones o modificaciones en su cuenta para ayudar a asegurar que se procesen correctamente.",
       "domain": "Gobierno de Seguridad y Privacidad",
-      "sourceRef": "vanta:GOV-9"
+      "sourceRef": "comite:GOV-9"
     },
     {
       "code": "GOV-10",
       "name": "Roles y responsabilidades especificados",
       "description": "Los roles y responsabilidades para el diseño, desarrollo, implementación, operación, mantenimiento y monitoreo de los controles de seguridad de la información se asignan formalmente en las descripciones de puestos o en la política de Roles y Responsabilidades.",
       "domain": "Gobierno de Seguridad y Privacidad",
-      "sourceRef": "vanta:GOV-10"
+      "sourceRef": "comite:GOV-10"
     },
     {
       "code": "GOV-11",
       "name": "Políticas de seguridad establecidas y revisadas",
       "description": "Las políticas y procedimientos de seguridad de la información de la empresa están documentados y se revisan al menos una vez al año.",
       "domain": "Gobierno de Seguridad y Privacidad",
-      "sourceRef": "vanta:GOV-11"
+      "sourceRef": "comite:GOV-11"
     },
     {
       "code": "GOV-12",
       "name": "Sistema de soporte disponible",
       "description": "La empresa cuenta con un sistema de soporte de cara al exterior que permite a los usuarios reportar información del sistema sobre fallas, incidentes, inquietudes y otras quejas al personal correspondiente.",
       "domain": "Gobierno de Seguridad y Privacidad",
-      "sourceRef": "vanta:GOV-12"
+      "sourceRef": "comite:GOV-12"
     },
     {
       "code": "GOV-13",
       "name": "Cambios en el sistema comunicados",
       "description": "La empresa comunica los cambios del sistema a los usuarios internos autorizados.",
       "domain": "Gobierno de Seguridad y Privacidad",
-      "sourceRef": "vanta:GOV-13"
+      "sourceRef": "comite:GOV-13"
     },
     {
       "code": "HRS-1",
       "name": "Verificación de antecedentes de empleados realizada",
       "description": "La empresa realiza verificaciones de antecedentes a los nuevos empleados.",
       "domain": "Seguridad en Recursos Humanos",
-      "sourceRef": "vanta:HRS-1"
+      "sourceRef": "comite:HRS-1"
     },
     {
       "code": "HRS-2",
       "name": "Código de Conducta reconocido por contratistas",
       "description": "La empresa exige que los acuerdos con contratistas incluyan un código de conducta o una referencia al código de conducta de la empresa.",
       "domain": "Seguridad en Recursos Humanos",
-      "sourceRef": "vanta:HRS-2"
+      "sourceRef": "comite:HRS-2"
     },
     {
       "code": "HRS-3",
       "name": "Código de Conducta reconocido por empleados y aplicado",
       "description": "La empresa exige que los empleados reconozcan un código de conducta al momento de la contratación. Los empleados que infrinjan el código de conducta están sujetos a acciones disciplinarias conforme a una política disciplinaria.",
       "domain": "Seguridad en Recursos Humanos",
-      "sourceRef": "vanta:HRS-3"
+      "sourceRef": "comite:HRS-3"
     },
     {
       "code": "HRS-4",
       "name": "Acuerdo de Confidencialidad reconocido por contratistas",
       "description": "La empresa exige que los contratistas firmen un acuerdo de confidencialidad al momento de la contratación.",
       "domain": "Seguridad en Recursos Humanos",
-      "sourceRef": "vanta:HRS-4"
+      "sourceRef": "comite:HRS-4"
     },
     {
       "code": "HRS-5",
       "name": "Acuerdo de Confidencialidad reconocido por empleados",
       "description": "La empresa exige que los empleados firmen un acuerdo de confidencialidad durante el proceso de incorporación (onboarding).",
       "domain": "Seguridad en Recursos Humanos",
-      "sourceRef": "vanta:HRS-5"
+      "sourceRef": "comite:HRS-5"
     },
     {
       "code": "HRS-6",
       "name": "Evaluaciones de desempeño realizadas",
       "description": "La empresa exige que los gerentes completen evaluaciones de desempeño de sus colaboradores directos al menos una vez al año.",
       "domain": "Seguridad en Recursos Humanos",
-      "sourceRef": "vanta:HRS-6"
+      "sourceRef": "comite:HRS-6"
     },
     {
       "code": "IAC-1",
       "name": "Acceso a la aplicación de producción restringido",
       "description": "Acceso al sistema restringido únicamente al acceso autorizado.",
       "domain": "Identificación y Autenticación",
-      "sourceRef": "vanta:IAC-1"
+      "sourceRef": "comite:IAC-1"
     },
     {
       "code": "IAC-2",
       "name": "Procedimientos de control de acceso establecidos",
       "description": "La política de control de acceso de la empresa documenta los requisitos para las siguientes funciones de control de acceso: alta de nuevos usuarios; modificación de usuarios; y eliminación del acceso de un usuario existente.",
       "domain": "Identificación y Autenticación",
-      "sourceRef": "vanta:IAC-2"
+      "sourceRef": "comite:IAC-2"
     },
     {
       "code": "IAC-3",
       "name": "Acceso a bases de datos de producción restringido",
       "description": "La empresa restringe el acceso privilegiado a las bases de datos a los usuarios autorizados con una necesidad de negocio.",
       "domain": "Identificación y Autenticación",
-      "sourceRef": "vanta:IAC-3"
+      "sourceRef": "comite:IAC-3"
     },
     {
       "code": "IAC-4",
       "name": "Acceso al firewall restringido",
       "description": "La empresa restringe el acceso privilegiado al firewall a los usuarios autorizados con una necesidad de negocio.",
       "domain": "Identificación y Autenticación",
-      "sourceRef": "vanta:IAC-4"
+      "sourceRef": "comite:IAC-4"
     },
     {
       "code": "IAC-5",
       "name": "Acceso al sistema operativo de producción restringido",
       "description": "La empresa restringe el acceso privilegiado al sistema operativo a los usuarios autorizados con una necesidad de negocio.",
       "domain": "Identificación y Autenticación",
-      "sourceRef": "vanta:IAC-5"
+      "sourceRef": "comite:IAC-5"
     },
     {
       "code": "IAC-6",
       "name": "Acceso a la red de producción restringido",
       "description": "La empresa restringe el acceso privilegiado a la red de producción a los usuarios autorizados con una necesidad de negocio.",
       "domain": "Identificación y Autenticación",
-      "sourceRef": "vanta:IAC-6"
+      "sourceRef": "comite:IAC-6"
     },
     {
       "code": "IAC-7",
       "name": "Revisiones de acceso realizadas",
       "description": "La empresa realiza revisiones de acceso al menos trimestralmente para los componentes del sistema dentro del alcance, con el fin de ayudar a asegurar que el acceso esté restringido de forma adecuada. Los cambios requeridos se dan seguimiento hasta su finalización.",
       "domain": "Identificación y Autenticación",
-      "sourceRef": "vanta:IAC-7"
+      "sourceRef": "comite:IAC-7"
     },
     {
       "code": "IAC-8",
       "name": "Acceso revocado al finalizar la relación laboral",
       "description": "La empresa completa listas de verificación de baja para asegurar que el acceso de los empleados desvinculados sea revocado dentro de los ANS (SLA) establecidos.",
       "domain": "Identificación y Autenticación",
-      "sourceRef": "vanta:IAC-8"
+      "sourceRef": "comite:IAC-8"
     },
     {
       "code": "IAC-9",
       "name": "Solicitudes de acceso requeridas",
       "description": "La empresa asegura que el acceso de los usuarios a los componentes del sistema dentro del alcance se base en el rol y la función del puesto, o requiere un formulario documentado de solicitud de acceso y la aprobación del gerente antes de aprovisionar el acceso.",
       "domain": "Identificación y Autenticación",
-      "sourceRef": "vanta:IAC-9"
+      "sourceRef": "comite:IAC-9"
     },
     {
       "code": "IAC-10",
       "name": "Autenticación única en sistemas de red exigida",
       "description": "La empresa exige que la autenticación a la \"red de producción\" utilice nombres de usuario y contraseñas únicos o claves Secure Socket Shell (SSH) autorizadas.",
       "domain": "Identificación y Autenticación",
-      "sourceRef": "vanta:IAC-10"
+      "sourceRef": "comite:IAC-10"
     },
     {
       "code": "IAC-11",
       "name": "Política de contraseñas aplicada",
       "description": "La empresa exige que las contraseñas de los componentes del sistema dentro del alcance se configuren conforme a la política de la empresa.",
       "domain": "Identificación y Autenticación",
-      "sourceRef": "vanta:IAC-11"
+      "sourceRef": "comite:IAC-11"
     },
     {
       "code": "IAC-12",
       "name": "MFA exigido para acceso remoto",
       "description": "Los sistemas de producción de la empresa solo pueden accederse de forma remota por empleados autorizados que posean un método válido de autenticación multifactor (MFA).",
       "domain": "Identificación y Autenticación",
-      "sourceRef": "vanta:IAC-12"
+      "sourceRef": "comite:IAC-12"
     },
     {
       "code": "IAC-13",
       "name": "Cifrado exigido para acceso remoto",
       "description": "Los sistemas de producción de la empresa solo pueden accederse de forma remota por empleados autorizados a través de una conexión cifrada aprobada.",
       "domain": "Identificación y Autenticación",
-      "sourceRef": "vanta:IAC-13"
+      "sourceRef": "comite:IAC-13"
     },
     {
       "code": "IAO-1",
       "name": "Autoevaluaciones de controles realizadas",
       "description": "La empresa realiza autoevaluaciones de controles al menos una vez al año para obtener aseguramiento de que los controles están implementados y operan de forma efectiva. Se toman acciones correctivas con base en los hallazgos pertinentes. Si la empresa se ha comprometido a un ANS (SLA) para un hallazgo, la acción correctiva se completa dentro de dicho ANS.",
       "domain": "Aseguramiento de la Información",
-      "sourceRef": "vanta:IAO-1"
+      "sourceRef": "comite:IAO-1"
     },
     {
       "code": "IAO-2",
       "name": "Pruebas de penetración realizadas",
       "description": "Las pruebas de penetración de la empresa se realizan al menos una vez al año. Se desarrolla un plan de remediación y se implementan cambios para subsanar las vulnerabilidades conforme a los ANS (SLA).",
       "domain": "Aseguramiento de la Información",
-      "sourceRef": "vanta:IAO-2"
+      "sourceRef": "comite:IAO-2"
     },
     {
       "code": "IRO-1",
       "name": "Plan de respuesta a incidentes probado",
       "description": "La empresa pone a prueba su plan de respuesta a incidentes al menos una vez al año.",
       "domain": "Respuesta a Incidentes",
-      "sourceRef": "vanta:IRO-1"
+      "sourceRef": "comite:IRO-1"
     },
     {
       "code": "IRO-2",
       "name": "Políticas de respuesta a incidentes establecidas",
       "description": "La empresa cuenta con políticas y procedimientos de respuesta a incidentes de seguridad y privacidad que están documentados y comunicados a los usuarios autorizados.",
       "domain": "Respuesta a Incidentes",
-      "sourceRef": "vanta:IRO-2"
+      "sourceRef": "comite:IRO-2"
     },
     {
       "code": "IRO-3",
       "name": "Procedimientos de gestión de incidentes aplicados",
       "description": "Los incidentes de seguridad y privacidad de la empresa son registrados, gestionados, resueltos y comunicados a las partes afectadas o pertinentes por parte de la dirección, conforme a la política y los procedimientos de respuesta a incidentes de seguridad de la empresa.",
       "domain": "Respuesta a Incidentes",
-      "sourceRef": "vanta:IRO-3"
+      "sourceRef": "comite:IRO-3"
     },
     {
       "code": "IRO-4",
       "name": "Datos privados compartidos a solicitud",
       "description": "La empresa proporciona la información solicitada, previa verificación, de manera oportuna, ya sea en un formato electrónico portable o por correo, conforme a la ley aplicable.",
       "domain": "Respuesta a Incidentes",
-      "sourceRef": "vanta:IRO-4"
+      "sourceRef": "comite:IRO-4"
     },
     {
       "code": "MDM-1",
       "name": "Sistema MDM utilizado",
       "description": "La empresa cuenta con un sistema de gestión de dispositivos móviles (MDM) que le permite administrar de forma centralizada los dispositivos móviles que dan soporte al servicio.",
       "domain": "Gestión de Dispositivos Móviles",
-      "sourceRef": "vanta:MDM-1"
+      "sourceRef": "comite:MDM-1"
     },
     {
       "code": "MON-1",
       "name": "Sistema de detección de intrusiones utilizado",
       "description": "La empresa utiliza un sistema de detección de intrusiones que proporciona monitoreo continuo de la red de la empresa y la detección temprana de posibles brechas de seguridad.",
       "domain": "Monitoreo Continuo",
-      "sourceRef": "vanta:MON-1"
+      "sourceRef": "comite:MON-1"
     },
     {
       "code": "MON-2",
       "name": "Gestión de registros (logs) utilizada",
       "description": "La empresa utiliza una herramienta de gestión de registros (logs) para identificar eventos que puedan tener un impacto potencial en la capacidad de la empresa de alcanzar sus objetivos de seguridad.",
       "domain": "Monitoreo Continuo",
-      "sourceRef": "vanta:MON-2"
+      "sourceRef": "comite:MON-2"
     },
     {
       "code": "MON-3",
       "name": "Entradas de datos de procesamiento validadas",
       "description": "El sistema de la empresa evalúa las entradas de datos para verificar su cumplimiento con los requisitos de entrada. Se generan alertas en pantalla cada vez que existen problemas con las entradas o el procesamiento de transacciones.",
       "domain": "Monitoreo Continuo",
-      "sourceRef": "vanta:MON-3"
+      "sourceRef": "comite:MON-3"
     },
     {
       "code": "MON-4",
       "name": "Rendimiento de la infraestructura monitoreado",
       "description": "Se utiliza una herramienta de monitoreo de infraestructura para supervisar los sistemas, la infraestructura y el rendimiento, y genera alertas cuando se alcanzan umbrales predefinidos específicos.",
       "domain": "Monitoreo Continuo",
-      "sourceRef": "vanta:MON-4"
+      "sourceRef": "comite:MON-4"
     },
     {
       "code": "NET-1",
       "name": "Transmisión de datos cifrada",
       "description": "La empresa utiliza protocolos seguros de transmisión de datos para cifrar los datos confidenciales y sensibles cuando se transmiten a través de redes públicas.",
       "domain": "Seguridad de Redes",
-      "sourceRef": "vanta:NET-1"
+      "sourceRef": "comite:NET-1"
     },
     {
       "code": "NET-2",
       "name": "Segmentación de red implementada",
       "description": "La red de la empresa está segmentada para prevenir el acceso no autorizado a los datos de los clientes.",
       "domain": "Seguridad de Redes",
-      "sourceRef": "vanta:NET-2"
+      "sourceRef": "comite:NET-2"
     },
     {
       "code": "NET-3",
       "name": "Firewalls de red revisados",
       "description": "La empresa revisa los conjuntos de reglas de su firewall al menos una vez al año. Los cambios requeridos se dan seguimiento hasta su finalización.",
       "domain": "Seguridad de Redes",
-      "sourceRef": "vanta:NET-3"
+      "sourceRef": "comite:NET-3"
     },
     {
       "code": "NET-4",
       "name": "Firewalls de red utilizados",
       "description": "La empresa utiliza firewalls y los configura para prevenir el acceso no autorizado.",
       "domain": "Seguridad de Redes",
-      "sourceRef": "vanta:NET-4"
+      "sourceRef": "comite:NET-4"
     },
     {
       "code": "NET-5",
       "name": "Estándares de fortalecimiento de red y sistemas mantenidos",
       "description": "Los estándares de fortalecimiento (hardening) de red y sistemas de la empresa están documentados, se basan en las mejores prácticas de la industria y se revisan al menos una vez al año.",
       "domain": "Seguridad de Redes",
-      "sourceRef": "vanta:NET-5"
+      "sourceRef": "comite:NET-5"
     },
     {
       "code": "OPS-1",
       "name": "Procedimientos de gestión de vulnerabilidades y monitoreo de sistemas establecidos",
       "description": "Las políticas formales de la empresa definen los requisitos para las siguientes funciones relacionadas con TI / Ingeniería: gestión de vulnerabilidades; monitoreo de sistemas.",
       "domain": "Operaciones de Seguridad",
-      "sourceRef": "vanta:OPS-1"
+      "sourceRef": "comite:OPS-1"
     },
     {
       "code": "PES-1",
       "name": "Procesos de acceso físico establecidos",
       "description": "La empresa cuenta con procesos para otorgar, modificar y revocar el acceso físico a los centros de datos de la empresa con base en una autorización de los responsables de control.",
       "domain": "Seguridad Física y Ambiental",
-      "sourceRef": "vanta:PES-1"
+      "sourceRef": "comite:PES-1"
     },
     {
       "code": "PES-2",
       "name": "Acceso a centros de datos revisado",
       "description": "La empresa revisa el acceso a los centros de datos al menos una vez al año.",
       "domain": "Seguridad Física y Ambiental",
-      "sourceRef": "vanta:PES-2"
+      "sourceRef": "comite:PES-2"
     },
     {
       "code": "PES-3",
       "name": "Procedimientos para visitantes aplicados",
       "description": "La empresa exige que los visitantes se registren, porten una credencial de visitante y sean acompañados por un empleado autorizado al acceder al centro de datos o a áreas seguras.",
       "domain": "Seguridad Física y Ambiental",
-      "sourceRef": "vanta:PES-3"
+      "sourceRef": "comite:PES-3"
     },
     {
       "code": "PES-4",
       "name": "Dispositivos de monitoreo ambiental implementados",
       "description": "La empresa cuenta con dispositivos de monitoreo ambiental configurados para generar automáticamente una alerta a la dirección ante incidentes ambientales.",
       "domain": "Seguridad Física y Ambiental",
-      "sourceRef": "vanta:PES-4"
+      "sourceRef": "comite:PES-4"
     },
     {
       "code": "PES-5",
       "name": "Seguridad ambiental inspeccionada",
       "description": "La empresa realiza inspecciones de mantenimiento de las medidas de seguridad ambiental en los centros de datos de la empresa al menos una vez al año.",
       "domain": "Seguridad Física y Ambiental",
-      "sourceRef": "vanta:PES-5"
+      "sourceRef": "comite:PES-5"
     },
     {
       "code": "PRI-1",
       "name": "Información personal divulgada por motivos legales registrada",
       "description": "La empresa registra, da seguimiento y mantiene en su sistema de seguimiento designado la información personal divulgada por motivos legales, con fines históricos y de auditoría.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-1"
+      "sourceRef": "comite:PRI-1"
     },
     {
       "code": "PRI-2",
       "name": "Mecanismos de actualización de datos personales disponibles",
       "description": "Los individuos, clientes o titulares de cuenta designados pueden actualizar su información personal para asegurar que sea precisa y completa, mediante un portal web para clientes o contactando a la organización a través de los métodos indicados en la política de privacidad.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-2"
+      "sourceRef": "comite:PRI-2"
     },
     {
       "code": "PRI-3",
       "name": "Cambios en la recolección de información personal comunicados",
       "description": "La empresa proporciona aviso al momento o antes de recolectar información personal directamente del individuo o de utilizarla para una nueva finalidad no identificada previamente en las políticas de privacidad, y dentro de un plazo razonable tras adquirir nueva información o aprobar cambios en sus políticas o prácticas de privacidad.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-3"
+      "sourceRef": "comite:PRI-3"
     },
     {
       "code": "PRI-4",
       "name": "Recolección de información personal revisada",
       "description": "La dirección o el área legal de la empresa revisa y aprueba los métodos de recolección de información personal antes de su implementación, para asegurar que la información se obtenga de manera justa y lícita.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-4"
+      "sourceRef": "comite:PRI-4"
     },
     {
       "code": "PRI-5",
       "name": "Fiabilidad de la información personal verificada",
       "description": "La dirección de la empresa revisa y aprueba las fuentes de información personal distintas del propio titular de los datos (terceros), para asegurar que dichas fuentes sean confiables y que la información obtenida por los terceros se haya recolectado de manera justa y lícita.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-5"
+      "sourceRef": "comite:PRI-5"
     },
     {
       "code": "PRI-6",
       "name": "Política de privacidad mantenida",
       "description": "La empresa ha establecido una política de privacidad que utiliza un lenguaje claro y sencillo, está claramente fechada y proporciona información sobre las prácticas y finalidades de la empresa para recolectar, procesar, tratar y divulgar información personal, incluyendo: las jurisdicciones de operación de la organización; la elección y el consentimiento del individuo para la recolección, uso y divulgación de información personal; el derecho del individuo a acceder, actualizar o eliminar su información personal; un proceso para que los individuos ejerzan sus derechos; el requisito de proporcionar únicamente la información esencial necesaria para el servicio; los tipos o categorías de información recolectada; las finalidades de la recolección; los métodos de recolección (cookies u otras técnicas de rastreo, etc.); las consecuencias de no proporcionar o de retirar la información esencial; las fuentes de información (terceros, recolección directa, etc.); los tipos o categorías de terceros (fuentes y divulgaciones); y la finalidad de la divulgación de información a terceros.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-6"
+      "sourceRef": "comite:PRI-6"
     },
     {
       "code": "PRI-7",
       "name": "Procedimientos conformes con privacidad establecidos",
       "description": "La empresa cuenta con procesos y procedimientos documentados para asegurar que cualquier queja relacionada con la privacidad sea atendida, y que su resolución se documente en el sistema de seguimiento designado de la empresa y se comunique al individuo.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-7"
+      "sourceRef": "comite:PRI-7"
     },
     {
       "code": "PRI-8",
       "name": "Datos de privacidad retenidos",
       "description": "Los requisitos de retención de la empresa están documentados, y la información personal se retiene, según sea necesario, para fines de negocio, incluido cumplir con las finalidades relacionadas con su recolección, o conforme a las leyes o regulaciones aplicables.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-8"
+      "sourceRef": "comite:PRI-8"
     },
     {
       "code": "PRI-9",
       "name": "Consentimiento explícito obtenido",
       "description": "La empresa obtiene, documenta y conserva el consentimiento explícito, conforme a los requisitos legales y regulatorios aplicables, directamente del individuo antes de la recolección, uso o divulgación de información sensible. El consentimiento puede obtenerse mediante una casilla de verificación o un formulario firmado.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-9"
+      "sourceRef": "comite:PRI-9"
     },
     {
       "code": "PRI-10",
       "name": "Consentimiento para recolección de datos de usuarios obtenido",
       "description": "La empresa obtiene el consentimiento y las preferencias del individuo al momento o antes de la recolección, mantiene documentación en formato electrónico o escrito, e implementa las preferencias seleccionadas por el individuo para la recolección, uso y divulgación de información, de manera oportuna.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-10"
+      "sourceRef": "comite:PRI-10"
     },
     {
       "code": "PRI-11",
       "name": "Finalidad del tratamiento de datos de privacidad comunicada",
       "description": "La empresa documenta las nuevas finalidades para la información previamente recolectada, notifica a los individuos sobre la nueva finalidad y uso de dicha información, obtiene y registra el consentimiento del individuo para su uso o su retiro, y asegura que la información consentida se utilice conforme a la nueva finalidad documentada.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-11"
+      "sourceRef": "comite:PRI-11"
     },
     {
       "code": "PRI-12",
       "name": "Exclusión de información de privacidad no esencial disponible",
       "description": "Los individuos pueden aceptar u optar por no aceptar el uso de cookies no esenciales, y la empresa no almacena, altera ni copia información personal u otra información para la cual no se haya obtenido consentimiento.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-12"
+      "sourceRef": "comite:PRI-12"
     },
     {
       "code": "PRI-13",
       "name": "Políticas y procedimientos de información personal establecidos",
       "description": "La empresa revisa las políticas y procedimientos según sea necesario o cuando ocurren cambios, y los actualiza en consecuencia para asegurar que la información personal recolectada: se identifique como esencial u opcional; se realice con consentimiento (implícito o explícito) conforme a los requisitos legales y regulatorios; y se utilice de forma alineada y limitada a las finalidades identificadas en el aviso de privacidad.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-13"
+      "sourceRef": "comite:PRI-13"
     },
     {
       "code": "PRI-14",
       "name": "Política de privacidad disponible",
       "description": "La empresa dispone de una política de privacidad a disposición de los clientes, empleados y terceros pertinentes que la requieran, antes o al momento de recolectar información del individuo.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-14"
+      "sourceRef": "comite:PRI-14"
     },
     {
       "code": "PRI-15",
       "name": "Política de privacidad establecida",
       "description": "La empresa cuenta con una política de privacidad que documenta y comunica claramente a los individuos el alcance de la información personal recolectada, las obligaciones de la empresa, los derechos del individuo a acceder, actualizar o eliminar su información personal, y un punto de contacto actualizado al que los individuos puedan dirigir sus preguntas, solicitudes o inquietudes.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-15"
+      "sourceRef": "comite:PRI-15"
     },
     {
       "code": "PRI-16",
       "name": "Política de privacidad revisada",
       "description": "La empresa revisa la política de privacidad según sea necesario o cuando ocurren cambios, y la actualiza en consecuencia para asegurar que sea consistente con las leyes, regulaciones y estándares aplicables.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-16"
+      "sourceRef": "comite:PRI-16"
     },
     {
       "code": "PRI-17",
       "name": "Documentación de privacidad de terceros revisada",
       "description": "La empresa ha establecido, mantiene y revisa, al menos una vez al año, la documentación sobre la naturaleza, el alcance y la finalidad de la información personal recolectada, procesada, almacenada o divulgada a terceros.",
       "domain": "Privacidad",
-      "sourceRef": "vanta:PRI-17"
+      "sourceRef": "comite:PRI-17"
     },
     {
       "code": "PRM-1",
       "name": "Compromisos de la empresa comunicados externamente",
       "description": "Los compromisos de seguridad de la empresa se comunican a los clientes en los Contratos Marco de Servicio (MSA) o en los Términos de Servicio (TOS).",
       "domain": "Gestión de Proyectos y Recursos",
-      "sourceRef": "vanta:PRM-1"
+      "sourceRef": "comite:PRM-1"
     },
     {
       "code": "PRM-2",
       "name": "Recursos de soporte externo disponibles",
       "description": "La empresa proporciona a los clientes lineamientos y recursos de soporte técnico relacionados con la operación del sistema.",
       "domain": "Gestión de Proyectos y Recursos",
-      "sourceRef": "vanta:PRM-2"
+      "sourceRef": "comite:PRM-2"
     },
     {
       "code": "PRM-3",
       "name": "Descripción del servicio comunicada",
       "description": "La empresa proporciona una descripción de sus productos y servicios a los usuarios internos y externos.",
       "domain": "Gestión de Proyectos y Recursos",
-      "sourceRef": "vanta:PRM-3"
+      "sourceRef": "comite:PRM-3"
     },
     {
       "code": "RSK-1",
       "name": "Objetivos de evaluación de riesgos especificados",
       "description": "La empresa especifica sus objetivos para permitir la identificación y evaluación de los riesgos relacionados con dichos objetivos.",
       "domain": "Gestión de Riesgos",
-      "sourceRef": "vanta:RSK-1"
+      "sourceRef": "comite:RSK-1"
     },
     {
       "code": "RSK-2",
       "name": "Evaluaciones de riesgos realizadas",
       "description": "Las evaluaciones de riesgos de la empresa se realizan al menos una vez al año. Como parte de este proceso, se identifican las amenazas y los cambios (ambientales, regulatorios y tecnológicos) a los compromisos de servicio y se evalúan formalmente los riesgos. La evaluación de riesgos incluye la consideración del potencial de fraude y de cómo el fraude podría afectar el logro de los objetivos.",
       "domain": "Gestión de Riesgos",
-      "sourceRef": "vanta:RSK-2"
+      "sourceRef": "comite:RSK-2"
     },
     {
       "code": "RSK-3",
       "name": "Programa de gestión de riesgos establecido",
       "description": "La empresa cuenta con un programa documentado de gestión de riesgos que incluye lineamientos sobre la identificación de amenazas potenciales, la calificación de la relevancia de los riesgos asociados a dichas amenazas y las estrategias de mitigación de esos riesgos.",
       "domain": "Gestión de Riesgos",
-      "sourceRef": "vanta:RSK-3"
+      "sourceRef": "comite:RSK-3"
     },
     {
       "code": "SAT-1",
       "name": "Capacitación en concientización de seguridad implementada",
       "description": "La empresa exige que los empleados completen la capacitación en concientización de seguridad dentro de los treinta días posteriores a su contratación y al menos una vez al año a partir de entonces.",
       "domain": "Concientización y Capacitación en Seguridad",
-      "sourceRef": "vanta:SAT-1"
+      "sourceRef": "comite:SAT-1"
     },
     {
       "code": "TDA-1",
       "name": "Políticas de contraseñas aplicadas",
       "description": "La empresa ha establecido políticas de contraseñas con requisitos mínimos de contraseña del sistema. El sistema valida que se cumplan los requisitos o muestra un mensaje de error.",
       "domain": "Desarrollo y Adquisición de Tecnología",
-      "sourceRef": "vanta:TDA-1"
+      "sourceRef": "comite:TDA-1"
     },
     {
       "code": "TDA-2",
       "name": "Alertas automáticas ante incidencias de procesamiento",
       "description": "La empresa ha automatizado transacciones para mover archivos y datos entre distintos componentes del sistema. Los errores que ocurren durante la creación o transmisión de datos críticos generan una alerta a los administradores del sistema.",
       "domain": "Desarrollo y Adquisición de Tecnología",
-      "sourceRef": "vanta:TDA-2"
+      "sourceRef": "comite:TDA-2"
     },
     {
       "code": "TDA-3",
       "name": "Actividad del sistema registrada",
       "description": "La empresa captura la actividad del sistema, incluida la actividad de los usuarios, en registros de transacciones.",
       "domain": "Desarrollo y Adquisición de Tecnología",
-      "sourceRef": "vanta:TDA-3"
+      "sourceRef": "comite:TDA-3"
     },
     {
       "code": "TDA-4",
       "name": "Transacciones procesadas verificadas",
       "description": "El sistema de la empresa valida que las transacciones completadas de los clientes coincidan con la transacción programada del cliente. Se notifica a los clientes o a los gestores de cuenta sobre cualquier error o incumplimiento.",
       "domain": "Desarrollo y Adquisición de Tecnología",
-      "sourceRef": "vanta:TDA-4"
+      "sourceRef": "comite:TDA-4"
     },
     {
       "code": "TPM-1",
       "name": "Acuerdos con terceros establecidos",
       "description": "La empresa cuenta con acuerdos escritos con proveedores y terceros relacionados. Estos acuerdos incluyen compromisos de confidencialidad y privacidad aplicables a dicha entidad.",
       "domain": "Gestión de Terceros",
-      "sourceRef": "vanta:TPM-1"
+      "sourceRef": "comite:TPM-1"
     },
     {
       "code": "TPM-2",
       "name": "Programa de gestión de proveedores establecido",
       "description": "La empresa cuenta con un programa de gestión de proveedores. Los componentes de este programa incluyen: un inventario de proveedores terceros críticos; los requisitos de seguridad y privacidad del proveedor; y la revisión de los proveedores terceros críticos al menos una vez al año.",
       "domain": "Gestión de Terceros",
-      "sourceRef": "vanta:TPM-2"
+      "sourceRef": "comite:TPM-2"
     },
     {
       "code": "VPM-1",
       "name": "Infraestructura del servicio mantenida",
       "description": "La empresa aplica parches a la infraestructura que da soporte al servicio como parte del mantenimiento rutinario y como resultado de vulnerabilidades identificadas, para ayudar a asegurar que los servidores que dan soporte al servicio estén fortalecidos frente a las amenazas de seguridad.",
       "domain": "Gestión de Vulnerabilidades y Parches",
-      "sourceRef": "vanta:VPM-1"
+      "sourceRef": "comite:VPM-1"
     },
     {
       "code": "VPM-2",
       "name": "Vulnerabilidades escaneadas y remediadas",
       "description": "Se realizan escaneos de vulnerabilidades basados en host al menos trimestralmente en todos los sistemas de cara al exterior. Las vulnerabilidades críticas y altas se dan seguimiento hasta su remediación.",
       "domain": "Gestión de Vulnerabilidades y Parches",
-      "sourceRef": "vanta:VPM-2"
+      "sourceRef": "comite:VPM-2"
     }
   ],
   "pointOfFocusControls": [
@@ -8228,7 +8228,7 @@
       "evidenceToRetain": "Extracción de cuentas/privilegios, parámetros, muestra de aprobaciones y conclusión.",
       "automatedCoverage": "Análisis del 100% de cuentas y privilegios mediante consulta al catálogo del motor.",
       "complementaryManualValidation": "Validación de aprobaciones de cuentas privilegiadas y evaluación de mínimo privilegio por el auditor.",
-      "limitations": "Si el motor no está identificado, ejecutar la consulta equivalente del motor en alcance; Wazuh sobre el SO no valida la configuración interna del motor."
+      "limitations": "Si el motor no está identificado, ejecutar la consulta equivalente del motor en alcance; la sonda sobre el SO no valida la configuración interna del motor."
     },
     {
       "code": "T-BD-002",
@@ -8300,7 +8300,7 @@
       "evidenceToRetain": "Salida de la consulta de estado, parámetros, log de eventos y hoja de conclusión.",
       "automatedCoverage": "La consulta al catálogo del motor permite evaluar el 100% de las bases; el estado se monitorea de forma continua.",
       "complementaryManualValidation": "El auditor valida la cobertura de bases críticas y la resolución de fallos.",
-      "limitations": "Si el motor no está identificado, ejecutar la consulta equivalente del motor en alcance; Wazuh sobre el SO no valida el estado interno de replicación del motor. Complementa a T-CLD-007 (alertas)."
+      "limitations": "Si el motor no está identificado, ejecutar la consulta equivalente del motor en alcance; la sonda sobre el SO no valida el estado interno de replicación del motor. Complementa a T-CLD-007 (alertas)."
     },
     {
       "code": "T-BD-004",
@@ -8308,7 +8308,7 @@
       "name": "Monitoreo de capacidad y rendimiento del motor de base de datos",
       "objective": "Verificar que la capacidad del motor de base de datos en alcance (uso de espacio/tablespaces/filegroups, conexiones concurrentes, rendimiento de consultas y crecimiento) se monitorea de forma continua con umbrales y alertas, para asegurar que la capacidad de procesamiento satisface la demanda (SOC 2 CC7.1 / A1.1).",
       "type": "Prueba de diseño y efectividad operativa (control automatizado dependiente de TI).",
-      "tool": "Consultas a vistas de sistema/catálogo del motor en alcance (SQL Server: sys.dm_db_file_space_usage, sys.dm_exec_sessions; Oracle: DBA_TABLESPACE_USAGE_METRICS, V$SESSION; PostgreSQL: pg_stat_activity, pg_database_size; MySQL: INFORMATION_SCHEMA). Herramienta de monitoreo de BD nativa/cloud (p. ej. Azure SQL metrics). Wazuh para recolección de logs del motor donde esté configurado.",
+      "tool": "Consultas a vistas de sistema/catálogo del motor en alcance (SQL Server: sys.dm_db_file_space_usage, sys.dm_exec_sessions; Oracle: DBA_TABLESPACE_USAGE_METRICS, V$SESSION; PostgreSQL: pg_stat_activity, pg_database_size; MySQL: INFORMATION_SCHEMA). Herramienta de monitoreo de BD nativa/cloud (p. ej. Azure SQL metrics). La sonda para recolección de logs del motor donde esté configurado.",
       "population": "Universo = todas las instancias/bases de datos de producción en alcance.",
       "period": "Período bajo revisión del examen SOC 2 (Tipo II: 6-12 meses; Tipo I: fecha puntual).",
       "populationSize": "N = número total de instancias/bases de datos de producción en alcance.",
@@ -8321,7 +8321,7 @@
         "Ejecutar (o solicitar la ejecución de) la consulta equivalente según el motor en alcance para obtener uso de espacio, conexiones y métricas de crecimiento.",
         "Verificar que existen umbrales y alertas de capacidad configuradas.",
         "Para el período, obtener evidencia de alertas de capacidad de BD y su atención.",
-        "Confirmar que la recolección es continua (herramienta nativa/cloud; Wazuh para logs del motor si aplica).",
+        "Confirmar que la recolección es continua (herramienta nativa/cloud; la sonda para logs del motor si aplica).",
         "Identificar instancias no monitoreadas como excepción.",
         "Concluir sobre diseño y operatividad."
       ],
@@ -8336,9 +8336,9 @@
       "exceptions": "Excepción: instancia de producción sin monitoreo de capacidad, sin umbrales/alertas, o con alertas no atendidas.",
       "exceptionsHandling": "Documentar la instancia y la brecha; obtener explicación del DBA; determinar si es aislada o sistémica; evaluar ampliación al 100% del parque de BD; medir impacto sobre disponibilidad; documentar conclusión y recomendación.",
       "evidenceToRetain": "Inventario de instancias, salidas de consultas a vistas de sistema, capturas de dashboards de capacidad de BD, definición de umbrales/alertas, evidencia de alertas y su tratamiento.",
-      "automatedCoverage": "Wazuh AUTOMATIZA (donde esté configurado): recolección y correlación de logs del motor de BD (auditoría/errores) vía módulo de análisis de logs, y monitoreo de integridad (FIM) de ficheros de configuración del motor en el host. NO consulta por sí mismo métricas internas de capacidad de la BD.",
-      "complementaryManualValidation": "Las métricas de capacidad interna (uso de tablespaces, conexiones, crecimiento) se obtienen por consulta a vistas de sistema del motor o por la herramienta de monitoreo de BD nativa/cloud, no por Wazuh. El auditor valida manualmente umbrales, vigencia de alertas y atención de incidentes.",
-      "limitations": "La consulta exacta depende del motor en alcance; ejecutar la equivalente según SQL Server/Oracle/PostgreSQL/MySQL. Wazuh solo aporta cobertura de logs/FIM si el agente y la recolección del motor están configurados."
+      "automatedCoverage": "La sonda AUTOMATIZA (donde esté configurado): recolección y correlación de logs del motor de BD (auditoría/errores) vía módulo de análisis de logs, y monitoreo de integridad (FIM) de ficheros de configuración del motor en el host. NO consulta por sí mismo métricas internas de capacidad de la BD.",
+      "complementaryManualValidation": "Las métricas de capacidad interna (uso de tablespaces, conexiones, crecimiento) se obtienen por consulta a vistas de sistema del motor o por la herramienta de monitoreo de BD nativa/cloud, no por la sonda. El auditor valida manualmente umbrales, vigencia de alertas y atención de incidentes.",
+      "limitations": "La consulta exacta depende del motor en alcance; ejecutar la equivalente según SQL Server/Oracle/PostgreSQL/MySQL. La sonda solo aporta cobertura de logs/FIM si el agente y la recolección del motor están configurados."
     },
     {
       "code": "T-BD-005",
@@ -8346,7 +8346,7 @@
       "name": "Registro y auditoría de eventos del motor de base de datos",
       "objective": "Verificar que los motores de base de datos en alcance registran y envían eventos de auditoría relevantes (inicios de sesión, cambios de privilegios, DDL, accesos a datos sensibles, errores) a la gestión centralizada de logs, para permitir la identificación de eventos con impacto en los objetivos de seguridad (SOC 2 CC7.2).",
       "type": "Prueba de diseño y efectividad operativa (control automatizado dependiente de TI).",
-      "tool": "Configuración de auditoría del motor (SQL Server: SQL Server Audit / Extended Events; Oracle: Unified Auditing / AUD$; PostgreSQL: pgaudit / log_statement; MySQL: audit plugin / general_log). Wazuh Log Data Collection y FIM para recolectar/proteger los logs del motor en el host donde esté configurado.",
+      "tool": "Configuración de auditoría del motor (SQL Server: SQL Server Audit / Extended Events; Oracle: Unified Auditing / AUD$; PostgreSQL: pgaudit / log_statement; MySQL: audit plugin / general_log). La sonda Log Data Collection y FIM para recolectar/proteger los logs del motor en el host donde esté configurado.",
       "population": "Universo = todas las instancias/bases de datos de producción en alcance.",
       "period": "Período bajo revisión del examen SOC 2 (Tipo II: 6-12 meses; Tipo I: fecha puntual).",
       "populationSize": "N = número total de instancias de producción en alcance.",
@@ -8357,7 +8357,7 @@
       "stepByStep": [
         "Solicitar el inventario de instancias y conciliarlo con la consola del motor; documentar fecha/hora de extracción.",
         "Ejecutar (o solicitar) la consulta/consulta equivalente según el motor para confirmar que la auditoría está habilitada y qué eventos captura.",
-        "Verificar que los logs se envían a la gestión centralizada (Wazuh u otra) y su retención.",
+        "Verificar que los logs se envían a la gestión centralizada (la sonda u otra) y su retención.",
         "Para el período, obtener ejemplos de eventos auditados (logins, cambios de privilegios, DDL).",
         "Confirmar protección de integridad de los logs (FIM sobre ficheros de log donde aplique).",
         "Registrar instancias sin auditoría como excepción.",
@@ -8374,9 +8374,9 @@
       "exceptions": "Excepción: instancia sin auditoría habilitada, sin captura de eventos críticos, sin envío centralizado o con retención insuficiente.",
       "exceptionsHandling": "Documentar la instancia y la brecha; obtener explicación del DBA; determinar si es aislada o sistémica; evaluar ampliación al 100%; medir impacto sobre trazabilidad y detección; documentar conclusión.",
       "evidenceToRetain": "Inventario de instancias, salidas de consultas de configuración de auditoría, evidencia de envío centralizado, política de retención, ejemplos de eventos auditados.",
-      "automatedCoverage": "Wazuh AUTOMATIZA (donde esté configurado): recolección y correlación de los logs del motor de BD vía Log Data Collection, y FIM sobre los ficheros de log/configuración del motor. NO habilita ni configura por sí mismo la auditoría interna del motor: eso es configuración del propio motor.",
-      "complementaryManualValidation": "La habilitación de la auditoría y la selección de eventos se validan por consulta al motor (no por Wazuh). El auditor confirma manualmente la adecuación de los eventos auditados y la retención.",
-      "limitations": "La consulta exacta depende del motor en alcance (SQL Server/Oracle/PostgreSQL/MySQL). Wazuh aporta cobertura de logs/FIM del motor solo si el agente y la recolección están configurados en el host."
+      "automatedCoverage": "La sonda AUTOMATIZA (donde esté configurado): recolección y correlación de los logs del motor de BD vía Log Data Collection, y FIM sobre los ficheros de log/configuración del motor. NO habilita ni configura por sí mismo la auditoría interna del motor: eso es configuración del propio motor.",
+      "complementaryManualValidation": "La habilitación de la auditoría y la selección de eventos se validan por consulta al motor (no por la sonda). El auditor confirma manualmente la adecuación de los eventos auditados y la retención.",
+      "limitations": "La consulta exacta depende del motor en alcance (SQL Server/Oracle/PostgreSQL/MySQL). La sonda aporta cobertura de logs/FIM del motor solo si el agente y la recolección están configurados en el host."
     },
     {
       "code": "T-BD-006",
@@ -8384,7 +8384,7 @@
       "name": "Monitoreo de rendimiento y disponibilidad del motor de base de datos",
       "objective": "Verificar que el rendimiento y la disponibilidad de las instancias de base de datos en alcance se monitorean de forma continua (consultas lentas, bloqueos, conexiones, disponibilidad del servicio) con umbrales y alertas (SOC 2 A1.1 / CC7.1).",
       "type": "Prueba de diseño y efectividad operativa (control automatizado dependiente de TI).",
-      "tool": "Herramienta de monitoreo de BD nativa/cloud (p. ej. Azure SQL Insights, Oracle Enterprise Manager, pg_stat_statements, Performance Schema de MySQL). Wazuh para recolección de logs del motor y disponibilidad del host.",
+      "tool": "Herramienta de monitoreo de BD nativa/cloud (p. ej. Azure SQL Insights, Oracle Enterprise Manager, pg_stat_statements, Performance Schema de MySQL). La sonda para recolección de logs del motor y disponibilidad del host.",
       "population": "Universo = todas las instancias de producción en alcance.",
       "period": "Período bajo revisión del examen SOC 2 (Tipo II: 6-12 meses; Tipo I: fecha puntual).",
       "populationSize": "N = número total de instancias de producción.",
@@ -8410,9 +8410,9 @@
       "exceptions": "Excepción: instancia sin monitoreo de rendimiento/disponibilidad, sin umbrales/alertas o con alertas no atendidas.",
       "exceptionsHandling": "Documentar la instancia; explicación del DBA; aislada o sistémica; evaluar ampliación; impacto sobre disponibilidad; conclusión.",
       "evidenceToRetain": "Inventario de instancias, capturas de dashboards de rendimiento de BD, definición de umbrales/alertas, evidencia de alertas y su tratamiento.",
-      "automatedCoverage": "Wazuh AUTOMATIZA (donde aplique): recolección de logs del motor y disponibilidad/estado del host con agente. NO obtiene métricas internas de rendimiento de la BD; esas provienen de la herramienta de monitoreo de BD o de vistas del motor.",
+      "automatedCoverage": "La sonda AUTOMATIZA (donde aplique): recolección de logs del motor y disponibilidad/estado del host con agente. NO obtiene métricas internas de rendimiento de la BD; esas provienen de la herramienta de monitoreo de BD o de vistas del motor.",
       "complementaryManualValidation": "El auditor valida manualmente umbrales, vigencia de alertas y su atención. La herramienta de monitoreo de BD/vistas del motor es la fuente primaria.",
-      "limitations": "La fuente de métricas depende del motor y de la herramienta del ambiente. Wazuh complementa con logs/disponibilidad si el agente está activo."
+      "limitations": "La fuente de métricas depende del motor y de la herramienta del ambiente. La sonda complementa con logs/disponibilidad si el agente está activo."
     },
     {
       "code": "T-BD-007",
@@ -8420,7 +8420,7 @@
       "name": "Respaldo y restauración del motor de base de datos",
       "objective": "Verificar que las bases de datos de producción en alcance se respaldan periódicamente conforme a la política, que los respaldos se almacenan en ubicación distinta a producción y que la restauración se prueba, para asegurar la recuperabilidad de los datos (SOC 2 A1.2).",
       "type": "Prueba de diseño y efectividad operativa (control automatizado dependiente de TI + validación manual de restauración).",
-      "tool": "Mecanismo de respaldo del motor/nube (SQL Server: backups + Azure Backup; Oracle: RMAN; PostgreSQL: pg_dump/pg_basebackup/WAL archiving; MySQL: mysqldump/Percona XtraBackup). Consola del proveedor cloud para respaldos gestionados. Wazuh/monitoreo para alertas de éxito/fallo de jobs de respaldo donde esté configurado.",
+      "tool": "Mecanismo de respaldo del motor/nube (SQL Server: backups + Azure Backup; Oracle: RMAN; PostgreSQL: pg_dump/pg_basebackup/WAL archiving; MySQL: mysqldump/Percona XtraBackup). Consola del proveedor cloud para respaldos gestionados. La sonda/monitoreo para alertas de éxito/fallo de jobs de respaldo donde esté configurado.",
       "population": "Universo = todas las bases de datos de producción en alcance + los eventos de respaldo (jobs) del período.",
       "period": "Período bajo revisión del examen SOC 2.",
       "populationSize": "N(instancias) = total de BD de producción; N(jobs) = total de ejecuciones de respaldo del período.",
@@ -8449,7 +8449,7 @@
       "exceptions": "Excepción: instancia sin respaldo, jobs fallidos no remediados, respaldo en la misma ubicación que producción, retención insuficiente o ausencia de prueba de restauración.",
       "exceptionsHandling": "Documentar la instancia/job y la brecha; explicación del DBA; aislada o sistémica; evaluar ampliación al 100%; medir impacto sobre recuperabilidad (RPO/RTO); documentar conclusión.",
       "evidenceToRetain": "Inventario de BD, política de respaldos, configuración de jobs, log de ejecuciones, evidencia de almacenamiento separado, evidencia de prueba de restauración.",
-      "automatedCoverage": "Wazuh/monitoreo AUTOMATIZA (donde aplique): alertas de éxito/fallo de jobs de respaldo vía análisis de logs. La consola del motor/cloud reporta el estado de los respaldos. NO valida por sí misma la recuperabilidad: la restauración debe probarse.",
+      "automatedCoverage": "La sonda/monitoreo AUTOMATIZA (donde aplique): alertas de éxito/fallo de jobs de respaldo vía análisis de logs. La consola del motor/cloud reporta el estado de los respaldos. NO valida por sí misma la recuperabilidad: la restauración debe probarse.",
       "complementaryManualValidation": "El auditor valida manualmente la prueba de restauración (evidencia de recuperación real), la ubicación de almacenamiento y la conformidad con RPO/RTO. La automatización cubre el estado de los jobs, no la integridad del dato restaurado.",
       "limitations": "El mecanismo de respaldo depende del motor/nube en alcance. La prueba de restauración puede requerir coordinación con el DBA; documentar cualquier limitación de acceso."
     },
@@ -8488,9 +8488,9 @@
       "exceptions": "Parámetro no configurado, ausente o por debajo del mínimo de la política (p. ej., historial en 0, sin expiración, sin validación de complejidad); instancia sin política de contraseña aplicada.",
       "exceptionsHandling": "1) Documentar la excepción e identificar la instancia y el parámetro. 2) Obtener explicación formal del responsable. 3) Obtener evidencia complementaria. 4) Determinar causa raíz. 5) Evaluar si es aislada o sistémica. 6) Determinar población potencialmente afectada e impacto. 7) Documentar conclusión. Una explicación verbal sin evidencia no elimina la excepción.",
       "evidenceToRetain": "Salida de consulta/capturas de parámetros por instancia, política de contraseñas y conclusión.",
-      "automatedCoverage": "No cubierta por Wazuh – El SCA de Wazuh no consulta los parámetros internos de política de contraseña del motor de base de datos; requiere consulta directa al motor.",
+      "automatedCoverage": "No cubierta por la sonda – El SCA de la sonda no consulta los parámetros internos de política de contraseña del motor de base de datos; requiere consulta directa al motor.",
       "complementaryManualValidation": "El auditor ejecuta o revisa la consulta de parámetros en cada instancia y la concilia contra la política; validación manual/técnica directa en el motor.",
-      "limitations": "Wazuh no dispone en su catálogo (SCA/FIM/Vulnerability) de un check que lea la política de contraseñas interna del motor de base de datos; por ello la prueba es técnica-manual mediante consulta directa. La sintaxis exacta depende del motor en alcance. Complementa a T-APP-002 (capa de aplicación) y T-SRV-001 (capa de sistema operativo)."
+      "limitations": "La sonda no dispone en su catálogo (SCA/FIM/Vulnerability) de un check que lea la política de contraseñas interna del motor de base de datos; por ello la prueba es técnica-manual mediante consulta directa. La sintaxis exacta depende del motor en alcance. Complementa a T-APP-002 (capa de aplicación) y T-SRV-001 (capa de sistema operativo)."
     },
     {
       "code": "T-BD-009",
@@ -8575,20 +8575,20 @@
       "name": "Evaluación de IAM, MFA y cuentas privilegiadas en el proveedor cloud",
       "objective": "Verificar, en el proveedor cloud en alcance (AWS/Azure/GCP/M365/Entra ID), que la gestión de identidades aplica mínimo privilegio, MFA para cuentas privilegiadas y ausencia de credenciales/roles excesivos.",
       "type": "Mixta",
-      "tool": "Wazuh – módulo de Cloud Security / integración cloud (AWS/Azure/GCP/M365-Entra) y SCA (CIS benchmarks de identidad)",
+      "tool": "La sonda – módulo de Cloud Security / integración cloud (AWS/Azure/GCP/M365-Entra) y SCA (CIS benchmarks de identidad)",
       "population": "Identidades, roles y políticas IAM del tenant/cuenta cloud en alcance.",
       "period": "Período bajo auditoría",
       "populationSize": "Por determinar (n.º de identidades/roles).",
-      "suggestedSampleSize": "100% mediante Wazuh (Cloud Security/SCA); muestreo para validación documental de cuentas privilegiadas.",
+      "suggestedSampleSize": "100% mediante la sonda (Cloud Security/SCA); muestreo para validación documental de cuentas privilegiadas.",
       "selectionMethod": "100% análisis; muestreo documental",
-      "evidenceToRequest": "1. Ejecución del módulo de Cloud Security/SCA de Wazuh sobre la categoría de identidad (IAM/Entra) del proveedor en alcance. 2. Extracción de identidades/roles y estado de MFA desde los eventos/consultas de Wazuh. 3. Aprobaciones de cuentas privilegiadas.",
-      "prerequisites": "Acceso de solo lectura (auditoría/security reader) al proveedor cloud integrado con Wazuh y a la consola de Wazuh (resultados de Cloud Security/SCA).",
+      "evidenceToRequest": "1. Ejecución del módulo de Cloud Security/SCA de la sonda sobre la categoría de identidad (IAM/Entra) del proveedor en alcance. 2. Extracción de identidades/roles y estado de MFA desde los eventos/consultas de la sonda. 3. Aprobaciones de cuentas privilegiadas.",
+      "prerequisites": "Acceso de solo lectura (auditoría/security reader) al proveedor cloud integrado con la sonda y a la consola de la sonda (resultados de Cloud Security/SCA).",
       "stepByStep": [
-        "Revisar en Wazuh los resultados del módulo de Cloud Security/SCA de identidad (IAM/Entra) para el proveedor en alcance.",
+        "Revisar en la sonda los resultados del módulo de Cloud Security/SCA de identidad (IAM/Entra) para el proveedor en alcance.",
         "Analizar el 100%: usuarios/roles, políticas administrativas, llaves de acceso, MFA y Conditional Access (Entra).",
         "Identificar cuentas privilegiadas, credenciales antiguas, roles excesivos y usuarios sin MFA.",
         "Para una muestra de cuentas privilegiadas obtener la aprobación.",
-        "Documentar hallazgos y conclusión con capturas de Wazuh."
+        "Documentar hallazgos y conclusión con capturas de la sonda."
       ],
       "attributesToValidate": [
         "MFA en cuentas privilegiadas",
@@ -8600,10 +8600,10 @@
       "complianceCriterion": "La configuración IAM cumple mínimo privilegio y MFA en cuentas privilegiadas; las privilegiadas están aprobadas.",
       "exceptions": "Cuenta privilegiada sin MFA; roles/políticas excesivos; llaves obsoletas; cuenta privilegiada sin aprobación.",
       "exceptionsHandling": "1) Documentar la excepción e identificar el elemento afectado. 2) Obtener explicación formal del responsable. 3) Obtener evidencia complementaria. 4) Determinar causa raíz. 5) Evaluar si es aislada o sistémica. 6) Evaluar ampliar la muestra y la población potencialmente afectada. 7) Determinar impacto sobre la conclusión. 8) Documentar conclusión. Una explicación verbal sin evidencia no elimina la excepción.",
-      "evidenceToRetain": "Resultados de Wazuh (Cloud Security/SCA), extracción de identidades y conclusión.",
-      "automatedCoverage": "Wazuh (Cloud Security/SCA) evalúa automáticamente el 100% de identidades y políticas IAM integradas.",
+      "evidenceToRetain": "Resultados de la sonda (Cloud Security/SCA), extracción de identidades y conclusión.",
+      "automatedCoverage": "La sonda (Cloud Security/SCA) evalúa automáticamente el 100% de identidades y políticas IAM integradas.",
       "complementaryManualValidation": "El auditor valida aprobaciones de cuentas privilegiadas y evalúa la relevancia de los hallazgos.",
-      "limitations": "Ejecutar el módulo de Cloud Security/SCA de identidad de Wazuh para el proveedor en alcance; los hallazgos deben verificarse en la ejecución real (no asumirse)."
+      "limitations": "Ejecutar el módulo de Cloud Security/SCA de identidad de la sonda para el proveedor en alcance; los hallazgos deben verificarse en la ejecución real (no asumirse)."
     },
     {
       "code": "T-CLD-002",
@@ -8611,20 +8611,20 @@
       "name": "Evaluación de cifrado, red, exposición pública y almacenamiento en cloud",
       "objective": "Verificar la configuración segura de red y datos en el proveedor cloud en alcance: cifrado en tránsito/reposo, Security Groups/firewall, ausencia de exposición pública indebida y protección de almacenamiento/secretos.",
       "type": "Mixta",
-      "tool": "Wazuh – módulo de Cloud Security / SCA (CIS benchmarks de red, cifrado y almacenamiento) del proveedor en alcance",
+      "tool": "La sonda – módulo de Cloud Security / SCA (CIS benchmarks de red, cifrado y almacenamiento) del proveedor en alcance",
       "population": "Recursos de red, almacenamiento y cifrado del entorno cloud en alcance.",
       "period": "Período bajo auditoría",
       "populationSize": "Por determinar (n.º de recursos).",
-      "suggestedSampleSize": "100% mediante Wazuh (Cloud Security/SCA); dirigido por riesgo a recursos expuestos.",
+      "suggestedSampleSize": "100% mediante la sonda (Cloud Security/SCA); dirigido por riesgo a recursos expuestos.",
       "selectionMethod": "100% análisis",
-      "evidenceToRequest": "1. Ejecución del módulo de Cloud Security/SCA de Wazuh para red/cifrado/almacenamiento. 2. Inventario de recursos (almacenamiento, SG, bases, secretos).",
-      "prerequisites": "Acceso de solo lectura (security reader) al proveedor cloud integrado con Wazuh y a la consola de Wazuh (resultados de Cloud Security/SCA).",
+      "evidenceToRequest": "1. Ejecución del módulo de Cloud Security/SCA de la sonda para red/cifrado/almacenamiento. 2. Inventario de recursos (almacenamiento, SG, bases, secretos).",
+      "prerequisites": "Acceso de solo lectura (security reader) al proveedor cloud integrado con la sonda y a la consola de la sonda (resultados de Cloud Security/SCA).",
       "stepByStep": [
-        "Revisar en Wazuh los resultados del módulo de Cloud Security/SCA de red, cifrado y almacenamiento para el proveedor en alcance.",
+        "Revisar en la sonda los resultados del módulo de Cloud Security/SCA de red, cifrado y almacenamiento para el proveedor en alcance.",
         "Analizar el 100%: cifrado en reposo de almacenamiento/bases, cifrado en tránsito (TLS), Security Groups/reglas abiertas, exposición pública de almacenamiento, gestión de secretos/llaves.",
         "Priorizar recursos con exposición pública.",
         "Para hallazgos obtener justificación/plan de remediación.",
-        "Documentar conclusión con capturas de Wazuh."
+        "Documentar conclusión con capturas de la sonda."
       ],
       "attributesToValidate": [
         "Cifrado en reposo y en tránsito",
@@ -8635,10 +8635,10 @@
       "complianceCriterion": "Los recursos cloud aplican cifrado y reglas de red restringidas, sin exposición pública indebida.",
       "exceptions": "Almacenamiento/base sin cifrado; recurso expuesto sin justificación; reglas de red abiertas; secretos sin protección.",
       "exceptionsHandling": "1) Documentar la excepción e identificar el elemento afectado. 2) Obtener explicación formal del responsable. 3) Obtener evidencia complementaria. 4) Determinar causa raíz. 5) Evaluar si es aislada o sistémica. 6) Evaluar ampliar la muestra y la población potencialmente afectada. 7) Determinar impacto sobre la conclusión. 8) Documentar conclusión. Una explicación verbal sin evidencia no elimina la excepción.",
-      "evidenceToRetain": "Resultados de Wazuh (Cloud Security/SCA), inventario de recursos y conclusión.",
-      "automatedCoverage": "Wazuh (Cloud Security/SCA) evalúa automáticamente el 100% de la configuración de red/cifrado/almacenamiento integrada.",
+      "evidenceToRetain": "Resultados de la sonda (Cloud Security/SCA), inventario de recursos y conclusión.",
+      "automatedCoverage": "La sonda (Cloud Security/SCA) evalúa automáticamente el 100% de la configuración de red/cifrado/almacenamiento integrada.",
       "complementaryManualValidation": "El auditor valida justificaciones de excepciones y prioriza recursos expuestos.",
-      "limitations": "Ejecutar el módulo de Cloud Security/SCA de las categorías correspondientes de Wazuh para el proveedor en alcance; verificar los hallazgos en la ejecución real."
+      "limitations": "Ejecutar el módulo de Cloud Security/SCA de las categorías correspondientes de la sonda para el proveedor en alcance; verificar los hallazgos en la ejecución real."
     },
     {
       "code": "T-CLD-003",
@@ -8646,16 +8646,16 @@
       "name": "Evaluación de logging, monitoreo y respaldos/replicación en cloud",
       "objective": "Verificar que el entorno cloud en alcance tiene habilitado el registro de actividad (CloudTrail/Activity Logs), monitoreo/alertas, y respaldos/replicación de datos de producción.",
       "type": "Mixta",
-      "tool": "Wazuh – módulo de Cloud Security / SCA (logging, monitoreo y respaldo) del proveedor en alcance",
+      "tool": "La sonda – módulo de Cloud Security / SCA (logging, monitoreo y respaldo) del proveedor en alcance",
       "population": "Configuración de logging/monitoreo y recursos de respaldo/replicación del entorno cloud.",
       "period": "Período bajo auditoría",
       "populationSize": "Por determinar (n.º de cuentas/servicios).",
-      "suggestedSampleSize": "100% mediante Wazuh (Cloud Security/SCA); muestreo de eventos de restauración/replicación.",
+      "suggestedSampleSize": "100% mediante la sonda (Cloud Security/SCA); muestreo de eventos de restauración/replicación.",
       "selectionMethod": "100% configuración; muestreo de pruebas",
-      "evidenceToRequest": "1. Resultados del módulo de Cloud Security/SCA de Wazuh para logging/monitoreo. 2. Configuración de respaldo/replicación. 3. Evidencia de pruebas de restauración/failover.",
+      "evidenceToRequest": "1. Resultados del módulo de Cloud Security/SCA de la sonda para logging/monitoreo. 2. Configuración de respaldo/replicación. 3. Evidencia de pruebas de restauración/failover.",
       "prerequisites": "Acceso de solo lectura (security reader) al proveedor cloud y a la evidencia de respaldos.",
       "stepByStep": [
-        "Revisar en Wazuh los resultados del módulo de Cloud Security/SCA de logging/monitoreo para el proveedor en alcance y confirmar que el registro de actividad está habilitado en el 100% de las cuentas/servicios.",
+        "Revisar en la sonda los resultados del módulo de Cloud Security/SCA de logging/monitoreo para el proveedor en alcance y confirmar que el registro de actividad está habilitado en el 100% de las cuentas/servicios.",
         "Verificar alertas configuradas.",
         "Verificar configuración de respaldos/replicación de datos de producción y su ubicación.",
         "Obtener evidencia de una muestra de pruebas de restauración/failover.",
@@ -8671,10 +8671,10 @@
       "complianceCriterion": "El entorno cloud tiene logging/monitoreo habilitados y respaldos/replicación con pruebas de restauración.",
       "exceptions": "Cuenta/servicio sin logging; sin alertas; respaldos/replicación no configurados o sin pruebas de restauración.",
       "exceptionsHandling": "1) Documentar la excepción e identificar el elemento afectado. 2) Obtener explicación formal del responsable. 3) Obtener evidencia complementaria. 4) Determinar causa raíz. 5) Evaluar si es aislada o sistémica. 6) Evaluar ampliar la muestra y la población potencialmente afectada. 7) Determinar impacto sobre la conclusión. 8) Documentar conclusión. Una explicación verbal sin evidencia no elimina la excepción.",
-      "evidenceToRetain": "Resultados de Wazuh (Cloud Security/SCA), configuración de respaldos y conclusión.",
-      "automatedCoverage": "Wazuh (Cloud Security/SCA) evalúa automáticamente el 100% de la configuración de logging y respaldo integrada.",
+      "evidenceToRetain": "Resultados de la sonda (Cloud Security/SCA), configuración de respaldos y conclusión.",
+      "automatedCoverage": "La sonda (Cloud Security/SCA) evalúa automáticamente el 100% de la configuración de logging y respaldo integrada.",
       "complementaryManualValidation": "El auditor valida la evidencia de pruebas de restauración/failover.",
-      "limitations": "Wazuh (Cloud Security/SCA) cubre configuraciones evaluables mediante la integración con el proveedor cloud en alcance; no valida controles a nivel de datos ni la efectividad de las pruebas de restauración, que requieren evidencia operativa complementaria. Los resultados de Wazuh deben verificarse en la ejecución real (no asumirse). La cobertura se limita a las cuentas/suscripciones integradas en el escaneo; entornos fuera del perfil de integración quedan sin evaluar."
+      "limitations": "La sonda (Cloud Security/SCA) cubre configuraciones evaluables mediante la integración con el proveedor cloud en alcance; no valida controles a nivel de datos ni la efectividad de las pruebas de restauración, que requieren evidencia operativa complementaria. Los resultados de la sonda deben verificarse en la ejecución real (no asumirse). La cobertura se limita a las cuentas/suscripciones integradas en el escaneo; entornos fuera del perfil de integración quedan sin evaluar."
     },
     {
       "code": "T-CLD-004",
@@ -8682,7 +8682,7 @@
       "name": "Verificación del monitoreo de capacidad y rendimiento en la nube (Azure) con alertas por umbral",
       "objective": "Comprobar que la capacidad del sistema se monitorea de forma continua en la plataforma cloud (latencia y errores del application gateway, uso de recursos), con umbrales definidos y alertas automatizadas que disparan acciones cuando la capacidad se aproxima a su límite.",
       "type": "Prueba de implementación y efectividad operativa (control detectivo, automatizado)",
-      "tool": "Wazuh (Cloud Security/SCA – categoría monitoring) sobre Azure Monitor / Metrics / Alerts; consola nativa del proveedor como evidencia de respaldo",
+      "tool": "La sonda (Cloud Security/SCA – categoría monitoring) sobre Azure Monitor / Metrics / Alerts; consola nativa del proveedor como evidencia de respaldo",
       "population": "Recursos en alcance monitoreados (application gateway, máquinas virtuales, cuentas de almacenamiento) y reglas de alerta configuradas en el tenant en alcance",
       "period": "Todo el período de auditoría para las alertas disparadas; estado de configuración a la fecha de extracción",
       "populationSize": "Igual al número de recursos/reglas de alerta en alcance (obtener del portal)",
@@ -8720,14 +8720,14 @@
       "name": "Verificación operativa de la ingesta, retención y revisión de logs (SIEM/gestión de logs)",
       "objective": "Comprobar que la herramienta de gestión de logs recolecta de forma efectiva los logs de las fuentes en alcance (infraestructura cloud vinculada, servidores, aplicaciones), los retiene según política, los protege y que los eventos relevantes son revisados/alertados.",
       "type": "Prueba de implementación y efectividad operativa (control detectivo, automatizado)",
-      "tool": "Wazuh (indexer/agentes, retención, alertas) y/o SIEM/solución de logs cloud; Vanta (infraestructura cloud vinculada); consola nativa del proveedor",
+      "tool": "La sonda (indexer/agentes, retención, alertas) y/o SIEM/solución de logs cloud; una plataforma GRC (infraestructura cloud vinculada); consola nativa del proveedor",
       "population": "Fuentes de log en alcance (agentes, servicios cloud, aplicaciones) que deben estar ingiriendo logs",
       "period": "Todo el período de auditoría para la ingesta; alertas gestionadas en el período",
       "populationSize": "Número de fuentes/agentes que deben reportar logs (obtener del inventario)",
       "suggestedSampleSize": "Estado de ingesta: 100% de las fuentes. Alertas/eventos revisados: muestra 10% (mín 5, máx 25)",
       "selectionMethod": "Ingesta: revisión total. Alertas: selección aleatoria del listado del período",
       "evidenceToRequest": "Estado de conexión/ingesta por fuente; configuración de retención; evidencia de protección de logs; listado de alertas/eventos revisados y su gestión.",
-      "prerequisites": "Acceso de lectura a la consola de Wazuh/SIEM o exportaciones; inventario de fuentes en alcance.",
+      "prerequisites": "Acceso de lectura a la consola de la sonda/SIEM o exportaciones; inventario de fuentes en alcance.",
       "stepByStep": [
         "Obtener el inventario de fuentes que deben reportar logs y conciliarlo con las fuentes activas en la herramienta.",
         "Verificar al 100% el estado de ingesta y detectar fuentes que no reportan.",
@@ -8757,7 +8757,7 @@
       "name": "Verificación operativa del monitoreo de rendimiento de infraestructura con alertas por umbral (Azure)",
       "objective": "Comprobar que la herramienta de monitoreo supervisa el rendimiento de la infraestructura en alcance (CPU de VMs, errores del application gateway, estado de cuentas de almacenamiento) y genera alertas automáticas cuando se alcanzan umbrales predefinidos, gestionadas oportunamente.",
       "type": "Prueba de implementación y efectividad operativa (control detectivo, automatizado)",
-      "tool": "Wazuh (Cloud Security/SCA – monitoring) sobre Azure Monitor / Metrics / Alerts; consola nativa como evidencia de respaldo",
+      "tool": "La sonda (Cloud Security/SCA – monitoring) sobre Azure Monitor / Metrics / Alerts; consola nativa como evidencia de respaldo",
       "population": "Recursos de infraestructura en alcance (VMs, application gateway, cuentas de almacenamiento) y reglas de alerta configuradas",
       "period": "Todo el período para alertas disparadas; configuración a la fecha de extracción",
       "populationSize": "Número de recursos/reglas de alerta de rendimiento en alcance",
@@ -8795,7 +8795,7 @@
       "name": "Verificación de las alertas de fallo de replicación hacia administradores",
       "objective": "Comprobar que existen alertas configuradas que notifican automáticamente a los administradores cuando la replicación de bases de datos falla, y que las alertas disparadas en el período fueron atendidas oportunamente.",
       "type": "Prueba de implementación y efectividad operativa (control detectivo, automatizado)",
-      "tool": "Consola de monitoreo del proveedor (Azure Monitor/alertas) o del motor gestionado; Wazuh si integra los eventos",
+      "tool": "Consola de monitoreo del proveedor (Azure Monitor/alertas) o del motor gestionado; la sonda si integra los eventos",
       "population": "Reglas de alerta de replicación configuradas y alertas disparadas en el período",
       "period": "Configuración a la fecha de extracción; alertas disparadas durante el período",
       "populationSize": "Número de reglas de alerta de replicación + alertas disparadas",
@@ -8829,7 +8829,7 @@
       "name": "Verificación operativa de respaldos de producción, ubicación separada y pruebas de restauración",
       "objective": "Comprobar que los respaldos de los datos de producción se ejecutan según la frecuencia definida, se almacenan en una ubicación distinta a la de producción, están protegidos y que se realizan pruebas de restauración exitosas.",
       "type": "Prueba de implementación y efectividad operativa (control correctivo, automatizado + manual)",
-      "tool": "Wazuh (Cloud Security/SCA – categoría backup) sobre la consola de respaldos del proveedor (Azure Backup/servicio equivalente); registros de jobs de respaldo",
+      "tool": "La sonda (Cloud Security/SCA – categoría backup) sobre la consola de respaldos del proveedor (Azure Backup/servicio equivalente); registros de jobs de respaldo",
       "population": "Cargas de trabajo/bases de producción en alcance que deben respaldarse; jobs de respaldo del período",
       "period": "Todo el período de auditoría para la ejecución de jobs; configuración a la fecha de extracción",
       "populationSize": "Número de jobs de respaldo ejecutados en el período + recursos en alcance",
@@ -8867,7 +8867,7 @@
       "name": "Verificación de la arquitectura de múltiples zonas de disponibilidad en producción",
       "objective": "Comprobar que el entorno de producción aplica una estrategia multiubicación / multi-zona de disponibilidad que permite reanudar operaciones ante la pérdida de una instalación, verificando el despliegue efectivo de recursos críticos en múltiples zonas/regiones.",
       "type": "Prueba de implementación (control preventivo, automatizado/arquitectura)",
-      "tool": "Wazuh (Cloud Security/SCA – resiliencia) sobre la consola nativa del proveedor (Azure — availability zones/regiones); diagrama de red/arquitectura",
+      "tool": "La sonda (Cloud Security/SCA – resiliencia) sobre la consola nativa del proveedor (Azure — availability zones/regiones); diagrama de red/arquitectura",
       "population": "Recursos críticos de producción en alcance que deben estar distribuidos en múltiples zonas",
       "period": "Estado de configuración a la fecha de extracción",
       "populationSize": "Número de recursos críticos de producción en alcance",
@@ -8901,19 +8901,19 @@
       "name": "Detección de intrusiones y monitoreo de amenazas de red en la nube",
       "objective": "Verificar que existe monitoreo continuo de la red y detección temprana de amenazas en el entorno cloud en alcance (tráfico, flujos de red, alertas de amenazas), complementando el IDS a nivel de host, para la detección temprana de posibles brechas (SOC 2 CC7.1 / CC7.2).",
       "type": "Prueba de diseño y efectividad operativa (control automatizado dependiente de TI).",
-      "tool": "Servicios nativos del proveedor (AWS: GuardDuty, VPC Flow Logs; Azure: Microsoft Defender for Cloud, NSG Flow Logs, Sentinel; GCP: Cloud IDS, VPC Flow Logs) como fuente de detección de red. Wazuh (Cloud Security/SCA) verifica que estos servicios de detección y los flow logs estén habilitados, e ingiere y correlaciona los logs/alertas cloud mediante reglas (sin inventar IDs de checks).",
+      "tool": "Servicios nativos del proveedor (AWS: GuardDuty, VPC Flow Logs; Azure: Microsoft Defender for Cloud, NSG Flow Logs, Sentinel; GCP: Cloud IDS, VPC Flow Logs) como fuente de detección de red. La sonda (Cloud Security/SCA) verifica que estos servicios de detección y los flow logs estén habilitados, e ingiere y correlaciona los logs/alertas cloud mediante reglas (sin inventar IDs de checks).",
       "population": "Universo = cuentas/suscripciones/proyectos cloud y VPC/VNets en alcance.",
       "period": "Período bajo revisión del examen SOC 2.",
       "populationSize": "N = número de cuentas/suscripciones y redes virtuales en alcance.",
       "suggestedSampleSize": "Revisar el 100% de las cuentas/redes en alcance (población pequeña y verificable vía API/consola).",
       "selectionMethod": "No aplica muestreo cuando se revisa el 100% vía API/consola; si hubiera un parque grande de redes, muestra 10% (mín 5, máx 25).",
-      "evidenceToRequest": "1) Inventario de cuentas/suscripciones/proyectos y redes. 2) Evidencia de servicios de detección habilitados. 3) Configuración de flow logs. 4) Ejemplos de alertas de amenazas del período y su tratamiento. 5) Resultados de Wazuh (Cloud Security/SCA) sobre el estado de estos servicios.",
-      "prerequisites": "Acceso de solo lectura (rol auditor) a las plataformas cloud integradas con Wazuh y acceso a la consola de Wazuh.",
+      "evidenceToRequest": "1) Inventario de cuentas/suscripciones/proyectos y redes. 2) Evidencia de servicios de detección habilitados. 3) Configuración de flow logs. 4) Ejemplos de alertas de amenazas del período y su tratamiento. 5) Resultados de la sonda (Cloud Security/SCA) sobre el estado de estos servicios.",
+      "prerequisites": "Acceso de solo lectura (rol auditor) a las plataformas cloud integradas con la sonda y acceso a la consola de la sonda.",
       "stepByStep": [
         "Obtener el inventario de cuentas/suscripciones/proyectos y redes; documentar fecha/hora de extracción.",
-        "Verificar en Wazuh (Cloud Security/SCA) que el servicio de detección de amenazas de red del proveedor está habilitado en todas las cuentas/redes.",
-        "Confirmar que los flow logs están activos y enviados a Wazuh para su ingesta/correlación.",
-        "Para el período, obtener ejemplos de alertas de amenaza en Wazuh y verificar su tratamiento.",
+        "Verificar en la sonda (Cloud Security/SCA) que el servicio de detección de amenazas de red del proveedor está habilitado en todas las cuentas/redes.",
+        "Confirmar que los flow logs están activos y enviados a la sonda para su ingesta/correlación.",
+        "Para el período, obtener ejemplos de alertas de amenaza en la sonda y verificar su tratamiento.",
         "Registrar cuentas/redes sin detección como excepción.",
         "Concluir."
       ],
@@ -8926,10 +8926,10 @@
       "complianceCriterion": "Cumple si el servicio de detección de amenazas de red está habilitado en el 100% de las cuentas/redes en alcance, con flow logs centralizados y alertas atendidas durante el período.",
       "exceptions": "Excepción: cuenta/red sin servicio de detección habilitado, sin flow logs, o con alertas no atendidas.",
       "exceptionsHandling": "Documentar la cuenta/red; explicación del responsable cloud; aislada o sistémica; evaluar ampliación al 100%; impacto sobre detección; conclusión.",
-      "evidenceToRetain": "Inventario de cuentas/redes, evidencia de servicios habilitados, configuración de flow logs, resultados de Wazuh (Cloud Security/SCA), ejemplos de alertas y su tratamiento.",
-      "automatedCoverage": "Wazuh (Cloud Security/SCA) VERIFICA automáticamente si los servicios de detección del proveedor (GuardDuty/Defender for Cloud/Cloud IDS) y los flow logs están habilitados, y AUTOMATIZA la ingesta y correlación de los logs/alertas cloud vía reglas. Los resultados se verifican en la ejecución real.",
-      "complementaryManualValidation": "El auditor valida manualmente la cobertura completa del alcance, la adecuación de las reglas de Wazuh y el tratamiento de las alertas. La detección de red la provee el servicio nativo del proveedor; Wazuh verifica su habilitación y centraliza la correlación de sus logs.",
-      "limitations": "Wazuh verifica (vía Cloud Security/SCA) que los servicios de detección de red del proveedor estén habilitados y correlaciona sus logs cloud; la detección de red en sí la ejecuta el servicio nativo del proveedor. Confirmar los servicios reales del proveedor en alcance."
+      "evidenceToRetain": "Inventario de cuentas/redes, evidencia de servicios habilitados, configuración de flow logs, resultados de la sonda (Cloud Security/SCA), ejemplos de alertas y su tratamiento.",
+      "automatedCoverage": "La sonda (Cloud Security/SCA) VERIFICA automáticamente si los servicios de detección del proveedor (GuardDuty/Defender for Cloud/Cloud IDS) y los flow logs están habilitados, y AUTOMATIZA la ingesta y correlación de los logs/alertas cloud vía reglas. Los resultados se verifican en la ejecución real.",
+      "complementaryManualValidation": "El auditor valida manualmente la cobertura completa del alcance, la adecuación de las reglas de la sonda y el tratamiento de las alertas. La detección de red la provee el servicio nativo del proveedor; la sonda verifica su habilitación y centraliza la correlación de sus logs.",
+      "limitations": "La sonda verifica (vía Cloud Security/SCA) que los servicios de detección de red del proveedor estén habilitados y correlaciona sus logs cloud; la detección de red en sí la ejecuta el servicio nativo del proveedor. Confirmar los servicios reales del proveedor en alcance."
     },
     {
       "code": "T-CLD-011",
@@ -8937,18 +8937,18 @@
       "name": "Validación de la política de contraseñas y autenticación en el proveedor cloud (IAM/Entra ID)",
       "objective": "Comprobar, en el proveedor cloud en alcance (AWS IAM / Microsoft Entra ID / GCP), que la política de contraseñas de las cuentas (longitud, complejidad, historial/reutilización, expiración y bloqueo) y los requisitos de autenticación están configurados conforme a la política de contraseñas de la empresa.",
       "type": "Técnica",
-      "tool": "Wazuh – SCA / Cloud Security (CIS benchmarks de identidad: política de contraseñas de IAM / Entra ID / GCP)",
+      "tool": "La sonda – SCA / Cloud Security (CIS benchmarks de identidad: política de contraseñas de IAM / Entra ID / GCP)",
       "population": "Política de contraseñas de las cuentas gestionadas en el proveedor cloud en alcance (IAM/Entra ID/GCP).",
       "period": "Período bajo auditoría (corte a la fecha de extracción)",
       "populationSize": "Por determinar (cuentas/suscripciones del proveedor cloud en alcance).",
       "suggestedSampleSize": "100% de las cuentas/suscripciones cloud en alcance (análisis de configuración; si N<5, todas).",
       "selectionMethod": "100% de configuración (análisis directo)",
-      "evidenceToRequest": "1. Política de contraseñas vigente (parámetros esperados). 2. Inventario de cuentas/suscripciones cloud en alcance. 3. Evidencia de la política de contraseñas configurada (resultados de Wazuh SCA/Cloud Security de IAM/Entra ID).",
-      "prerequisites": "Acceso de solo lectura a la configuración de identidad del proveedor cloud integrado con Wazuh (resultados de Wazuh SCA/Cloud Security) y a la política de contraseñas aprobada.",
+      "evidenceToRequest": "1. Política de contraseñas vigente (parámetros esperados). 2. Inventario de cuentas/suscripciones cloud en alcance. 3. Evidencia de la política de contraseñas configurada (resultados de la sonda SCA/Cloud Security de IAM/Entra ID).",
+      "prerequisites": "Acceso de solo lectura a la configuración de identidad del proveedor cloud integrado con la sonda (resultados de la sonda SCA/Cloud Security) y a la política de contraseñas aprobada.",
       "stepByStep": [
         "Obtener la política de contraseñas vigente y extraer los parámetros esperados.",
         "Obtener el inventario de cuentas/suscripciones cloud en alcance.",
-        "Para cada cuenta (100%), obtener la política de contraseñas configurada mediante los checks SCA/Cloud Security de Wazuh (CIS benchmarks de identidad: en AWS la account password policy de IAM; en Entra ID políticas de contraseña/Password Protection y Conditional Access; en GCP políticas de organización).",
+        "Para cada cuenta (100%), obtener la política de contraseñas configurada mediante los checks SCA/Cloud Security de la sonda (CIS benchmarks de identidad: en AWS la account password policy de IAM; en Entra ID políticas de contraseña/Password Protection y Conditional Access; en GCP políticas de organización).",
         "Comparar cada parámetro configurado contra el valor esperado.",
         "Verificar la exigencia de MFA conforme a la política (complementa T-CLD-001).",
         "Registrar parámetros ausentes o por debajo del mínimo.",
@@ -8967,10 +8967,10 @@
       "complianceCriterion": "Para el 100% de las cuentas/suscripciones cloud en alcance, la política de contraseñas y los requisitos de autenticación cumplen o superan lo exigido por la política de la empresa.",
       "exceptions": "Política de contraseñas ausente o por debajo del mínimo; parámetro no configurado (p. ej., sin expiración, sin historial); ausencia de MFA donde la política lo exige.",
       "exceptionsHandling": "1) Documentar la excepción e identificar la cuenta/suscripción y el parámetro. 2) Obtener explicación formal del responsable. 3) Obtener evidencia complementaria. 4) Determinar causa raíz. 5) Evaluar si es aislada o sistémica. 6) Determinar población potencialmente afectada e impacto. 7) Documentar conclusión. Una explicación verbal sin evidencia no elimina la excepción.",
-      "evidenceToRetain": "Resultados de Wazuh (SCA/Cloud Security) con la política de contraseñas por cuenta, política de la empresa y conclusión.",
-      "automatedCoverage": "Wazuh (SCA/Cloud Security) evalúa automáticamente la política de contraseñas de IAM/Entra ID mediante los CIS benchmarks de identidad para las cuentas integradas.",
-      "complementaryManualValidation": "El auditor revisa los resultados de Wazuh (SCA/Cloud Security) y los concilia contra la política de la empresa; complementa la validación de MFA/IAM de T-CLD-001.",
-      "limitations": "Wazuh evalúa la política de contraseñas del proveedor cloud (IAM/Entra ID/GCP) mediante los checks SCA de identidad (CIS benchmarks); los resultados deben verificarse en la ejecución real. Complementa a T-APP-002 (aplicación), T-SRV-001 (SO) y T-BD-008 (motor de base de datos)."
+      "evidenceToRetain": "Resultados de la sonda (SCA/Cloud Security) con la política de contraseñas por cuenta, política de la empresa y conclusión.",
+      "automatedCoverage": "La sonda (SCA/Cloud Security) evalúa automáticamente la política de contraseñas de IAM/Entra ID mediante los CIS benchmarks de identidad para las cuentas integradas.",
+      "complementaryManualValidation": "El auditor revisa los resultados de la sonda (SCA/Cloud Security) y los concilia contra la política de la empresa; complementa la validación de MFA/IAM de T-CLD-001.",
+      "limitations": "La sonda evalúa la política de contraseñas del proveedor cloud (IAM/Entra ID/GCP) mediante los checks SCA de identidad (CIS benchmarks); los resultados deben verificarse en la ejecución real. Complementa a T-APP-002 (aplicación), T-SRV-001 (SO) y T-BD-008 (motor de base de datos)."
     },
     {
       "code": "T-DOC-001",
@@ -9888,7 +9888,7 @@
       "exceptions": "Excepción: política sin aprobar, sin propietario o sin revisión anual dentro del período.",
       "exceptionsHandling": "Documentar la política y la brecha; explicación del responsable; aislada o sistémica; evaluar impacto sobre el marco de control; recomendar; concluir.",
       "evidenceToRetain": "Inventario de políticas, historial de revisiones/aprobaciones, capturas del repositorio.",
-      "automatedCoverage": "NO APLICA cobertura automatizada: control documental (algunas plataformas GRC como Vanta rastrean la revisión de políticas; usarlo como evidencia si está disponible).",
+      "automatedCoverage": "NO APLICA cobertura automatizada: control documental (algunas plataformas GRC rastrean la revisión de políticas; usarlo como evidencia si está disponible).",
       "complementaryManualValidation": "Revisión manual del auditor sobre el contenido, la aprobación y la evidencia de revisión anual.",
       "limitations": "Ninguna."
     },
@@ -9937,20 +9937,20 @@
     {
       "code": "T-SRV-001",
       "dimension": "server",
-      "name": "Evaluación de configuración/hardening de servidores mediante Wazuh SCA",
-      "objective": "Verificar que los servidores Windows/Linux en alcance cumplen la línea base de configuración segura (hardening) definida, usando el módulo SCA de Wazuh sobre el 100% de los agentes.",
+      "name": "Evaluación de configuración/hardening de servidores mediante la sonda SCA",
+      "objective": "Verificar que los servidores Windows/Linux en alcance cumplen la línea base de configuración segura (hardening) definida, usando el módulo SCA de la sonda sobre el 100% de los agentes.",
       "type": "Mixta",
-      "tool": "Wazuh – SCA (Security Configuration Assessment)",
-      "population": "Servidores en alcance con agente Wazuh (sistema operativo de producción).",
+      "tool": "La sonda – SCA (Security Configuration Assessment)",
+      "population": "Servidores en alcance con agente de la sonda (sistema operativo de producción).",
       "period": "Período bajo auditoría",
       "populationSize": "Por determinar (n.º de servidores con agente).",
       "suggestedSampleSize": "100% de los servidores evaluables por SCA; muestreo solo para excepciones con justificación documental.",
       "selectionMethod": "100% (SCA)",
       "evidenceToRequest": "1. Inventario de servidores en alcance. 2. Resultados del policy SCA aplicable (CIS/línea base) por agente. 3. Estándar de hardening aprobado.",
-      "prerequisites": "Acceso de solo lectura a la consola de Wazuh y al inventario de servidores.",
+      "prerequisites": "Acceso de solo lectura a la consola de la sonda y al inventario de servidores.",
       "stepByStep": [
-        "Obtener el inventario de servidores y confirmar cobertura de agentes Wazuh (identificar servidores sin agente).",
-        "Consultar en Wazuh el módulo SCA con el policy de la línea base.",
+        "Obtener el inventario de servidores y confirmar cobertura de agentes de la sonda (identificar servidores sin agente).",
+        "Consultar en la sonda el módulo SCA con el policy de la línea base.",
         "Analizar el 100% de los resultados: checks 'failed' por servidor.",
         "Contrastar los checks contra el estándar de hardening aprobado.",
         "Para desviaciones obtener justificación/plan.",
@@ -9969,22 +9969,22 @@
       "evidenceToRetain": "Inventario, reporte SCA por agente, estándar de hardening y conclusión.",
       "automatedCoverage": "SCA evalúa automáticamente el 100% de los agentes contra el policy.",
       "complementaryManualValidation": "El auditor evalúa la relevancia de los checks fallidos, valida justificaciones y confirma cobertura de agentes.",
-      "limitations": "Wazuh SCA no cubre servidores sin agente ni configuraciones fuera del policy; complementar con PowerShell/Linux nativo si aplica."
+      "limitations": "La sonda SCA no cubre servidores sin agente ni configuraciones fuera del policy; complementar con PowerShell/Linux nativo si aplica."
     },
     {
       "code": "T-SRV-002",
       "dimension": "server",
-      "name": "Monitoreo de integridad de archivos críticos mediante Wazuh FIM",
-      "objective": "Verificar que se monitorea la integridad de archivos/directorios críticos de los servidores en alcance mediante el módulo FIM de Wazuh y que las alteraciones generan alertas gestionadas.",
+      "name": "Monitoreo de integridad de archivos críticos mediante la sonda FIM",
+      "objective": "Verificar que se monitorea la integridad de archivos/directorios críticos de los servidores en alcance mediante el módulo FIM de la sonda y que las alteraciones generan alertas gestionadas.",
       "type": "Mixta",
-      "tool": "Wazuh – FIM (File Integrity Monitoring)",
+      "tool": "La sonda – FIM (File Integrity Monitoring)",
       "population": "Servidores en alcance con FIM configurado y eventos de cambio del período.",
       "period": "Período bajo auditoría",
       "populationSize": "Por determinar (servidores con FIM + eventos).",
       "suggestedSampleSize": "100% de servidores para cobertura FIM; 10% de la población (mín. 5, máx. 25). Si N<5, revisar el 100% de los elementos existentes. para revisión de eventos.",
       "selectionMethod": "100% cobertura; muestreo de eventos",
       "evidenceToRequest": "1. Configuración de FIM (rutas monitoreadas) por servidor. 2. Eventos/alertas FIM del período. 3. Definición de archivos críticos.",
-      "prerequisites": "Acceso de solo lectura a Wazuh (FIM) y a la definición de archivos críticos.",
+      "prerequisites": "Acceso de solo lectura a la sonda (FIM) y a la definición de archivos críticos.",
       "stepByStep": [
         "Confirmar que FIM está habilitado en los servidores en alcance y monitorea las rutas críticas definidas.",
         "Analizar el 100% de la cobertura (servidores sin FIM = excepción).",
@@ -10008,17 +10008,17 @@
     {
       "code": "T-SRV-003",
       "dimension": "server",
-      "name": "Detección de vulnerabilidades en servidores mediante Wazuh",
-      "objective": "Verificar que se detectan y gestionan las vulnerabilidades del sistema operativo/paquetes de los servidores en alcance mediante el detector de vulnerabilidades de Wazuh.",
+      "name": "Detección de vulnerabilidades en servidores mediante la sonda",
+      "objective": "Verificar que se detectan y gestionan las vulnerabilidades del sistema operativo/paquetes de los servidores en alcance mediante el detector de vulnerabilidades de la sonda.",
       "type": "Mixta",
-      "tool": "Wazuh – Vulnerability Detection",
+      "tool": "La sonda – Vulnerability Detection",
       "population": "Servidores en alcance con detección de vulnerabilidades y hallazgos del período.",
       "period": "Período bajo auditoría",
       "populationSize": "Por determinar (servidores + vulnerabilidades detectadas).",
       "suggestedSampleSize": "100% de servidores; 10% de la población (mín. 5, máx. 25). Si N<5, revisar el 100% de los elementos existentes. o dirigido a críticas/altas para remediación.",
       "selectionMethod": "100% detección; dirigido por severidad",
       "evidenceToRequest": "1. Inventario de servidores. 2. Reporte de vulnerabilidades por severidad. 3. Evidencia de remediación/planes de acción.",
-      "prerequisites": "Acceso de solo lectura a Wazuh (Vulnerability Detection) y a la evidencia de remediación.",
+      "prerequisites": "Acceso de solo lectura a la sonda (Vulnerability Detection) y a la evidencia de remediación.",
       "stepByStep": [
         "Confirmar cobertura del detector en los servidores en alcance.",
         "Obtener el 100% de vulnerabilidades detectadas clasificadas por severidad.",
@@ -10037,8 +10037,8 @@
       "exceptionsHandling": "1) Documentar la excepción e identificar el elemento afectado. 2) Obtener explicación formal del responsable. 3) Obtener evidencia complementaria. 4) Determinar causa raíz. 5) Evaluar si es aislada o sistémica. 6) Evaluar ampliar la muestra y la población potencialmente afectada. 7) Determinar impacto sobre la conclusión. 8) Documentar conclusión. Una explicación verbal sin evidencia no elimina la excepción.",
       "evidenceToRetain": "Reporte de vulnerabilidades, evidencia de remediación y conclusión.",
       "automatedCoverage": "El detector evalúa automáticamente el 100% de los servidores cubiertos.",
-      "complementaryManualValidation": "El auditor valida planes de remediación y evidencia de corrección; complementar con el módulo de Cloud Security/SCA de Wazuh para la nube.",
-      "limitations": "La detección depende de la cobertura del agente y de las bases de vulnerabilidades; no atribuir a Wazuh activos sin agente."
+      "complementaryManualValidation": "El auditor valida planes de remediación y evidencia de corrección; complementar con el módulo de Cloud Security/SCA de la sonda para la nube.",
+      "limitations": "La detección depende de la cobertura del agente y de las bases de vulnerabilidades; no atribuir a la sonda activos sin agente."
     },
     {
       "code": "T-SRV-004",
@@ -10046,14 +10046,14 @@
       "name": "Validación de antimalware/EDR en endpoints y servidores",
       "objective": "Comprobar que la tecnología antimalware/EDR está instalada, activa y actualizada en los servidores/endpoints en alcance y que sus alertas se gestionan.",
       "type": "Mixta",
-      "tool": "Wazuh – eventos/logs / consola antimalware/EDR",
+      "tool": "La sonda – eventos/logs / consola antimalware/EDR",
       "population": "Servidores/endpoints en alcance que deben tener antimalware/EDR.",
       "period": "Período bajo auditoría",
       "populationSize": "Por determinar (n.º de equipos).",
       "suggestedSampleSize": "100% para verificación de instalación/estado; 10% de la población (mín. 5, máx. 25). Si N<5, revisar el 100% de los elementos existentes. para revisión de alertas.",
       "selectionMethod": "100% estado; muestreo de alertas",
       "evidenceToRequest": "1. Inventario de equipos. 2. Reporte de estado del antimalware/EDR (instalado, activo, versión de firmas). 3. Muestra de alertas y su gestión.",
-      "prerequisites": "Acceso de solo lectura a la consola antimalware/EDR o a los eventos en Wazuh.",
+      "prerequisites": "Acceso de solo lectura a la consola antimalware/EDR o a los eventos en la sonda.",
       "stepByStep": [
         "Obtener el inventario de equipos que deben tener antimalware.",
         "Obtener el estado (instalado/activo/actualizado) del 100% de los equipos.",
@@ -10074,24 +10074,24 @@
       "evidenceToRetain": "Reporte de estado, muestra de alertas y conclusión.",
       "automatedCoverage": "Verificación automatizada del estado en el 100% de los equipos vía consola/eventos.",
       "complementaryManualValidation": "El auditor valida la gestión de una muestra de alertas y la cobertura del inventario.",
-      "limitations": "Wazuh evidencia la presencia de procesos/servicios y eventos del agente antimalware/EDR, pero no reemplaza la consola nativa del EDR para confirmar estado de protección en tiempo real, versión de firmas y última actualización; ambos deben conciliarse. La cobertura se limita a los hosts con agente Wazuh activo; servidores sin agente constituyen zonas ciegas y deben identificarse mediante conciliación contra el inventario."
+      "limitations": "La sonda evidencia la presencia de procesos/servicios y eventos del agente antimalware/EDR, pero no reemplaza la consola nativa del EDR para confirmar estado de protección en tiempo real, versión de firmas y última actualización; ambos deben conciliarse. La cobertura se limita a los hosts con agente de la sonda activo; servidores sin agente constituyen zonas ciegas y deben identificarse mediante conciliación contra el inventario."
     },
     {
       "code": "T-SRV-005",
       "dimension": "server",
-      "name": "Validación de gestión y monitoreo de logs de servidores (SIEM/Wazuh)",
-      "objective": "Comprobar que los servidores en alcance envían logs a la plataforma de gestión centralizada (Wazuh) y que se generan y gestionan alertas.",
+      "name": "Validación de gestión y monitoreo de logs de servidores (SIEM/la sonda)",
+      "objective": "Comprobar que los servidores en alcance envían logs a la plataforma de gestión centralizada (la sonda) y que se generan y gestionan alertas.",
       "type": "Mixta",
-      "tool": "Wazuh – eventos/logs",
+      "tool": "La sonda – eventos/logs",
       "population": "Servidores en alcance que deben remitir logs.",
       "period": "Período bajo auditoría",
       "populationSize": "Por determinar (n.º de servidores).",
       "suggestedSampleSize": "100% para cobertura de ingesta; 10% de la población (mín. 5, máx. 25). Si N<5, revisar el 100% de los elementos existentes. para revisión de alertas.",
       "selectionMethod": "100% cobertura; muestreo de alertas",
       "evidenceToRequest": "1. Inventario de servidores. 2. Estado de ingesta de logs por agente. 3. Reglas/alertas y evidencia de gestión.",
-      "prerequisites": "Acceso de solo lectura a Wazuh (gestión de logs/alertas).",
+      "prerequisites": "Acceso de solo lectura a la sonda (gestión de logs/alertas).",
       "stepByStep": [
-        "Confirmar que el 100% de los servidores en alcance remite logs a Wazuh (identificar agentes sin ingesta reciente).",
+        "Confirmar que el 100% de los servidores en alcance remite logs a la sonda (identificar agentes sin ingesta reciente).",
         "Verificar reglas/alertas relevantes activas.",
         "Obtener una muestra de alertas del período y validar su gestión/escalamiento.",
         "Documentar servidores sin ingesta y conclusión."
@@ -10108,7 +10108,7 @@
       "evidenceToRetain": "Estado de ingesta, muestra de alertas y conclusión.",
       "automatedCoverage": "Verificación automatizada del estado de ingesta del 100% de agentes.",
       "complementaryManualValidation": "El auditor valida la gestión de una muestra de alertas y la retención de logs.",
-      "limitations": "La prueba valida la ingesta y el alertamiento de logs en Wazuh, no la exhaustividad de las reglas de correlación frente a todos los escenarios de amenaza. La población de servidores monitoreados debe conciliarse contra el inventario para detectar hosts sin envío de logs. Wazuh no demuestra por sí solo la retención conforme a política ni la protección de integridad de los logs, que requieren validación complementaria."
+      "limitations": "La prueba valida la ingesta y el alertamiento de logs en la sonda, no la exhaustividad de las reglas de correlación frente a todos los escenarios de amenaza. La población de servidores monitoreados debe conciliarse contra el inventario para detectar hosts sin envío de logs. La sonda no demuestra por sí solo la retención conforme a política ni la protección de integridad de los logs, que requieren validación complementaria."
     },
     {
       "code": "T-SRV-006",
@@ -10116,16 +10116,16 @@
       "name": "Verificación operativa del sistema de detección de intrusiones y gestión de alertas",
       "objective": "Comprobar que el IDS/IPS está desplegado y operativo sobre la red/hosts en alcance, monitorea de forma continua, genera alertas ante actividad sospechosa y que dichas alertas son gestionadas oportunamente.",
       "type": "Prueba de implementación y efectividad operativa (control detectivo, automatizado)",
-      "tool": "Wazuh (reglas/alertas, decoders, módulo de detección) y/o solución IDS/IPS de red nativa; consola de gestión",
+      "tool": "La sonda (reglas/alertas, decoders, módulo de detección) y/o solución IDS/IPS de red nativa; consola de gestión",
       "population": "Segmentos de red / hosts en alcance cubiertos por el IDS y alertas generadas en el período",
       "period": "Todo el período de auditoría",
       "populationSize": "Número de alertas de intrusión generadas en el período (obtener de la consola)",
       "suggestedSampleSize": "Configuración/cobertura: 100%. Alertas: muestra 10% (mín 5, máx 25)",
       "selectionMethod": "Cobertura: revisión total de sensores/agentes. Alertas: selección aleatoria del listado del período",
       "evidenceToRequest": "Inventario de sensores/agentes IDS; estado de operación; reglas activas; listado de alertas del período con su gestión; evidencia de investigación/cierre de una muestra.",
-      "prerequisites": "Acceso de lectura a la consola de Wazuh/IDS o exportaciones; inventario de red/hosts en alcance.",
+      "prerequisites": "Acceso de lectura a la consola de la sonda/IDS o exportaciones; inventario de red/hosts en alcance.",
       "stepByStep": [
-        "Obtener inventario de red/hosts en alcance y confirmar cobertura de sensores/agentes IDS (Wazuh u otro).",
+        "Obtener inventario de red/hosts en alcance y confirmar cobertura de sensores/agentes IDS (la sonda u otro).",
         "Verificar que el módulo de detección está activo y con reglas actualizadas.",
         "Extraer alertas de intrusión del período; validar integridad del listado (período, filtros, fecha de extracción).",
         "Seleccionar muestra.",
@@ -10145,9 +10145,9 @@
       "exceptions": "Segmento crítico sin cobertura; sensor inoperativo; alerta no gestionada o cerrada sin análisis.",
       "exceptionsHandling": "Identificar el sensor/alerta, obtener explicación, evaluar si es aislada o sistémica, ampliar muestra, estimar población afectada e impacto en la detección.",
       "evidenceToRetain": "Inventario y cobertura de sensores, reglas activas, listado y gestión de alertas, muestra y conclusión.",
-      "automatedCoverage": "Wazuh/IDS monitorea automáticamente el 100% del tráfico/eventos de los segmentos y agentes cubiertos.",
+      "automatedCoverage": "La sonda/IDS monitorea automáticamente el 100% del tráfico/eventos de los segmentos y agentes cubiertos.",
       "complementaryManualValidation": "El auditor valida la cobertura de la red crítica y la gestión de una muestra de alertas.",
-      "limitations": "El IDS solo cubre segmentos/agentes desplegados; Wazuh basado en host no sustituye un IDS de red si el control exige inspección de tráfico. Complementa a T-DOC-010."
+      "limitations": "El IDS solo cubre segmentos/agentes desplegados; la sonda basado en host no sustituye un IDS de red si el control exige inspección de tráfico. Complementa a T-DOC-010."
     },
     {
       "code": "T-SRV-007",
@@ -10155,16 +10155,16 @@
       "name": "Monitoreo de capacidad y rendimiento a nivel de sistema operativo (Windows/Linux)",
       "objective": "Verificar que la capacidad y el rendimiento de los servidores en alcance (CPU, memoria, disco, procesos y servicios) se monitorean de forma continua, con umbrales definidos y generación de alertas, de modo que la capacidad de procesamiento del SO satisfaga la demanda (SOC 2 CC7.1 / A1.1).",
       "type": "Prueba de diseño y efectividad operativa (control automatizado dependiente de TI).",
-      "tool": "Wazuh (Syscollector: inventario de hardware, procesos, servicios y puertos; módulo de análisis de logs/decoders para eventos de rendimiento del SO; reglas y alertas). Herramientas nativas del SO como respaldo: en Linux sar/top/df/vmstat y systemd; en Windows Performance Monitor/Get-Counter. Solución de monitoreo de infraestructura en uso (p. ej. Azure Monitor para VMs).",
+      "tool": "La sonda (Syscollector: inventario de hardware, procesos, servicios y puertos; módulo de análisis de logs/decoders para eventos de rendimiento del SO; reglas y alertas). Herramientas nativas del SO como respaldo: en Linux sar/top/df/vmstat y systemd; en Windows Performance Monitor/Get-Counter. Solución de monitoreo de infraestructura en uso (p. ej. Azure Monitor para VMs).",
       "population": "Universo = todos los servidores (hosts Windows y Linux) en alcance del sistema que soportan servicios de producción.",
       "period": "Período bajo revisión definido para el examen SOC 2 (Tipo II: normalmente 6-12 meses; Tipo I: fecha puntual).",
       "populationSize": "N = número total de servidores en alcance según inventario conciliado (CMDB / Syscollector / consola cloud).",
-      "suggestedSampleSize": "Diseño: revisar el 100% de la configuración de monitoreo de capacidad (es un atributo de configuración, no muestreo). Operatividad: si Wazuh/monitoreo cubre el 100% de los hosts, analizar el 100%; para revisión manual de umbrales/alertas puntuales usar muestra 10% (mín 5, máx 25).",
+      "suggestedSampleSize": "Diseño: revisar el 100% de la configuración de monitoreo de capacidad (es un atributo de configuración, no muestreo). Operatividad: si la sonda/monitoreo cubre el 100% de los hosts, analizar el 100%; para revisión manual de umbrales/alertas puntuales usar muestra 10% (mín 5, máx 25).",
       "selectionMethod": "Selección de servidores para revisión manual complementaria: aleatoria o por criterio de riesgo (hosts críticos de producción primero). Para el 100% no aplica selección.",
-      "evidenceToRequest": "1) Inventario de servidores en alcance con SO y rol. 2) Evidencia de la herramienta de monitoreo de capacidad/rendimiento (dashboards, definición de métricas CPU/memoria/disco). 3) Definición de umbrales y reglas de alerta. 4) Ejemplos de alertas generadas y su tratamiento durante el período. 5) Reporte de Syscollector de Wazuh (inventario de procesos/servicios/paquetes) y estado de agentes.",
-      "prerequisites": "Acceso de solo lectura a la consola de Wazuh y/o a la herramienta de monitoreo; inventario de servidores validado; confirmación de qué hosts tienen agente Wazuh desplegado.",
+      "evidenceToRequest": "1) Inventario de servidores en alcance con SO y rol. 2) Evidencia de la herramienta de monitoreo de capacidad/rendimiento (dashboards, definición de métricas CPU/memoria/disco). 3) Definición de umbrales y reglas de alerta. 4) Ejemplos de alertas generadas y su tratamiento durante el período. 5) Reporte de Syscollector de la sonda (inventario de procesos/servicios/paquetes) y estado de agentes.",
+      "prerequisites": "Acceso de solo lectura a la consola de la sonda y/o a la herramienta de monitoreo; inventario de servidores validado; confirmación de qué hosts tienen agente de la sonda desplegado.",
       "stepByStep": [
-        "Solicitar el inventario de servidores en alcance y conciliarlo contra Syscollector de Wazuh (agentes activos) y la consola del proveedor; documentar fecha/hora de extracción.",
+        "Solicitar el inventario de servidores en alcance y conciliarlo contra Syscollector de la sonda (agentes activos) y la consola del proveedor; documentar fecha/hora de extracción.",
         "Confirmar que existe monitoreo de capacidad para CPU, memoria, disco y procesos en cada host (o por grupo homogéneo).",
         "Verificar que hay umbrales definidos y alertas configuradas para consumo de recursos.",
         "Para el período, obtener evidencia de alertas de capacidad disparadas y verificar que fueron atendidas (tickets/acciones).",
@@ -10177,16 +10177,16 @@
         "Umbrales definidos y razonables",
         "Alertas activas y enrutadas a un responsable",
         "Evidencia de atención de alertas durante el período",
-        "Agente Wazuh activo / Syscollector reportando",
+        "Agente de la sonda activo / Syscollector reportando",
         "Conciliación inventario vs. hosts monitoreados (sin huecos)"
       ],
       "complianceCriterion": "Cumple si el 100% de los servidores en alcance tienen monitoreo de capacidad con umbrales y alertas operativas, Syscollector reporta inventario de forma continua, y las alertas de capacidad del período fueron atendidas conforme a la política de operaciones.",
-      "exceptions": "Se registra como excepción todo host en alcance sin monitoreo de capacidad, sin umbrales/alertas, con agente Wazuh inactivo, o con alertas de capacidad no atendidas.",
+      "exceptions": "Se registra como excepción todo host en alcance sin monitoreo de capacidad, sin umbrales/alertas, con agente de la sonda inactivo, o con alertas de capacidad no atendidas.",
       "exceptionsHandling": "Documentar el host y la brecha; obtener explicación del responsable; determinar si es aislada o sistémica (p. ej. despliegue de agente incompleto); evaluar ampliación al 100% del parque; medir impacto sobre disponibilidad; documentar conclusión y recomendación.",
-      "evidenceToRetain": "Inventario conciliado, capturas de dashboards de capacidad, definición de umbrales/reglas, export de Syscollector, evidencia de alertas y su tratamiento, lista de agentes Wazuh y su estado.",
-      "automatedCoverage": "Wazuh AUTOMATIZA: inventario continuo de hardware, procesos, servicios, puertos y paquetes (Syscollector) sobre el 100% de hosts con agente; recolección y correlación de logs de eventos del SO; alertas por reglas. Cubre todos los SO gestionados por el agente Wazuh (Windows, y distribuciones Linux como RHEL/CentOS, Debian/Ubuntu, SUSE, Amazon Linux, además de macOS/Solaris/AIX/HP-UX según agente).",
-      "complementaryManualValidation": "Wazuh NO calcula por sí mismo tendencias de saturación de CPU/memoria ni umbrales de capacidad de negocio; esa métrica proviene de la solución de monitoreo de infraestructura (Azure Monitor u otra). El auditor debe validar manualmente los umbrales, la vigencia de las alertas y la atención de incidentes de capacidad. Para hosts sin agente, Wazuh no aporta cobertura.",
-      "limitations": "Wazuh SCA/Syscollector requieren agente instalado y activo; hosts sin agente quedan fuera de la cobertura automatizada. La capacidad como métrica de rendimiento (no de seguridad) puede depender de herramienta externa; documentar la fuente real usada en el ambiente."
+      "evidenceToRetain": "Inventario conciliado, capturas de dashboards de capacidad, definición de umbrales/reglas, export de Syscollector, evidencia de alertas y su tratamiento, lista de agentes de la sonda y su estado.",
+      "automatedCoverage": "La sonda AUTOMATIZA: inventario continuo de hardware, procesos, servicios, puertos y paquetes (Syscollector) sobre el 100% de hosts con agente; recolección y correlación de logs de eventos del SO; alertas por reglas. Cubre todos los SO gestionados por el agente de la sonda (Windows, y distribuciones Linux como RHEL/CentOS, Debian/Ubuntu, SUSE, Amazon Linux, además de macOS/Solaris/AIX/HP-UX según agente).",
+      "complementaryManualValidation": "La sonda NO calcula por sí mismo tendencias de saturación de CPU/memoria ni umbrales de capacidad de negocio; esa métrica proviene de la solución de monitoreo de infraestructura (Azure Monitor u otra). El auditor debe validar manualmente los umbrales, la vigencia de las alertas y la atención de incidentes de capacidad. Para hosts sin agente, la sonda no aporta cobertura.",
+      "limitations": "La sonda SCA/Syscollector requieren agente instalado y activo; hosts sin agente quedan fuera de la cobertura automatizada. La capacidad como métrica de rendimiento (no de seguridad) puede depender de herramienta externa; documentar la fuente real usada en el ambiente."
     },
     {
       "code": "T-SRV-008",
@@ -10194,16 +10194,16 @@
       "name": "Recolección y gestión de registros (logs) de sistemas operativos (Windows/Linux)",
       "objective": "Verificar que los eventos de seguridad de los servidores en alcance (autenticación, cambios de privilegios, eventos del sistema, auditoría) se recolectan de forma centralizada, continua y protegida contra alteración, para identificar eventos con impacto potencial en los objetivos de seguridad (SOC 2 CC7.2).",
       "type": "Prueba de diseño y efectividad operativa (control automatizado dependiente de TI).",
-      "tool": "Wazuh (Log Data Collection: ingesta y análisis de logs con decoders y reglas; System Calls / Linux Audit para syscalls; Command Monitoring; alertas por reglas y dashboards). Herramientas nativas de reenvío: Windows Event Forwarding/Sysmon en Windows; rsyslog/journald/auditd en Linux.",
+      "tool": "La sonda (Log Data Collection: ingesta y análisis de logs con decoders y reglas; System Calls / Linux Audit para syscalls; Command Monitoring; alertas por reglas y dashboards). Herramientas nativas de reenvío: Windows Event Forwarding/Sysmon en Windows; rsyslog/journald/auditd en Linux.",
       "population": "Universo = todos los servidores (Windows y Linux) en alcance que generan logs de seguridad relevantes.",
       "period": "Período bajo revisión del examen SOC 2 (Tipo II: 6-12 meses; Tipo I: fecha puntual).",
       "populationSize": "N = número total de servidores en alcance según inventario conciliado con Syscollector/consola cloud.",
-      "suggestedSampleSize": "Si Wazuh cubre el 100% de hosts (agentes activos reportando logs), analizar el 100% de la cobertura de recolección. Para verificación manual de contenido/retención de logs, muestra 10% (mín 5, máx 25).",
+      "suggestedSampleSize": "Si la sonda cubre el 100% de hosts (agentes activos reportando logs), analizar el 100% de la cobertura de recolección. Para verificación manual de contenido/retención de logs, muestra 10% (mín 5, máx 25).",
       "selectionMethod": "Selección de hosts para revisión manual: por criticidad y/o aleatoria. Para el 100% no aplica selección.",
-      "evidenceToRequest": "1) Inventario de servidores y su estado de agente Wazuh. 2) Configuración de recolección de logs (qué fuentes/eventos). 3) Política de retención de logs. 4) Evidencia de dashboards/alertas de eventos de seguridad. 5) Configuración de protección/integridad del almacenamiento de logs.",
-      "prerequisites": "Acceso de solo lectura a la consola de Wazuh; inventario validado; confirmación de hosts con agente activo.",
+      "evidenceToRequest": "1) Inventario de servidores y su estado de agente de la sonda. 2) Configuración de recolección de logs (qué fuentes/eventos). 3) Política de retención de logs. 4) Evidencia de dashboards/alertas de eventos de seguridad. 5) Configuración de protección/integridad del almacenamiento de logs.",
+      "prerequisites": "Acceso de solo lectura a la consola de la sonda; inventario validado; confirmación de hosts con agente activo.",
       "stepByStep": [
-        "Solicitar el inventario de servidores en alcance y conciliarlo con los agentes activos de Wazuh (Syscollector); documentar fecha/hora de extracción.",
+        "Solicitar el inventario de servidores en alcance y conciliarlo con los agentes activos de la sonda (Syscollector); documentar fecha/hora de extracción.",
         "Verificar qué fuentes de log y tipos de evento se recolectan por host (autenticación, cuentas, cambios de configuración, auditoría del SO).",
         "Confirmar que existen reglas/alertas para eventos de seguridad relevantes.",
         "Verificar la retención de logs vs. la política y los requisitos SOC 2.",
@@ -10219,13 +10219,13 @@
         "Canal cifrado/autenticado",
         "Conciliación inventario vs. hosts con logs (sin huecos)"
       ],
-      "complianceCriterion": "Cumple si el 100% de los servidores en alcance envían logs de seguridad a la gestión centralizada (Wazuh), con reglas/alertas activas, retención conforme a política y canal protegido.",
+      "complianceCriterion": "Cumple si el 100% de los servidores en alcance envían logs de seguridad a la gestión centralizada (la sonda), con reglas/alertas activas, retención conforme a política y canal protegido.",
       "exceptions": "Excepción: host sin agente/recolección, sin reglas de alerta para eventos críticos, retención insuficiente o canal no protegido.",
       "exceptionsHandling": "Documentar el host y la brecha; obtener explicación del responsable; determinar si es aislada o sistémica (despliegue de agente incompleto); evaluar ampliación al 100% del parque; medir impacto sobre la capacidad de deteccion; documentar conclusión.",
       "evidenceToRetain": "Inventario conciliado, configuración de log collection, política de retención, capturas de dashboards/alertas, evidencia de estado de agentes, evidencia de cifrado del canal.",
-      "automatedCoverage": "Wazuh AUTOMATIZA: Log Data Collection con decoders y reglas, System Calls (Linux Audit), Command Monitoring, y alertas por reglas sobre el 100% de hosts con agente activo (Windows y distribuciones Linux soportadas). Envío por canal autenticado y cifrado al servidor Wazuh. Fuente: documentation.wazuh.com (Log data collection / System calls / Command monitoring).",
-      "complementaryManualValidation": "El auditor valida manualmente: adecuación de las fuentes de log seleccionadas, suficiencia de las reglas de alerta, cumplimiento de la retención y protección del almacenamiento. Wazuh no decide por sí mismo qué eventos son relevantes para el negocio.",
-      "limitations": "La recolección requiere agente Wazuh activo o reenvío configurado; hosts sin agente/forwarding quedan fuera de la cobertura automatizada. Confirmar la herramienta real de gestión de logs en uso en el ambiente."
+      "automatedCoverage": "La sonda AUTOMATIZA: Log Data Collection con decoders y reglas, System Calls (Linux Audit), Command Monitoring, y alertas por reglas sobre el 100% de hosts con agente activo (Windows y distribuciones Linux soportadas). Envío por canal autenticado y cifrado al servidor la sonda. Fuente: documentation.la sonda.com (Log data collection / System calls / Command monitoring).",
+      "complementaryManualValidation": "El auditor valida manualmente: adecuación de las fuentes de log seleccionadas, suficiencia de las reglas de alerta, cumplimiento de la retención y protección del almacenamiento. La sonda no decide por sí mismo qué eventos son relevantes para el negocio.",
+      "limitations": "La recolección requiere agente de la sonda activo o reenvío configurado; hosts sin agente/forwarding quedan fuera de la cobertura automatizada. Confirmar la herramienta real de gestión de logs en uso en el ambiente."
     },
     {
       "code": "T-SRV-009",
@@ -10233,16 +10233,16 @@
       "name": "Monitoreo de rendimiento y disponibilidad de servidores con umbrales y alertas",
       "objective": "Verificar que el rendimiento y la disponibilidad de los servidores en alcance (Windows/Linux) se monitorean de forma continua mediante una herramienta de monitoreo de infraestructura, con umbrales predefinidos y generación de alertas cuando se superan (SOC 2 A1.1 / CC7.1).",
       "type": "Prueba de diseño y efectividad operativa (control automatizado dependiente de TI).",
-      "tool": "Herramienta de monitoreo de infraestructura en uso (p. ej. Azure Monitor / VM Insights, Zabbix, Prometheus). Wazuh como fuente complementaria de inventario (Syscollector), disponibilidad de agente y eventos del SO. Herramientas nativas del SO (sar/top/systemctl en Linux; Performance Monitor en Windows).",
+      "tool": "Herramienta de monitoreo de infraestructura en uso (p. ej. Azure Monitor / VM Insights, Zabbix, Prometheus). La sonda como fuente complementaria de inventario (Syscollector), disponibilidad de agente y eventos del SO. Herramientas nativas del SO (sar/top/systemctl en Linux; Performance Monitor en Windows).",
       "population": "Universo = todos los servidores en alcance que soportan producción.",
       "period": "Período bajo revisión del examen SOC 2 (Tipo II: 6-12 meses; Tipo I: fecha puntual).",
       "populationSize": "N = número total de servidores en alcance.",
       "suggestedSampleSize": "Diseño: 100% de la configuración de monitoreo. Operatividad: si el monitoreo cubre el 100% de hosts, revisar 100%; para revisión manual de alertas/umbrales, muestra 10% (mín 5, máx 25).",
       "selectionMethod": "Selección por criticidad y/o aleatoria para la revisión manual complementaria.",
-      "evidenceToRequest": "1) Inventario de servidores. 2) Configuración de monitoreo de rendimiento/disponibilidad. 3) Umbrales y reglas de alerta. 4) Evidencia de alertas del período y su tratamiento. 5) Estado de agentes de monitoreo/Wazuh.",
-      "prerequisites": "Acceso de solo lectura a la herramienta de monitoreo y a la consola de Wazuh; inventario validado.",
+      "evidenceToRequest": "1) Inventario de servidores. 2) Configuración de monitoreo de rendimiento/disponibilidad. 3) Umbrales y reglas de alerta. 4) Evidencia de alertas del período y su tratamiento. 5) Estado de agentes de monitoreo/la sonda.",
+      "prerequisites": "Acceso de solo lectura a la herramienta de monitoreo y a la consola de la sonda; inventario validado.",
       "stepByStep": [
-        "Solicitar el inventario de servidores y conciliarlo con la herramienta de monitoreo y Syscollector de Wazuh; documentar fecha/hora de extracción.",
+        "Solicitar el inventario de servidores y conciliarlo con la herramienta de monitoreo y Syscollector de la sonda; documentar fecha/hora de extracción.",
         "Verificar que se monitorean métricas de rendimiento y disponibilidad por host.",
         "Confirmar umbrales definidos y alertas configuradas.",
         "Para el período, obtener evidencia de alertas disparadas y su atención.",
@@ -10260,8 +10260,8 @@
       "exceptions": "Excepción: host sin monitoreo, sin umbrales/alertas o con alertas no atendidas.",
       "exceptionsHandling": "Documentar el host y la brecha; explicación del responsable; aislada o sistémica; evaluar ampliación al 100%; impacto sobre disponibilidad; conclusión.",
       "evidenceToRetain": "Inventario conciliado, capturas de dashboards de rendimiento, definición de umbrales/alertas, evidencia de alertas y su tratamiento, estado de agentes.",
-      "automatedCoverage": "Wazuh AUTOMATIZA: inventario continuo (Syscollector), disponibilidad/estado de agente y eventos del SO. NO es una herramienta de métricas de rendimiento (APM/infra) por sí mismo: las métricas CPU/memoria/latencia provienen de la herramienta de monitoreo de infraestructura.",
-      "complementaryManualValidation": "El auditor valida manualmente los umbrales, la vigencia de las alertas y su atención. La herramienta de métricas de rendimiento es la fuente primaria; Wazuh complementa con inventario y eventos.",
+      "automatedCoverage": "La sonda AUTOMATIZA: inventario continuo (Syscollector), disponibilidad/estado de agente y eventos del SO. NO es una herramienta de métricas de rendimiento (APM/infra) por sí mismo: las métricas CPU/memoria/latencia provienen de la herramienta de monitoreo de infraestructura.",
+      "complementaryManualValidation": "El auditor valida manualmente los umbrales, la vigencia de las alertas y su atención. La herramienta de métricas de rendimiento es la fuente primaria; la sonda complementa con inventario y eventos.",
       "limitations": "Documentar la herramienta real de monitoreo del ambiente. Hosts sin agente/monitoreo quedan fuera de cobertura automática."
     },
     {
@@ -10270,7 +10270,7 @@
       "name": "Revisión de cuentas y accesos privilegiados a nivel de sistema operativo (Windows/Linux)",
       "objective": "Verificar que el acceso privilegiado al sistema operativo de los servidores en alcance está restringido a usuarios autorizados con necesidad de negocio, con autenticación única, mínimo privilegio y sin cuentas genéricas/inactivas no justificadas.",
       "type": "Mixta",
-      "tool": "Wazuh (inventario/usuarios) / consola del sistema operativo (Windows/Linux)",
+      "tool": "La sonda (inventario/usuarios) / consola del sistema operativo (Windows/Linux)",
       "population": "Cuentas locales y de dominio con acceso privilegiado (administradores/root/sudo) en los servidores en alcance.",
       "period": "Período bajo auditoría (corte a la fecha de extracción)",
       "populationSize": "Por determinar (cuentas privilegiadas por servidor en alcance).",
@@ -10302,9 +10302,9 @@
       "exceptions": "Cuenta privilegiada sin autorización/necesidad de negocio; cuenta genérica o compartida no justificada; cuenta inactiva con privilegios; autenticación no individual; privilegio excesivo respecto al rol.",
       "exceptionsHandling": "1) Documentar la excepción e identificar la cuenta/servidor. 2) Obtener explicación formal del responsable. 3) Obtener evidencia complementaria. 4) Determinar causa raíz. 5) Evaluar si es aislada o sistémica. 6) Evaluar ampliar la muestra y la población potencialmente afectada. 7) Determinar impacto sobre la conclusión. 8) Documentar conclusión. Una explicación verbal sin evidencia no elimina la excepción.",
       "evidenceToRetain": "Extracción de cuentas privilegiadas por servidor, listado de autorizados, evidencia de aprobación y conclusión.",
-      "automatedCoverage": "Parcial – Wazuh/Syscollector puede inventariar cuentas y grupos; la validación de autorización y necesidad de negocio es manual.",
+      "automatedCoverage": "Parcial – la sonda/Syscollector puede inventariar cuentas y grupos; la validación de autorización y necesidad de negocio es manual.",
       "complementaryManualValidation": "El auditor concilia las cuentas privilegiadas extraídas contra el listado de personal autorizado y valida la aprobación y el mínimo privilegio.",
-      "limitations": "La extracción de cuentas depende de la cobertura del agente Wazuh o del acceso a cada servidor; servidores sin agente requieren extracción manual. Complementa a T-SRV-001 (hardening) y a T-CLD-001 (IAM cloud); no cubre el acceso a nivel de motor de base de datos, cubierto por T-BD-001."
+      "limitations": "La extracción de cuentas depende de la cobertura del agente de la sonda o del acceso a cada servidor; servidores sin agente requieren extracción manual. Complementa a T-SRV-001 (hardening) y a T-CLD-001 (IAM cloud); no cubre el acceso a nivel de motor de base de datos, cubierto por T-BD-001."
     },
     {
       "code": "T-SRV-011",
