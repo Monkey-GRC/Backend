@@ -94,6 +94,8 @@ export abstract class RiskRepository {
 
   // Baja lógica: nunca se borra. null si no existe.
   abstract deactivateRisk(scope: TenantScope, id: string, audit: AuditIntent<Changed<RiskRecord>>): Promise<Changed<RiskRecord> | null>;
+  // D93 · Devuelve a un servicio un riesgo que se había retirado. null si no existe; si ya estaba vigente no hay cambio ni rastro.
+  abstract reactivateRisk(scope: TenantScope, id: string, audit: AuditIntent<Changed<RiskRecord>>): Promise<Changed<RiskRecord> | null>;
   abstract deactivateCause(scope: TenantScope, id: string, audit: AuditIntent<Changed<CauseRecord>>): Promise<Changed<CauseRecord> | null>;
 
   // Vínculos. Ambos lados deben ser del mismo servicio (y de la misma empresa): si no, NOT_FOUND. LINK_ALREADY_EXISTS si ya existe.

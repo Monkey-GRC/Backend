@@ -28,8 +28,8 @@ echo "== Servicio y catálogos"
 SVC=$(call "$API/services?page_size=1" | body | j 'print(d["data"]["items"][0]["id"])')
 [ -n "$SVC" ] && ok "servicio $SVC" || { bad "no hay ningún servicio"; exit 1; }
 for c in resource_kind aws_region connection_method; do [ "$(call "$API/catalogs/$c" | code)" = 200 ] && ok "catálogo $c" || bad "catálogo $c"; done
-SCEN=$(call "$API/services/$SVC/technical-control" | body | j 'print(d["data"]["deployment_scenario"])')
-[ "$SCEN" != None ] && ok "escenario: $SCEN" || bad "el servicio no tiene escenario: defínelo en la pantalla"
+CAPS=$(call "$API/services/$SVC/technical-control" | body | j 'print(len(d["data"]["applicable_capabilities"]))')
+[ "$CAPS" -gt 0 ] && ok "conexiones disponibles: $CAPS" || bad "el servicio no ofrece conexiones"
 
 echo "== Conexión de prueba"
 if [ -n "${AWS_KEY:-}" ]; then METHOD=access_keys; else METHOD=readonly_role; fi

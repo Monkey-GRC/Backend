@@ -9,11 +9,11 @@ import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
 import { toPageResponse } from '../../../common/pagination/page';
 import {
-  CreateCauseDto, CreateRiskDto, LinkCauseControlDto, LinkRiskCauseDto, ListCausesQuery, ListRisksQuery, UpdateCauseDto, UpdateRiskDto, ViewQuery,
+  CreateCauseDto, CreateRiskDto, DeactivateRiskDto, LinkCauseControlDto, LinkRiskCauseDto, ListCausesQuery, ListRisksQuery, UpdateCauseDto, UpdateRiskDto, ViewQuery,
 } from '../application/dtos/risk.dto';
 import {
   CreateCauseUseCase, CreateRiskUseCase, DeactivateCauseUseCase, DeactivateRiskUseCase, GetCauseUseCase, GetRiskUseCase, LinkUseCases, ListCausesUseCase, ListRisksUseCase,
-  UpdateCauseUseCase, UpdateRiskUseCase,
+  ReactivateRiskUseCase, UpdateCauseUseCase, UpdateRiskUseCase,
 } from '../application/use-cases/risk.use-cases';
 import { riskMatrix } from '../domain/risk-types';
 import { toCause, toRiskDetail, toRiskListItem } from './risk-response.mapper';
@@ -33,7 +33,7 @@ const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAg
 export class RisksController {
   constructor(
     private readonly listRisks: ListRisksUseCase, private readonly getRisk: GetRiskUseCase, private readonly createRisk: CreateRiskUseCase,
-    private readonly updateRisk: UpdateRiskUseCase, private readonly deactivateRisk: DeactivateRiskUseCase,
+    private readonly updateRisk: UpdateRiskUseCase, private readonly deactivateRisk: DeactivateRiskUseCase, private readonly reactivateRisk: ReactivateRiskUseCase,
     private readonly listCauses: ListCausesUseCase, private readonly getCause: GetCauseUseCase, private readonly createCause: CreateCauseUseCase,
     private readonly updateCause: UpdateCauseUseCase, private readonly deactivateCause: DeactivateCauseUseCase, private readonly links: LinkUseCases,
   ) {}
@@ -85,13 +85,23 @@ export class RisksController {
     return new ResponseDto(HttpStatus.OK, t('risk.updated'), toRiskDetail(risk, graph, view === 'technical'));
   }
 
-  @ApiOperation({ summary: 'Dar de baja un riesgo', description: 'Solo `admin_empresa`. Los riesgos no se borran: se dan de baja (el historial se conserva). Queda registro de auditoría.' })
+  @ApiOperation({ summary: 'Dar de baja un riesgo', description: 'Solo `admin_empresa`. Los riesgos no se borran: se dan de baja (el historial se conserva). Con `reason` opcional (por qué no aplica al servicio), que queda en el registro de auditoría.' })
   @ApiNoBody('Riesgo dado de baja. No hay cuerpo.')
   @Delete('risks/:id')
   @Roles('admin_empresa')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async removeRisk(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Req() req: Request) {
-    await this.deactivateRisk.execute(p, id, metaOf(req));
+  async removeRisk(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Req() req: Request, @Body() dto?: DeactivateRiskDto) {
+    await this.deactivateRisk.execute(p, id, metaOf(req), dto?.reason);
+  }
+
+  @ApiOperation({ summary: 'Volver a incluir un riesgo retirado', description: 'Solo `admin_empresa`. Devuelve al servicio un riesgo que se había dado de baja; conserva su evaluación anterior si la tenía. Si ya estaba vigente no hace nada. Queda registro de auditoría.' })
+  @ApiData(RiskDetailResponse, 'Riesgo vigente de nuevo.')
+  @Post('risks/:id/reactivation')
+  @Roles('admin_empresa')
+  @HttpCode(HttpStatus.OK)
+  async restoreRisk(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Req() req: Request) {
+    const { view, graph, risk } = await this.reactivateRisk.execute(p, id, metaOf(req));
+    return new ResponseDto(HttpStatus.OK, t('risk.reactivated'), toRiskDetail(risk, graph, view === 'technical'));
   }
 
   @ApiOperation({ summary: 'Vincular una causa a un riesgo', description: 'Solo `admin_empresa`. La causa y el riesgo deben estar activos. Queda registro de auditoría.' })

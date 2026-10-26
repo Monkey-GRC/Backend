@@ -41,7 +41,7 @@ async function contract(tx: Tx, criteria: string[]) {
     tx.service.create({
       data: {
         tenantId: company.id, organizationId: org.id, name, description: 'x', scopeStatement: 'x', type: 'saas',
-        expectedAvailability: 'h24x7' as never, deploymentScenario: 'cloud_with_servers', industriesServed: [], countries: [], dataTypes: [],
+        expectedAvailability: 'h24x7' as never, industriesServed: [], countries: [], dataTypes: [],
       },
     });
   const service = await newService('Servicio');

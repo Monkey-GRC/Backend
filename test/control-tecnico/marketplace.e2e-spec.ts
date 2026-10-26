@@ -55,36 +55,25 @@ describe('El catálogo de conexiones trae las plataformas del comité', () => {
   });
 });
 
-describe('Qué conexiones ofrece cada escenario sale de la base', () => {
-  const offered = async (scenario: string) => {
-    const res = await a.agent.put(`/v1/services/${a.serviceId}/deployment-scenario`).send({ deployment_scenario: scenario }).expect(200);
-    return (res.body.data.applicable_capabilities as Capability[]).map((c) => c.catalog_code);
-  };
+describe('Se ofrecen todas las conexiones del catálogo, sin que el cliente declare dónde vive (D92)', () => {
+  const state = async () => (await a.agent.get(`/v1/services/${a.serviceId}/technical-control`).expect(200)).body.data;
 
-  it.each([
-    ['cloud_managed_only', ['ac_01']],
-    ['cloud_with_servers', ['ac_01', 'ac_02', 'ac_03']],
-    ['hybrid', ['ac_01', 'ac_02', 'ac_03', 'ac_04', 'ac_05', 'ac_06']],
-  ])('%s ofrece %j', async (scenario, expected) => {
-    expect(await offered(scenario)).toEqual(expected);
+  it('un servicio recién creado ya ofrece las seis conexiones, con sus plataformas listas para el marketplace', async () => {
+    const data = await state();
+    const capabilities = data.applicable_capabilities as Capability[];
+    expect(capabilities.map((c) => c.catalog_code)).toEqual(['ac_01', 'ac_02', 'ac_03', 'ac_04', 'ac_05', 'ac_06']);
+    expect(capabilities[0].platforms.map((p) => p.code)).toEqual(['aws', 'azure', 'gcp', 'microsoft_365', 'google_workspace']);
+    expect(capabilities[0]).not.toHaveProperty('supported_platforms');
   });
 
-  it('las conexiones aplicables ya traen sus plataformas, listas para el marketplace', async () => {
-    const res = await a.agent.get(`/v1/services/${a.serviceId}/technical-control`).expect(200);
-    const first = (res.body.data.applicable_capabilities as Capability[])[0];
-    expect(first.platforms.map((p) => p.code)).toEqual(['aws', 'azure', 'gcp', 'microsoft_365', 'google_workspace']);
-    expect(first).not.toHaveProperty('supported_platforms');
+  it('la respuesta ya no habla de escenario', async () => {
+    const data = await state();
+    expect(data).not.toHaveProperty('deployment_scenario');
+    expect(data).not.toHaveProperty('is_complete');
   });
 
-  it('es un dato: quitar una conexión de un escenario en la base cambia lo que se ofrece, sin tocar el código', async () => {
-    const [{ id }] = await owner<{ id: string }>(`select d.id from catalog.deployment_scenario_capabilities d join catalog.automated_capabilities c on c.id = d.automated_capability_id where d.deployment_scenario = 'cloud_with_servers' and c.catalog_code = 'ac_03'`);
-    try {
-      await owner('delete from catalog.deployment_scenario_capabilities where id = $1', [id]);
-      expect(await offered('cloud_with_servers')).toEqual(['ac_01', 'ac_02']);
-    } finally {
-      await owner(`insert into catalog.deployment_scenario_capabilities (id, deployment_scenario, automated_capability_id) select $1, 'cloud_with_servers', c.id from catalog.automated_capabilities c where c.catalog_code = 'ac_03' on conflict do nothing`, [id]);
-    }
-    expect(await offered('cloud_with_servers')).toEqual(['ac_01', 'ac_02', 'ac_03']);
+  it('el endpoint para declararlo ya no existe', async () => {
+    await a.agent.put(`/v1/services/${a.serviceId}/deployment-scenario`).send({ deployment_scenario: 'hybrid' }).expect(404);
   });
 });
 

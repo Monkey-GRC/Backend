@@ -59,7 +59,7 @@ describe('validateCatalog', () => {
 
   it('detecta un control sin punto de enfoque distinto de CPL-1', () => {
     const c = baseline();
-    c.controls.push({ code: 'XXX-1', name: 'n', description: 'd', domain: 'x', sourceRef: 'vanta:XXX-1' });
+    c.controls.push({ code: 'XXX-1', name: 'n', description: 'd', domain: 'x', sourceRef: 'comite:XXX-1' });
     expect(has(validateCatalog(c), 'estructura', 'controles sin punto de enfoque')).toBe(true);
   });
 

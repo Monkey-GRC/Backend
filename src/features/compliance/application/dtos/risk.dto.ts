@@ -22,6 +22,10 @@ export class UpdateRiskDto {
   @ApiPropertyOptional({ enum: LOSS_TYPES, enumName: 'LossType', isArray: true, description: 'Reemplaza los tipos de pérdida.' }) @IsOptional() @IsArray() @ArrayUnique() @IsIn(LOSS_TYPES, { each: true }) potential_impact?: string[];
 }
 
+export class DeactivateRiskDto {
+  @ApiPropertyOptional({ description: 'Por qué el riesgo no aplica al servicio (máx. 500). Queda en el rastro de auditoría de la baja; el asistente de alta del servicio lo pide siempre.' }) @IsOptional() @IsString() @MaxLength(500) reason?: string;
+}
+
 export class CreateCauseDto {
   @ApiPropertyOptional({ description: 'Código de la causa (letras y número, por ejemplo `F012`). Si no viene, el servidor asigna el siguiente libre.' }) @IsOptional() @IsString() @Matches(CODE) code?: string;
   @ApiProperty({ description: 'Nombre de la causa (máx. 200).' }) @IsString() @IsNotEmpty() @MaxLength(200) name!: string;

@@ -1,17 +1,9 @@
 // Listas cerradas del Componente 3 (Control Técnico): sus valores coinciden con los enums de Postgres del schema (tenant.*).
-// Las REGLAS (qué conexiones ofrece cada escenario, con qué frecuencia corre cada una, qué tipo de activo produce, qué canales y
-// regiones admite cada plataforma) ya no viven aquí: son datos del catálogo en la base (D67, modelo-datos.md §6.3).
+// Las REGLAS (con qué frecuencia corre cada conexión, qué tipo de activo produce, qué canales y regiones admite cada plataforma)
+// ya no viven aquí: son datos del catálogo en la base (D67, modelo-datos.md §6.3).
 //
 // CONFIDENCIALIDAD: nada de este archivo nombra al proveedor del motor de monitoreo, y no debe
 // hacerlo nunca (contracts/modules/onboarding-technical-control.md).
-
-export const DEPLOYMENT_SCENARIO_VALUES = [
-  'cloud_managed_only',
-  'cloud_with_servers',
-  'on_premise',
-  'hybrid',
-] as const;
-export type DeploymentScenarioValue = (typeof DEPLOYMENT_SCENARIO_VALUES)[number];
 
 export const CONNECTION_CATEGORY_VALUES = ['ac_01', 'ac_02', 'ac_03', 'ac_04', 'ac_05', 'ac_06'] as const;
 export type ConnectionCategory = (typeof CONNECTION_CATEGORY_VALUES)[number];

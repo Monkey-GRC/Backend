@@ -76,7 +76,7 @@ export class AssetsController {
 
   @ApiOperation({ summary: 'Registrar y conectar un activo', description: 'Primer paso del flujo **conectar → validar → activar → programar**. El tipo del activo se deduce de la conexión elegida (D46). Con el canal de rol de solo lectura la respuesta trae `connection_setup`: el identificador externo y los pasos para crear el rol en la cuenta del cliente. Las credenciales (canal de llaves) solo entran aquí, se guardan cifradas y **nunca se devuelven**. Requiere el escenario de despliegue.' })
   @ApiData(AssetResponse, 'Activo registrado, con las instrucciones para completar la conexión.', { status: 201 })
-  @ApiDomainErrors('DEPLOYMENT_SCENARIO_NOT_SET', 'CAPABILITY_NOT_APPLICABLE', 'CONNECTION_METHOD_NOT_APPLICABLE', 'ORGANIZATION_NOT_DECLARED')
+  @ApiDomainErrors('CONNECTION_METHOD_NOT_APPLICABLE', 'ORGANIZATION_NOT_DECLARED')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@CurrentUser() principal: Principal, @Body() dto: CreateAssetDto, @Req() req: Request) {

@@ -97,9 +97,24 @@ export class UpdateRiskUseCase {
 @Injectable()
 export class DeactivateRiskUseCase {
   constructor(private readonly repo: RiskRepository) {}
-  async execute(p: Principal, id: string, meta: RequestMeta): Promise<void> {
-    const changed = await this.repo.deactivateRisk(scopeOf(p), id, (done) => audit(p, meta, 'client_risk.deactivate', 'client_risk', done.before, done.after));
+  // `reason` (D93): por qué el riesgo no aplica al servicio. No tiene columna propia: va en el rastro de auditoría de la baja, junto al estado de antes y de después.
+  async execute(p: Principal, id: string, meta: RequestMeta, reason?: string): Promise<void> {
+    const why = reason?.trim();
+    const changed = await this.repo.deactivateRisk(scopeOf(p), id, (done) =>
+      audit(p, meta, 'client_risk.deactivate', 'client_risk', done.before, why ? { ...done.after, retirement_reason: why } : done.after),
+    );
     if (!changed) throw new DomainError('NOT_FOUND');
+  }
+}
+
+@Injectable()
+export class ReactivateRiskUseCase {
+  constructor(private readonly repo: RiskRepository, private readonly get: GetRiskUseCase) {}
+  // D93 · Devuelve al servicio un riesgo retirado. Conserva su evaluación anterior, si la tenía.
+  async execute(p: Principal, id: string, meta: RequestMeta) {
+    const changed = await this.repo.reactivateRisk(scopeOf(p), id, (done) => audit(p, meta, 'client_risk.reactivate', 'client_risk', done.before, done.after));
+    if (!changed) throw new DomainError('NOT_FOUND');
+    return this.get.execute(p, id, undefined);
   }
 }
 

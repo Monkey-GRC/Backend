@@ -10,10 +10,9 @@ const baseline = (): Soc2Catalog => JSON.parse(readFileSync(resolve(__dirname, '
 const has = (errors: string[], rule: string, text?: string) => errors.some((e) => e.startsWith(`[${rule}]`) && (!text || e.includes(text)));
 
 describe('el nombre neutro de una prueba (D70)', () => {
-  it('reescribe exactamente las cuatro pruebas cuyo nombre del comité nombra al proveedor de la sonda', () => {
-    const naming = baseline().tests.filter((t) => PROVIDER_PATTERN.test(t.name)).map((t) => t.code).sort();
-    expect(naming).toEqual(Object.keys(NEUTRAL_NAME_OVERRIDES).sort());
-    expect(naming).toEqual(['T-SRV-001', 'T-SRV-002', 'T-SRV-003', 'T-SRV-005']);
+  it('ya ninguna prueba del comité nombra al proveedor en su nombre (D92: el catálogo se neutralizó), pero las cuatro de D70 conservan su nombre neutro', () => {
+    expect(baseline().tests.filter((t) => PROVIDER_PATTERN.test(t.name))).toEqual([]);
+    expect(Object.keys(NEUTRAL_NAME_OVERRIDES).sort()).toEqual(['T-SRV-001', 'T-SRV-002', 'T-SRV-003', 'T-SRV-005']);
   });
 
   it('usa el nombre del comité tal cual en las otras 57', () => {
@@ -62,9 +61,9 @@ describe('el nombre neutro de una prueba (D70)', () => {
 });
 
 describe('la descripción corta de una prueba (D82)', () => {
-  it('reescribe exactamente las cuatro pruebas cuyo objetivo nombra al proveedor', () => {
-    const naming = baseline().tests.filter((t) => PROVIDER_PATTERN.test(t.objective)).map((t) => t.code).sort();
-    expect(naming).toEqual(Object.keys(NEUTRAL_DESCRIPTION_OVERRIDES).sort());
+  it('ya ningún objetivo del comité nombra al proveedor (D92: el catálogo se neutralizó), pero las cuatro de D82 conservan su descripción neutra', () => {
+    expect(baseline().tests.filter((t) => PROVIDER_PATTERN.test(t.objective))).toEqual([]);
+    expect(Object.keys(NEUTRAL_DESCRIPTION_OVERRIDES).sort()).toEqual(['T-SRV-001', 'T-SRV-002', 'T-SRV-003', 'T-SRV-005']);
   });
 
   it('usa el objetivo del comité tal cual en las otras 57', () => {

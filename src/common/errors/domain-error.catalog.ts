@@ -63,8 +63,6 @@ export const DOMAIN_ERROR_CATALOG: Record<
   SYSTEM_DESCRIPTION_NOT_A_FILE: { status: HttpStatus.NOT_FOUND, messageKey: 'file.not_a_file' },
   ACCESS_KEY_RATE_LIMITED: { status: HttpStatus.TOO_MANY_REQUESTS, messageKey: 'auth.access_key_rate_limited' },
   // Componente 3 (contracts/modules/onboarding-technical-control.md).
-  DEPLOYMENT_SCENARIO_NOT_SET: { status: HttpStatus.CONFLICT, messageKey: 'deployment_scenario.not_set' },
-  CAPABILITY_NOT_APPLICABLE: { status: HttpStatus.CONFLICT, messageKey: 'capability.not_applicable' },
   ASSET_NOT_VALIDATED: { status: HttpStatus.CONFLICT, messageKey: 'asset.not_validated' },
   ASSET_ALREADY_ACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'asset.already_active' },
   ASSET_NOT_ACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'asset.not_active' },

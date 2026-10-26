@@ -27,6 +27,10 @@ import { CloneCatalogService } from '../../../onboarding/application/clone-catal
 // filas contra la base, así que necesita más de los 5 s que Prisma da por defecto.
 const CLONING_TRANSACTION = { timeoutMs: 60_000 };
 
+// Leer un servicio son varias consultas seguidas (sus criterios, marcos, proveedores, conexiones y conteos) y la lista lee uno por uno. Contra una base remota (~100 ms por consulta)
+// con unos cuantos servicios se pasaba de los 5 s de Prisma y la lista fallaba con 500 (DT-82).
+const READ_TRANSACTION = { timeoutMs: 30_000 };
+
 // "2026-Q4": el periodo de evaluación con que se contrata un marco (A4, modelo-datos.md §6.2).
 const evaluationPeriodFor = (date: Date): string =>
   `${date.getUTCFullYear()}-Q${Math.floor(date.getUTCMonth() / 3) + 1}`;
@@ -143,11 +147,11 @@ export class ServicePrismaRepository extends ServiceRepository {
       const items: ServiceDetail[] = [];
       for (const row of rows) items.push(await this.read(tx, row.id));
       return { items, total, page: request.page, pageSize: request.pageSize };
-    });
+    }, READ_TRANSACTION);
   }
 
   findById(scope: TenantScope, id: string): Promise<ServiceDetail | null> {
-    return this.prisma.withScope(scope, (tx) => this.readOrNull(tx, id));
+    return this.prisma.withScope(scope, (tx) => this.readOrNull(tx, id), READ_TRANSACTION);
   }
 
   update(
@@ -500,7 +504,6 @@ export class ServicePrismaRepository extends ServiceRepository {
       expectedAvailability: fromDbAvailability(row.expectedAvailability),
       systemDescription: row.systemDescription ? toSystemDescriptionView(row.systemDescription) : null,
       catalog: { status: 'ready', applicableRequirements, clonedControls },
-      deploymentScenario: row.deploymentScenario,
       connectionCount: row._count.serviceAssets,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,

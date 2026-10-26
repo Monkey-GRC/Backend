@@ -21,20 +21,12 @@ import {
   ASSET_CRITICALITY_VALUES,
   CONNECTION_CATEGORY_VALUES,
   CONNECTION_METHOD_VALUES,
-  DEPLOYMENT_SCENARIO_VALUES,
   SCHEDULE_FREQUENCY_VALUES,
 } from '../../../../common/catalogs/technical-catalogs';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 const trimOrNull = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() || null : value;
-
-// PUT /v1/services/{id}/deployment-scenario
-export class DeploymentScenarioDto {
-  @ApiProperty({ enum: DEPLOYMENT_SCENARIO_VALUES, enumName: 'DeploymentScenario', description: 'Dónde corre el servicio (`GET /v1/catalogs/deployment_scenario`).' })
-  @IsIn(DEPLOYMENT_SCENARIO_VALUES)
-  deployment_scenario!: (typeof DEPLOYMENT_SCENARIO_VALUES)[number];
-}
 
 // PUT /v1/services/{id}/connections/{assetId}/assets — los activos de la conexión que son de este servicio (los demás quedan fuera).
 export class ServiceAssetsDto {

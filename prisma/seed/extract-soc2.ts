@@ -25,7 +25,7 @@ const DEFAULT_XLSX = '../Monkey-Brain-IA/assets/TSC INTERGRAL SOC 2 DETALLADO VF
 function readSheet(wb: XLSX.WorkBook, name: string, mustHave: string[]): Row[] {
   const ws = wb.Sheets[name];
   if (!ws) throw new Error(`No existe la hoja "${name}". Hojas: ${wb.SheetNames.join(', ')}`);
-  // La hoja de Vanta trae 4 filas de título antes del encabezado: se busca la fila que lo contiene.
+  // La hoja de controles del comité trae 4 filas de título antes del encabezado: se busca la fila que lo contiene.
   const grid = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
   const header = grid.findIndex((r) => mustHave.every((c) => r.includes(c)));
   if (header < 0) throw new Error(`Hoja "${name}": no se encontró un encabezado con ${mustHave.join(', ')}`);

@@ -16,19 +16,10 @@ export function toCapabilityResponse(c: Capability) {
   };
 }
 
-export function toDeploymentScenarioResponse(state: TechnicalControlState) {
-  return {
-    deployment_scenario: state.deploymentScenario,
-    applicable_capabilities: state.applicableCapabilities.map(toCapabilityResponse),
-  };
-}
-
-// El paso 3 se da por hecho cuando el servicio ya tiene su escenario de despliegue (D60): registrar activos se
-// recomienda pero se puede dejar para después.
+// Todas las conexiones del catálogo: el cliente no declara dónde vive su servicio, elige la plataforma (D92).
 export function toTechnicalControlResponse(state: TechnicalControlState, probeMode: string) {
   return {
-    ...toDeploymentScenarioResponse(state),
-    is_complete: state.deploymentScenario !== null,
+    applicable_capabilities: state.applicableCapabilities.map(toCapabilityResponse),
     probe_mode: probeMode,
   };
 }

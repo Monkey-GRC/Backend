@@ -17,10 +17,7 @@ import {
   SetServiceAssetsUseCase,
   ValidateAssetUseCase,
 } from './application/use-cases/asset.use-cases';
-import {
-  GetTechnicalControlUseCase,
-  SetDeploymentScenarioUseCase,
-} from './application/use-cases/service-technical-control.use-cases';
+import { GetTechnicalControlUseCase } from './application/use-cases/service-technical-control.use-cases';
 import {
   ClaimExecutionUseCase,
   CompleteExecutionUseCase,
@@ -55,7 +52,6 @@ import { TechnicalControlController } from './presentation/technical-control.con
     // La sonda la decide PROBE_MODE (por defecto «unavailable»; «simulated» solo fuera de producción).
     { provide: ConnectionProbe, useFactory: createConnectionProbe, inject: [ConfigService, ScanRepository] },
     GetTechnicalControlUseCase,
-    SetDeploymentScenarioUseCase,
     CreateAssetUseCase,
     ListAssetsUseCase,
     GetAssetUseCase,

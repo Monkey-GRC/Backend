@@ -168,6 +168,39 @@ describe('Editar es sobre la copia de la empresa', () => {
   });
 });
 
+describe('El motivo de la baja de un riesgo (D93)', () => {
+  it('queda en el rastro de auditoría de la baja, y se puede dar de baja sin motivo', async () => {
+    const con = (await a.agent.post(risks(a)).send({ ...RISK, name: 'No aplica a mi servicio' }).expect(201)).body.data.id;
+    await a.agent.delete(`/v1/risks/${con}`).send({ reason: '  No usamos portátiles; todo es remoto.  ' }).expect(204);
+    const rows = await owner<{ after_state: { retirement_reason?: string } }>(
+      `select after_state from audit.audit_logs where tenant_id = $1 and action = 'client_risk.deactivate' and before_state->>'id' = $2`,
+      [a.companyId, con],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].after_state.retirement_reason).toBe('No usamos portátiles; todo es remoto.');
+
+    const sin = (await a.agent.post(risks(a)).send({ ...RISK, name: 'Sin motivo' }).expect(201)).body.data.id;
+    await a.agent.delete(`/v1/risks/${sin}`).expect(204);
+    await a.agent.delete(`/v1/risks/${(await a.agent.post(risks(a)).send({ ...RISK, name: 'Motivo largo' }).expect(201)).body.data.id}`).send({ reason: 'x'.repeat(501) }).expect(422);
+  });
+});
+
+describe('Volver a incluir un riesgo retirado (D93)', () => {
+  it('lo devuelve a la lista con su evaluación, es idempotente y solo lo hace el administrador', async () => {
+    const id = (await a.agent.post(risks(a)).send({ ...RISK, name: 'Se retira y vuelve' }).expect(201)).body.data.id;
+    await a.agent.post(`/v1/risks/${id}/evaluation`).send({ likelihood: 3, impact: 3 }).expect(201);
+    await a.agent.delete(`/v1/risks/${id}`).send({ reason: 'Por ahora no aplica' }).expect(204);
+    expect((await all(a.agent, risks(a))).some((r) => r.id === id)).toBe(false);
+    const back = await a.agent.post(`/v1/risks/${id}/reactivation`).expect(200);
+    expect(back.body.data).toMatchObject({ id, is_active: true, likelihood: 3, impact: 3 });
+    expect((await all(a.agent, risks(a))).some((r) => r.id === id)).toBe(true);
+    await a.agent.post(`/v1/risks/${id}/reactivation`).expect(200); // idempotente
+    const rows = await owner<{ n: number }>(`select count(*)::int n from audit.audit_logs where tenant_id = $1 and action = 'client_risk.reactivate' and before_state->>'id' = $2`, [a.companyId, id]);
+    expect(rows[0].n).toBe(1); // la segunda vez no deja rastro
+    await auditor.post(`/v1/risks/${id}/reactivation`).expect(403);
+  });
+});
+
 describe('Dar de baja conserva el historial', () => {
   it('un riesgo dado de baja no aparece en la lista, pero sigue existiendo y se puede leer', async () => {
     const id = (await a.agent.post(risks(a)).send({ ...RISK, name: 'Riesgo que se retira' }).expect(201)).body.data.id;
