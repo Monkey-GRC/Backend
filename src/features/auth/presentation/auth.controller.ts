@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Inject, Post, Req, Res } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiExtraModels, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
@@ -8,32 +8,47 @@ import { Public } from '../../../common/decorators/public.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import type { SessionPolicy } from '../domain/entities/session.entity';
 import { LoginDto } from '../application/dtos/login.dto';
+import { MfaCodeDto, VerifyMfaDto } from '../application/dtos/mfa.dto';
 import { LookupAccessKeyDto } from '../application/dtos/lookup-access-key.dto';
 import { RedeemAccessKeyDto } from '../application/dtos/redeem-access-key.dto';
 import { SESSION_POLICY } from '../application/session-policy.token';
 import { GetCurrentUserUseCase } from '../application/use-cases/get-current-user.use-case';
 import { GetOnboardingProgressUseCase } from '../application/use-cases/get-onboarding-progress.use-case';
+import { ConfirmMfaSetupUseCase } from '../application/use-cases/confirm-mfa-setup.use-case';
 import { LoginUseCase } from '../application/use-cases/login.use-case';
 import { LogoutUseCase } from '../application/use-cases/logout.use-case';
 import { LookupAccessKeyUseCase } from '../application/use-cases/lookup-access-key.use-case';
 import { RedeemAccessKeyUseCase } from '../application/use-cases/redeem-access-key.use-case';
 import { RefreshSessionUseCase } from '../application/use-cases/refresh-session.use-case';
+import { RegenerateRecoveryCodesUseCase } from '../application/use-cases/regenerate-recovery-codes.use-case';
+import { StartMfaSetupUseCase } from '../application/use-cases/start-mfa-setup.use-case';
+import { VerifyMfaUseCase } from '../application/use-cases/verify-mfa.use-case';
 import {
   clearAuthCookies,
+  clearMfaChallengeCookie,
+  MFA_COOKIE,
   readCookie,
   REFRESH_COOKIE,
   requestMeta,
   setAuthCookies,
+  setMfaChallengeCookie,
 } from './auth-cookies';
 import { toAuthResponse } from './auth-response.mapper';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiEmpty, ApiNoBody } from '../../../common/swagger/api-envelope';
-import { AccessKeyLookupResponse, AuthSessionResponse } from './auth.responses';
+import { AccessKeyLookupResponse, AuthSessionResponse, AuthSessionWithRecoveryResponse, MfaSetupStartResponse, MfaStepResponse, RecoveryCodesResponse } from './auth.responses';
 
 const t = (key: string): string =>
   (I18nContext.current()?.t(key) as string | undefined) ?? key;
 
+// Lo que se contesta cuando falta el segundo factor: qué sigue (verificar o configurar) y hasta cuándo sirve el desafío.
+const mfaStep = (challenge: { purpose: 'verify' | 'setup'; expiresAt: Date }) => ({
+  next_step: challenge.purpose === 'verify' ? 'mfa_verify' : 'mfa_setup',
+  expires_at: challenge.expiresAt.toISOString(),
+});
+
 @ApiTags(API_TAGS.auth)
+@ApiExtraModels(MfaStepResponse)
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -44,11 +59,15 @@ export class AuthController {
     private readonly redeemAccessKey: RedeemAccessKeyUseCase,
     private readonly lookupAccessKey: LookupAccessKeyUseCase,
     private readonly getOnboardingProgress: GetOnboardingProgressUseCase,
+    private readonly verifyMfa: VerifyMfaUseCase,
+    private readonly startMfaSetup: StartMfaSetupUseCase,
+    private readonly confirmMfaSetup: ConfirmMfaSetupUseCase,
+    private readonly regenerateCodes: RegenerateRecoveryCodesUseCase,
     @Inject(SESSION_POLICY) private readonly policy: SessionPolicy,
   ) {}
 
   @Public()
-  @ApiOperation({ summary: 'Iniciar sesión', description: 'Valida el correo y la contraseña y abre la sesión: el servidor deja las cookies `httpOnly` `mnk_access` (15 min) y `mnk_refresh` en la respuesta. Nunca revela cuál de los dos datos falló. La sesión cierra a los 30 min sin actividad y a las 8 h de abierta; a los 5 intentos fallidos la cuenta se bloquea 15 min.' })
+  @ApiOperation({ summary: 'Iniciar sesión', description: 'Valida el correo y la contraseña y abre la sesión: el servidor deja las cookies `httpOnly` `mnk_access` (15 min) y `mnk_refresh` en la respuesta. Nunca revela cuál de los dos datos falló. **Con el segundo factor (D94) la contraseña correcta no abre la sesión:** responde `data.next_step` (`mfa_verify` o `mfa_setup`) y deja la cookie `mnk_mfa` (el desafío, 5 minutos); la sesión se abre en `POST /auth/mfa/verify` o `POST /auth/mfa/setup/confirm`. La sesión cierra a los 30 min sin actividad y a las 8 h de abierta; a los 5 intentos fallidos la cuenta se bloquea 15 min.' })
   @ApiData(AuthSessionResponse, 'Sesión abierta. Trae el usuario, su empresa y, para `admin_empresa`, el avance del onboarding.')
   @ApiDomainErrors('INVALID_CREDENTIALS', 'ACCOUNT_LOCKED', 'ACCOUNT_INACTIVE')
   @Post('login')
@@ -59,6 +78,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.login.execute(dto.email, dto.password, requestMeta(req));
+    if (result.kind === 'mfa') {
+      setMfaChallengeCookie(res, result.challenge.token, result.challenge.expiresAt);
+      return new ResponseDto(HttpStatus.OK, t(result.challenge.purpose === 'verify' ? 'auth.mfa_required' : 'auth.mfa_setup_required'), mfaStep(result.challenge));
+    }
     setAuthCookies(res, result, this.policy.accessTokenTtl, result.session.expiresAt);
     const onboarding = await this.getOnboardingProgress.execute(result.user);
     return new ResponseDto(HttpStatus.OK, t('auth.logged_in'), toAuthResponse(result.user, onboarding));
@@ -101,9 +124,72 @@ export class AuthController {
       },
       requestMeta(req),
     );
+    // D94 · Con el segundo factor obligatorio, la cuenta recién creada lo configura antes de entrar.
+    if (result.kind === 'mfa') {
+      setMfaChallengeCookie(res, result.challenge.token, result.challenge.expiresAt);
+      return new ResponseDto(HttpStatus.CREATED, t('auth.mfa_setup_required'), mfaStep(result.challenge));
+    }
     setAuthCookies(res, result, this.policy.accessTokenTtl, result.session.expiresAt);
     const onboarding = await this.getOnboardingProgress.execute(result.user);
     return new ResponseDto(HttpStatus.CREATED, t('auth.account_created'), toAuthResponse(result.user, onboarding));
+  }
+
+  // ── Segundo factor (D94) ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+  @Public()
+  @ApiOperation({ summary: 'Verificar el segundo factor y abrir la sesión', description: 'Segundo paso del ingreso de quien ya tiene el segundo factor. Con la cookie `mnk_mfa` (la deja el login) y el código de 6 dígitos de su app —o uno de sus códigos de recuperación— abre la sesión con las mismas cookies del login. Un código equivocado cuenta como un intento fallido más: suma al bloqueo de la cuenta (5 intentos, 15 min) y al del desafío (5 intentos). Un código ya usado no sirve otra vez.' })
+  @ApiData(AuthSessionWithRecoveryResponse, 'Sesión abierta. Si entró con un código de recuperación, trae `recovery_codes_left`.')
+  @ApiDomainErrors('MFA_CHALLENGE_INVALID', 'MFA_CODE_INVALID', 'ACCOUNT_LOCKED', 'ACCOUNT_INACTIVE')
+  @Post('mfa/verify')
+  @HttpCode(HttpStatus.OK)
+  async verify(@Body() dto: VerifyMfaDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const result = await this.verifyMfa.execute({ challengeToken: readCookie(req, MFA_COOKIE), code: dto.code, recoveryCode: dto.recovery_code }, requestMeta(req));
+    clearMfaChallengeCookie(res);
+    setAuthCookies(res, result, this.policy.accessTokenTtl, result.session.expiresAt);
+    const onboarding = await this.getOnboardingProgress.execute(result.user);
+    return new ResponseDto(HttpStatus.OK, t('auth.logged_in'), {
+      ...toAuthResponse(result.user, onboarding),
+      ...(result.method === 'recovery' ? { recovery_codes_left: result.recoveryCodesLeft } : {}),
+    });
+  }
+
+  @Public()
+  @ApiOperation({ summary: 'Pedir el QR para configurar el segundo factor', description: 'Primer ingreso: con la cookie `mnk_mfa` de un desafío de configuración devuelve el secreto y la dirección `otpauth://` para dibujar el QR en el navegador. El secreto queda cifrado en el desafío, no en el usuario, hasta que se confirme; si se vuelve a pedir, devuelve el mismo.' })
+  @ApiData(MfaSetupStartResponse, 'El secreto y la dirección del QR.')
+  @ApiDomainErrors('MFA_CHALLENGE_INVALID')
+  @Post('mfa/setup')
+  @HttpCode(HttpStatus.OK)
+  async setupStart(@Req() req: Request) {
+    const started = await this.startMfaSetup.execute(readCookie(req, MFA_COOKIE));
+    return new ResponseDto(HttpStatus.OK, t('auth.mfa_setup_started'), {
+      secret: started.secret,
+      otpauth_uri: started.otpauthUri,
+      issuer: started.issuer,
+      account: started.account,
+    });
+  }
+
+  @Public()
+  @ApiOperation({ summary: 'Confirmar el segundo factor, recibir los códigos de recuperación y entrar', description: 'Con el primer código de 6 dígitos de la app activa el segundo factor, entrega **una sola vez** los 10 códigos de recuperación y abre la sesión. Un código equivocado cuenta como un intento fallido.' })
+  @ApiData(AuthSessionWithRecoveryResponse, 'Segundo factor activo y sesión abierta. `recovery_codes` trae los 10 códigos.')
+  @ApiDomainErrors('MFA_CHALLENGE_INVALID', 'MFA_SETUP_NOT_STARTED', 'MFA_CODE_INVALID', 'ACCOUNT_LOCKED', 'ACCOUNT_INACTIVE')
+  @Post('mfa/setup/confirm')
+  @HttpCode(HttpStatus.OK)
+  async setupConfirm(@Body() dto: MfaCodeDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const result = await this.confirmMfaSetup.execute({ challengeToken: readCookie(req, MFA_COOKIE), code: dto.code }, requestMeta(req));
+    clearMfaChallengeCookie(res);
+    setAuthCookies(res, result, this.policy.accessTokenTtl, result.session.expiresAt);
+    const onboarding = await this.getOnboardingProgress.execute(result.user);
+    return new ResponseDto(HttpStatus.OK, t('auth.mfa_enabled'), { ...toAuthResponse(result.user, onboarding), recovery_codes: result.recoveryCodes });
+  }
+
+  @ApiOperation({ summary: 'Generar códigos de recuperación nuevos', description: 'Seguridad de la cuenta: con la sesión abierta y un código vigente de la app, cambia los 10 códigos de recuperación por otros nuevos (los anteriores dejan de servir). Se muestran una sola vez. Un código equivocado cuenta como un intento fallido.' })
+  @ApiData(RecoveryCodesResponse, 'Los 10 códigos nuevos.')
+  @ApiDomainErrors('MFA_NOT_ENABLED', 'MFA_CODE_INVALID', 'ACCOUNT_LOCKED')
+  @Post('mfa/recovery-codes')
+  @HttpCode(HttpStatus.OK)
+  async recoveryCodes(@CurrentUser() principal: Principal, @Body() dto: MfaCodeDto, @Req() req: Request) {
+    const codes = await this.regenerateCodes.execute(principal, dto.code, requestMeta(req));
+    return new ResponseDto(HttpStatus.OK, t('auth.mfa_recovery_regenerated'), { recovery_codes: codes });
   }
 
   @Public()

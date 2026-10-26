@@ -10,7 +10,7 @@ export class AuthUserResponse {
   @ApiProperty({ nullable: true, example: null, description: 'Opcional desde D51.' }) last_name!: string | null;
   @ApiProperty({ enum: USER_ROLES, enumName: 'UserRole', description: 'Rol del usuario; el servidor lo lee de la base en cada petición.' }) role!: string;
   @ApiProperty({ enum: USER_STATUSES, enumName: 'UserStatus', description: 'Solo un usuario `active` puede iniciar sesión.' }) status!: string;
-  @ApiProperty({ example: false, description: 'Segundo factor (TOTP). Aplazado a MD-94: hoy siempre `false`.' }) is_mfa_enabled!: boolean;
+  @ApiProperty({ example: true, description: 'Si la persona ya activó el segundo factor (TOTP, D94). Es obligatorio para los 5 roles: lo configura en su primer ingreso.' }) is_mfa_enabled!: boolean;
   @ApiProperty({ format: 'date-time', nullable: true, example: null, description: 'Último inicio de sesión; `null` si nunca ha entrado.' }) last_login_at!: string | null;
   @ApiProperty({ format: 'date-time', example: '2026-10-01T09:12:44.000Z' }) created_at!: string;
 }
@@ -37,6 +37,28 @@ export class AuthSessionResponse {
   @ApiProperty({ type: AuthUserResponse }) user!: AuthUserResponse;
   @ApiProperty({ type: AuthCompanyResponse }) company!: AuthCompanyResponse;
   @ApiPropertyOptional({ type: OnboardingProgressResponse, description: 'Solo viaja para `admin_empresa`, que es quien recorre el onboarding.' }) onboarding?: OnboardingProgressResponse;
+}
+
+// D94 · Con el segundo factor, la contraseña correcta no abre la sesión: devuelve esto y deja la cookie `mnk_mfa` (el desafío, 5 minutos).
+export class MfaStepResponse {
+  @ApiProperty({ enum: ['mfa_verify', 'mfa_setup'], enumName: 'MfaStep', description: '`mfa_verify`: falta el código de su app. `mfa_setup`: primero debe configurar el segundo factor.' }) next_step!: string;
+  @ApiProperty({ format: 'date-time', example: '2026-10-26T14:05:00.000Z', description: 'Hasta cuándo sirve el desafío (5 minutos).' }) expires_at!: string;
+}
+
+export class MfaSetupStartResponse {
+  @ApiProperty({ example: 'JBSWY3DPEHPK3PXP', description: 'El secreto en base32, para quien no puede escanear el QR.' }) secret!: string;
+  @ApiProperty({ example: 'otpauth://totp/Monkey:ana.perez%40ejemplo.com?secret=JBSWY3DPEHPK3PXP&issuer=Monkey&algorithm=SHA1&digits=6&period=30', description: 'La dirección que codifica el QR. El QR se dibuja en el navegador: el secreto no pasa por ningún servicio externo.' }) otpauth_uri!: string;
+  @ApiProperty({ example: 'Monkey', description: 'El nombre con el que la app de códigos muestra la cuenta.' }) issuer!: string;
+  @ApiProperty({ example: 'ana.perez@ejemplo.com', description: 'El correo de la persona: la etiqueta de la cuenta en la app de códigos.' }) account!: string;
+}
+
+export class AuthSessionWithRecoveryResponse extends AuthSessionResponse {
+  @ApiPropertyOptional({ type: String, isArray: true, example: ['K7QWM-3PZ9T'], description: 'Solo al activar el segundo factor: 10 códigos de recuperación de un solo uso. **Se muestran una sola vez.**' }) recovery_codes?: string[];
+  @ApiPropertyOptional({ nullable: true, example: 7, description: 'Solo si entró con un código de recuperación: cuántos le quedan.' }) recovery_codes_left?: number | null;
+}
+
+export class RecoveryCodesResponse {
+  @ApiProperty({ type: String, isArray: true, example: ['K7QWM-3PZ9T'], description: 'Los 10 códigos nuevos. Los anteriores ya no sirven. **Se muestran una sola vez.**' }) recovery_codes!: string[];
 }
 
 export class AccessKeyCompanyResponse {

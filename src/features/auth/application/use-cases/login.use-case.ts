@@ -6,9 +6,14 @@ import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { AuthUser } from '../../domain/entities/auth-user.entity';
 import { PasswordHasher } from '../../domain/ports/password-hasher';
 import { AuthUserRepository } from '../../domain/repositories/auth-user.repository';
+import { MfaChallengeService, OpenedChallenge } from '../services/mfa-challenge.service';
+import { MfaPolicy } from '../services/mfa-policy.service';
 import { IssuedSession, SessionIssuer } from '../services/session-issuer.service';
 
-export type LoginResult = IssuedSession & { user: AuthUser };
+// D94 · La contraseña correcta ya no siempre abre la sesión: si la persona tiene el segundo factor (o está obligada a configurarlo) lo que sigue es un desafío.
+export type LoginResult =
+  | ({ kind: 'session'; user: AuthUser } & IssuedSession)
+  | { kind: 'mfa'; challenge: OpenedChallenge };
 
 @Injectable()
 export class LoginUseCase {
@@ -17,6 +22,8 @@ export class LoginUseCase {
     private readonly passwords: PasswordHasher,
     private readonly sessionIssuer: SessionIssuer,
     private readonly audit: AuditLogWriter,
+    private readonly mfaPolicy: MfaPolicy,
+    private readonly challenges: MfaChallengeService,
   ) {}
 
   async execute(email: string, password: string, meta: RequestMeta): Promise<LoginResult> {
@@ -67,6 +74,13 @@ export class LoginUseCase {
       throw new DomainError('ACCOUNT_INACTIVE');
     }
 
+    // Segundo factor (D94, SEG-16): quien ya lo tiene pasa por la verificación; quien no, por la configuración si es obligatoria. La sesión se abre después,
+    // y el contador de intentos fallidos solo se limpia cuando la persona termina de entrar.
+    if (credentials.isMfaEnabled || this.mfaPolicy.isRequired()) {
+      const challenge = await this.challenges.open(scope, credentials.id, credentials.isMfaEnabled ? 'verify' : 'setup', meta, now);
+      return { kind: 'mfa', challenge };
+    }
+
     await this.users.registerSuccessfulLogin(scope, credentials.id, now);
     const user = await this.users.findById(scope, credentials.id);
     if (!user) throw new DomainError('INVALID_CREDENTIALS');
@@ -87,7 +101,7 @@ export class LoginUseCase {
       }),
       now,
     );
-    return { user, ...issued };
+    return { kind: 'session', user, ...issued };
   }
 
   // Solo intentos FALLIDOS: no hay efecto con el que ser atómico, así que se escriben aparte (de mejor esfuerzo). El

@@ -9,10 +9,15 @@ import { PasswordHasher } from './domain/ports/password-hasher';
 import { AccessKeyRedemptionRepository } from './domain/repositories/access-key-redemption.repository';
 import { OnboardingProgressReader } from './domain/ports/onboarding-progress.reader';
 import { AuthUserRepository } from './domain/repositories/auth-user.repository';
+import { MfaRepository } from './domain/repositories/mfa.repository';
 import { SessionRepository } from './domain/repositories/session.repository';
 import { AccessKeyAttemptLimiter } from './application/services/access-key-attempt-limiter.service';
+import { MfaAttempts } from './application/services/mfa-attempts.service';
+import { MfaChallengeService } from './application/services/mfa-challenge.service';
+import { MfaPolicy } from './application/services/mfa-policy.service';
 import { SessionIssuer } from './application/services/session-issuer.service';
 import { SESSION_POLICY } from './application/session-policy.token';
+import { ConfirmMfaSetupUseCase } from './application/use-cases/confirm-mfa-setup.use-case';
 import { RedeemAccessKeyUseCase } from './application/use-cases/redeem-access-key.use-case';
 import { GetCurrentUserUseCase } from './application/use-cases/get-current-user.use-case';
 import { GetOnboardingProgressUseCase } from './application/use-cases/get-onboarding-progress.use-case';
@@ -20,14 +25,20 @@ import { LoginUseCase } from './application/use-cases/login.use-case';
 import { LookupAccessKeyUseCase } from './application/use-cases/lookup-access-key.use-case';
 import { LogoutUseCase } from './application/use-cases/logout.use-case';
 import { RefreshSessionUseCase } from './application/use-cases/refresh-session.use-case';
+import { RegenerateRecoveryCodesUseCase } from './application/use-cases/regenerate-recovery-codes.use-case';
+import { ResetMfaUseCase } from './application/use-cases/reset-mfa.use-case';
+import { StartMfaSetupUseCase } from './application/use-cases/start-mfa-setup.use-case';
 import { ValidateSessionUseCase } from './application/use-cases/validate-session.use-case';
+import { VerifyMfaUseCase } from './application/use-cases/verify-mfa.use-case';
 import { AccessKeyRedemptionPrismaRepository } from './infrastructure/repositories/access-key-redemption.prisma.repository';
 import { AuthUserPrismaRepository } from './infrastructure/repositories/auth-user.prisma.repository';
+import { MfaPrismaRepository } from './infrastructure/repositories/mfa.prisma.repository';
 import { OnboardingProgressPrismaReader } from './infrastructure/repositories/onboarding-progress.prisma.reader';
 import { SessionPrismaRepository } from './infrastructure/repositories/session.prisma.repository';
 import { BcryptPasswordHasher } from './infrastructure/security/bcrypt-password.hasher';
 import { JwtAccessTokenService } from './infrastructure/security/jwt-access-token.service';
 import { AuthController } from './presentation/auth.controller';
+import { MfaAdminController } from './presentation/mfa-admin.controller';
 import { SessionAuthGuard } from './presentation/guards/session-auth.guard';
 
 const seconds = (config: ConfigService, key: string): number => {
@@ -49,7 +60,7 @@ const seconds = (config: ConfigService, key: string): number => {
       }),
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, MfaAdminController],
   providers: [
     {
       provide: SESSION_POLICY,
@@ -62,6 +73,7 @@ const seconds = (config: ConfigService, key: string): number => {
     },
     { provide: AuthUserRepository, useClass: AuthUserPrismaRepository },
     { provide: SessionRepository, useClass: SessionPrismaRepository },
+    { provide: MfaRepository, useClass: MfaPrismaRepository },
     { provide: PasswordHasher, useClass: BcryptPasswordHasher },
     { provide: AccessTokenService, useClass: JwtAccessTokenService },
     { provide: AccessKeyRedemptionRepository, useClass: AccessKeyRedemptionPrismaRepository },
@@ -69,7 +81,15 @@ const seconds = (config: ConfigService, key: string): number => {
     GetOnboardingProgressUseCase,
     SessionIssuer,
     AccessKeyAttemptLimiter,
+    MfaPolicy,
+    MfaChallengeService,
+    MfaAttempts,
     LoginUseCase,
+    VerifyMfaUseCase,
+    StartMfaSetupUseCase,
+    ConfirmMfaSetupUseCase,
+    RegenerateRecoveryCodesUseCase,
+    ResetMfaUseCase,
     LookupAccessKeyUseCase,
     RedeemAccessKeyUseCase,
     RefreshSessionUseCase,

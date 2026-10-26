@@ -13,6 +13,11 @@ export const DOMAIN_ERROR_CATALOG: Record<
   SESSION_EXPIRED: { status: HttpStatus.UNAUTHORIZED, messageKey: 'auth.session_expired' },
   ACCOUNT_LOCKED: { status: HttpStatus.FORBIDDEN, messageKey: 'auth.account_locked' },
   ACCOUNT_INACTIVE: { status: HttpStatus.FORBIDDEN, messageKey: 'auth.account_inactive' },
+  // D94 · Segundo factor. Un desafío que no sirve (no existe, venció, se usó o se agotó) y un código equivocado responden 401: hay que volver a empezar o volver a escribirlo.
+  MFA_CHALLENGE_INVALID: { status: HttpStatus.UNAUTHORIZED, messageKey: 'auth.mfa_challenge_invalid' },
+  MFA_CODE_INVALID: { status: HttpStatus.UNAUTHORIZED, messageKey: 'auth.mfa_code_invalid' },
+  MFA_SETUP_NOT_STARTED: { status: HttpStatus.CONFLICT, messageKey: 'auth.mfa_setup_not_started' },
+  MFA_NOT_ENABLED: { status: HttpStatus.CONFLICT, messageKey: 'auth.mfa_not_enabled' },
   // Canje de la clave (contracts/modules/auth.md, POST /v1/auth/redeem).
   ACCESS_KEY_INVALID: { status: HttpStatus.NOT_FOUND, messageKey: 'auth.access_key_invalid' },
   ACCESS_KEY_ALREADY_USED: { status: HttpStatus.CONFLICT, messageKey: 'auth.access_key_already_used' },

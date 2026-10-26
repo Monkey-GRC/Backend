@@ -15,6 +15,10 @@ export class UserCredentials {
     public readonly status: UserStatus,
     public readonly failedLoginAttempts: number,
     public readonly lockedUntil: Date | null,
+    // D94 · Segundo factor: si ya lo configuró, su secreto cifrado y el último paso de 30 s aceptado.
+    public readonly isMfaEnabled = false,
+    public readonly mfaSecretEncrypted: string | null = null,
+    public readonly mfaLastUsedStep: number | null = null,
   ) {}
 
   isLocked(now: Date): boolean {
