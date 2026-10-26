@@ -11,11 +11,14 @@
 // shell), no se imprime y no se guarda en ningún archivo. Se cumple la política de modelo-datos.md §5.3
 // (12+ caracteres con mayúscula, minúscula, número y símbolo) y se guarda con bcrypt.
 // Idempotente: si ya existe un `admin_monkey` no hace nada y no toca al existente. Usa el rol dueño.
+// Para sumar a otra persona del equipo Monkey: `npm run bootstrap:admin -- --additional --apply` (mismas variables, mismo correo no repetido).
 import bcrypt from 'bcrypt';
 import { connectAsOwner } from './soc2/db';
 import { passwordProblems } from './bootstrap/password';
 
 const apply = process.argv.includes('--apply');
+// Suma otro admin_monkey a la empresa interna que ya existe (el equipo crece); sin esto el seed se niega si ya hay uno.
+const additional = process.argv.includes('--additional');
 const BCRYPT_COST = 12;
 
 async function main() {
@@ -50,10 +53,14 @@ async function main() {
       process.exit(1);
     }
 
-    const existing = await prisma.user.findFirst({ where: { role: 'admin_monkey' }, select: { email: true } });
-    if (existing) {
-      console.log(`✓ Ya existe un admin_monkey (${existing.email}). Nada que hacer.`);
+    const existing = await prisma.user.findFirst({ where: { role: 'admin_monkey' }, orderBy: { createdAt: 'asc' }, select: { email: true, companyId: true } });
+    if (existing && !additional) {
+      console.log(`✓ Ya existe un admin_monkey (${existing.email}). Nada que hacer. Para sumar otro integrante del equipo, repite con -- --additional.`);
       return;
+    }
+    if (additional && !existing) {
+      console.error('✗ --additional suma un admin a la empresa interna ya creada, pero todavía no hay ningún admin_monkey: usa el modo normal.');
+      process.exit(1);
     }
     const emailTaken = await prisma.user.findUnique({ where: { email }, select: { role: true } });
     if (emailTaken) {
@@ -61,12 +68,17 @@ async function main() {
       process.exit(1);
     }
 
-    console.log(`\nSe crearía: la empresa interna "${companyName}" (shared) y el admin_monkey ${email}.`);
+    console.log(additional ? `\nSe crearía el admin_monkey ${email} en la empresa interna de ${existing!.email}.` : `\nSe crearía: la empresa interna "${companyName}" (shared) y el admin_monkey ${email}.`);
     if (!apply) {
       console.log('Dry-run: nada se escribió. Repite con -- --apply.');
       return;
     }
     const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
+    if (additional) {
+      await prisma.user.create({ data: { companyId: existing!.companyId, email, name, lastName, passwordHash, role: 'admin_monkey' } });
+      console.log('\n✓ Creado el admin_monkey. En su primer ingreso configurará el segundo factor.');
+      return;
+    }
     await prisma.$transaction(async (tx) => {
       const company = (await tx.company.findFirst({ where: { name: companyName, adminEmail: email } })) ?? (await tx.company.create({ data: { name: companyName, adminEmail: email, isolationStrategy: 'shared' } }));
       await tx.user.create({ data: { companyId: company.id, email, name, lastName, passwordHash, role: 'admin_monkey' } });
