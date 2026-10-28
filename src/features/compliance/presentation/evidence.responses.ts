@@ -4,7 +4,7 @@ import { DIMENSIONS } from './control.responses';
 import { ResponsibleRefResponse } from './responsible.responses';
 
 // Formas del `data` de contracts/modules/compliance-evidence.md, solo para la documentación (las arma evidence-response.mapper.ts).
-// D84: la empresa solo aporta la evidencia; la revisión es del consultor y del auditor (MD-127).
+// D96: el funcional aporta la evidencia y la revisión es una sola, la del admin_empresa (MD-127).
 
 export const EVIDENCE_STATES = ['compliant', 'non_compliant', 'pending', 'in_review', 'expired', 'not_applicable'] as const;
 export const EVIDENCE_STATE_DOC =
@@ -17,7 +17,7 @@ export class AiSuggestionResponse {
 }
 
 export class EvidenceTechnicalResponse {
-  @ApiProperty({ enum: ['pending_review', 'ai_prevalidated', 'human_validated'], description: 'Revisión de quien pregunta: la del consultor para la empresa y el consultor, la del auditor para el auditor (D84). `ai_prevalidated` lo deriva el servidor.' }) review!: string;
+  @ApiProperty({ enum: ['pending_review', 'ai_prevalidated', 'human_validated'], description: 'La única revisión de la entrega, la del admin_empresa (D96). `ai_prevalidated` lo deriva el servidor.' }) review!: string;
   @ApiProperty({ type: Object, description: 'Atributos que la revisión marca (`type_ok`, `period_ok`, `valid_ok`, `approved_ok`, `signed_ok`, `content_ok`); `null` hasta que se valoren.' }) attributes!: Record<string, boolean | null>;
   @ApiProperty({ nullable: true, example: null, description: 'Observación de quien revisó; `null` si no hay.' }) note!: string | null;
   @ApiProperty({ nullable: true, example: null, description: 'Quién hizo la revisión; `null` mientras no haya ninguna.' }) reviewed_by!: PersonResponse | null;
@@ -35,6 +35,7 @@ export class EvidenceSubmissionResponse {
   @ApiProperty({ type: PersonResponse, description: 'Quién la subió.' }) submitted_by!: PersonResponse;
   @ApiProperty({ format: 'date-time', description: 'Cuándo se subió.' }) submitted_at!: string;
   @ApiProperty({ enum: EVIDENCE_STATES, enumName: 'EvidenceState', description: EVIDENCE_STATE_DOC }) evidence_state!: string;
+  @ApiProperty({ nullable: true, example: 'Falta la firma de la dirección.', description: 'La nota de la revisión del admin_empresa: el motivo del rechazo, que el funcional lee para corregir (D96). `null` si no hay revisión o no dejó nota.' }) review_note!: string | null;
   @ApiProperty({ type: AiSuggestionResponse, nullable: true, description: 'Sugerencia de la IA, si la hay. `null` si no.' }) ai!: AiSuggestionResponse | null;
   @ApiProperty({ type: EvidenceTechnicalResponse, required: false, description: 'Solo en la vista técnica (`view=technical`).' }) technical?: EvidenceTechnicalResponse;
 }

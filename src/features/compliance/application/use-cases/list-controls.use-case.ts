@@ -14,8 +14,6 @@ export type ControlFilters = {
   trustCriterion?: string;
   type?: string;
   readiness?: string;
-  approval?: string;
-  assignedTo?: string;
   origin?: string;
   view?: 'technical';
 };
@@ -38,8 +36,6 @@ export class ListControlsUseCase {
         (!filters.trustCriterion || i.control.trustCriteria.includes(filters.trustCriterion)) &&
         (!filters.type || i.control.type === filters.type) &&
         (!filters.readiness || i.readiness === filters.readiness) &&
-        (!filters.approval || i.approval === filters.approval) &&
-        (!filters.assignedTo || i.control.assignedUserIds.includes(filters.assignedTo)) &&
         (!filters.origin || i.control.origin === filters.origin),
     );
 

@@ -332,9 +332,11 @@ model EvidenceSubmission {
 
 // Quién revisó una entrega: el consultor y el auditor, cada uno la suya (D84). Una fila por entrega y por rol; `PUT` la crea o la reemplaza (queda en el rastro).
 // `ai_prevalidated` no se guarda: se deriva (la entrega tiene `ai_verdict` y ninguna revisión humana). La del auditor no mueve el cálculo (D77).
+// D96 · La evidencia tiene una sola revisión, la del admin_empresa. Los valores consultor y auditor quedan sin uso (los datos viejos no se tocan).
 enum EvidenceReviewerRole {
   consultor
   auditor
+  admin_empresa
 
   @@map("evidence_reviewer_role")
   @@schema("tenant")

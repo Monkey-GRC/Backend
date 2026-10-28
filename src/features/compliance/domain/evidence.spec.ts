@@ -1,7 +1,7 @@
 import { EvidenceReviewRecord, evidenceStateOf, reviewerRoleFor } from './evidence';
 
 const review = (patch: Partial<EvidenceReviewRecord> = {}): EvidenceReviewRecord => ({
-  reviewerRole: 'consultor', review: 'human_validated', typeOk: true, periodOk: true, validOk: true, approvedOk: true, signedOk: true, contentOk: true, note: null,
+  reviewerRole: 'admin_empresa', review: 'human_validated', typeOk: true, periodOk: true, validOk: true, approvedOk: true, signedOk: true, contentOk: true, note: null,
   reviewedBy: { id: 'u1', name: 'Camilo', lastName: 'Ortiz' }, reviewedAt: new Date('2026-10-22T12:00:00Z'), ...patch,
 });
 
@@ -31,9 +31,8 @@ describe('evidenceStateOf (D84, RN-01 a RN-03)', () => {
   });
 });
 
-describe('reviewerRoleFor (SEG-61)', () => {
-  it('el auditor ve la suya; la empresa y el consultor, la del consultor', () => {
-    expect(reviewerRoleFor('auditor')).toBe('auditor');
-    for (const role of ['consultor', 'admin_empresa', 'funcional']) expect(reviewerRoleFor(role)).toBe('consultor');
+describe('reviewerRoleFor (D96)', () => {
+  it('todos ven la misma y única revisión, la del admin_empresa', () => {
+    for (const role of ['admin_empresa', 'funcional', 'auditor']) expect(reviewerRoleFor(role)).toBe('admin_empresa');
   });
 });

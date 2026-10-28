@@ -96,7 +96,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
             tenantId: scope.companyId, evidenceRequirementId: requirementId, submittedBy: input.submittedBy, filePath: input.fileKey, fileType: input.fileType,
             fileSize: input.fileSize, storageLocation: 's3', integrityHash: input.integrityHash, version: String(next),
           },
-          select: submissionSelect('consultor'),
+          select: submissionSelect('admin_empresa'),
         });
         const created = toSubmission(row);
         await insertAuditLog(tx, audit(created));
@@ -128,8 +128,8 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       if (!found) return null;
       const access = await this.accessOf(tx, found.evidenceRequirementId);
       if (!access) return null;
-      // D91 · Solo la revisión del consultor mueve el estado de las pruebas (D84): la del auditor no deja evento.
-      const before = input.reviewerRole === 'consultor' ? await captureControlStates(tx, access.serviceId) : null;
+      // D91 · La revisión del admin_empresa mueve el estado de las pruebas (D96) y deja el evento de cada control que cambie.
+      const before = await captureControlStates(tx, access.serviceId);
       const key = { evidenceSubmissionId_reviewerRole: { evidenceSubmissionId: submissionId, reviewerRole: input.reviewerRole } };
       const previous = await tx.evidenceReview.findUnique({ where: key, select: reviewsOf(input.reviewerRole).select });
       const values = {
@@ -198,7 +198,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
           description: input.description, dimension: input.dimension as Prisma.EvidenceRequirementUncheckedCreateInput['dimension'], testId: input.testId,
           validityWithinPeriod: input.validityWithinPeriod,
         },
-        select: requirementSelect('consultor'),
+        select: requirementSelect('admin_empresa'),
       });
       const created = toRequirement(row);
       await insertAuditLog(tx, audit(created));
@@ -224,7 +224,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
           description: input.description, dimension: input.dimension as Prisma.EvidenceRequirementUncheckedCreateInput['dimension'], testId,
           validityWithinPeriod: input.validityWithinPeriod,
         },
-        select: requirementSelect('consultor'),
+        select: requirementSelect('admin_empresa'),
       });
       await insertAuditLog(tx, audit(toRequirement(row)));
       return { requirementId: row.id, created: true };

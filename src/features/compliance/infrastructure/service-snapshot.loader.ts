@@ -36,18 +36,13 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
     },
   });
 
-  // Las propuestas de cambio de estas acciones: dicen si un control propio ya está aprobado y si hay algo pendiente.
-  const changes = rows.length
-    ? await tx.clientControlChange.findMany({ where: { serviceId, clientControlId: { in: rows.map((r) => r.id) } }, select: { clientControlId: true, changeType: true, status: true } })
-    : [];
-
-  // D88 · Las evidencias requeridas de estas acciones, con el estado de su última entrega según la revisión del CONSULTOR (la que consume el motor, D84): de ellas sale el estado
+  // D88 · Las evidencias requeridas de estas acciones, con el estado de su última entrega según la revisión del admin_empresa (la que consume el motor, D96): de ellas sale el estado
   // de cada prueba documental en su control. Una sola consulta para todo el servicio.
   const documentaryRows = rows.length
     ? await tx.evidenceRequirement.findMany({
         // Solo lo entregado PARA una prueba (D88): un documento que el catálogo sugiere sin decir a qué prueba sirve no cuenta para ninguna.
         where: { clientControlId: { in: rows.map((r) => r.id) }, dimension: 'policy', testId: { not: null } },
-        select: { clientControlId: true, testId: true, submissions: { select: { version: true, aiVerdict: true, reviews: reviewsOf('consultor') } } },
+        select: { clientControlId: true, testId: true, submissions: { select: { version: true, aiVerdict: true, reviews: reviewsOf('admin_empresa') } } },
       })
     : [];
   const documentaryOf = new Map<string, DocumentaryEvidence[]>();
@@ -65,8 +60,6 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
       pointsOfFocus.add(`${req.code}-POF${link.pointOfFocus.number}`);
     }
     const assigned = c.userControlAssignments[0]?.user;
-    const mine = changes.filter((x) => x.clientControlId === c.id);
-    const creation = mine.find((x) => x.changeType === 'create');
     return {
       id: c.id,
       serviceId: c.serviceId,
@@ -83,8 +76,7 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
       trustCriteria: c.control ? [...criteria].sort((a, b) => CRITERIA_ORDER.indexOf(a) - CRITERIA_ORDER.indexOf(b)) : c.trustCriterion ? [c.trustCriterion] : [],
       assignee: assigned ? { userId: assigned.id, name: assigned.name, lastName: assigned.lastName } : null,
       assignedUserIds: c.userControlAssignments.map((a) => a.user.id),
-      approval: creation?.status ?? 'approved',
-      hasPendingChange: mine.some((x) => x.status === 'pending'),
+      approval: 'approved',
       catalogCode: c.control?.code ?? null,
       requirementCodes: [...requirementCodes].sort(),
       pointsOfFocus: [...pointsOfFocus].sort(),

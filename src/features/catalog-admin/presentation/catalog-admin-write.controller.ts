@@ -161,7 +161,7 @@ export class CatalogAdminWriteController {
   }
 
   @ApiTags(API_TAGS.catalogControls)
-  @ApiOperation({ summary: 'Agregar una dimensión a un control', description: 'Declara en qué dimensión se evalúa el control y cómo (manual, automática, híbrida…), y si requiere la sonda, IA o confirmación del consultor o auditor. Vincula dos elementos del catálogo. Si ya estaban vinculados responde `LINK_ALREADY_EXISTS`. Queda registro de auditoría (`catalog.*`).' })
+  @ApiOperation({ summary: 'Agregar una dimensión a un control', description: 'Declara en qué dimensión se evalúa el control y cómo (manual, automática, híbrida…), y si requiere la sonda, IA o confirmación del admin_empresa. Vincula dos elementos del catálogo. Si ya estaban vinculados responde `LINK_ALREADY_EXISTS`. Queda registro de auditoría (`catalog.*`).' })
   @ApiData(CatalogControlDetailResponse, 'Control con la dimensión agregada.', { status: 201 })
   @ApiDomainErrors('LINK_ALREADY_EXISTS')
   @Post('controls/:id/dimensions')

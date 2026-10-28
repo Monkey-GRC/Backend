@@ -2,5 +2,6 @@
 export const USER_ROLES = ['admin_monkey', 'admin_empresa', 'funcional', 'consultor', 'auditor'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
-export const USER_STATUSES = ['active', 'inactive', 'suspended'] as const;
+// pending (D95): la cuenta existe pero la persona aún no activó su código, así que no puede iniciar sesión.
+export const USER_STATUSES = ['active', 'inactive', 'suspended', 'pending'] as const;
 export type UserStatus = (typeof USER_STATUSES)[number];

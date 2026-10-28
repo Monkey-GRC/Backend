@@ -13,7 +13,6 @@ let b: Tenant;
 let monkey: Agent;
 let auditor: Agent;
 let funcional: Agent;
-let consultor: Agent;
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const now = new Date();
@@ -29,7 +28,7 @@ const evaluationOf = async (t: Tenant) => (await t.agent.get(overviewPath(t)).ex
 const auditRows = (tenantId: string) =>
   owner<{ before_state: any; after_state: any }>(`select before_state, after_state from audit.audit_logs where tenant_id = $1 and action = 'evaluation_period.set' order by created_at`, [tenantId]);
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional' | 'consultor'): Promise<void> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional'): Promise<void> {
   await owner(
     `insert into platform.users (id, company_id, email, name, last_name, password_hash, role)
      values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role)`,
@@ -40,10 +39,9 @@ async function cuenta(companyId: string, email: string, role: 'auditor' | 'funci
 beforeAll(async () => {
   app = await bootApp();
   ({ a, b, monkey } = await dosEmpresas(app));
-  for (const role of ['auditor', 'funcional', 'consultor'] as const) await cuenta(a.companyId, `${role}-per-${RUN}@cumplimiento.test`, role);
+  for (const role of ['auditor', 'funcional'] as const) await cuenta(a.companyId, `${role}-per-${RUN}@cumplimiento.test`, role);
   auditor = await login(app, `auditor-per-${RUN}@cumplimiento.test`);
   funcional = await login(app, `funcional-per-${RUN}@cumplimiento.test`);
-  consultor = await login(app, `consultor-per-${RUN}@cumplimiento.test`);
 });
 afterAll(async () => {
   await app?.close();
@@ -135,8 +133,8 @@ describe('Período auditado — quién y sobre qué', () => {
     await request(app.getHttpServer()).put(path()).send(body).expect(401);
   });
 
-  it('solo admin_empresa: el funcional, el auditor, el consultor y el administrador de Monkey reciben 403', async () => {
-    for (const agent of [funcional, auditor, consultor, monkey]) await agent.put(path()).send(body).expect(403);
+  it('solo admin_empresa: el funcional, el auditor y el administrador de Monkey reciben 403', async () => {
+    for (const agent of [funcional, auditor, monkey]) await agent.put(path()).send(body).expect(403);
   });
 
   it('un marco que el servicio no contrató, o un servicio que no existe, es 404', async () => {

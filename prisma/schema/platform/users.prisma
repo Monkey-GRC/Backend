@@ -10,10 +10,12 @@ enum UserRole {
   @@schema("platform")
 }
 
+// pending (D95): la cuenta existe desde el alta pero la persona aún no activó su código; no puede iniciar sesión.
 enum UserStatus {
   active
   inactive
   suspended
+  pending
 
   @@map("user_status")
 
@@ -80,6 +82,8 @@ model User {
   consultantAssignmentsGranted ConsultantAssignment[]  @relation("ConsultantAssignedByUser")
   consultantAssignmentsChanged ConsultantAssignment[]  @relation("ConsultantStatusChangedByUser")
   sessions                  Session[]
+  activationCodes           UserActivationCode[]    @relation("ActivationCodeUser")
+  activationCodesCreated    UserActivationCode[]    @relation("ActivationCodeCreatedBy")
   mfaChallenges             MfaChallenge[]
   recoveryCodes             UserRecoveryCode[]
   apiKeysCreated            ApiKey[]
@@ -209,6 +213,30 @@ model MfaChallenge {
   @@index([companyId])
   @@index([userId])
   @@map("mfa_challenges")
+  @@schema("platform")
+}
+
+// D95 · Código de activación de un solo uso: lo emite quien crea la cuenta (el admin_empresa, para funcional y auditor; D96) y la persona lo canjea para poner su
+// contraseña y pasar de `pending` a `active`. Como la clave de acceso de una empresa: solo queda su huella (HMAC), vence y no se reutiliza.
+// company_id es el de la cuenta a activar (el de su RLS), no el de quien la crea.
+model UserActivationCode {
+  id        String          @id @default(uuid()) @db.Uuid
+  companyId String          @map("company_id") @db.Uuid
+  userId    String          @map("user_id") @db.Uuid
+  createdBy String          @map("created_by") @db.Uuid
+  codeHash  String          @unique @map("code_hash")
+  status    AccessKeyStatus @default(pending)
+  expiresAt DateTime        @map("expires_at")
+  usedAt    DateTime?       @map("used_at")
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  company        Company @relation(fields: [companyId], references: [id])
+  user           User    @relation("ActivationCodeUser", fields: [userId], references: [id])
+  createdByUser  User    @relation("ActivationCodeCreatedBy", fields: [createdBy], references: [id])
+
+  @@index([companyId])
+  @@index([userId])
+  @@map("user_activation_codes")
   @@schema("platform")
 }
 

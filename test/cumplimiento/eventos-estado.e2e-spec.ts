@@ -6,13 +6,12 @@ import { dosEmpresas, Tenant } from '../support/escenario';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
 // D91 · Todo cambio de estado de un control deja un evento inmutable con el estado anterior y el nuevo (REQ-044). Aquí, el de la evidencia: una entrega nueva devuelve la prueba a
-// revisión y la revisión del consultor la mueve; la del auditor no mueve nada (D84). Los eventos del veredicto, de la sonda y de la exclusión se prueban junto a su escritura.
+// revisión y la revisión del admin_empresa la mueve (D96); el auditor no revisa. Los eventos del veredicto, de la sonda y de la exclusión se prueban junto a su escritura.
 type Agent = Awaited<ReturnType<typeof login>>;
 let app: INestApplication;
 let a: Tenant;
-let consultor: Agent;
 let auditor: Agent;
-let consultorId: string;
+let adminId: string;
 let controlId: string;
 let testId: string;
 const storage = new StorageEnMemoria();
@@ -32,7 +31,7 @@ const events = (cause: string) =>
     [a.companyId, controlId, cause],
   );
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'consultor'): Promise<string> {
+async function cuenta(companyId: string, email: string, role: 'auditor'): Promise<string> {
   return (await owner<{ id: string }>(
     `insert into platform.users (id, company_id, email, name, last_name, password_hash, role) values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role) returning id`,
     [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
@@ -42,9 +41,8 @@ async function cuenta(companyId: string, email: string, role: 'auditor' | 'consu
 beforeAll(async () => {
   app = await bootApp({}, (builder) => builder.overrideProvider(FileStorage).useValue(storage));
   ({ a } = await dosEmpresas(app));
-  consultorId = await cuenta(a.companyId, `consultor-evt-${RUN}@cumplimiento.test`, 'consultor');
+  adminId = (await owner<{ id: string }>(`select id from platform.users where email = $1`, [a.email]))[0].id;
   await cuenta(a.companyId, `auditor-evt-${RUN}@cumplimiento.test`, 'auditor');
-  consultor = await login(app, `consultor-evt-${RUN}@cumplimiento.test`);
   auditor = await login(app, `auditor-evt-${RUN}@cumplimiento.test`);
 
   // Un control cuya única prueba documental es la que se va a entregar: así validarla mueve al control entero.
@@ -75,21 +73,21 @@ describe('La evidencia mueve el estado de un control y queda el evento (D91)', (
     expect(await events('evidence_submission')).toHaveLength(0);
   });
 
-  it('la revisión del consultor la valida, mueve el control y deja el evento con el estado anterior y el nuevo, a su nombre', async () => {
+  it('la revisión del admin_empresa la valida, mueve el control y deja el evento con el estado anterior y el nuevo, a su nombre', async () => {
     beforeReview = await detail();
-    await review(consultor, submissionId).expect(200);
+    await review(a.agent, submissionId).expect(200);
     const after = await detail();
     expect(after).not.toEqual(beforeReview);
     const [event, ...rest] = await events('evidence_review');
     expect(rest).toHaveLength(0);
-    expect(event.user_id).toBe(consultorId);
+    expect(event.user_id).toBe(adminId);
     expect(event.previous_value).toMatchObject(beforeReview);
     expect(event.new_value).toMatchObject({ ...after, control_id: controlId, service_id: a.serviceId, cause: 'evidence_review' });
   });
 
-  it('la revisión del auditor no mueve el estado (D84): no deja evento', async () => {
+  it('el auditor no revisa (403): no mueve el estado ni deja evento', async () => {
     const before = (await events('evidence_review')).length;
-    await review(auditor, submissionId).expect(200);
+    await review(auditor, submissionId).expect(403);
     expect(await events('evidence_review')).toHaveLength(before);
   });
 

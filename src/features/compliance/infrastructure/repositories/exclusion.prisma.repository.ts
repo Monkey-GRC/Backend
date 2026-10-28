@@ -29,6 +29,7 @@ const toRecord = (r: Row): ExclusionRecord => ({
   proposedBy: r.proposedByUser, requestedAt: r.requestedAt, decidedBy: r.decidedByUser, decisionNote: r.decisionNote, decidedAt: r.decidedAt,
 });
 
+const day = (d: Date) => d.toISOString().slice(0, 10);
 const isUniqueViolation = (e: unknown) => (e as { code?: string })?.code === 'P2002';
 /** Hoy como día UTC (la base corre en UTC): las fechas de vigencia son días, no instantes. */
 const today = (): Date => {
@@ -67,7 +68,7 @@ export class ExclusionPrismaRepository extends ExclusionRepository {
   async create(
     scope: TenantScope,
     serviceId: string,
-    input: { testId: string; assetId: string; justification: string; technicalJustification: string | null; proposedBy: string },
+    input: { testId: string; assetId: string; justification: string; technicalJustification: string | null; decidedBy: string; meta: { ipAddress: string; userAgent: string } },
     audit: Parameters<ExclusionRepository['create']>[3],
   ): Promise<ExclusionRecord | null> {
     try {
@@ -90,76 +91,46 @@ export class ExclusionPrismaRepository extends ExclusionRepository {
         const ends = (await tx.serviceFramework.findMany({ where: { serviceId, status: 'active', periodEnd: { gte: now } }, select: { periodEnd: true }, orderBy: { periodEnd: 'desc' }, take: 1 }))[0]?.periodEnd;
         if (!ends) throw new DomainError('EVALUATION_NOT_DEFINED');
 
-        // Una pendiente o una aprobada vigente de lo mismo: conflicto. Una aprobada vencida se renueva con una propuesta nueva (se revalida, no se hereda).
+        // Dos exclusiones a la vez de lo mismo se serializan: ya no hay una pendiente que las frene con el índice (D96, nace aprobada).
+        await tx.$executeRaw`select pg_advisory_xact_lock(hashtextextended(${serviceId + input.testId + input.assetId}, 0))`;
+
+        // Una aprobada vigente (o una pendiente heredada) de lo mismo: conflicto. Una aprobada vencida se renueva con una nueva (se revalida, no se hereda).
         const existing = await tx.exclusion.findFirst({
           where: { serviceId, testId: input.testId, assetId: input.assetId, OR: [{ status: 'pending' }, { status: 'approved', validUntil: { gte: now } }] },
           select: { id: true },
         });
         if (existing) throw new DomainError('EXCLUSION_ALREADY_EXISTS');
 
+        // D91 · Aprobar saca al activo del test: si eso mueve el estado de un control, queda su evento.
+        const states = await captureControlStates(tx, serviceId);
         const row = await tx.exclusion.create({
           data: {
-            tenantId: scope.companyId, serviceId, testId: input.testId, assetId: input.assetId, proposedBy: input.proposedBy, justification: input.justification,
+            tenantId: scope.companyId, serviceId, testId: input.testId, assetId: input.assetId, proposedBy: input.decidedBy, justification: input.justification,
             technicalJustification: input.technicalJustification, validFrom: now, validUntil: ends,
+            status: 'approved', decidedBy: input.decidedBy, decidedAt: new Date(),
           },
           select: SELECT,
         });
         const created = toRecord(row);
+        await tx.complianceEvent.createMany({
+          data: [{
+            tenantId: scope.companyId, userId: input.decidedBy, changedField: 'exclusion.approve', previousValue: Prisma.DbNull,
+            newValue: { exclusion_id: created.id, service_id: serviceId, test_id: created.test.id, asset_id: created.asset.id, valid_from: day(created.validFrom), valid_until: day(created.validUntil) },
+            ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent,
+          }],
+        });
         await insertAuditLog(tx, audit(created));
+        await recordControlStateChanges(tx, {
+          tenantId: scope.companyId, serviceId, before: states, cause: 'exclusion_approved',
+          actor: { userId: input.decidedBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent },
+        });
         return created;
       });
     } catch (e) {
-      // Dos propuestas a la vez del mismo activo y test: las frena el índice único parcial.
+      // Un resto de la regla vieja (una pendiente del mismo activo y test) la frena el índice único parcial.
       if (isUniqueViolation(e)) throw new DomainError('EXCLUSION_ALREADY_EXISTS');
       throw e;
     }
-  }
-
-  decide(
-    scope: TenantScope,
-    id: string,
-    decision: { status: 'approved' | 'rejected'; note: string | null; decidedBy: string; meta: { ipAddress: string; userAgent: string } },
-    audit: Parameters<ExclusionRepository['decide']>[3],
-  ): Promise<{ before: ExclusionRecord; after: ExclusionRecord } | null> {
-    return this.prisma.withScope(scope, async (tx) => {
-      const found = await tx.exclusion.findFirst({ where: { id }, select: SELECT });
-      if (!found) return null;
-      const before = toRecord(found);
-      if (before.status !== 'pending') throw new DomainError('ALREADY_DECIDED');
-      // D91 · Aprobar saca al activo del test: si eso mueve el estado de un control, queda su evento.
-      const states = decision.status === 'approved' ? await captureControlStates(tx, before.serviceId) : null;
-
-      // El estado se vuelve a comprobar en el UPDATE: dos decisiones a la vez no pisan una a la otra.
-      const { count } = await tx.exclusion.updateMany({
-        where: { id, status: 'pending' },
-        data: { status: decision.status, decidedBy: decision.decidedBy, decidedAt: new Date(), decisionNote: decision.note },
-      });
-      if (count === 0) throw new DomainError('ALREADY_DECIDED');
-      const after = toRecord(await tx.exclusion.findFirstOrThrow({ where: { id }, select: SELECT }));
-
-      // Aprobar cambia lo que se mide (el activo sale del test): deja un evento de cumplimiento. Rechazar no cambia nada.
-      if (decision.status === 'approved') {
-        await tx.complianceEvent.createMany({
-          data: [{
-            tenantId: scope.companyId, userId: decision.decidedBy, changedField: 'exclusion.approve', previousValue: Prisma.DbNull,
-            newValue: { exclusion_id: id, service_id: after.serviceId, test_id: after.test.id, asset_id: after.asset.id, valid_from: after.validFrom.toISOString().slice(0, 10), valid_until: after.validUntil.toISOString().slice(0, 10) },
-            ipAddress: decision.meta.ipAddress, userAgent: decision.meta.userAgent,
-          }],
-        });
-      }
-      await insertAuditLog(tx, audit({ before, after }));
-      if (states) {
-        await recordControlStateChanges(tx, {
-          tenantId: scope.companyId, serviceId: after.serviceId, before: states, cause: 'exclusion_approved',
-          actor: { userId: decision.decidedBy, ipAddress: decision.meta.ipAddress, userAgent: decision.meta.userAgent },
-        });
-      }
-      return { before, after };
-    });
-  }
-
-  hasActiveConsultant(scope: TenantScope): Promise<boolean> {
-    return this.prisma.withScope(scope, async (tx) => (await tx.consultantAssignment.count({ where: { companyId: scope.companyId, status: 'active' } })) > 0);
   }
 
   private async serviceExists(tx: TransactionClient, scope: TenantScope, serviceId: string): Promise<boolean> {

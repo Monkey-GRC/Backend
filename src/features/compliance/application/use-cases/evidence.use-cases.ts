@@ -16,7 +16,7 @@ import { assertEvidenceFile, evidenceKey, fileNameOfKey } from '../evidence-file
 import { ViewMode, viewModeOf } from '../view-access';
 
 // MD-126 · Evidencias de un control (contracts/modules/compliance-evidence.md, D84). La empresa solo APORTA: sube `admin_empresa` y el `funcional` dueño del control;
-// consultor y auditor leen y descargan (lo impone @Roles en la ruta). Nadie de la empresa aprueba nada: la revisión es de MD-127.
+// el auditor lee y descarga (lo impone @Roles en la ruta). Subir no valida: la validación es del admin_empresa (MD-127, D96).
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 /** Un control de la propia empresa que el `funcional` no tiene asignado: no es de otra empresa (eso sería 404), es que no le toca (403). */
 const assertCanTouch = (p: Principal, assignedUserIds: string[]): void => {
@@ -94,14 +94,17 @@ export class UploadEvidenceUseCase {
   }
 }
 
-// D84 · La revisión de una entrega: la hacen el consultor y el auditor, cada uno la suya (el rol sale de la sesión, no del cuerpo). Crea o reemplaza la propia; la del otro rol
-// no se ve ni se toca. De la revisión del consultor sale el estado de la evidencia y, con él, el de las pruebas documentales de su control (D88).
+// D96 · La revisión de una entrega la hace solo el admin_empresa, en una sola revisión (el rol sale de la sesión, no del cuerpo): la valida o la rechaza con motivo. Crea o
+// reemplaza la propia. De esta revisión sale el estado de la evidencia y, con él, el de las pruebas documentales de su control (D88).
 @Injectable()
 export class ReviewEvidenceUseCase {
   constructor(private readonly repo: EvidenceRepository) {}
 
   async execute(p: Principal, submissionId: string, dto: ReviewEvidenceDto, meta: RequestMeta): Promise<SubmissionRecord> {
     const reviewerRole = reviewerRoleFor(p.role);
+    // Rechazar es dejar algún atributo en `false`: el funcional necesita el motivo para saber qué corregir (compliance-audit.md).
+    const rejects = [dto.type_ok, dto.period_ok, dto.valid_ok, dto.approved_ok, dto.signed_ok, dto.content_ok].some((v) => v === false);
+    if (rejects && !dto.note?.trim()) throw new ValidationException([{ field: 'note', code: 'note.required' }]);
     const saved = await this.repo.saveReview(
       scopeOf(p), submissionId,
       {
@@ -121,7 +124,7 @@ export class ReviewEvidenceUseCase {
 }
 
 // D88 · Entregar la evidencia de UNA prueba documental en un control, en un solo paso: la persona lee lo que la prueba pide y sube su documento. El lugar donde queda
-// (el requerimiento de esa prueba) se crea en la primera entrega y las siguientes son versiones nuevas. Después el consultor lo revisa (D84).
+// (el requerimiento de esa prueba) se crea en la primera entrega y las siguientes son versiones nuevas. Después el admin_empresa lo valida (D96).
 @Injectable()
 export class UploadTestEvidenceUseCase {
   constructor(private readonly repo: EvidenceRepository, private readonly upload: UploadEvidenceUseCase) {}
@@ -153,7 +156,7 @@ export class UploadTestEvidenceUseCase {
 }
 
 // D88 · Agrega una evidencia propia al control, para una prueba documental concreta o compartida. Así todo control puede respaldar sus pruebas manuales aunque el catálogo
-// no le haya traído un documento (los 52 controles sin plantilla, B7). La empresa decide qué documento aporta; el consultor lo revisa.
+// no le haya traído un documento (los 52 controles sin plantilla, B7). La empresa decide qué documento aporta; el admin_empresa lo valida.
 @Injectable()
 export class CreateEvidenceRequirementUseCase {
   constructor(private readonly repo: EvidenceRepository) {}

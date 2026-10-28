@@ -7,7 +7,7 @@ const test = (id: string, dimension: ReadoutTest['dimension'], patch: Partial<Re
 const asset = (id: string, type: string): ReadoutAsset => ({ id, name: `activo-${id}`, type });
 const control = (tests: ReadoutTest[], patch: Partial<ReadoutControl> = {}): ReadoutControl => ({
   id: 'c1', serviceId: 's1', ownCode: 'C01', name: 'Control', origin: 'catalog', type: 'hybrid', interpretation: 'x', catalogDescription: 'x',
-  dimensions: [], tests, trustCriteria: ['security'], assignee: null, assignedUserIds: [], approval: 'approved', hasPendingChange: false, catalogCode: 'IAC-1', requirementCodes: ['CC6.1'], pointsOfFocus: [], documentary: [], ...patch,
+  dimensions: [], tests, trustCriteria: ['security'], assignee: null, assignedUserIds: [], approval: 'approved', catalogCode: 'IAC-1', requirementCodes: ['CC6.1'], pointsOfFocus: [], documentary: [], ...patch,
 });
 const results = (entries: Array<[string, string, AssetResult]>): ResultsIndex => new Map(entries.map(([t, a, r]) => [resultKey('c1', t, a), r]));
 const NONE: ResultsIndex = new Map();

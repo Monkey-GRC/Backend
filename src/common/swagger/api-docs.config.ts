@@ -72,7 +72,7 @@ export const API_TAG_DESCRIPTIONS: Record<(typeof API_TAGS)[keyof typeof API_TAG
   [API_TAGS.responsibles]:
     'Responsables de aportar evidencias (personas o áreas) de la empresa. Contrato: `contracts/modules/compliance-responsibles.md`.',
   [API_TAGS.exclusions]:
-    'Exclusiones de requisitos o controles que la empresa pide y el consultor decide. Contrato: `contracts/modules/compliance-audit.md`.',
+    'Exclusiones de requisitos o controles que el administrador de la empresa crea y decide en un solo acto (D96). Contrato: `contracts/modules/compliance-audit.md`.',
 };
 
 // Los textos de error salen de i18n/es: la tabla de la descripción nunca se desfasa del producto.
@@ -107,8 +107,8 @@ Todo está definido en \`contracts/conventions.md\` del cerebro del producto.
 * **Paginación.** Los listados reciben \`page\` (desde 1) y \`page_size\` (máx. 100) y devuelven \`{ items, page, page_size, total, total_pages }\`.
 * **Validación.** Un cuerpo o una consulta inválidos devuelven \`422\` con **todos** los errores por campo a la vez en \`error.fields\`.
 * **Aislamiento.** Todo se filtra por la empresa de la sesión: un recurso de otra empresa responde \`404\`, igual que uno que no existe.
-* **Roles.** Cada operación lista los roles que pueden llamarla (\`admin_monkey\`, \`admin_empresa\`, \`funcional\`, \`consultor\`, \`auditor\`).
-* **Vista técnica.** Donde se ofrece \`view=technical\`, solo la reciben \`auditor\`, \`consultor\` y, por ahora, \`admin_empresa\`.
+* **Roles.** Cada operación lista los roles que pueden llamarla (\`admin_monkey\`, \`admin_empresa\`, \`funcional\`, \`auditor\`).
+* **Vista técnica.** Donde se ofrece \`view=technical\`, solo la reciben \`auditor\` y \`admin_empresa\`.
 
 ## Catálogo de errores de negocio
 ${errorTable()}`;

@@ -1,9 +1,10 @@
 import type { INestApplication } from '@nestjs/common';
 import bcrypt from 'bcrypt';
+import * as auditInsert from '../../src/infrastructure/audit/audit-log.insert';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
 
-// MD-150 (control propio) y MD-118 (proponer cambios) · contracts/modules/compliance-controls.md. Cada prueba sale por HTTP con la sesión real de cada rol.
+// MD-150 (control propio) y D96 (editar y dar de baja un control, directo) · contracts/modules/compliance-controls.md. Cada prueba sale por HTTP con la sesión real de cada rol.
 type Agent = Awaited<ReturnType<typeof login>>;
 let app: INestApplication;
 let a: Tenant;
@@ -14,6 +15,7 @@ let funcional: Agent;
 let funcionalId: string;
 let adminId: string;
 let controls: Array<Record<string, any>>;
+const realInsert = auditInsert.insertAuditLog;
 const list = (t: Tenant, q = '') => `/v1/services/${t.serviceId}/controls${q}`;
 
 async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional'): Promise<string> {
@@ -52,7 +54,7 @@ afterAll(async () => {
 const OWN = { name: 'Revisión trimestral de proveedores', interpretation: 'Cada trimestre TI revisa que los proveedores críticos cumplan el contrato.', trust_criterion: 'security' };
 
 describe('MD-150 · crear un control propio', () => {
-  it('nace pendiente de aprobación, con su código C01 y solo documental; cuenta desde que se crea', async () => {
+  it('nace aprobado, con su código C01 y solo documental; cuenta desde que se crea', async () => {
     const before = (await a.agent.get(list(a)).expect(200)).body.data.total;
     const res = await a.agent.post(list(a)).send(OWN).expect(201);
     const c = res.body.data;
@@ -62,8 +64,7 @@ describe('MD-150 · crear un control propio', () => {
       origin: 'own',
       type: 'manual',
       trust_criteria: ['security'],
-      approval: 'pending',
-      has_pending_change: true,
+      approval: 'approved',
       interpretation: { text: OWN.interpretation, is_customized: true },
       dimensions: [{ dimension: 'policy', applies: true, type: 'manual', reason_not_applicable: null }],
       readiness: 'not_measured',
@@ -74,7 +75,7 @@ describe('MD-150 · crear un control propio', () => {
     });
     // aparece en la lista junto a los del catálogo, y cuenta
     expect((await a.agent.get(list(a)).expect(200)).body.data.total).toBe(before + 1);
-    const own = (await a.agent.get(list(a, '?origin=own&approval=pending')).expect(200)).body.data.items;
+    const own = (await a.agent.get(list(a, '?origin=own')).expect(200)).body.data.items;
     expect(own.map((x: any) => x.id)).toEqual([c.id]);
     expect(own[0]).toMatchObject({ own_code: 'C01', origin: 'own' });
   });
@@ -88,12 +89,11 @@ describe('MD-150 · crear un control propio', () => {
     expect(JSON.stringify(all)).not.toMatch(/\b[A-Z]{2,4}-\d{1,3}\b/);
   });
 
-  it('queda todo registrado: control propio, propuesta de creación, evento de cumplimiento y auditoría', async () => {
+  it('queda todo registrado: control propio, evento de cumplimiento y auditoría, sin propuesta', async () => {
     const c = (await a.agent.post(list(a)).send({ ...OWN, name: 'Tercero', trust_criterion: 'availability' }).expect(201)).body.data;
     const [row] = await owner(`select control_id, name, trust_criterion::text tc, type::text type, is_active from tenant.client_controls where id = $1`, [c.id]);
     expect(row).toEqual({ control_id: null, name: 'Tercero', tc: 'availability', type: 'manual', is_active: true });
-    const [change] = await owner(`select change_type::text t, status::text s, requested_by from tenant.client_control_changes where client_control_id = $1`, [c.id]);
-    expect(change).toEqual({ t: 'create', s: 'pending', requested_by: adminId });
+    expect(await owner('select 1 from tenant.client_control_changes where client_control_id = $1', [c.id])).toHaveLength(0);
     const [{ n: audit }] = await owner<{ n: number }>(`select count(*)::int n from audit.audit_logs where action = 'client_control.create' and tenant_id = $1 and (after_state->>'id') = $2`, [a.companyId, c.id]);
     expect(audit).toBe(1);
     const [{ n: events }] = await owner<{ n: number }>(`select count(*)::int n from audit.compliance_events where tenant_id = $1 and changed_field = 'client_control.create' and (new_value->>'client_control_id') = $2`, [a.companyId, c.id]);
@@ -147,134 +147,119 @@ describe('MD-150 · crear un control propio', () => {
   });
 });
 
-describe('MD-118 · proponer un cambio', () => {
-  // Una acción del catálogo, la primera de la lista (la que tiene asignada el funcional).
-  const target = () => controls[0];
-  const propose = (agent: Agent, id: string, body: object) => agent.post(`/v1/controls/${id}/changes`).send(body);
+const dimsOf = (c: any) => Object.fromEntries(c.dimensions.map((d: any) => [d.dimension, d]));
+const patch = (agent: Agent, id: string, body: object) => agent.patch(`/v1/controls/${id}`).send(body);
+const detail = async (id: string) => (await a.agent.get(`/v1/controls/${id}`).expect(200)).body.data;
+const auditRows = (action: string, id: string) =>
+  owner<{ n: number }>(`select count(*)::int n from audit.audit_logs where tenant_id = $1 and action = $2 and (before_state->>'id') = $3`, [a.companyId, action, id]).then((r) => r[0].n);
 
-  it('proponer una interpretación nueva deja una propuesta pendiente y la acción no cambia ni deja de contar', async () => {
-    const before = (await a.agent.get(`/v1/controls/${target().id}`).expect(200)).body.data;
-    const res = await propose(a.agent, target().id, { change_type: 'edit_interpretation', proposed_values: { interpretation: 'Los accesos se piden por el formulario de TI.' } }).expect(201);
-    expect(res.body.data).toMatchObject({
-      control_id: target().id,
-      change_type: 'edit_interpretation',
-      status: 'pending',
-      proposed_values: { interpretation: 'Los accesos se piden por el formulario de TI.' },
-      requested_by: { id: adminId },
-      decided_by: null,
-      decision_note: null,
-      decided_at: null,
-    });
-    const after = (await a.agent.get(`/v1/controls/${target().id}`).expect(200)).body.data;
-    expect(after.interpretation).toEqual(before.interpretation); // sigue como estaba
-    expect(after.progress).toEqual(before.progress); // y sigue contando igual
-    expect(after.readiness).toBe(before.readiness);
-    expect(after.has_pending_change).toBe(true);
-    expect(before.has_pending_change).toBe(false);
+describe('D96 · editar un control: directo, sin propuesta', () => {
+  let catalogId: string;
+  let catalogDims: string[];
+  let ownId: string;
+
+  beforeAll(async () => {
+    for (const c of controls) {
+      const d = await detail(c.id);
+      if (d.origin === 'catalog' && d.dimensions.length >= 2 && d.dimensions.every((x: any) => x.applies)) {
+        catalogId = c.id;
+        catalogDims = d.dimensions.map((x: any) => x.dimension);
+        break;
+      }
+    }
+    expect(catalogId).toBeTruthy();
+    ownId = (await a.agent.post(list(a)).send({ ...OWN, name: 'Para editar' }).expect(201)).body.data.id;
   });
 
-  it('dos propuestas pendientes del mismo tipo sobre la misma acción son un conflicto; de otro tipo, no', async () => {
-    const dup = await propose(a.agent, target().id, { change_type: 'edit_interpretation', proposed_values: { interpretation: 'Otra más.' } }).expect(409);
-    expect(dup.body.error.code).toBe('CHANGE_ALREADY_PENDING');
-    await propose(a.agent, target().id, { change_type: 'retire' }).expect(201);
+  it('cambia la interpretación al instante y queda marcada como personalizada, con su auditoría', async () => {
+    const res = await patch(a.agent, catalogId, { interpretation: { text: 'Nuestra forma de cumplirlo.' } }).expect(200);
+    expect(res.body.data.interpretation).toEqual({ text: 'Nuestra forma de cumplirlo.', is_customized: true });
+    expect((await detail(catalogId)).interpretation.text).toBe('Nuestra forma de cumplirlo.');
+    expect(await auditRows('client_control.update', catalogId)).toBe(1);
   });
 
-  it('proponer las dimensiones normaliza lo que se guarda; una que no aplica lleva su motivo', async () => {
-    const other = controls[1];
-    const res = await propose(a.agent, other.id, {
-      change_type: 'edit_dimensions',
-      proposed_values: { dimensions: [{ dimension: 'policy', applies: true }, { dimension: 'database', applies: false, reason_not_applicable: ' No operamos bases de datos. ' }] },
-    }).expect(201);
-    expect(res.body.data.proposed_values).toEqual({
-      dimensions: [
-        { dimension: 'policy', applies: true, reason_not_applicable: null },
-        { dimension: 'database', applies: false, reason_not_applicable: 'No operamos bases de datos.' },
-      ],
-    });
+  it('quitar una dimensión exige el motivo, la deja sin aplicar y cambia lo que se mide (con su evento)', async () => {
+    const target = catalogDims[1];
+    const sin = await patch(a.agent, catalogId, { dimensions: [{ dimension: target, applies: false }] }).expect(422);
+    expect(fields(sin)).toEqual([{ field: 'dimensions[0].reason_not_applicable', code: 'reason.required' }]);
+    const before = await detail(catalogId);
+    const res = await patch(a.agent, catalogId, { dimensions: [{ dimension: target, applies: false, reason_not_applicable: 'No operamos esa parte.' }] }).expect(200);
+    expect(dimsOf(res.body.data)[target]).toMatchObject({ applies: false, type: null, reason_not_applicable: 'No operamos esa parte.' });
+    expect(dimsOf(res.body.data)[catalogDims[0]].applies).toBe(true);
+    expect(res.body.data.progress.total).toBeLessThanOrEqual(before.progress.total);
+    const [{ n }] = await owner<{ n: number }>(`select count(*)::int n from audit.compliance_events where tenant_id = $1 and changed_field = 'client_control.update' and (new_value->>'client_control_id') = $2`, [a.companyId, catalogId]);
+    expect(n).toBe(1);
+    // y se puede volver a aplicar
+    const back = await patch(a.agent, catalogId, { dimensions: [{ dimension: target, applies: true }] }).expect(200);
+    expect(dimsOf(back.body.data)[target]).toMatchObject({ applies: true, reason_not_applicable: null });
   });
 
-  it('valida por campo: sin motivo, dimensión desconocida, repetida, vacía o interpretación vacía', async () => {
-    const id = controls[2].id;
-    const noReason = await propose(a.agent, id, { change_type: 'edit_dimensions', proposed_values: { dimensions: [{ dimension: 'policy', applies: true }, { dimension: 'server', applies: false }] } }).expect(422);
-    expect(fields(noReason)).toEqual([{ field: 'proposed_values.dimensions[1].reason_not_applicable', code: 'reason.required' }]);
-    const bad = await propose(a.agent, id, { change_type: 'edit_dimensions', proposed_values: { dimensions: [{ dimension: 'luna', applies: true }, { dimension: 'cloud', applies: true }, { dimension: 'cloud', applies: true }] } }).expect(422);
-    expect(fields(bad)).toEqual(
-      expect.arrayContaining([
-        { field: 'proposed_values.dimensions[0].dimension', code: 'enum.invalid' },
-        { field: 'proposed_values.dimensions[2].dimension', code: 'array.unique' },
-      ]),
+  it('validación por campo: nada que cambiar, dimensión desconocida, repetida o que el control no lleva', async () => {
+    expect(fields(await patch(a.agent, catalogId, {}).expect(422))).toEqual([{ field: 'interpretation', code: 'required' }]);
+    expect(fields(await patch(a.agent, catalogId, { interpretation: { text: '  ' } }).expect(422))).toEqual([{ field: 'interpretation.text', code: 'required' }]);
+    expect(fields(await patch(a.agent, catalogId, { interpretation: { text: 'x'.repeat(4001) } }).expect(422))).toEqual([{ field: 'interpretation.text', code: 'string.max' }]);
+    expect(fields(await patch(a.agent, catalogId, { dimensions: [] }).expect(422))).toEqual([{ field: 'dimensions', code: 'array.min' }]);
+    expect(fields(await patch(a.agent, catalogId, { dimensions: [{ dimension: 'otra', applies: true }, { dimension: 'cloud', applies: 'si' }] }).expect(422))).toEqual(
+      expect.arrayContaining([{ field: 'dimensions[0].dimension', code: 'enum.invalid' }, { field: 'dimensions[1].applies', code: 'boolean.invalid' }]),
     );
-    expect(fields(await propose(a.agent, id, { change_type: 'edit_dimensions', proposed_values: { dimensions: [] } }).expect(422))).toEqual([{ field: 'proposed_values.dimensions', code: 'array.min' }]);
-    expect(fields(await propose(a.agent, id, { change_type: 'edit_interpretation', proposed_values: { interpretation: '   ' } }).expect(422))).toEqual([{ field: 'proposed_values.interpretation', code: 'required' }]);
+    expect(fields(await patch(a.agent, catalogId, { dimensions: [{ dimension: catalogDims[0], applies: true }, { dimension: catalogDims[0], applies: true }] }).expect(422))).toContainEqual({ field: 'dimensions[1].dimension', code: 'array.unique' });
+    const missing = ['policy', 'server', 'database', 'app', 'cloud'].find((d) => !catalogDims.includes(d));
+    if (missing) expect(fields(await patch(a.agent, catalogId, { dimensions: [{ dimension: missing, applies: true }] }).expect(422))).toEqual([{ field: 'dimensions[0].dimension', code: 'dimension.not_in_control' }]);
   });
 
-  it('«create» no se propone aquí: nace con POST …/controls', async () => {
-    const res = await propose(a.agent, controls[2].id, { change_type: 'create' }).expect(422);
-    expect(fields(res)).toEqual([{ field: 'change_type', code: 'enum.invalid' }]);
+  it('un control propio solo admite la dimensión documental', async () => {
+    expect(fields(await patch(a.agent, ownId, { dimensions: [{ dimension: 'server', applies: true }] }).expect(422))).toContainEqual({ field: 'dimensions[0].dimension', code: 'dimension.policy_only' });
+    await patch(a.agent, ownId, { interpretation: { text: 'Cada semestre.' } }).expect(200);
   });
 
-  it('el funcional propone solo sobre la acción que tiene asignada; sobre otra, 403', async () => {
-    await propose(funcional, controls[0].id, { change_type: 'edit_interpretation', proposed_values: { interpretation: 'Texto del dueño del control.' } }).expect(409); // ya hay una pendiente: pasó el permiso
-    await propose(funcional, controls[3].id, { change_type: 'retire' }).expect(403);
-  });
-
-  it('el auditor y admin_monkey no proponen', async () => {
-    await propose(auditor, controls[3].id, { change_type: 'retire' }).expect(403);
-    await propose(monkey, controls[3].id, { change_type: 'retire' }).expect(403);
-  });
-
-  it('una acción de otra empresa no existe: 404, también para listar sus propuestas', async () => {
-    const bId = (await b.agent.get(list(b)).expect(200)).body.data.items[0].id;
-    await propose(a.agent, bId, { change_type: 'retire' }).expect(404);
-    await a.agent.get(`/v1/controls/${bId}/changes`).expect(404);
-    await propose(a.agent, 'no-es-un-uuid', { change_type: 'retire' }).expect(404);
-  });
-
-  it('una acción dada de baja no admite propuestas', async () => {
-    await owner(`update tenant.client_controls set is_active = false where id = $1`, [controls[5].id]);
-    const res = await propose(a.agent, controls[5].id, { change_type: 'retire' }).expect(409);
-    expect(res.body.error.code).toBe('CONTROL_RETIRED');
-  });
-
-  it('cada propuesta deja su rastro de auditoría', async () => {
-    const [{ n }] = await owner<{ n: number }>(`select count(*)::int n from audit.audit_logs where action = 'client_control_change.request' and tenant_id = $1 and (after_state->>'control_id') = $2`, [a.companyId, target().id]);
-    expect(n).toBeGreaterThanOrEqual(2);
-  });
-
-  it('una vez decidida la propuesta, se puede proponer otra del mismo tipo (el índice solo frena las pendientes)', async () => {
-    await owner(
-      `update tenant.client_control_changes set status = 'approved', decided_by = $2, decided_at = now() where client_control_id = $1 and change_type = 'retire' and status = 'pending'`,
-      [target().id, adminId],
-    );
-    await propose(a.agent, target().id, { change_type: 'retire' }).expect(201);
-  });
-
-  it('la base no acepta una propuesta decidida sin quién la decidió, ni un rechazo sin motivo', async () => {
-    await expect(owner(`update tenant.client_control_changes set status = 'approved' where client_control_id = $1 and change_type = 'edit_dimensions'`, [controls[1].id])).rejects.toThrow(/decision_consistent/);
-    await expect(
-      owner(`update tenant.client_control_changes set status = 'rejected', decided_by = $2, decided_at = now() where client_control_id = $1 and change_type = 'edit_dimensions'`, [controls[1].id, adminId]),
-    ).rejects.toThrow(/reject_needs_note/);
+  it('solo el administrador de la empresa; otra empresa y un id inválido, 404', async () => {
+    await patch(funcional, catalogId, { interpretation: { text: 'x' } }).expect(403);
+    await patch(auditor, catalogId, { interpretation: { text: 'x' } }).expect(403);
+    await patch(monkey, catalogId, { interpretation: { text: 'x' } }).expect(403);
+    await patch(b.agent, catalogId, { interpretation: { text: 'x' } }).expect(404);
+    await patch(a.agent, 'no-es-uuid', { interpretation: { text: 'x' } }).expect(404);
   });
 });
 
-describe('MD-118 · leer las propuestas', () => {
-  it('el administrador las lista paginadas, de la más reciente a la más antigua, y filtra por estado', async () => {
-    const res = await a.agent.get(`/v1/controls/${controls[0].id}/changes`).expect(200);
-    const { items, total } = res.body.data;
-    expect(total).toBeGreaterThanOrEqual(3);
-    expect(items[0]).toHaveProperty('proposed_values');
-    const dates = items.map((i: any) => Date.parse(i.requested_at));
-    expect(dates).toEqual([...dates].sort((x, y) => y - x));
-    const pending = (await a.agent.get(`/v1/controls/${controls[0].id}/changes?status=pending`).expect(200)).body.data.items;
-    expect(pending.every((i: any) => i.status === 'pending')).toBe(true);
-    expect((await a.agent.get(`/v1/controls/${controls[0].id}/changes?status=approved`).expect(200)).body.data.items.every((i: any) => i.status === 'approved')).toBe(true);
-    await a.agent.get(`/v1/controls/${controls[0].id}/changes?status=raro`).expect(422);
+describe('D96 · dar de baja un control: baja, no borrado', () => {
+  let id: string;
+  beforeAll(async () => {
+    id = (await a.agent.post(list(a)).send({ ...OWN, name: 'Para dar de baja' }).expect(201)).body.data.id;
   });
 
-  it('el auditor las lee; el funcional solo las de su acción', async () => {
-    await auditor.get(`/v1/controls/${controls[0].id}/changes`).expect(200);
-    await funcional.get(`/v1/controls/${controls[0].id}/changes`).expect(200);
-    await funcional.get(`/v1/controls/${controls[3].id}/changes`).expect(403);
-    await monkey.get(`/v1/controls/${controls[0].id}/changes`).expect(403);
+  it('solo el administrador de la empresa; otra empresa y un id inválido, 404', async () => {
+    await funcional.delete(`/v1/controls/${id}`).expect(403);
+    await auditor.delete(`/v1/controls/${id}`).expect(403);
+    await monkey.delete(`/v1/controls/${id}`).expect(403);
+    await b.agent.delete(`/v1/controls/${id}`).expect(404);
+    await a.agent.delete('/v1/controls/no-es-uuid').expect(404);
+  });
+
+  it('204: deja de contar y de verse, la fila se conserva, y queda su auditoría y su evento', async () => {
+    const before = (await a.agent.get(list(a, '?page_size=100')).expect(200)).body.data.total;
+    await a.agent.delete(`/v1/controls/${id}`).expect(204);
+    expect((await a.agent.get(list(a, '?page_size=100')).expect(200)).body.data.total).toBe(before - 1);
+    await a.agent.get(`/v1/controls/${id}`).expect(404);
+    expect((await owner(`select is_active from tenant.client_controls where id = $1`, [id]))[0]).toEqual({ is_active: false });
+    expect(await auditRows('client_control.retire', id)).toBe(1);
+    const [{ n }] = await owner<{ n: number }>(`select count(*)::int n from audit.compliance_events where tenant_id = $1 and changed_field = 'client_control.retire' and (new_value->>'client_control_id') = $2`, [a.companyId, id]);
+    expect(n).toBe(1);
+  });
+
+  it('darlo de baja otra vez, o editarlo, es 409 CONTROL_RETIRED', async () => {
+    expect((await a.agent.delete(`/v1/controls/${id}`).expect(409)).body.error.code).toBe('CONTROL_RETIRED');
+    expect((await patch(a.agent, id, { interpretation: { text: 'x' } }).expect(409)).body.error.code).toBe('CONTROL_RETIRED');
+  });
+
+  it('si el rastro falla, la baja se revierte', async () => {
+    const other = (await a.agent.post(list(a)).send({ ...OWN, name: 'Baja con fallo' }).expect(201)).body.data.id;
+    const spy = jest.spyOn(auditInsert, 'insertAuditLog').mockImplementationOnce(async (db, entry) => {
+      await realInsert(db, entry);
+      throw new Error('audit_down');
+    });
+    await a.agent.delete(`/v1/controls/${other}`).expect(500);
+    spy.mockRestore();
+    expect((await owner(`select is_active from tenant.client_controls where id = $1`, [other]))[0]).toEqual({ is_active: true });
+    expect(await auditRows('client_control.retire', other)).toBe(0);
   });
 });
