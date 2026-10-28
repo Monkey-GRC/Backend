@@ -276,7 +276,7 @@ describe('Vista de cada rol', () => {
     // Una causa del catálogo con acciones: se le asigna una de ellas.
     const withControl = (await all(a.agent, causes(a))).find((c) => c.controls.length > 0)!;
     const control = withControl.controls[0].control_id as string;
-    await owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, assigned_by) values (gen_random_uuid(), $1, $2, $3, $4)`, [a.companyId, funcionalId, control, adminId]);
+    await owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, dimension, assigned_by) select gen_random_uuid(), $1, $2, $3::uuid, d.dimension, $4 from (select distinct t.dimension from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $3::uuid) d`, [a.companyId, funcionalId, control, adminId]);
     const mine = await all(funcional, causes(a));
     expect(mine.length).toBeGreaterThan(0);
     expect(mine.every((c) => c.controls.some((k: any) => k.control_id === control))).toBe(true);

@@ -1,15 +1,11 @@
 {
-  "CREATED": "Usuario creado exitosamente.",
-  "UPDATED": "Usuario actualizado exitosamente.",
-  "DELETED": "Usuario eliminado exitosamente.",
-  "READ": {
-    "ALL": "Usuarios obtenidos exitosamente.",
-    "ONE": "Usuario obtenido exitosamente."
-  },
-  "CREATE_FAILED": "Error al crear el usuario.",
-  "UPDATE_FAILED": "Error al actualizar el usuario.",
-  "DELETE_FAILED": "Error al eliminar el usuario.",
-  "READ_FAILED": "Error al obtener los usuarios.",
-  "NOT_FOUND": "Usuario no encontrado.",
-  "DUPLICATE": "El correo o nombre de usuario ya está en uso."
+  "created": "Listo, creamos la cuenta. Entrégale el código de activación: solo lo verás ahora.",
+  "list": "Equipo de tu empresa.",
+  "updated": "Listo, guardamos los cambios de la cuenta.",
+  "activation_code_regenerated": "Listo, emitimos un código de activación nuevo. Entrégaselo: solo lo verás ahora.",
+  "last_admin": "No puedes desactivar tu propia cuenta: la empresa se quedaría sin quien reparta el trabajo.",
+  "not_activated": "Esta persona aún no activó su cuenta. Mientras tanto puedes emitir un código nuevo.",
+  "already_active": "Esta cuenta ya está activada: no necesita un código nuevo.",
+  "lacks_dimension": "Esa persona no tiene esa especialidad. Agrégasela primero.",
+  "dimension_in_use": "Esa persona aún es responsable de esa dimensión. Reasígnala primero."
 }

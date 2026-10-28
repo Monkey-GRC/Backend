@@ -158,7 +158,7 @@ describe('D88 · la persona sube su documento para UNA prueba, y solo esa prueba
 describe('D88 · reglas de la subida por prueba', () => {
   it('suben el administrador y el funcional dueño del control; otro funcional, auditor y admin_monkey, no', async () => {
     const [, t2] = testsY;
-    await owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, assigned_by) values (gen_random_uuid(), $1, $2, $3, $4)`,
+    await owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, dimension, assigned_by) select gen_random_uuid(), $1, $2, $3::uuid, d.dimension, $4 from (select distinct t.dimension from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $3::uuid) d`,
       [a.companyId, funcionalId, controlY, (await owner<{ id: string }>(`select id from platform.users where email = $1`, [a.email]))[0].id]);
     await forTest(funcional, controlY, t2.id, 'func').expect(201);
     await forTest(funcional, controlX, testsX[0].id, 'func-ajeno').expect(403); // no tiene asignado el control X

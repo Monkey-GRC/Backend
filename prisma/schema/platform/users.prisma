@@ -76,6 +76,9 @@ model User {
 
   company    Company     @relation(fields: [companyId], references: [id])
 
+  dimensions                UserDimension[]
+  dimensionOwnerships       ServiceDimensionOwner[] @relation("DimensionOwner")
+  dimensionOwnershipsGranted ServiceDimensionOwner[] @relation("DimensionOwnerAssignedBy")
   controlAssignments        UserControlAssignment[] @relation("AssignedUser")
   controlAssignmentsGranted UserControlAssignment[] @relation("AssignedByUser")
   consultantAssignments        ConsultantAssignment[]  @relation("ConsultantUser")
@@ -115,6 +118,8 @@ model UserControlAssignment {
   companyId       String @map("company_id") @db.Uuid
   userId   String   @map("user_id") @db.Uuid
   clientControlId String @map("client_control_id") @db.Uuid
+  // D96 · La excepción es por control Y dimensión: una fila por par, que manda sobre el responsable del servicio en esa dimensión.
+  dimension Dimension
   assignedBy String   @map("assigned_by") @db.Uuid
   assignedAt DateTime @default(now()) @map("assigned_at")
 
@@ -123,10 +128,51 @@ model UserControlAssignment {
   clientControl ClientControl @relation(fields: [clientControlId], references: [id])
   company        Company       @relation(fields: [companyId], references: [id])
 
-  @@unique([userId, clientControlId])
+  @@unique([clientControlId, dimension])
   @@index([companyId])
+  @@index([userId])
   @@index([clientControlId])
   @@map("user_control_assignments")
+  @@schema("platform")
+}
+
+// D96 · La especialidad de un funcional: una o más de las cinco dimensiones. Es un atributo de la persona, no un rol. Que el usuario sea `funcional` lo impone la aplicación.
+model UserDimension {
+  id        String    @id @default(uuid()) @db.Uuid
+  companyId String    @map("company_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  dimension Dimension
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([userId, dimension])
+  @@index([companyId])
+  @@map("user_dimensions")
+  @@schema("platform")
+}
+
+// D96 · El responsable principal de un servicio en una dimensión: un funcional con esa especialidad. Una fila por servicio y dimensión. El responsable efectivo de un
+// control en una dimensión es su excepción (`user_control_assignments`) o, si no hay, esta fila; no se guarda una fila por control.
+model ServiceDimensionOwner {
+  id         String    @id @default(uuid()) @db.Uuid
+  companyId  String    @map("company_id") @db.Uuid
+  serviceId  String    @map("service_id") @db.Uuid
+  dimension  Dimension
+  userId     String    @map("user_id") @db.Uuid
+  assignedBy String    @map("assigned_by") @db.Uuid
+  assignedAt DateTime  @default(now()) @map("assigned_at")
+
+  user           User    @relation("DimensionOwner", fields: [userId], references: [id])
+  assignedByUser User    @relation("DimensionOwnerAssignedBy", fields: [assignedBy], references: [id])
+  service        Service @relation(fields: [serviceId], references: [id])
+  company        Company @relation(fields: [companyId], references: [id])
+
+  @@unique([serviceId, dimension])
+  @@index([companyId])
+  @@index([userId])
+  @@map("service_dimension_owners")
   @@schema("platform")
 }
 

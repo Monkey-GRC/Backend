@@ -17,9 +17,10 @@ import { FindingResponse } from './technical-control.responses';
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 
-// D90 · Qué falló y cómo corregirlo (contracts/modules/compliance-audit.md): para una prueba de nube de un control, lo que no cumplió la última evaluación y la guía para corregirlo.
+// D90, D96 · Qué falló y cómo corregirlo (contracts/modules/compliance-audit.md): para una prueba de nube de un control, lo que no cumplió la última evaluación y la guía para corregirlo.
+// Lo ven el administrador, el auditor y el `funcional` responsable de ese control en la dimensión de nube.
 @ApiTags(API_TAGS.executions)
-@Roles('admin_empresa', 'auditor')
+@Roles('admin_empresa', 'funcional', 'auditor')
 @Controller('controls/:controlId/tests/:testId/findings')
 export class FindingsController {
   constructor(
@@ -30,10 +31,10 @@ export class FindingsController {
   @ApiOperation({
     summary: 'Qué falló y cómo corregirlo',
     description:
-      'Lo que no cumplió la última evaluación completada de las conexiones de nube del servicio, agrupado por comprobación y de la más grave a la menos grave, con los recursos afectados y la guía para corregirlo en el idioma de la petición. La respuesta trae además `test_id` y `measured_at`. Si la guía está traducida por una IA, `is_ai_generated` es `true`. Nunca trae identificadores del motor ni su texto crudo.',
+      'Lo que no cumplió la última evaluación completada de las conexiones de nube del servicio, agrupado por comprobación y de la más grave a la menos grave, con los recursos afectados y la guía para corregirlo en el idioma de la petición. La respuesta trae además `test_id` y `measured_at`. Si la guía está traducida por una IA, `is_ai_generated` es `true`. Nunca trae identificadores del motor ni su texto crudo. Un `funcional` solo lo ve si es el responsable del control en la dimensión de nube; si no, 403.',
   })
   @ApiPaged(FindingResponse, 'Página de hallazgos.')
-  @ApiDomainErrors('NOT_FOUND')
+  @ApiDomainErrors('NOT_FOUND', 'FORBIDDEN')
   @Get()
   async list(@CurrentUser() principal: Principal, @Param('controlId', idPipe) controlId: string, @Param('testId', idPipe) testId: string, @Query() query: ListExecutionsQuery) {
     const includeProposed = this.config.get<string>('READINESS_INCLUDE_PROPOSED')?.trim().toLowerCase() === 'true';

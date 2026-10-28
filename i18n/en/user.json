@@ -1,15 +1,11 @@
 {
-  "CREATED": "User created successfully.",
-  "UPDATED": "User updated successfully.",
-  "DELETED": "User deleted successfully.",
-  "READ": {
-    "ALL": "Users retrieved successfully.",
-    "ONE": "User retrieved successfully."
-  },
-  "CREATE_FAILED": "Error creating user.",
-  "UPDATE_FAILED": "Error updating user.",
-  "DELETE_FAILED": "Error deleting user.",
-  "READ_FAILED": "Error fetching users.",
-  "NOT_FOUND": "User not found.",
-  "DUPLICATE": "Email or username is already taken."
+  "created": "Done, we created the account. Hand over the activation code: you will only see it now.",
+  "list": "Your company's team.",
+  "updated": "Done, we saved the account changes.",
+  "activation_code_regenerated": "Done, we issued a new activation code. Hand it over: you will only see it now.",
+  "last_admin": "You cannot deactivate your own account: the company would be left with nobody to assign the work.",
+  "not_activated": "This person has not activated their account yet. Meanwhile you can issue a new code.",
+  "already_active": "This account is already activated: it does not need a new code.",
+  "lacks_dimension": "This person does not have that specialty. Add it first.",
+  "dimension_in_use": "This person is still responsible for that dimension. Reassign it first."
 }

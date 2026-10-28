@@ -65,6 +65,8 @@ model Company {
   clientControlDimensions ClientControlDimension[]
   clientControlTests    ClientControlTest[]
   userControlAssignments UserControlAssignment[]
+  userDimensions         UserDimension[]
+  serviceDimensionOwners ServiceDimensionOwner[]
   actionPlans           ActionPlan[]
   mitigations           Mitigation[]
   residualRisks         ResidualRisk[]

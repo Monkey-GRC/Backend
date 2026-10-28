@@ -12,6 +12,7 @@ export function isApiDocsEnabled(env: NodeJS.ProcessEnv = process.env): boolean 
 /** Grupos de la documentación, en el orden en que se muestran. Un grupo por módulo de `contracts/modules/`. */
 export const API_TAGS = {
   auth: 'Autenticación',
+  team: 'Equipo',
   companies: 'Monkey Admin · Empresas',
   catalogFrameworks: 'Monkey Admin · Catálogo · Marcos y requisitos',
   catalogControls: 'Monkey Admin · Catálogo · Controles',
@@ -35,6 +36,8 @@ export const API_TAGS = {
 } as const;
 
 export const API_TAG_DESCRIPTIONS: Record<(typeof API_TAGS)[keyof typeof API_TAGS], string> = {
+  [API_TAGS.team]:
+    'El equipo de la empresa: invitar, activar, desactivar y repartir el trabajo por dimensión. Solo dmin_empresa (el uditor lee los responsables). Contrato: contracts/modules/users-team.md.',
   [API_TAGS.auth]:
     'Inicio y cierre de sesión, renovación, activación de la cuenta con la clave de acceso y datos del usuario en sesión. Contrato: `contracts/modules/auth.md`.',
   [API_TAGS.companies]:

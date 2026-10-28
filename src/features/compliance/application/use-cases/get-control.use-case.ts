@@ -16,8 +16,10 @@ export class GetControlUseCase {
     const data = await this.controls.loadControl({ companyId: principal.companyId, userId: principal.userId, role: principal.role }, controlId);
     if (!data || data.controls.length === 0) throw new DomainError('NOT_FOUND');
     const readout = readControl(data.controls[0], data.assets, data.results);
-    // Una acción de la propia empresa que el `funcional` no tiene asignada: no es de otra empresa (eso sería 404), es que no le toca (403).
+    // Un control de la propia empresa del que el `funcional` no es responsable en ninguna dimensión: no es de otra empresa (eso sería 404), es que no le toca (403).
     if (principal.role === 'funcional' && !readout.control.assignedUserIds.includes(principal.userId)) throw new DomainError('FORBIDDEN');
-    return { view: mode, readout, evidence: data.evidence, causes: data.causes };
+    // D96, SEG-66 · El funcional ve en qué falla solo lo de las dimensiones de las que es responsable.
+    const visible = principal.role === 'funcional' ? { ...readout, failing: readout.failing.filter((f) => readout.control.responsibleByDimension[f.dimension] === principal.userId) } : readout;
+    return { view: mode, readout: visible, evidence: data.evidence, causes: data.causes };
   }
 }

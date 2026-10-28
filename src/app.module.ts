@@ -11,6 +11,7 @@ import { CompaniesModule } from './features/companies/companies.module';
 import { ComplianceModule } from './features/compliance/compliance.module';
 import { OnboardingModule } from './features/onboarding/onboarding.module';
 import { ServicesModule } from './features/services/services.module';
+import { TeamModule } from './features/team/team.module';
 import { TechnicalControlModule } from './features/technical-control/technical-control.module';
 import { AuditModule } from './infrastructure/audit/audit.module';
 import { DatabaseModule } from './infrastructure/database/database.module';
@@ -38,6 +39,7 @@ import { StorageModule } from './infrastructure/storage/storage.module';
     CatalogAdminModule,
     OnboardingModule,
     ServicesModule,
+    TeamModule,
     ComplianceModule,
     TechnicalControlModule,
   ],

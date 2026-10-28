@@ -43,7 +43,7 @@ beforeAll(async () => {
   controls = (await a.agent.get(list(a, '?page_size=100')).expect(200)).body.data.items;
   adminId = (await owner<{ id: string }>(`select id from platform.users where email = $1`, [a.email]))[0].id;
   // El funcional tiene asignada UNA acción.
-  await owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, assigned_by) values (gen_random_uuid(), $1, $2, $3, $4)`, [
+  await owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, dimension, assigned_by) select gen_random_uuid(), $1, $2, $3::uuid, d.dimension, $4 from (select distinct t.dimension from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $3::uuid) d`, [
     a.companyId, funcionalId, controls[0].id, adminId,
   ]);
 });

@@ -48,7 +48,7 @@ async function cuenta(companyId: string, email: string, role: 'auditor' | 'funci
   ))[0].id;
 }
 const assign = (companyId: string, userId: string, control: string, assignedBy: string) =>
-  owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, assigned_by) values (gen_random_uuid(), $1, $2, $3, $4)`, [companyId, userId, control, assignedBy]);
+  owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, dimension, assigned_by) select gen_random_uuid(), $1, $2, $3::uuid, d.dimension, $4 from (select distinct t.dimension from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $3::uuid) d`, [companyId, userId, control, assignedBy]);
 
 beforeAll(async () => {
   app = await bootApp({}, (builder) => builder.overrideProvider(FileStorage).useValue(storage));

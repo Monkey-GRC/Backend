@@ -532,13 +532,17 @@ export class ScanPrismaRepository extends ScanRepository {
     });
   }
 
-  findCloudTestOfControl(scope: TenantScope, controlId: string, testId: string): Promise<{ serviceId: string } | null> {
+  findCloudTestOfControl(scope: TenantScope, controlId: string, testId: string): Promise<{ serviceId: string; responsibleUserId: string | null } | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const link = await tx.clientControlTest.findFirst({
         where: { clientControlId: controlId, testId, test: { dimension: 'cloud' }, clientControl: { isActive: true } },
         select: { clientControl: { select: { serviceId: true } } },
       });
-      return link ? { serviceId: link.clientControl.serviceId } : null;
+      if (!link) return null;
+      const serviceId = link.clientControl.serviceId;
+      const exception = await tx.userControlAssignment.findFirst({ where: { clientControlId: controlId, dimension: 'cloud' }, select: { userId: true } });
+      const owner = exception ? null : await tx.serviceDimensionOwner.findFirst({ where: { serviceId, dimension: 'cloud' }, select: { userId: true } });
+      return { serviceId, responsibleUserId: exception?.userId ?? owner?.userId ?? null };
     });
   }
 
