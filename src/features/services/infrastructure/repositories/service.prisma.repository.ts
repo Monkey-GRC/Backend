@@ -136,7 +136,7 @@ export class ServicePrismaRepository extends ServiceRepository {
   list(scope: TenantScope, request: PageRequest): Promise<Page<ServiceDetail>> {
     return this.prisma.withScope(scope, async (tx) => {
       // D96 · Un `funcional` lee solo los servicios en los que es responsable de alguna dimensión; el administrador y el auditor, todos.
-      const where = { organization: { companyId: scope.companyId }, ...(scope.role === 'funcional' ? { OR: this.responsibleOf(scope.userId as string) } : {}) };
+      const where = { organization: { companyId: scope.companyId }, ...(scope.role === 'funcional' ? await this.specialtyOf(tx, scope.userId as string) : {}) };
       const total = await tx.service.count({ where });
       const rows = await tx.service.findMany({
         where,
@@ -152,13 +152,15 @@ export class ServicePrismaRepository extends ServiceRepository {
   }
 
   isResponsible(scope: TenantScope, serviceId: string): Promise<boolean> {
-    return this.prisma.withScope(scope, async (tx) => !!(await tx.service.findFirst({ where: { id: serviceId, OR: this.responsibleOf(scope.userId as string) }, select: { id: true } })));
+    return this.prisma.withScope(scope, async (tx) => !!(await tx.service.findFirst({ where: { id: serviceId, ...(await this.specialtyOf(tx, scope.userId as string)) }, select: { id: true } })));
   }
 
-  private responsibleOf(userId: string) {
-    return [{ dimensionOwners: { some: { userId } } }, { clientControls: { some: { userControlAssignments: { some: { userId } } } } }];
+  // D97 · Un funcional lee los servicios que tienen pruebas de alguna de sus especialidades (los controles de todo servicio llevan pruebas documentales, así que quien tiene la
+  // documental los ve todos). Sin especialidad, ninguno.
+  private async specialtyOf(tx: TransactionClient, userId: string) {
+    const dimensions = (await tx.userDimension.findMany({ where: { userId }, select: { dimension: true } })).map((d) => d.dimension);
+    return { clientControls: { some: { isActive: true, tests: { some: { test: { dimension: { in: dimensions } } } } } } };
   }
-
   findById(scope: TenantScope, id: string): Promise<ServiceDetail | null> {
     return this.prisma.withScope(scope, (tx) => this.readOrNull(tx, id), READ_TRANSACTION);
   }

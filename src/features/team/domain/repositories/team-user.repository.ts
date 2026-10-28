@@ -7,6 +7,8 @@ import { Dimension, TeamMember, TeamRole } from '../team.types';
 
 export type NewMember = {
   email: string;
+  name: string;
+  lastName: string;
   role: TeamRole;
   dimensions: Dimension[];
   /** Contraseña imposible de adivinar: la cuenta nace `pending` y no puede iniciar sesión hasta activarla. */
@@ -18,7 +20,7 @@ export type NewMember = {
 
 export type MemberFilters = { role?: string; status?: string; sort: 'created_at' | '-created_at' | 'email' | '-email'; page: number; pageSize: number };
 
-export type MemberChange = { status?: 'active' | 'inactive'; dimensions?: Dimension[] };
+export type MemberChange = { status?: 'active' | 'inactive'; dimensions?: Dimension[]; name?: string; lastName?: string };
 
 export type MemberUpdated = { before: TeamMember; after: TeamMember; sessionsClosed: number };
 
@@ -29,7 +31,7 @@ export abstract class TeamUserRepository {
   abstract list(scope: TenantScope, filters: MemberFilters): Promise<Page<TeamMember>>;
 
   // null si no existe, es de otra empresa o no es `funcional` ni `auditor` (404).
-  // LAST_ADMIN si es uno mismo; USER_NOT_ACTIVATED si cambia el estado de una cuenta `pending`; DIMENSION_IN_USE si quita una especialidad con responsabilidades;
+  // LAST_ADMIN si uno mismo se desactiva o se cambia las especialidades (el nombre sí se puede corregir); USER_NOT_ACTIVATED si cambia el estado de una cuenta `pending`; DIMENSION_IN_USE si quita una especialidad con responsabilidades;
   // 422 si manda `dimensions` para un auditor. Desactivar cierra todas sus sesiones en la misma transacción.
   abstract update(scope: TenantScope, id: string, change: MemberChange, at: Date, audit: AuditIntent<MemberUpdated>): Promise<TeamMember | null>;
 

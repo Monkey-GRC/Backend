@@ -47,7 +47,7 @@ export type EvidenceAccess = {
   controlId: string;
   serviceId: string;
   controlActive: boolean;
-  /** Quién es el responsable efectivo de la DIMENSIÓN del requerimiento (D96): un `funcional` solo actúa sobre lo suyo. Vacío si nadie lo es. */
+  /** Quiénes atienden la DIMENSIÓN del requerimiento (D97): un `funcional` solo actúa sobre lo de sus especialidades. */
   assignedUserIds: string[];
 };
 
@@ -78,8 +78,8 @@ export type ControlEvidenceFacts = {
   ownCode: string;
   /** Las personas responsables del control en alguna de sus dimensiones. */
   assignedUserIds: string[];
-  /** Quién es el responsable efectivo de cada dimensión del control (D96). */
-  responsibleByDimension: Record<string, string>;
+  /** Quiénes atienden cada dimensión del control (D97). */
+  responsibleByDimension: Record<string, string[]>;
   /** Dimensiones que el control exige y aplican. */
   dimensions: string[];
   /** Las pruebas que el control lleva (el vínculo `client_control_tests`). */
@@ -93,7 +93,7 @@ export type NewRequirement = { description: string; dimension: string; testId: s
 
 export abstract class EvidenceRepository {
   /** Los requerimientos del control con sus entregas. `null` si el control no existe para esta empresa. `viewer`: de quién es la revisión que se lee. */
-  abstract listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ assignedUserIds: string[]; responsibleByDimension: Record<string, string>; requirements: RequirementRecord[] } | null>;
+  abstract listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ assignedUserIds: string[]; responsibleByDimension: Record<string, string[]>; requirements: RequirementRecord[] } | null>;
   /** `null` si el requerimiento no existe para esta empresa. */
   abstract findRequirement(scope: TenantScope, requirementId: string): Promise<EvidenceAccess | null>;
   abstract listSubmissions(scope: TenantScope, requirementId: string, page: number, pageSize: number, viewer: ReviewerRole): Promise<Page<SubmissionRecord> | null>;

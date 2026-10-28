@@ -2,6 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
+import { controlesQueSeparan, darEspecialidades } from '../support/especialidades';
 
 // MD-117 · Listar y ver las acciones de protección de un servicio (contracts/modules/compliance-controls.md). Cada prueba sale por HTTP, con la sesión
 // real de cada rol, contra el Postgres desechable.
@@ -158,23 +159,17 @@ describe('Quién puede pedir qué', () => {
     expect(await items(funcional)).toEqual([]);
   });
 
-  it('el funcional ve solo la acción que tiene asignada; las demás son 403', async () => {
-    const [mine, other] = (await items(a.agent, '?page_size=100')).slice(0, 2);
-    await owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, dimension, assigned_by) select gen_random_uuid(), $1, $2, $3::uuid, d.dimension, $4 from (select distinct t.dimension from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $3::uuid) d`, [
-      a.companyId,
-      funcionalId,
-      mine.id,
-      funcionalId,
-    ]);
-    const visible = await items(funcional);
-    expect(visible.map((c) => c.id)).toEqual([mine.id]);
-    expect(visible[0].assigned_to).toMatchObject({ user_id: funcionalId });
-    await funcional.get(`/v1/controls/${mine.id}`).expect(200);
-    await funcional.get(`/v1/controls/${other.id}`).expect(403);
-    // y el administrador sigue viéndolas todas, con el nombre de la persona asignada
-    expect((await items(a.agent)).find((c) => c.id === mine.id)?.assigned_to).toMatchObject({ user_id: funcionalId });
-  });
-});
+  it('el funcional ve los controles de su especialidad, sin que nadie se los asigne; los demás son 403 (D97)', async () => {
+    const { dimension, con, sin } = await controlesQueSeparan(a.serviceId);
+    await darEspecialidades(a.companyId, funcionalId, dimension);
+    const visible = await items(funcional, '?page_size=100');
+    expect(visible.map((c) => c.id)).toContain(con);
+    expect(visible.map((c) => c.id)).not.toContain(sin);
+    expect(visible.length).toBeLessThan((await items(a.agent, '?page_size=100')).length);
+    expect(visible.every((c) => c.assigned_to === null)).toBe(true); // con varias personas por dimensión no hay una «a cargo»
+    await funcional.get(`/v1/controls/${con}`).expect(200);
+    await funcional.get(`/v1/controls/${sin}`).expect(403);
+  });});
 
 describe('Aislamiento entre empresas', () => {
   it('el servicio de otra empresa y su lista no existen: 404', async () => {

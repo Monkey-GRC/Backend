@@ -35,7 +35,7 @@ export class ListEvidenceUseCase {
     if (!data) throw new DomainError('NOT_FOUND');
     assertCanTouch(p, data.assignedUserIds);
     // D96, SEG-66 · El funcional recibe solo los requerimientos de las dimensiones de las que es responsable en este control.
-    const requirements = p.role === 'funcional' ? data.requirements.filter((r) => data.responsibleByDimension[r.dimension] === p.userId) : data.requirements;
+    const requirements = p.role === 'funcional' ? data.requirements.filter((r) => (data.responsibleByDimension[r.dimension] ?? []).includes(p.userId)) : data.requirements;
     return { view: mode, requirements };
   }
 }
@@ -139,8 +139,8 @@ export class UploadTestEvidenceUseCase {
     if (!facts.active) throw new DomainError('CONTROL_RETIRED');
     const test = facts.tests.find((t) => t.id === testId);
     if (!test) throw new DomainError('NOT_FOUND');
-    // D96 · Además de ser responsable del control en alguna dimensión, lo es de la dimensión DE ESTA prueba.
-    assertCanTouch(p, facts.responsibleByDimension[test.dimension] ? [facts.responsibleByDimension[test.dimension]] : []);
+    // D97 · Además de atender el control en alguna dimensión, atiende la dimensión DE ESTA prueba.
+    assertCanTouch(p, facts.responsibleByDimension[test.dimension] ?? []);
     if (test.dimension !== 'policy') throw new ValidationException([{ field: 'test_id', code: 'test.not_documentary' }]);
     // El archivo se comprueba ANTES de crear el lugar donde quedará: uno rechazado no deja un requerimiento vacío.
     assertEvidenceFile(file);

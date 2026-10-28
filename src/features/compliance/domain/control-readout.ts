@@ -50,8 +50,8 @@ export type ReadoutControl = {
   assignee: ReadoutAssignee | null;
   /** Las personas responsables del control en alguna de sus dimensiones (`assignee` es solo la primera, la que se muestra). Lo que un `funcional` ve es lo suyo (SEG-66). */
   assignedUserIds: string[];
-  /** Quién es el responsable efectivo de cada dimensión del control (D96): la excepción del control o, si no hay, el responsable del servicio. */
-  responsibleByDimension: Partial<Record<Dimension, string>>;
+  /** Quiénes atienden cada dimensión del control (D97): los `funcional` activos con esa especialidad. */
+  responsibleByDimension: Partial<Record<Dimension, string[]>>;
   /** Estado de aprobación de un control propio (la propuesta `create`); un control del catálogo siempre está aprobado. */
   approval: 'approved' | 'pending' | 'rejected';
   catalogCode: string | null;

@@ -532,7 +532,7 @@ export class ScanPrismaRepository extends ScanRepository {
     });
   }
 
-  findCloudTestOfControl(scope: TenantScope, controlId: string, testId: string): Promise<{ serviceId: string; responsibleUserId: string | null } | null> {
+  findCloudTestOfControl(scope: TenantScope, controlId: string, testId: string): Promise<{ serviceId: string; responsibleUserIds: string[] } | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const link = await tx.clientControlTest.findFirst({
         where: { clientControlId: controlId, testId, test: { dimension: 'cloud' }, clientControl: { isActive: true } },
@@ -540,9 +540,9 @@ export class ScanPrismaRepository extends ScanRepository {
       });
       if (!link) return null;
       const serviceId = link.clientControl.serviceId;
-      const exception = await tx.userControlAssignment.findFirst({ where: { clientControlId: controlId, dimension: 'cloud' }, select: { userId: true } });
-      const owner = exception ? null : await tx.serviceDimensionOwner.findFirst({ where: { serviceId, dimension: 'cloud' }, select: { userId: true } });
-      return { serviceId, responsibleUserId: exception?.userId ?? owner?.userId ?? null };
+      // D97 · Lo automático que falla en la nube le llega a quienes tienen la especialidad de nube.
+      const specialists = await tx.userDimension.findMany({ where: { dimension: 'cloud', user: { role: 'funcional', status: 'active' } }, select: { userId: true } });
+      return { serviceId, responsibleUserIds: specialists.map((s) => s.userId) };
     });
   }
 

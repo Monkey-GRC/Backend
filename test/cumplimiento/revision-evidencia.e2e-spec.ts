@@ -4,6 +4,7 @@ import { FileStorage } from '../../src/common/storage/file-storage';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { asApp, failure, withRollback } from '../support/db';
 import { dosEmpresas, Tenant } from '../support/escenario';
+import { darEspecialidades } from '../support/especialidades';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
 // MD-127 + D88 · La persona lee lo que pide una prueba documental y sube su documento PARA ESA PRUEBA en ese control; el admin_empresa la valida o la rechaza con motivo (D96),
@@ -16,6 +17,7 @@ let b: Tenant;
 let monkey: Agent;
 let auditor: Agent;
 let funcional: Agent;
+let funcionalNoDoc: Agent;
 let funcionalId: string;
 const storage = new StorageEnMemoria();
 
@@ -56,8 +58,11 @@ beforeAll(async () => {
   ({ a, b, monkey } = await dosEmpresas(app));
   await cuenta(a.companyId, `auditor-rev-${RUN}@cumplimiento.test`, 'auditor');
   funcionalId = await cuenta(a.companyId, `funcional-rev-${RUN}@cumplimiento.test`, 'funcional');
+  await darEspecialidades(a.companyId, await cuenta(a.companyId, `funcional-nodoc-rev-${RUN}@cumplimiento.test`, 'funcional'), 'cloud');
   auditor = await login(app, `auditor-rev-${RUN}@cumplimiento.test`);
   funcional = await login(app, `funcional-rev-${RUN}@cumplimiento.test`);
+  await darEspecialidades(a.companyId, funcionalId, 'policy');
+  funcionalNoDoc = await login(app, `funcional-nodoc-rev-${RUN}@cumplimiento.test`);
 
   const controls = await owner<{ id: string }>(
     `select cc.id from tenant.client_controls cc
@@ -156,12 +161,10 @@ describe('D88 · la persona sube su documento para UNA prueba, y solo esa prueba
 });
 
 describe('D88 · reglas de la subida por prueba', () => {
-  it('suben el administrador y el funcional dueño del control; otro funcional, auditor y admin_monkey, no', async () => {
+  it('suben el administrador y el funcional de la especialidad documental; otro funcional de otra especialidad, auditor y admin_monkey, no (D97)', async () => {
     const [, t2] = testsY;
-    await owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, dimension, assigned_by) select gen_random_uuid(), $1, $2, $3::uuid, d.dimension, $4 from (select distinct t.dimension from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $3::uuid) d`,
-      [a.companyId, funcionalId, controlY, (await owner<{ id: string }>(`select id from platform.users where email = $1`, [a.email]))[0].id]);
     await forTest(funcional, controlY, t2.id, 'func').expect(201);
-    await forTest(funcional, controlX, testsX[0].id, 'func-ajeno').expect(403); // no tiene asignado el control X
+    await forTest(funcionalNoDoc, controlY, t2.id, 'otra-especialidad').expect(403);
     await forTest(auditor, controlY, t2.id, 'au').expect(403);
     await forTest(monkey, controlY, t2.id, 'm').expect(403);
   });

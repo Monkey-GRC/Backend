@@ -53,14 +53,14 @@ export class EvidencePrismaRepository extends EvidenceRepository {
     super();
   }
 
-  listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ assignedUserIds: string[]; responsibleByDimension: Record<string, string>; requirements: RequirementRecord[] } | null> {
+  listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ assignedUserIds: string[]; responsibleByDimension: Record<string, string[]>; requirements: RequirementRecord[] } | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const control = await tx.clientControl.findFirst({
         where: { id: controlId },
         select: { serviceId: true, evidenceRequirements: { orderBy: { sequence: 'asc' }, select: requirementSelect(viewer) } },
       });
       if (!control) return null;
-      const dims = (await loadControlResponsibles(tx, control.serviceId, [controlId])).byControl.get(controlId);
+      const dims = (await loadControlResponsibles(tx, [controlId])).byControl.get(controlId);
       return { assignedUserIds: usersOf(dims), responsibleByDimension: Object.fromEntries(dims ?? []), requirements: control.evidenceRequirements.map(toRequirement) };
     });
   }
@@ -175,7 +175,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         const sibling = await tx.evidenceRequirement.findFirst({ where: { clientControl: { serviceId: c.serviceId } }, select: { validityWithinPeriod: true } });
         validity = sibling?.validityWithinPeriod ?? null;
       }
-      const dims = (await loadControlResponsibles(tx, c.serviceId, [c.id])).byControl.get(c.id);
+      const dims = (await loadControlResponsibles(tx, [c.id])).byControl.get(c.id);
       return {
         controlId: c.id, serviceId: c.serviceId, active: c.isActive, ownCode: c.ownCode,
         assignedUserIds: usersOf(dims),
@@ -240,11 +240,11 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       select: { id: true, dimension: true, clientControl: { select: { id: true, serviceId: true, isActive: true } } },
     });
     if (!r) return null;
-    // D96 · A quien le toca el requerimiento es al responsable de SU dimensión en este control, no a cualquiera que atienda otra dimensión del control.
-    const responsible = (await loadControlResponsibles(tx, r.clientControl.serviceId, [r.clientControl.id])).byControl.get(r.clientControl.id)?.get(r.dimension as never);
+    // D97 · Le toca a quienes atienden la dimensión del requerimiento, no a cualquiera que atienda otra dimensión del control.
+    const users = (await loadControlResponsibles(tx, [r.clientControl.id])).byControl.get(r.clientControl.id)?.get(r.dimension as never) ?? [];
     return {
       requirementId: r.id, controlId: r.clientControl.id, serviceId: r.clientControl.serviceId, controlActive: r.clientControl.isActive,
-      assignedUserIds: responsible ? [responsible] : [],
+      assignedUserIds: users,
     };
   }
 }

@@ -2,6 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
+import { darEspecialidades } from '../support/especialidades';
 
 // MD-122 · Riesgos y causas de un servicio (contracts/modules/compliance-risks.md).
 type Agent = Awaited<ReturnType<typeof login>>;
@@ -12,7 +13,6 @@ let monkey: Agent;
 let auditor: Agent;
 let funcional: Agent;
 let funcionalId: string;
-let adminId: string;
 const risks = (t: Tenant, q = '') => `/v1/services/${t.serviceId}/risks${q}`;
 const causes = (t: Tenant, q = '') => `/v1/services/${t.serviceId}/causes${q}`;
 const RISK = { name: 'Pérdida de un portátil con datos de clientes', description: 'Un equipo se extravía o es robado fuera de la oficina.', trust_criterion: 'confidentiality', potential_impact: ['reputational', 'financial_loss'] };
@@ -34,7 +34,6 @@ beforeAll(async () => {
   funcionalId = await cuenta(a.companyId, `funcional-rsk-${RUN}@cumplimiento.test`, 'funcional');
   auditor = await login(app, `auditor-rsk-${RUN}@cumplimiento.test`);
   funcional = await login(app, `funcional-rsk-${RUN}@cumplimiento.test`);
-  adminId = (await owner<{ id: string }>(`select id from platform.users where email = $1`, [a.email]))[0].id;
 });
 afterAll(async () => {
   await app?.close();
@@ -270,26 +269,22 @@ describe('Quién puede qué y entre empresas', () => {
 });
 
 describe('Vista de cada rol', () => {
-  it('el funcional ve solo los riesgos y causas que llegan a una acción que tiene asignada', async () => {
+  it('el funcional ve solo los riesgos y causas que llegan a un control de su especialidad (D97)', async () => {
     expect(await all(funcional, risks(a))).toEqual([]);
     expect(await all(funcional, causes(a))).toEqual([]);
-    // Una causa del catálogo con acciones: se le asigna una de ellas.
-    const withControl = (await all(a.agent, causes(a))).find((c) => c.controls.length > 0)!;
-    const control = withControl.controls[0].control_id as string;
-    await owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, dimension, assigned_by) select gen_random_uuid(), $1, $2, $3::uuid, d.dimension, $4 from (select distinct t.dimension from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $3::uuid) d`, [a.companyId, funcionalId, control, adminId]);
+    // Con la especialidad de bases de datos ve las causas cuyos controles llevan pruebas de esa dimensión, y nada más.
+    await darEspecialidades(a.companyId, funcionalId, 'database');
     const mine = await all(funcional, causes(a));
     expect(mine.length).toBeGreaterThan(0);
-    expect(mine.every((c) => c.controls.some((k: any) => k.control_id === control))).toBe(true);
+    expect(mine.length).toBeLessThan((await all(a.agent, causes(a))).length);
     const myRisks = await all(funcional, risks(a));
     expect(myRisks.length).toBeGreaterThan(0);
-    expect(myRisks.length).toBeLessThan(10);
     // lo que no le toca es 403
     const others = (await all(a.agent, risks(a))).filter((r) => !myRisks.some((m) => m.id === r.id));
     expect(others.length).toBeGreaterThan(0);
     await funcional.get(`/v1/risks/${others[0].id}`).expect(403);
     await funcional.get(`/v1/risks/${myRisks[0].id}`).expect(200);
   });
-
   it('la vista técnica trae los códigos del catálogo para el auditor y para el administrador (D81); el funcional recibe 403', async () => {
     await funcional.get(risks(a, '?view=technical')).expect(403);
     await funcional.get(causes(a, '?view=technical')).expect(403);
