@@ -16,6 +16,7 @@ import { MfaAttempts } from './application/services/mfa-attempts.service';
 import { MfaChallengeService } from './application/services/mfa-challenge.service';
 import { MfaPolicy } from './application/services/mfa-policy.service';
 import { SessionIssuer } from './application/services/session-issuer.service';
+import { StepUp } from './application/services/step-up.service';
 import { SESSION_POLICY } from './application/session-policy.token';
 import { ConfirmMfaSetupUseCase } from './application/use-cases/confirm-mfa-setup.use-case';
 import { RedeemAccessKeyUseCase } from './application/use-cases/redeem-access-key.use-case';
@@ -61,6 +62,8 @@ const seconds = (config: ConfigService, key: string): number => {
     }),
   ],
   controllers: [AuthController, MfaAdminController],
+  // D95: Monkey Admin pide el código de la persona antes de archivar o reactivar una empresa.
+  exports: [StepUp],
   providers: [
     {
       provide: SESSION_POLICY,
@@ -84,6 +87,7 @@ const seconds = (config: ConfigService, key: string): number => {
     MfaPolicy,
     MfaChallengeService,
     MfaAttempts,
+    StepUp,
     LoginUseCase,
     VerifyMfaUseCase,
     StartMfaSetupUseCase,

@@ -15,4 +15,9 @@ export class UnavailableFileStorage extends FileStorage {
   remove(): Promise<void> {
     return Promise.resolve();
   }
+
+  // Sin almacenamiento configurado nunca se guardó nada: no hay nada que borrar.
+  removePrefix(): Promise<void> {
+    return Promise.resolve();
+  }
 }

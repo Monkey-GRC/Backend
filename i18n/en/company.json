@@ -4,5 +4,12 @@
   "detail": "Company detail.",
   "name_taken": "An active company with that legal name already exists.",
   "admin_email_taken": "That email is already the administrative contact of another company.",
-  "dedicated_not_available": "Dedicated databases are not available yet. Register the company without one for now."
+  "dedicated_not_available": "Dedicated databases are not available yet. Register the company without one for now.",
+  "deactivated": "Company archived. No access or evaluations until it is permanently deleted.",
+  "reactivated": "Company reactivated.",
+  "pending_purge": "Companies about to be deleted.",
+  "confirmation_mismatch": "The legal name entered does not match the company's.",
+  "already_deactivated": "The company is already archived.",
+  "not_deactivated": "The company is not archived.",
+  "archive_expired": "The archive period has ended: the company is about to be deleted and can no longer be reactivated."
 }

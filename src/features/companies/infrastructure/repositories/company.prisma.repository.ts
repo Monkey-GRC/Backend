@@ -11,7 +11,10 @@ import {
   ContractedFramework,
 } from '../../domain/entities/company-overview';
 import { Company } from '../../domain/entities/company.entity';
-import { RegisteredCompany,
+import {
+  ArchiveData,
+  ArchivedCompany,
+  RegisteredCompany,
   CompanyListQuery,
   CompanyRepository,
   NewAccessKey,
@@ -23,9 +26,13 @@ type CompanyRow = {
   name: string;
   adminEmail: string;
   isolationStrategy: 'dedicated' | 'shared';
-  status: 'active' | 'suspended';
+  status: 'active' | 'suspended' | 'deactivated';
   createdAt: Date;
   updatedAt: Date;
+  deactivatedAt: Date | null;
+  archiveUntil: Date | null;
+  deactivationReasonCode: 'non_payment' | 'client_request' | 'other' | null;
+  deactivationReason: string | null;
 };
 
 type AccessKeyRow = {
@@ -37,7 +44,18 @@ type AccessKeyRow = {
 };
 
 const toCompany = (r: CompanyRow) =>
-  new Company(r.id, r.name, r.adminEmail, r.isolationStrategy, r.status, r.createdAt, r.updatedAt);
+  new Company(
+    r.id,
+    r.name,
+    r.adminEmail,
+    r.isolationStrategy,
+    r.status,
+    r.createdAt,
+    r.updatedAt,
+    r.status === 'deactivated' && r.deactivatedAt && r.archiveUntil
+      ? { deactivatedAt: r.deactivatedAt, archiveUntil: r.archiveUntil, reasonCode: r.deactivationReasonCode, reason: r.deactivationReason }
+      : null,
+  );
 
 const toAccessKey = (r: AccessKeyRow) =>
   new AccessKey(r.id, r.companyId, r.status, r.expiresAt, r.usedAt);
@@ -165,7 +183,8 @@ export class CompanyPrismaRepository extends CompanyRepository {
     return this.prisma.withScope(scope, async (tx) => {
       const where = {
         id: { not: query.excludeCompanyId },
-        ...(query.status ? { status: query.status } : {}),
+        // Las archivadas (D95) salen del listado por defecto; se ven con el filtro `status=deactivated`.
+        status: query.status ?? { not: 'deactivated' as const },
       };
       const field = query.sort.replace('-', '') === 'name' ? 'name' : 'createdAt';
       const direction = query.sort.startsWith('-') ? 'desc' : 'asc';
@@ -222,6 +241,104 @@ export class CompanyPrismaRepository extends CompanyRepository {
         accessKeys,
       };
     });
+  }
+
+  archive(
+    scope: TenantScope,
+    companyId: string,
+    data: ArchiveData,
+    audit: AuditIntent<{ sessionsClosed: number }>,
+  ): Promise<number> {
+    return this.prisma.withScope(scope, async (tx) => {
+      await tx.company.update({
+        where: { id: companyId },
+        data: {
+          status: 'deactivated',
+          deactivatedAt: data.at,
+          archiveUntil: data.archiveUntil,
+          deactivationReasonCode: data.reasonCode,
+          deactivationReason: data.reason,
+          deactivatedBy: data.by,
+          archiveSnapshotKey: data.snapshotKey,
+        },
+      });
+      // Lo que sigue es de tenant: sessions, mfa_challenges y executions solo se ven con el `app.tenant_id` de esa empresa (RLS). Se fija el de la empresa y,
+      // al final, se restaura el de quien actúa.
+      await tx.$queryRaw`SELECT set_config('app.tenant_id', ${companyId}, true)`;
+      // Sin sesión no hay acceso (se valida en cada petición) y sin desafío abierto nadie termina de entrar.
+      const sessions = await tx.session.updateMany({ where: { companyId, revokedAt: null }, data: { revokedAt: data.at } });
+      await tx.mfaChallenge.deleteMany({ where: { companyId } });
+      // Lo que estaba en cola o en curso se cancela; el trabajador ya no reclama a una empresa archivada.
+      await tx.execution.updateMany({
+        where: { tenantId: companyId, status: { in: ['queued', 'running'] } },
+        data: { status: 'cancelled', finishedAt: data.at, failureReason: 'company.archived' },
+      });
+      await tx.$queryRaw`SELECT set_config('app.tenant_id', ${scope.companyId}, true)`;
+      await insertAuditLog(tx, audit({ sessionsClosed: sessions.count }));
+      return sessions.count;
+    });
+  }
+
+  exportSnapshot(scope: TenantScope, companyId: string): Promise<unknown> {
+    return this.prisma.withScope(
+      scope,
+      async (tx) => {
+        const rows = await tx.$queryRaw<Array<{ snapshot: unknown }>>`SELECT platform.export_company(${companyId}::uuid) AS snapshot`;
+        return rows[0]?.snapshot;
+      },
+      { timeoutMs: 120_000 },
+    );
+  }
+
+  reactivate(scope: TenantScope, companyId: string, audit: AuditIntent<{ snapshotKey: string | null }>): Promise<string | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const before = await tx.company.findUniqueOrThrow({ where: { id: companyId }, select: { archiveSnapshotKey: true } });
+      await tx.company.update({
+        where: { id: companyId },
+        data: {
+          status: 'active',
+          deactivatedAt: null,
+          archiveUntil: null,
+          deactivationReasonCode: null,
+          deactivationReason: null,
+          deactivatedBy: null,
+          archiveSnapshotKey: null,
+        },
+      });
+      await insertAuditLog(tx, audit({ snapshotKey: before.archiveSnapshotKey }));
+      return before.archiveSnapshotKey;
+    });
+  }
+
+  listArchived(scope: TenantScope, dueBefore?: Date): Promise<ArchivedCompany[]> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const rows = await tx.company.findMany({
+        where: { status: 'deactivated', archiveUntil: dueBefore ? { lte: dueBefore } : { not: null } },
+        orderBy: { archiveUntil: 'asc' },
+        select: { id: true, name: true, archiveUntil: true, deactivationReasonCode: true, archiveSnapshotKey: true },
+      });
+      return rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        archiveUntil: r.archiveUntil as Date,
+        reasonCode: r.deactivationReasonCode,
+        snapshotKey: r.archiveSnapshotKey,
+      }));
+    });
+  }
+
+  purge(scope: TenantScope, companyId: string, audit: AuditIntent<{ name: string }>): Promise<string> {
+    return this.prisma.withScope(
+      scope,
+      async (tx) => {
+        const rows = await tx.$queryRaw<Array<{ name: string }>>`SELECT platform.purge_company(${companyId}::uuid) AS name`;
+        const name = rows[0]!.name;
+        // El rastro mínimo también en la auditoría: sin `company_id` ni datos del cliente, para que la propia purga no lo borre.
+        await insertAuditLog(tx, audit({ name }));
+        return name;
+      },
+      { timeoutMs: 300_000 },
+    );
   }
 
   // "¿Existe ya organizations para esta empresa?" (campo derivado del contrato). organizations es

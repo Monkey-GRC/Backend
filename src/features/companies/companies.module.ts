@@ -1,14 +1,21 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AuthModule } from '../auth/auth.module';
 import { CompanyRepository } from './domain/repositories/company.repository';
 import { ACCESS_KEY_TTL_HOURS } from './application/access-key-policy.token';
+import { ArchiveCompanyUseCase } from './application/use-cases/archive-company.use-case';
 import { GetCompanyUseCase } from './application/use-cases/get-company.use-case';
 import { ListCompaniesUseCase } from './application/use-cases/list-companies.use-case';
+import { ListPendingPurgeUseCase } from './application/use-cases/list-pending-purge.use-case';
+import { PurgeExpiredCompaniesUseCase } from './application/use-cases/purge-expired-companies.use-case';
+import { ReactivateCompanyUseCase } from './application/use-cases/reactivate-company.use-case';
 import { RegisterCompanyUseCase } from './application/use-cases/register-company.use-case';
+import { CompanyPurgeScheduler } from './infrastructure/company-purge.scheduler';
 import { CompanyPrismaRepository } from './infrastructure/repositories/company.prisma.repository';
 import { CompaniesController } from './presentation/companies.controller';
 
 @Module({
+  imports: [AuthModule],
   controllers: [CompaniesController],
   providers: [
     {
@@ -26,6 +33,11 @@ import { CompaniesController } from './presentation/companies.controller';
     RegisterCompanyUseCase,
     ListCompaniesUseCase,
     GetCompanyUseCase,
+    ArchiveCompanyUseCase,
+    ReactivateCompanyUseCase,
+    ListPendingPurgeUseCase,
+    PurgeExpiredCompaniesUseCase,
+    CompanyPurgeScheduler,
   ],
 })
 export class CompaniesModule {}

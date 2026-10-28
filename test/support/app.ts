@@ -41,6 +41,8 @@ export async function bootApp(env: Record<string, string> = {}, configure?: (bui
     MONKEY_AWS_PRINCIPAL_ARN: MONKEY_PRINCIPAL_ARN,
     VALIDATION_WAIT_SECONDS: '25',
     NODE_ENV: 'test',
+    // D95 · Sin tarea programada del borrado definitivo: las pruebas la ejecutan a mano.
+    COMPANY_PURGE_INTERVAL_MINUTES: '0',
     ...env,
   });
   // Las variables se fijan antes de compilar el módulo: es cuando los servicios leen la configuración.

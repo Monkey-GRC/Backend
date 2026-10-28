@@ -25,5 +25,5 @@ export type RedeemingCompany = {
   id: string;
   name: string;
   adminEmail: string;
-  status: 'active' | 'suspended';
+  status: 'active' | 'suspended' | 'deactivated';
 };

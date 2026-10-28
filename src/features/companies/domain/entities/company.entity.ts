@@ -1,5 +1,14 @@
 export type IsolationStrategy = 'dedicated' | 'shared';
-export type CompanyStatus = 'active' | 'suspended';
+export type CompanyStatus = 'active' | 'suspended' | 'deactivated';
+export type DeactivationReason = 'non_payment' | 'client_request' | 'other';
+
+// D95: lo que se sabe de una empresa archivada. Existe solo con status = deactivated.
+export type CompanyArchive = {
+  deactivatedAt: Date;
+  archiveUntil: Date;
+  reasonCode: DeactivationReason | null;
+  reason: string | null;
+};
 
 // El tenant (modelo-datos.md §4.1). No es el negocio que declara el cliente — eso es
 // organizations, que se llena después en el onboarding —, ni un usuario: la cuenta
@@ -13,6 +22,7 @@ export class Company {
     public readonly status: CompanyStatus,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
+    public readonly archive: CompanyArchive | null = null,
   ) {}
 
   // La razón social se compara sin mayúsculas ni espacios de más: "Acme  S.A.S" = "acme s.a.s".
