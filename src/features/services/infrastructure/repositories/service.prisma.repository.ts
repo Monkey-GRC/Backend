@@ -135,7 +135,8 @@ export class ServicePrismaRepository extends ServiceRepository {
 
   list(scope: TenantScope, request: PageRequest): Promise<Page<ServiceDetail>> {
     return this.prisma.withScope(scope, async (tx) => {
-      const where = { organization: { companyId: scope.companyId } };
+      // D96 · Un `funcional` lee solo los servicios en los que es responsable de alguna dimensión; el administrador y el auditor, todos.
+      const where = { organization: { companyId: scope.companyId }, ...(scope.role === 'funcional' ? { OR: this.responsibleOf(scope.userId as string) } : {}) };
       const total = await tx.service.count({ where });
       const rows = await tx.service.findMany({
         where,
@@ -148,6 +149,14 @@ export class ServicePrismaRepository extends ServiceRepository {
       for (const row of rows) items.push(await this.read(tx, row.id));
       return { items, total, page: request.page, pageSize: request.pageSize };
     }, READ_TRANSACTION);
+  }
+
+  isResponsible(scope: TenantScope, serviceId: string): Promise<boolean> {
+    return this.prisma.withScope(scope, async (tx) => !!(await tx.service.findFirst({ where: { id: serviceId, OR: this.responsibleOf(scope.userId as string) }, select: { id: true } })));
+  }
+
+  private responsibleOf(userId: string) {
+    return [{ dimensionOwners: { some: { userId } } }, { clientControls: { some: { userControlAssignments: { some: { userId } } } } }];
   }
 
   findById(scope: TenantScope, id: string): Promise<ServiceDetail | null> {

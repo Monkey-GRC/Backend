@@ -443,6 +443,21 @@ describe('SEG-66 · el funcional solo ve y toca lo de su dimensión', () => {
     expect((await ids(tec.session)).length).toBeGreaterThan(0);
   });
 
+  it('lee los servicios solo en los que es responsable; el auditor, todos; declarar o editar un servicio sigue siendo solo del administrador', async () => {
+    const list = async (agent: Agent) => ((await agent.get('/v1/services').expect(200)).body.data.items as any[]).map((s) => s.id);
+    expect(await list(a.agent)).toContain(a.serviceId);
+    expect(await list(tec.session)).toContain(a.serviceId); // es responsable de una dimensión del servicio
+    expect(await list(nadie.session)).toEqual([]); // sin responsabilidades, la lista llega vacía
+    expect(await list(await login(app, email('rol-a')))).toContain(a.serviceId);
+    await tec.session.get(`/v1/services/${a.serviceId}`).expect(200);
+    await nadie.session.get(`/v1/services/${a.serviceId}`).expect(403);
+    await b.agent.get(`/v1/services/${a.serviceId}`).expect(404);
+    for (const agent of [tec.session, nadie.session, await login(app, email('rol-a'))]) {
+      await agent.post('/v1/services').send({}).expect(403);
+      await agent.patch(`/v1/services/${a.serviceId}`).send({ name: 'x' }).expect(403);
+      await agent.delete(`/v1/services/${a.serviceId}`).expect(403);
+    }
+  });
   it('el administrador y el auditor siguen viéndolo todo', async () => {
     const todos = await ids(a.agent);
     expect(todos).toEqual(expect.arrayContaining([mixto, soloOtra]));

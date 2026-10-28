@@ -106,7 +106,7 @@ const toPatch = (dto: UpdateServiceDto): ServicePatch => {
 };
 
 // Componente 2 del onboarding (contracts/modules/onboarding-service-context.md).
-// Solo el admin_empresa declara los servicios de su empresa.
+// Solo el admin_empresa declara los servicios de su empresa. La lista y el detalle también los leen el `auditor` (todos) y el `funcional` (los suyos), D96.
 @ApiTags(API_TAGS.services)
 @Roles('admin_empresa')
 @Controller('services')
@@ -136,9 +136,10 @@ export class ServicesController {
     return new ResponseDto(HttpStatus.CREATED, t('service.created'), toServiceResponse(service));
   }
 
-  @ApiOperation({ summary: 'Listar servicios', description: 'Los servicios de la empresa, con lo mínimo para pintar la lista: marcos, estado del catálogo y resumen del control técnico.' })
+  @ApiOperation({ summary: 'Listar servicios', description: 'Los servicios de la empresa, con lo mínimo para pintar la lista: marcos, estado del catálogo y resumen del control técnico. Los lee dmin_empresa (todos), uditor (todos, solo lectura) y uncional (solo aquellos en los que es responsable de alguna dimensión).' })
   @ApiPaged(ServiceListItemResponse, 'Página de servicios.')
   @Get()
+  @Roles('admin_empresa', 'funcional', 'auditor')
   async list(@CurrentUser() principal: Principal, @Query() query: ListServicesQuery) {
     const page = await this.listServices.execute(principal, {
       page: query.page,
@@ -147,9 +148,11 @@ export class ServicesController {
     return new ResponseDto(HttpStatus.OK, t('service.list'), toPageResponse(page, toServiceListItem));
   }
 
-  @ApiOperation({ summary: 'Detalle de un servicio', description: 'Todos los campos declarados (la pantalla de edición los necesita), más el catálogo clonado y el avance de llenado.' })
+  @ApiOperation({ summary: 'Detalle de un servicio', description: 'Todos los campos declarados (la pantalla de edición los necesita), más el catálogo clonado y el avance de llenado. Lo leen dmin_empresa, uditor y el uncional responsable de algo en él; a otro uncional le responde 403.' })
   @ApiData(ServiceResponse, 'Detalle del servicio.')
+  @ApiDomainErrors('FORBIDDEN')
   @Get(':id')
+  @Roles('admin_empresa', 'funcional', 'auditor')
   async detail(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string) {
     const service = await this.getService.execute(principal, id);
     return new ResponseDto(HttpStatus.OK, t('service.detail'), toServiceResponse(service));
