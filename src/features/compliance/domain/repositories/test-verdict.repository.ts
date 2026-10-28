@@ -3,7 +3,7 @@ import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import type { TestState } from '../engine/states';
 
-// El veredicto de un test manual que no es documental (contracts/modules/compliance-audit.md, MD-155, D85). Lo da el consultor. Es del test en el servicio: queda una evaluación
+// El veredicto de un test manual que no es documental (contracts/modules/compliance-audit.md, MD-155, D85). Lo da el admin_empresa (D96). Es del test en el servicio: queda una evaluación
 // inmutable por cada control del servicio que lleva el test y por cada activo de su dimensión, y cuenta en todos ellos.
 
 export type VerdictResult = 'compliant' | 'non_compliant';

@@ -7,7 +7,7 @@ import { ControlRepository } from '../../domain/repositories/control.repository'
 import { ViewMode, viewModeOf } from '../view-access';
 
 // MD-137 · El resumen de un servicio: un bloque por marco contratado, con sus categorías en alcance y las acciones que fallan. Lo leen todos los roles de la empresa;
-// la vista técnica, `auditor`, `consultor` y `admin_empresa` (D81). Un `funcional` ve el marco y las categorías completos, pero solo las acciones que falla entre las suyas.
+// la vista técnica, `auditor` y `admin_empresa` (D81, D96). Un `funcional` ve el marco y las categorías completos, pero solo las acciones que falla entre las suyas.
 @Injectable()
 export class GetOverviewUseCase {
   constructor(private readonly controls: ControlRepository) {}

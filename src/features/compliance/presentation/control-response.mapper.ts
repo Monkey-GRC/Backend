@@ -23,7 +23,6 @@ const base = (r: ControlReadout) => ({
   progress: r.progress,
   coverage: r.coverage,
   assigned_to: assignee(r.control.assignee),
-  has_pending_change: r.hasPendingChange,
 });
 
 const technicalBlock = (r: ControlReadout) => ({
@@ -69,20 +68,3 @@ export function toControlDetail(d: ControlDetail, t: Translate) {
       : {}),
   };
 }
-
-// Una propuesta de cambio (contracts/modules/compliance-controls.md).
-type ChangeView = import('../domain/repositories/control-change.repository').ControlChange;
-const person = (p: { id: string; name: string | null; lastName: string | null }) => ({ id: p.id, name: p.name, last_name: p.lastName });
-
-export const toControlChange = (c: ChangeView) => ({
-  id: c.id,
-  control_id: c.controlId,
-  change_type: c.changeType,
-  status: c.status,
-  proposed_values: c.proposedValues,
-  requested_by: person(c.requestedBy),
-  requested_at: c.requestedAt.toISOString(),
-  decided_by: c.decidedBy ? person(c.decidedBy) : null,
-  decision_note: c.decisionNote,
-  decided_at: c.decidedAt ? c.decidedAt.toISOString() : null,
-});

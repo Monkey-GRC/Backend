@@ -125,12 +125,12 @@ describe('Resumen del servicio — con la evaluación definida y resultados', ()
 });
 
 describe('Resumen del servicio — quién puede pedir qué', () => {
-  it('la vista técnica la piden el administrador (D81), el auditor y el consultor; igual para los dos', async () => {
+  it('la vista técnica la piden el administrador (D81) y el auditor; igual para los dos', async () => {
     const admin = await read(a.agent, '?view=technical');
     const audit = await read(auditor, '?view=technical');
     expect(admin).toEqual(audit);
     const fw = soc2(admin);
-    expect(fw.technical).toEqual({ state: expect.any(String), unique_controls: expect.any(Number), failing: expect.any(Array), pending: expect.any(Array), assessments: { consultant: null, auditor: null } });
+    expect(fw.technical).toEqual({ state: expect.any(String), unique_controls: expect.any(Number), failing: expect.any(Array), pending: expect.any(Array) });
     expect(fw.technical.unique_controls).toBe(fw.progress.total);
     const category = fw.categories[0];
     expect(category.technical.state).toEqual(expect.any(String));

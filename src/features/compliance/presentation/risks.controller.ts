@@ -28,7 +28,7 @@ const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAg
 // Riesgos y causas de un servicio (contracts/modules/compliance-risks.md, MD-122). Los ven los cuatro roles de la empresa (el `funcional`, solo lo que llega a una acción
 // suya); los gestiona solo el administrador. `admin_monkey` no entra al cumplimiento de una empresa por aquí.
 @ApiTags(API_TAGS.risks)
-@Roles('admin_empresa', 'funcional', 'consultor', 'auditor')
+@Roles('admin_empresa', 'funcional', 'auditor')
 @Controller()
 export class RisksController {
   constructor(
@@ -47,7 +47,7 @@ export class RisksController {
   }
 
   // ── riesgos ──
-  @ApiOperation({ summary: 'Listar los riesgos de un servicio', description: 'Riesgos del servicio con su evaluación inherente (si la tiene), el tratamiento vigente y cuántas causas activas tienen. Filtros por criterio, nivel, origen y si están evaluados. Con `view=technical` (solo `auditor`, `consultor` y, por ahora, `admin_empresa`) agrega el bloque `technical`.' })
+  @ApiOperation({ summary: 'Listar los riesgos de un servicio', description: 'Riesgos del servicio con su evaluación inherente (si la tiene), el tratamiento vigente y cuántas causas activas tienen. Filtros por criterio, nivel, origen y si están evaluados. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
   @ApiPaged(RiskListItemResponse, 'Página de riesgos.')
   @Get('services/:serviceId/risks')
   async risks(@CurrentUser() p: Principal, @Param('serviceId', idPipe) serviceId: string, @Query() q: ListRisksQuery) {
@@ -68,7 +68,7 @@ export class RisksController {
     return new ResponseDto(HttpStatus.CREATED, t('risk.created'), toRiskDetail(risk, graph, view === 'technical'));
   }
 
-  @ApiOperation({ summary: 'Detalle de un riesgo', description: 'El riesgo con su evaluación, tratamiento vigente y causas activas, cada una con los controles que la tratan. Con `view=technical` (solo `auditor`, `consultor` y, por ahora, `admin_empresa`) agrega el bloque `technical`.' })
+  @ApiOperation({ summary: 'Detalle de un riesgo', description: 'El riesgo con su evaluación, tratamiento vigente y causas activas, cada una con los controles que la tratan. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
   @ApiData(RiskDetailResponse, 'Detalle del riesgo.')
   @Get('risks/:id')
   async risk(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Query() q: ViewQuery) {
@@ -125,7 +125,7 @@ export class RisksController {
   }
 
   // ── causas ──
-  @ApiOperation({ summary: 'Listar las causas de un servicio', description: 'Causas del servicio con los riesgos a los que contribuyen y los controles que las tratan. Filtros por categoría de falla, riesgo y origen. Con `view=technical` (solo `auditor`, `consultor` y, por ahora, `admin_empresa`) agrega el bloque `technical`.' })
+  @ApiOperation({ summary: 'Listar las causas de un servicio', description: 'Causas del servicio con los riesgos a los que contribuyen y los controles que las tratan. Filtros por categoría de falla, riesgo y origen. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
   @ApiPaged(CauseResponse, 'Página de causas.')
   @Get('services/:serviceId/causes')
   async causes(@CurrentUser() p: Principal, @Param('serviceId', idPipe) serviceId: string, @Query() q: ListCausesQuery) {
@@ -146,7 +146,7 @@ export class RisksController {
     return new ResponseDto(HttpStatus.CREATED, t('cause.created'), toCause(cause, graph, view === 'technical'));
   }
 
-  @ApiOperation({ summary: 'Detalle de una causa', description: 'La causa con sus riesgos y los controles que la tratan. Con `view=technical` (solo `auditor`, `consultor` y, por ahora, `admin_empresa`) agrega el bloque `technical`.' })
+  @ApiOperation({ summary: 'Detalle de una causa', description: 'La causa con sus riesgos y los controles que la tratan. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
   @ApiData(CauseResponse, 'Detalle de la causa.')
   @Get('causes/:id')
   async cause(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Query() q: ViewQuery) {

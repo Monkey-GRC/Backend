@@ -7,6 +7,7 @@ import { SessionPolicy } from './domain/entities/session.entity';
 import { AccessTokenService } from './domain/ports/access-token.service';
 import { PasswordHasher } from './domain/ports/password-hasher';
 import { AccessKeyRedemptionRepository } from './domain/repositories/access-key-redemption.repository';
+import { ActivationRepository } from './domain/repositories/activation.repository';
 import { OnboardingProgressReader } from './domain/ports/onboarding-progress.reader';
 import { AuthUserRepository } from './domain/repositories/auth-user.repository';
 import { MfaRepository } from './domain/repositories/mfa.repository';
@@ -17,7 +18,9 @@ import { MfaChallengeService } from './application/services/mfa-challenge.servic
 import { MfaPolicy } from './application/services/mfa-policy.service';
 import { SessionIssuer } from './application/services/session-issuer.service';
 import { SESSION_POLICY } from './application/session-policy.token';
+import { ActivateAccountUseCase } from './application/use-cases/activate-account.use-case';
 import { ConfirmMfaSetupUseCase } from './application/use-cases/confirm-mfa-setup.use-case';
+import { LookupActivationCodeUseCase } from './application/use-cases/lookup-activation-code.use-case';
 import { RedeemAccessKeyUseCase } from './application/use-cases/redeem-access-key.use-case';
 import { GetCurrentUserUseCase } from './application/use-cases/get-current-user.use-case';
 import { GetOnboardingProgressUseCase } from './application/use-cases/get-onboarding-progress.use-case';
@@ -31,6 +34,7 @@ import { StartMfaSetupUseCase } from './application/use-cases/start-mfa-setup.us
 import { ValidateSessionUseCase } from './application/use-cases/validate-session.use-case';
 import { VerifyMfaUseCase } from './application/use-cases/verify-mfa.use-case';
 import { AccessKeyRedemptionPrismaRepository } from './infrastructure/repositories/access-key-redemption.prisma.repository';
+import { ActivationPrismaRepository } from './infrastructure/repositories/activation.prisma.repository';
 import { AuthUserPrismaRepository } from './infrastructure/repositories/auth-user.prisma.repository';
 import { MfaPrismaRepository } from './infrastructure/repositories/mfa.prisma.repository';
 import { OnboardingProgressPrismaReader } from './infrastructure/repositories/onboarding-progress.prisma.reader';
@@ -77,6 +81,7 @@ const seconds = (config: ConfigService, key: string): number => {
     { provide: PasswordHasher, useClass: BcryptPasswordHasher },
     { provide: AccessTokenService, useClass: JwtAccessTokenService },
     { provide: AccessKeyRedemptionRepository, useClass: AccessKeyRedemptionPrismaRepository },
+    { provide: ActivationRepository, useClass: ActivationPrismaRepository },
     { provide: OnboardingProgressReader, useClass: OnboardingProgressPrismaReader },
     GetOnboardingProgressUseCase,
     SessionIssuer,
@@ -92,6 +97,8 @@ const seconds = (config: ConfigService, key: string): number => {
     ResetMfaUseCase,
     LookupAccessKeyUseCase,
     RedeemAccessKeyUseCase,
+    LookupActivationCodeUseCase,
+    ActivateAccountUseCase,
     RefreshSessionUseCase,
     LogoutUseCase,
     ValidateSessionUseCase,

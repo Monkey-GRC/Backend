@@ -8,6 +8,7 @@
     "app": "Prueba de aplicación",
     "cloud": "Prueba de nube"
   },
-  "created": "Listo, creamos tu acción de protección. Tu consultor la revisará.",
-  "retired": "Esta acción de protección ya fue dada de baja."
+  "created": "Listo, creamos tu acción de protección. Cuenta desde ya.",
+  "updated": "Listo, guardamos los cambios del control.",
+  "retired": "Este control ya fue dado de baja."
 }

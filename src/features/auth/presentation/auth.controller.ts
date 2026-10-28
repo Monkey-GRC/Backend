@@ -7,16 +7,19 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Public } from '../../../common/decorators/public.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import type { SessionPolicy } from '../domain/entities/session.entity';
+import { ActivateAccountDto, LookupActivationCodeDto } from '../application/dtos/activation.dto';
 import { LoginDto } from '../application/dtos/login.dto';
 import { MfaCodeDto, VerifyMfaDto } from '../application/dtos/mfa.dto';
 import { LookupAccessKeyDto } from '../application/dtos/lookup-access-key.dto';
 import { RedeemAccessKeyDto } from '../application/dtos/redeem-access-key.dto';
 import { SESSION_POLICY } from '../application/session-policy.token';
+import { ActivateAccountUseCase } from '../application/use-cases/activate-account.use-case';
 import { GetCurrentUserUseCase } from '../application/use-cases/get-current-user.use-case';
 import { GetOnboardingProgressUseCase } from '../application/use-cases/get-onboarding-progress.use-case';
 import { ConfirmMfaSetupUseCase } from '../application/use-cases/confirm-mfa-setup.use-case';
 import { LoginUseCase } from '../application/use-cases/login.use-case';
 import { LogoutUseCase } from '../application/use-cases/logout.use-case';
+import { LookupActivationCodeUseCase } from '../application/use-cases/lookup-activation-code.use-case';
 import { LookupAccessKeyUseCase } from '../application/use-cases/lookup-access-key.use-case';
 import { RedeemAccessKeyUseCase } from '../application/use-cases/redeem-access-key.use-case';
 import { RefreshSessionUseCase } from '../application/use-cases/refresh-session.use-case';
@@ -36,7 +39,7 @@ import {
 import { toAuthResponse } from './auth-response.mapper';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiEmpty, ApiNoBody } from '../../../common/swagger/api-envelope';
-import { AccessKeyLookupResponse, AuthSessionResponse, AuthSessionWithRecoveryResponse, MfaSetupStartResponse, MfaStepResponse, RecoveryCodesResponse } from './auth.responses';
+import { AccessKeyLookupResponse, ActivationLookupResponse, AuthSessionResponse, AuthSessionWithRecoveryResponse, MfaSetupStartResponse, MfaStepResponse, RecoveryCodesResponse } from './auth.responses';
 
 const t = (key: string): string =>
   (I18nContext.current()?.t(key) as string | undefined) ?? key;
@@ -56,6 +59,8 @@ export class AuthController {
     private readonly refresh: RefreshSessionUseCase,
     private readonly logout: LogoutUseCase,
     private readonly getCurrentUser: GetCurrentUserUseCase,
+    private readonly lookupActivationCode: LookupActivationCodeUseCase,
+    private readonly activateAccount: ActivateAccountUseCase,
     private readonly redeemAccessKey: RedeemAccessKeyUseCase,
     private readonly lookupAccessKey: LookupAccessKeyUseCase,
     private readonly getOnboardingProgress: GetOnboardingProgressUseCase,
@@ -192,6 +197,34 @@ export class AuthController {
     return new ResponseDto(HttpStatus.OK, t('auth.mfa_recovery_regenerated'), { recovery_codes: codes });
   }
 
+  // ── Activación de una cuenta que crea el administrador (D95, D96) ────────────────────────────────────────────────────────────────
+  @Public()
+  @ApiOperation({ summary: 'Comprobar un código de activación (paso 1 de la activación)', description: 'Con el código que el administrador de la empresa entregó a la persona, muestra el correo con el que se creó su cuenta. **No gasta el código ni crea nada.** Los intentos fallidos se auditan y cuentan para el límite de 10 por dirección cada 15 minutos, compartido con las claves de acceso.' })
+  @ApiData(ActivationLookupResponse, 'El código se puede usar. El correo se muestra bloqueado en la pantalla de activación.')
+  @ApiDomainErrors('ACTIVATION_CODE_INVALID', 'ACTIVATION_CODE_ALREADY_USED', 'ACTIVATION_CODE_EXPIRED', 'ACTIVATION_CODE_RATE_LIMITED')
+  @Post('activate/lookup')
+  @HttpCode(HttpStatus.OK)
+  async activationLookup(@Body() dto: LookupActivationCodeDto, @Req() req: Request) {
+    const found = await this.lookupActivationCode.execute(dto.code, requestMeta(req));
+    return new ResponseDto(HttpStatus.OK, t('auth.activation_found'), { email: found.email, expires_at: found.expiresAt.toISOString() });
+  }
+
+  @Public()
+  @ApiOperation({ summary: 'Activar la cuenta con el código y poner la contraseña (paso 2)', description: 'Gasta el código de un solo uso, pone la contraseña de la persona y pasa su cuenta de `pending` a `active`, todo en una transacción. Solo sirve con el correo con el que se creó la cuenta. Con el segundo factor obligatorio (D94) no abre la sesión: responde `data.next_step: mfa_setup` y deja la cookie `mnk_mfa`, igual que el canje de la clave de acceso. La contraseña debe tener 12 o más caracteres con mayúscula, minúscula, número y símbolo.' })
+  @ApiData(MfaStepResponse, 'Cuenta activada. Sigue la configuración del segundo factor (`POST /auth/mfa/setup`).', { status: 201 })
+  @ApiDomainErrors('ACTIVATION_CODE_INVALID', 'ACTIVATION_CODE_ALREADY_USED', 'ACTIVATION_CODE_EXPIRED', 'ACTIVATION_CODE_EMAIL_MISMATCH', 'ACTIVATION_CODE_RATE_LIMITED')
+  @Post('activate')
+  @HttpCode(HttpStatus.CREATED)
+  async activate(@Body() dto: ActivateAccountDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const result = await this.activateAccount.execute({ code: dto.code, email: dto.email, password: dto.password }, requestMeta(req));
+    if (result.kind === 'mfa') {
+      setMfaChallengeCookie(res, result.challenge.token, result.challenge.expiresAt);
+      return new ResponseDto(HttpStatus.CREATED, t('auth.mfa_setup_required'), mfaStep(result.challenge));
+    }
+    // Solo con MFA_REQUIRED=false (desarrollo y pruebas): la cuenta activada entra directo.
+    setAuthCookies(res, result, this.policy.accessTokenTtl, result.session.expiresAt);
+    return new ResponseDto(HttpStatus.CREATED, t('auth.account_activated'), toAuthResponse(result.user));
+  }
   @Public()
   @ApiOperation({ summary: 'Renovar la sesión', description: 'Sin cuerpo: usa la cookie `mnk_refresh`. Rota el refresh token (el anterior deja de servir) y renueva las cookies. Pasadas las 8 h de sesión o 30 min sin actividad responde 401 y hay que iniciar sesión de nuevo.' })
   @ApiEmpty('Cookies renovadas. `data` es `null`.')

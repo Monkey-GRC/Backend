@@ -4,8 +4,8 @@ import type { EvidenceAttribute } from './engine/documentary-test';
 // Estado calculado de una entrega de evidencia (enums.md `evidence_state`, RN-01 a RN-03). Se DERIVA, nadie lo escribe.
 export type EvidenceState = 'compliant' | 'non_compliant' | 'pending' | 'in_review' | 'expired' | 'not_applicable';
 
-/** Quién revisa: el consultor y el auditor, cada uno la suya (D84). La empresa solo aporta. */
-export type ReviewerRole = 'consultor' | 'auditor';
+/** Quién revisa (D96): solo el admin_empresa, en una sola revisión. El funcional sube; el auditor lee. */
+export type ReviewerRole = 'admin_empresa';
 
 /** Lo que se guarda de una revisión (`evidence_reviews`). `ai_prevalidated` no se guarda: se deriva de que la entrega tenga `ai_verdict` y ninguna revisión humana. */
 export type StoredReview = 'pending_review' | 'human_validated';
@@ -24,13 +24,13 @@ export type EvidenceReviewRecord = {
   reviewedAt: Date;
 };
 
-/** Quién es el revisor cuyo estado ve una persona: el auditor ve el suyo; la empresa y el consultor, el del consultor (D84, SEG-61). */
-export const reviewerRoleFor = (role: string): ReviewerRole => (role === 'auditor' ? 'auditor' : 'consultor');
+/** Todos ven la misma revisión, la del admin_empresa (D96): ya no se esconde la de un rol al otro (SEG-61 se retiró). */
+export const reviewerRoleFor = (_role: string): ReviewerRole => 'admin_empresa';
 
 /**
- * D84 · La empresa solo aporta: el estado sale de la revisión humana (`PUT /v1/evidence-submissions/{id}/review`).
+ * D96 · El funcional aporta y el admin_empresa valida: el estado sale de la revisión humana (`PUT /v1/evidence-submissions/{id}/review`).
  * Sin revisión una entrega espera (`pending`) y, si la IA ya dio su sugerencia, queda `in_review`: la IA nunca produce «cumple» (RN-03).
- * `review` es la revisión de QUIEN PREGUNTA (la del consultor para la empresa y el consultor); la del otro rol nunca llega aquí (SEG-61).
+ * `review` es la única revisión de la entrega, la del admin_empresa.
  */
 export function evidenceStateOf(entrega: { aiVerdict: string | null; review?: EvidenceReviewRecord | null }): EvidenceState {
   const r = entrega.review;

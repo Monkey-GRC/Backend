@@ -19,7 +19,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 
 // D90 · Qué falló y cómo corregirlo (contracts/modules/compliance-audit.md): para una prueba de nube de un control, lo que no cumplió la última evaluación y la guía para corregirlo.
 @ApiTags(API_TAGS.executions)
-@Roles('admin_empresa', 'consultor', 'auditor')
+@Roles('admin_empresa', 'auditor')
 @Controller('controls/:controlId/tests/:testId/findings')
 export class FindingsController {
   constructor(

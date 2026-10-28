@@ -81,8 +81,8 @@ export class ControlPrismaRepository extends ControlRepository {
         select: {
           id: true, code: true, sequence: true, description: true, dimension: true, validityWithinPeriod: true, sourceRef: true,
           responsible: { select: { id: true, type: true, personName: true } },
-          // La revisión del consultor: es la que ven la empresa y el consultor, y la que consume el motor (D84).
-          submissions: { select: { id: true, version: true, aiVerdict: true, reviews: reviewsOf('consultor') } },
+          // La revisión del admin_empresa: la única, la que ven todos y la que consume el motor (D96).
+          submissions: { select: { id: true, version: true, aiVerdict: true, reviews: reviewsOf('admin_empresa') } },
         },
       });
       const links = await tx.clientCauseControl.findMany({

@@ -153,7 +153,7 @@ export class AddDimensionDto {
   @ApiProperty({ enum: CONTROL_TYPES, enumName: 'ControlType', description: 'Cómo se evalúa en esa dimensión: `manual`, `automated`, `hybrid` o `technical_manual`.' }) @IsIn(CONTROL_TYPES) type!: string;
   @ApiPropertyOptional({ description: 'Si requiere la sonda (evaluación automática).' }) @IsOptional() @IsBoolean() requires_probe?: boolean;
   @ApiPropertyOptional({ description: 'Si requiere apoyo de IA (siempre etiquetado como generado por IA).' }) @IsOptional() @IsBoolean() requires_ai?: boolean;
-  @ApiPropertyOptional({ description: 'Si requiere confirmación del consultor o auditor.' }) @IsOptional() @IsBoolean() requires_compliance_confirmation?: boolean;
+  @ApiPropertyOptional({ description: 'Si requiere confirmación del admin_empresa.' }) @IsOptional() @IsBoolean() requires_compliance_confirmation?: boolean;
 }
 
 export class PointsOfFocusQuery {

@@ -119,9 +119,10 @@ describe('primer ingreso: configurar el segundo factor', () => {
     });
 
     it('un código ya usado no sirve otra vez, aunque siga dentro de su ventana', async () => {
+      // El paso de ahora ya está gastado (como si acabara de entrar con él). Se fija explícito: depender de «el paso de la activación» fallaba si la prueba cruzaba el límite de 30 s.
+      await owner('update platform.users set mfa_last_used_step = $2 where email = $1', [email(), totpStep(new Date())]);
       const a1 = request.agent(app.getHttpServer());
       await signIn(a1, email());
-      // El del paso con el que se activó ya está gastado.
       const spent = await a1.post('/v1/auth/mfa/verify').send({ code: totpAt(secret, new Date()) });
       expect(spent.status).toBe(401);
       expect(spent.body.error.code).toBe('MFA_CODE_INVALID');
@@ -158,11 +159,14 @@ describe('primer ingreso: configurar el segundo factor', () => {
     });
 
     it('con la sesión abierta y un código vigente se piden códigos de recuperación nuevos, y los anteriores dejan de servir', async () => {
+      // Las pruebas anteriores ya gastaron los pasos de la ventana (±1 paso de 30 s). Un código a +60 s son DOS pasos: ya no cabe en la ventana y siempre da 401.
+      // Se reinicia el último paso usado para tener un código vigente de verdad: el actual para entrar y el siguiente (+30 s, dentro de la ventana) para pedir los nuevos.
+      await owner('update platform.users set mfa_last_used_step = null where email = $1', [email()]);
       const a1 = request.agent(app.getHttpServer());
       await signIn(a1, email());
-      expect((await a1.post('/v1/auth/mfa/verify').send({ code: totpAt(secret, new Date(Date.now() + 60_000)) })).status).toBe(200);
+      expect((await a1.post('/v1/auth/mfa/verify').send({ code: totpAt(secret, new Date()) })).status).toBe(200);
       expect((await a1.post('/v1/auth/mfa/recovery-codes').send({ code: '000000' })).status).toBe(401);
-      const fresh = await a1.post('/v1/auth/mfa/recovery-codes').send({ code: totpAt(secret, new Date(Date.now() + 90_000)) });
+      const fresh = await a1.post('/v1/auth/mfa/recovery-codes').send({ code: totpAt(secret, new Date(Date.now() + 30_000)) });
       expect(fresh.status).toBe(200);
       expect(fresh.body.data.recovery_codes).toHaveLength(10);
       const a2 = request.agent(app.getHttpServer());

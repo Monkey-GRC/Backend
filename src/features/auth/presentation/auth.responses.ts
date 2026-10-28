@@ -70,3 +70,8 @@ export class AccessKeyLookupResponse {
   @ApiProperty({ example: 'ana.perez@ejemplo.com', description: 'Correo administrativo que Monkey registró; es el único con el que se canjea la clave.' }) admin_email!: string;
   @ApiProperty({ format: 'date-time', example: '2026-10-12T09:12:44.000Z', description: 'Hasta cuándo se puede canjear la clave.' }) expires_at!: string;
 }
+
+export class ActivationLookupResponse {
+  @ApiProperty({ example: 'juan@acme.co', description: 'Correo con el que la empresa creó la cuenta; es el único con el que se activa. La pantalla lo muestra bloqueado.' }) email!: string;
+  @ApiProperty({ format: 'date-time', example: '2026-11-03T15:04:02.000Z', description: 'Hasta cuándo se puede usar el código.' }) expires_at!: string;
+}

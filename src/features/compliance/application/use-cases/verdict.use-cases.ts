@@ -7,7 +7,7 @@ import { Page } from '../../../../common/pagination/page';
 import { TestVerdictRepository, VerdictIssued, VerdictRecord } from '../../domain/repositories/test-verdict.repository';
 import { IssueVerdictDto } from '../dtos/verdict.dto';
 
-// MD-155 · D85 · El veredicto de un test manual que no es documental. Solo el consultor lo da (lo impone @Roles en la ruta) y cuenta en todos los controles del servicio que
+// MD-155 · D85 · El veredicto de un test manual que no es documental. Solo el admin_empresa lo da (D96) (lo impone @Roles en la ruta) y cuenta en todos los controles del servicio que
 // llevan el test. Una documental se resuelve revisando su evidencia (D88) y una automática la mide la sonda: ambas responden 409. La IA puede sugerir, pero esta ruta no la
 // recibe: el veredicto lo da una persona y queda con quién lo confirmó.
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });

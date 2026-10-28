@@ -9,7 +9,7 @@ import { dosEmpresas, Tenant } from '../support/escenario';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
 // MD-126 · Subir una evidencia con su huella y versión, y descargarla con un enlace firmado (contracts/modules/compliance-evidence.md, D84, SEG-60). La empresa solo aporta:
-// sube `admin_empresa` y el `funcional` dueño del control; consultor y auditor leen y descargan. Cada prueba sale por HTTP con la sesión real de cada rol, contra el Postgres
+// sube `admin_empresa` y el `funcional` dueño del control; el auditor lee y descarga. Cada prueba sale por HTTP con la sesión real de cada rol, contra el Postgres
 // desechable; el almacenamiento es uno en memoria (lo real contra un S3 está en test/almacenamiento).
 type Agent = Awaited<ReturnType<typeof login>>;
 let app: INestApplication;
@@ -18,7 +18,6 @@ let b: Tenant;
 let auditor: Agent;
 let funcional: Agent;
 let funcionalAjeno: Agent;
-let consultor: Agent;
 let monkey: Agent;
 let controlId: string; // el control que el funcional tiene asignado
 let requirementId: string; // un requerimiento de ese control
@@ -42,7 +41,7 @@ const sha256 = (b: Buffer) => createHash('sha256').update(b).digest('hex');
 const auditRows = (tenantId: string, action: string) => owner<{ n: number }>('select count(*)::int n from audit.audit_logs where tenant_id = $1 and action = $2', [tenantId, action]).then((r) => r[0].n);
 const submissionsInDb = (id: string) => owner<{ version: string }>('select version from tenant.evidence_submissions where evidence_requirement_id = $1 order by version::int', [id]).then((r) => r.map((x) => x.version));
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional' | 'consultor'): Promise<string> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional'): Promise<string> {
   return (await owner<{ id: string }>(
     `insert into platform.users (id, company_id, email, name, last_name, password_hash, role) values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role) returning id`,
     [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
@@ -55,11 +54,9 @@ beforeAll(async () => {
   app = await bootApp({}, (builder) => builder.overrideProvider(FileStorage).useValue(storage));
   ({ a, b, monkey } = await dosEmpresas(app));
   await cuenta(a.companyId, `auditor-evi-${RUN}@cumplimiento.test`, 'auditor');
-  await cuenta(a.companyId, `consultor-evi-${RUN}@cumplimiento.test`, 'consultor');
   const funcionalId = await cuenta(a.companyId, `funcional-evi-${RUN}@cumplimiento.test`, 'funcional');
   await cuenta(a.companyId, `funcional2-evi-${RUN}@cumplimiento.test`, 'funcional');
   auditor = await login(app, `auditor-evi-${RUN}@cumplimiento.test`);
-  consultor = await login(app, `consultor-evi-${RUN}@cumplimiento.test`);
   funcional = await login(app, `funcional-evi-${RUN}@cumplimiento.test`);
   funcionalAjeno = await login(app, `funcional2-evi-${RUN}@cumplimiento.test`);
 
@@ -96,13 +93,12 @@ describe('MD-126 · listar la evidencia de un control', () => {
     await b.agent.get(`/v1/controls/${controlId}/evidence`).expect(404);
   });
 
-  it('consultor y auditor ven todo; admin_monkey no entra', async () => {
-    await consultor.get(`/v1/controls/${otherControlId}/evidence`).expect(200);
+  it('el auditor ve todo; admin_monkey no entra', async () => {
     await auditor.get(`/v1/controls/${otherControlId}/evidence`).expect(200);
     await monkey.get(`/v1/controls/${controlId}/evidence`).expect(403);
   });
 
-  it('?view=technical lo piden el administrador, el consultor y el auditor; el funcional recibe 403', async () => {
+  it('?view=technical lo piden el administrador y el auditor; el funcional recibe 403', async () => {
     await funcional.get(`/v1/controls/${controlId}/evidence?view=technical`).expect(403);
     await a.agent.get(`/v1/controls/${controlId}/evidence?view=technical`).expect(200);
     await auditor.get(`/v1/controls/${controlId}/evidence?view=technical`).expect(200);
@@ -173,11 +169,10 @@ describe('MD-126 · subir una evidencia', () => {
     expect(storage.objects.size).toBe(antes);
   });
 
-  it('sube el funcional dueño del control; el de otro control es 403; consultor, auditor y admin_monkey, 403; otra empresa, 404; ID inválido, 404', async () => {
+  it('sube el funcional dueño del control; el de otro control es 403; auditor y admin_monkey, 403; otra empresa, 404; ID inválido, 404', async () => {
     await upload(funcional, requirementId, pdf('func'), 'del-funcional.pdf').expect(201);
     await upload(funcional, otherRequirementId, pdf(), 'x.pdf').expect(403);
     await upload(funcionalAjeno, requirementId, pdf(), 'x.pdf').expect(403);
-    await upload(consultor, requirementId, pdf(), 'x.pdf').expect(403);
     await upload(auditor, requirementId, pdf(), 'x.pdf').expect(403);
     await upload(monkey, requirementId, pdf(), 'x.pdf').expect(403);
     await upload(b.agent, requirementId, pdf(), 'x.pdf').expect(404);
@@ -252,9 +247,8 @@ describe('MD-126 · descargar con un enlace firmado de 5 minutos', () => {
     expect(JSON.stringify(row.after_state)).not.toContain('X-Signature');
   });
 
-  it('descargan el funcional dueño, el consultor y el auditor; el funcional de otro control, 403; otra empresa y admin_monkey, 404/403', async () => {
+  it('descargan el funcional dueño y el auditor; el funcional de otro control, 403; otra empresa y admin_monkey, 404/403', async () => {
     await funcional.get(`/v1/evidence-submissions/${submissionId}/download`).expect(200);
-    await consultor.get(`/v1/evidence-submissions/${submissionId}/download`).expect(200);
     await auditor.get(`/v1/evidence-submissions/${submissionId}/download`).expect(200);
     await funcionalAjeno.get(`/v1/evidence-submissions/${submissionId}/download`).expect(403);
     await b.agent.get(`/v1/evidence-submissions/${submissionId}/download`).expect(404);

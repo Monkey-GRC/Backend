@@ -24,9 +24,9 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
 
 // Evidencias de un control (contracts/modules/compliance-evidence.md, MD-126). Los cuatro roles de la empresa leen y descargan (el `funcional`, solo lo de sus controles);
-// suben `admin_empresa` y el `funcional` dueño. La empresa solo aporta: aprobar o rechazar no existe aquí (D84), la revisión es del consultor y del auditor (MD-127).
+// suben el `funcional` responsable y, si hace falta, `admin_empresa`. Subir no valida: la validación es del admin_empresa (MD-127, D96).
 @ApiTags(API_TAGS.evidence)
-@Roles('admin_empresa', 'funcional', 'consultor', 'auditor')
+@Roles('admin_empresa', 'funcional', 'auditor')
 @Controller()
 export class EvidenceController {
   constructor(
@@ -39,7 +39,7 @@ export class EvidenceController {
     private readonly uploadForTest: UploadTestEvidenceUseCase,
   ) {}
 
-  @ApiOperation({ summary: 'Evidencias de un control', description: 'Los requerimientos de evidencia del control, cada uno con su responsable y todas sus entregas (la más reciente primero). Un `funcional` solo ve los controles que tiene asignados. Con `view=technical` (solo `auditor`, `consultor` y, por ahora, `admin_empresa`) agrega el bloque `technical`.' })
+  @ApiOperation({ summary: 'Evidencias de un control', description: 'Los requerimientos de evidencia del control, cada uno con su responsable y todas sus entregas (la más reciente primero). Un `funcional` solo ve los controles que tiene asignados. Con `view=technical` (solo `auditor` y, por ahora, `admin_empresa`) agrega el bloque `technical`.' })
   @ApiItems(EvidenceRequirementResponse, 'Requerimientos con sus entregas.')
   @Get('controls/:controlId/evidence')
   async evidence(@CurrentUser() p: Principal, @Param('controlId', idPipe) controlId: string, @Query() q: ListEvidenceQuery) {
@@ -48,7 +48,7 @@ export class EvidenceController {
   }
 
   // Multipart, campo `file`. PDF, DOCX, XLSX, PNG o JPG, hasta 25 MB (SEG-60); se valida el contenido, no solo el tipo que declara el navegador.
-  @ApiOperation({ summary: 'Subir una evidencia', description: 'Multipart, campo `file`. PDF, DOCX, XLSX, PNG o JPG, hasta 25 MB. Se valida el **contenido** del archivo, no solo el tipo que declara el navegador. Se calcula la huella SHA-256 y se guarda con la versión (crece de uno en uno; una nueva nunca pisa la anterior), la fecha y quién la subió. La empresa solo **aporta**: aprobar o rechazar no existe aquí, la revisión es del consultor y del auditor (D84). Suben `admin_empresa` y el `funcional` dueño del control. Queda registro de auditoría.' })
+  @ApiOperation({ summary: 'Subir una evidencia', description: 'Multipart, campo `file`. PDF, DOCX, XLSX, PNG o JPG, hasta 25 MB. Se valida el **contenido** del archivo, no solo el tipo que declara el navegador. Se calcula la huella SHA-256 y se guarda con la versión (crece de uno en uno; una nueva nunca pisa la anterior), la fecha y quién la subió. La empresa solo **aporta**: subir no valida: la validación es del `admin_empresa` (D96). Suben el `funcional` responsable y, si hace falta, `admin_empresa`. Queda registro de auditoría.' })
   @ApiBody({ schema: { type: 'object', required: ['file'], properties: { file: { type: 'string', format: 'binary', description: 'PDF, DOCX, XLSX, PNG o JPG; máx. 25 MB.' } } } })
   @ApiData(EvidenceSubmissionResponse, 'Entrega registrada, con su huella y versión.', { status: 201 })
   @ApiDomainErrors('FILE_REQUIRED', 'FILE_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'CONTROL_RETIRED', 'EVIDENCE_VERSION_CONFLICT', 'STORAGE_UNAVAILABLE')
@@ -67,7 +67,7 @@ export class EvidenceController {
     return new ResponseDto(HttpStatus.CREATED, t('evidence.submitted'), toSubmission(created, 'business', true));
   }
 
-  @ApiOperation({ summary: 'Entregas de un requerimiento', description: 'El historial de versiones del requerimiento, de la más reciente a la más antigua. Con `view=technical` (solo `auditor`, `consultor` y, por ahora, `admin_empresa`) agrega el bloque `technical`.' })
+  @ApiOperation({ summary: 'Entregas de un requerimiento', description: 'El historial de versiones del requerimiento, de la más reciente a la más antigua. Con `view=technical` (solo `auditor` y, por ahora, `admin_empresa`) agrega el bloque `technical`.' })
   @ApiPaged(EvidenceSubmissionResponse, 'Página de entregas.')
   @Get('evidence-requirements/:requirementId/submissions')
   async submissions(@CurrentUser() p: Principal, @Param('requirementId', idPipe) requirementId: string, @Query() q: ListSubmissionsQuery) {
@@ -75,7 +75,7 @@ export class EvidenceController {
     return new ResponseDto(HttpStatus.OK, t('evidence.submission_list'), toPageResponse(page, (s) => toSubmission(s, view, true)));
   }
 
-  // D88 · La persona lee lo que pide la prueba y sube su documento, en un solo paso. El consultor lo revisa después.
+  // D88 · La persona lee lo que pide la prueba y sube su documento, en un solo paso. El admin_empresa la valida después.
   @ApiOperation({ summary: 'Subir la evidencia de una prueba documental', description: 'Multipart, campo `file` (PDF, DOCX, XLSX, PNG o JPG, hasta 25 MB). La evidencia es **de esa prueba en este control** (D88): en la primera entrega se crea el lugar donde queda y las siguientes son versiones nuevas. Suben `admin_empresa` y el `funcional` dueño del control. La prueba debe ser documental (`policy`) y del control; si no, 404 o `422 test.not_documentary`. Subir **no cumple** la prueba: la deja en revisión hasta que el consultor valide la evidencia (D84). Queda registro de auditoría.' })
   @ApiBody({ schema: { type: 'object', required: ['file'], properties: { file: { type: 'string', format: 'binary', description: 'PDF, DOCX, XLSX, PNG o JPG; máx. 25 MB.' } } } })
   @ApiConsumes('multipart/form-data')
@@ -96,11 +96,11 @@ export class EvidenceController {
     return new ResponseDto(HttpStatus.CREATED, t('evidence.submitted'), toSubmission(created, 'business', true));
   }
 
-  // D84 · La empresa solo aporta: revisan el consultor y el auditor, cada uno la suya. El rol sale de la sesión; el cuerpo no lo lleva.
-  @ApiOperation({ summary: 'Revisar una evidencia', description: 'Solo `consultor` y `auditor`, **cada uno la suya** (D84): crea o reemplaza la revisión del rol de quien llama; la del otro rol no se ve ni se toca (SEG-61). Marca los seis atributos (`true`, `false` o sin valorar) y la validación humana (`review`). Solo una evidencia **validada por una persona** puede cumplir (RN-03); `ai_prevalidated` lo deriva el sistema y no se acepta. De la revisión del consultor sale el estado de las pruebas documentales del control (D88). Responde con la entrega y su `evidence_state` desde la revisión de quien llama. Queda registro de auditoría.' })
+  // D96 · El funcional sube y el admin_empresa valida o rechaza, en una sola revisión. El rol sale de la sesión; el cuerpo no lo lleva.
+  @ApiOperation({ summary: 'Revisar una evidencia', description: 'Solo `admin_empresa` (D96): valida o rechaza la evidencia en **una sola revisión**; crea o reemplaza la suya. **Rechazar** es dejar algún atributo en `false` y exige `note` (el motivo que el funcional lee para corregir). Marca los seis atributos (`true`, `false` o sin valorar) y la validación humana (`review`). Solo una evidencia **validada por una persona** puede cumplir (RN-03); `ai_prevalidated` lo deriva el sistema y no se acepta. De esta revisión sale el estado de las pruebas documentales del control (D88). Responde con la entrega y su `evidence_state`. Queda registro de auditoría.' })
   @ApiData(EvidenceSubmissionResponse, 'La entrega, con la revisión de quien la hizo en el bloque `technical`.')
   @Put('evidence-submissions/:submissionId/review')
-  @Roles('consultor', 'auditor')
+  @Roles('admin_empresa')
   async review(@CurrentUser() p: Principal, @Param('submissionId', idPipe) submissionId: string, @Body() dto: ReviewEvidenceDto, @Req() req: Request) {
     const reviewed = await this.reviewEvidence.execute(p, submissionId, dto, metaOf(req));
     return new ResponseDto(HttpStatus.OK, t('evidence.reviewed'), toSubmission(reviewed, 'technical', true));
