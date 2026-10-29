@@ -32,7 +32,8 @@ export class RiskTechnicalResponse {
 
 export class RiskControlLinkResponse {
   @ApiProperty({ format: 'uuid' }) control_id!: string;
-  @ApiProperty({ nullable: true, example: 'C01', description: 'Numeración de los controles propios. Uno del catálogo se identifica por su nombre.' }) own_code!: string | null;
+  @ApiProperty({ example: 'IAC-12', description: 'Código que identifica al control y se muestra siempre (D80): el del catálogo o el propio.' }) code!: string;
+  @ApiProperty({ nullable: true, example: 'C01', description: 'Numeración de los controles propios; un control del catálogo no la tiene.' }) own_code!: string | null;
   @ApiProperty() name!: string;
   @ApiProperty({ description: 'Si el control es obligatorio para tratar la causa.' }) is_mandatory!: boolean;
   @ApiProperty({ enum: CAUSE_CONTROL_EFFECTS, enumName: 'CauseControlEffect', nullable: true, description: 'Sobre qué actúa el control: la probabilidad o el impacto.' }) effect!: string | null;

@@ -70,7 +70,7 @@ describe('Invitar a una persona del equipo', () => {
     expect(fields(await invite(a.agent, { email: email('x2'), role: 'funcional', dimensions: [] }).expect(422))).toEqual([{ field: 'dimensions', code: 'array.min' }]);
     expect(fields(await invite(a.agent, { email: email('x3'), role: 'auditor', dimensions: ['app'] }).expect(422))).toEqual([{ field: 'dimensions', code: 'dimensions.not_allowed' }]);
     expect(fields(await invite(a.agent, { email: email('x4'), role: 'admin_empresa' }).expect(422))).toEqual([{ field: 'role', code: 'enum.invalid' }]);
-    expect(fields(await invite(a.agent, { email: email('x5'), role: 'consultor' }).expect(422))).toEqual([{ field: 'role', code: 'enum.invalid' }]);
+    expect(fields(await invite(a.agent, { email: email('x5'), role: 'superadmin' }).expect(422))).toEqual([{ field: 'role', code: 'enum.invalid' }]);
     expect(fields(await invite(a.agent, { email: 'no-es-correo', role: 'auditor' }).expect(422))).toEqual([{ field: 'email', code: 'email.invalid' }]);
     expect(fields(await invite(a.agent, { email: email('x6'), role: 'funcional', dimensions: ['nube'] }).expect(422))).toEqual([{ field: 'dimensions', code: 'enum.invalid' }]);
   });
@@ -136,7 +136,7 @@ describe('Listar el equipo', () => {
     const asc = (await a.agent.get('/v1/users?sort=email&page_size=100').expect(200)).body.data.items.map((i: any) => i.email);
     expect(asc).toEqual([...asc].sort());
     expect((await a.agent.get('/v1/users?page=2&page_size=1').expect(200)).body.data.items).toHaveLength(1);
-    expect(fields(await a.agent.get('/v1/users?role=consultor').expect(422))).toEqual([{ field: 'role', code: 'enum.invalid' }]);
+    expect(fields(await a.agent.get('/v1/users?role=superadmin').expect(422))).toEqual([{ field: 'role', code: 'enum.invalid' }]);
   });
 });
 
