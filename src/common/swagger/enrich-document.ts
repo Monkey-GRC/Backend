@@ -19,7 +19,6 @@ const ROLE_LABELS: Record<UserRole, string> = {
   admin_monkey: 'Administrador de Monkey',
   admin_empresa: 'Administrador de la empresa',
   funcional: 'Funcional',
-  consultor: 'Consultor (sin uso)',
   auditor: 'Auditor',
 };
 

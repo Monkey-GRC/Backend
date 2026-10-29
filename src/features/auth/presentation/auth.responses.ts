@@ -10,7 +10,7 @@ export class AuthUserResponse {
   @ApiProperty({ nullable: true, example: null, description: 'Opcional desde D51.' }) last_name!: string | null;
   @ApiProperty({ enum: USER_ROLES, enumName: 'UserRole', description: 'Rol del usuario; el servidor lo lee de la base en cada petición.' }) role!: string;
   @ApiProperty({ enum: USER_STATUSES, enumName: 'UserStatus', description: 'Solo un usuario `active` puede iniciar sesión.' }) status!: string;
-  @ApiProperty({ example: true, description: 'Si la persona ya activó el segundo factor (TOTP, D94). Es obligatorio para los 5 roles: lo configura en su primer ingreso.' }) is_mfa_enabled!: boolean;
+  @ApiProperty({ example: true, description: 'Si la persona ya activó el segundo factor (TOTP, D94). Es obligatorio para los 4 roles: lo configura en su primer ingreso.' }) is_mfa_enabled!: boolean;
   @ApiProperty({ format: 'date-time', nullable: true, example: null, description: 'Último inicio de sesión; `null` si nunca ha entrado.' }) last_login_at!: string | null;
   @ApiProperty({ format: 'date-time', example: '2026-10-01T09:12:44.000Z' }) created_at!: string;
 }

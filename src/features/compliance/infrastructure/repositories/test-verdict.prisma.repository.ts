@@ -51,7 +51,7 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
       const rows = controls.flatMap((c) =>
         assets.map((a) => ({
           id: randomUUID(), tenantId: scope.companyId, serviceId: origin.serviceId, clientControlId: c.clientControlId, testId, assetId: a.id, catalogVersionId: framework.catalogVersionId,
-          confirmedBy: input.confirmedBy, evaluatedAt, dimension, result: input.result, origin: 'manual' as const, consultantAssessment: input.note,
+          confirmedBy: input.confirmedBy, evaluatedAt, dimension, result: input.result, origin: 'manual' as const, verdictNote: input.note,
           closureObservationReason: input.closureObservationReason,
         })),
       );
@@ -82,7 +82,7 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
         where: { clientControlId: controlId, testId, origin: 'manual' },
         orderBy: [{ evaluatedAt: 'desc' }, { id: 'asc' }],
         distinct: ['evaluatedAt'],
-        select: { id: true, evaluatedAt: true, result: true, consultantAssessment: true, closureObservationReason: true, dimension: true, confirmedByUser: PERSON },
+        select: { id: true, evaluatedAt: true, result: true, verdictNote: true, closureObservationReason: true, dimension: true, confirmedByUser: PERSON },
       });
       const items = distinct.slice((page - 1) * pageSize, page * pageSize);
       const siblings = items.length
@@ -94,7 +94,7 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
         : [];
       return {
         items: items.map((e) => ({
-          id: e.id, controlId, testId, dimension: e.dimension, result: e.result as VerdictRecord['result'], note: e.consultantAssessment, closureObservationReason: e.closureObservationReason,
+          id: e.id, controlId, testId, dimension: e.dimension, result: e.result as VerdictRecord['result'], note: e.verdictNote, closureObservationReason: e.closureObservationReason,
           confirmedBy: e.confirmedByUser ? { id: e.confirmedByUser.id, name: e.confirmedByUser.name ?? '', lastName: e.confirmedByUser.lastName ?? '' } : { id: '', name: '', lastName: '' }, evaluatedAt: e.evaluatedAt,
           appliesToControls: siblings.filter((s) => s.evaluatedAt.getTime() === e.evaluatedAt.getTime()).map((s) => ({ id: s.clientControl.id, code: s.clientControl.control?.code ?? s.clientControl.ownCode })),
         })),

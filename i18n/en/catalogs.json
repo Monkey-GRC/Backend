@@ -305,12 +305,9 @@
     "5": "5"
   },
   "assessor_role": {
-    "consultor": "Consultant",
     "auditor": "Auditor"
   },
   "assessment_verdict": {
-    "ready": "Ready for the audit",
-    "not_ready": "Not ready for the audit",
     "certified": "Certifies",
     "not_certified": "Does not certify"
   }

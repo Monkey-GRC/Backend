@@ -40,7 +40,6 @@ model Company {
   frameworks CompanyFramework[]
   users      User[]
   apiKeys    ApiKey[]
-  consultantAssignments ConsultantAssignment[]
   organization              Organization?
   organizationRegulations   OrganizationRegulation[]
   organizationResponsibles  OrganizationResponsible[]

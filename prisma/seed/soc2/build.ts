@@ -295,7 +295,7 @@ const DIMENSION_ORDER: Dimension[] = ['policy', 'server', 'database', 'app', 'cl
  *  - requires_probe: la dimensión no es documental y su tipo es automático o mixto.
  *  - requires_ai: solo la documental (revisión documental con IA, §2).
  *  - requires_compliance_confirmation: todo menos lo puramente automático (R-03: en lo manual el
- *    consultor evalúa; la IA no certifica).
+ *    admin_empresa valida; la IA no certifica).
  */
 export function deriveControlDimensions(
   tests: Pick<TestRow, 'code' | 'dimension' | 'type'>[],
