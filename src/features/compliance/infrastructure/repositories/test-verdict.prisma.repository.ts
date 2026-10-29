@@ -7,7 +7,7 @@ import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.inser
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { dimensionOfAssetType, readControl } from '../../domain/control-readout';
 import type { TestState } from '../../domain/engine/states';
-import { NewVerdict, TestVerdictRepository, VerdictIssued, VerdictRecord } from '../../domain/repositories/test-verdict.repository';
+import { LastVerdict, NewVerdict, TestVerdictRepository, VerdictIssued, VerdictRecord, VerdictResult } from '../../domain/repositories/test-verdict.repository';
 import { captureControlStates, recordControlStateChanges } from '../control-state-events';
 import { loadServiceSnapshot } from '../service-snapshot.loader';
 
@@ -51,7 +51,7 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
       const rows = controls.flatMap((c) =>
         assets.map((a) => ({
           id: randomUUID(), tenantId: scope.companyId, serviceId: origin.serviceId, clientControlId: c.clientControlId, testId, assetId: a.id, catalogVersionId: framework.catalogVersionId,
-          confirmedBy: input.confirmedBy, evaluatedAt, dimension, result: input.result, origin: 'manual' as const, consultantAssessment: input.note,
+          confirmedBy: input.confirmedBy, evaluatedAt, dimension, result: input.result, origin: 'manual' as const, verdictNote: input.note,
           closureObservationReason: input.closureObservationReason,
         })),
       );
@@ -73,6 +73,27 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
     });
   }
 
+  latestByControl(scope: TenantScope, controlId: string): Promise<Map<string, LastVerdict>> {
+    return this.prisma.withScope(scope, async (tx) => {
+      // Una fila por test, la más reciente: un veredicto son varias filas con el mismo instante y quien lo dio.
+      const rows = await tx.evaluation.findMany({
+        where: { clientControlId: controlId, origin: 'manual' },
+        orderBy: [{ evaluatedAt: 'desc' }, { id: 'asc' }],
+        distinct: ['testId'],
+        select: { testId: true, result: true, evaluatedAt: true, confirmedByUser: PERSON },
+      });
+      return new Map(
+        rows.map((r) => [
+          r.testId,
+          {
+            result: r.result as VerdictResult, evaluatedAt: r.evaluatedAt,
+            confirmedBy: r.confirmedByUser ? { id: r.confirmedByUser.id, name: r.confirmedByUser.name ?? '', lastName: r.confirmedByUser.lastName ?? '' } : { id: '', name: '', lastName: '' },
+          },
+        ]),
+      );
+    });
+  }
+
   list(scope: TenantScope, controlId: string, testId: string, page: number, pageSize: number): Promise<Page<VerdictRecord> | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const origin = await this.originOf(tx, controlId, testId);
@@ -82,7 +103,7 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
         where: { clientControlId: controlId, testId, origin: 'manual' },
         orderBy: [{ evaluatedAt: 'desc' }, { id: 'asc' }],
         distinct: ['evaluatedAt'],
-        select: { id: true, evaluatedAt: true, result: true, consultantAssessment: true, closureObservationReason: true, dimension: true, confirmedByUser: PERSON },
+        select: { id: true, evaluatedAt: true, result: true, verdictNote: true, closureObservationReason: true, dimension: true, confirmedByUser: PERSON },
       });
       const items = distinct.slice((page - 1) * pageSize, page * pageSize);
       const siblings = items.length
@@ -94,7 +115,7 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
         : [];
       return {
         items: items.map((e) => ({
-          id: e.id, controlId, testId, dimension: e.dimension, result: e.result as VerdictRecord['result'], note: e.consultantAssessment, closureObservationReason: e.closureObservationReason,
+          id: e.id, controlId, testId, dimension: e.dimension, result: e.result as VerdictRecord['result'], note: e.verdictNote, closureObservationReason: e.closureObservationReason,
           confirmedBy: e.confirmedByUser ? { id: e.confirmedByUser.id, name: e.confirmedByUser.name ?? '', lastName: e.confirmedByUser.lastName ?? '' } : { id: '', name: '', lastName: '' }, evaluatedAt: e.evaluatedAt,
           appliesToControls: siblings.filter((s) => s.evaluatedAt.getTime() === e.evaluatedAt.getTime()).map((s) => ({ id: s.clientControl.id, code: s.clientControl.control?.code ?? s.clientControl.ownCode })),
         })),

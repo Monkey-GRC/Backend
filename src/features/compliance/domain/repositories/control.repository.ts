@@ -28,7 +28,7 @@ export type ControlEvidence = {
 
 export type ControlDetailData = ServiceReadoutData & {
   evidence: ControlEvidence[];
-  causes: Array<{ id: string; name: string }>;
+  causes: Array<{ id: string; code: string; name: string }>;
 };
 
 // Lo que el resumen del servicio necesita además de los controles: los marcos contratados con su evaluación, qué categorías están en alcance y en qué marco y
@@ -60,4 +60,7 @@ export abstract class ControlRepository {
 
   // null si la acción no existe (o es de otra empresa). Trae solo ese control, pero con los activos y resultados de su servicio.
   abstract loadControl(scope: TenantScope, controlId: string): Promise<ControlDetailData | null>;
+
+  // Los OTROS controles vigentes del servicio que llevan cada uno de estos tests (D85): test → controles. Vacío si el control no existe para esta empresa.
+  abstract sharedControlsOfTests(scope: TenantScope, controlId: string, testIds: string[]): Promise<Map<string, Array<{ id: string; code: string }>>>;
 }

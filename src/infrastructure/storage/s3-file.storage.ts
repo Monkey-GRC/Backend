@@ -1,7 +1,7 @@
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Logger } from '@nestjs/common';
-import { FileStorage } from '../../common/storage/file-storage';
+import { DownloadOptions, FileStorage } from '../../common/storage/file-storage';
 
 export type S3StorageConfig = {
   endpoint?: string;
@@ -37,7 +37,7 @@ export class S3FileStorage extends FileStorage {
     );
   }
 
-  downloadUrl(key: string, fileName: string, expiresInSeconds: number): Promise<string> {
+  downloadUrl(key: string, fileName: string, expiresInSeconds: number, options: DownloadOptions = {}): Promise<string> {
     // El nombre va entre comillas y sin saltos de línea: es lo único del cliente que entra al header.
     const safeName = fileName.replace(/["\r\n\\]/g, '_');
     return getSignedUrl(
@@ -45,7 +45,8 @@ export class S3FileStorage extends FileStorage {
       new GetObjectCommand({
         Bucket: this.config.bucket,
         Key: key,
-        ResponseContentDisposition: `attachment; filename="${safeName}"`,
+        ResponseContentDisposition: `${options.disposition ?? 'attachment'}; filename="${safeName}"`,
+        ...(options.contentType ? { ResponseContentType: options.contentType } : {}),
       }),
       { expiresIn: expiresInSeconds },
     );
@@ -57,5 +58,18 @@ export class S3FileStorage extends FileStorage {
     } catch (error) {
       this.logger.warn(`No se pudo borrar ${key}: ${(error as Error).message}`);
     }
+  }
+
+  async removePrefix(prefix: string): Promise<void> {
+    let token: string | undefined;
+    do {
+      const page = await this.client.send(new ListObjectsV2Command({ Bucket: this.config.bucket, Prefix: prefix, ContinuationToken: token }));
+      const keys = (page.Contents ?? []).map((o) => ({ Key: o.Key! }));
+      if (keys.length > 0) {
+        const result = await this.client.send(new DeleteObjectsCommand({ Bucket: this.config.bucket, Delete: { Objects: keys, Quiet: true } }));
+        if (result.Errors?.length) throw new Error(`No se pudo borrar ${result.Errors.length} objeto(s) de ${prefix}`);
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
   }
 }

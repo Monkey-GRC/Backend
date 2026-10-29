@@ -70,7 +70,7 @@ enum ActionPlanStatus {
 }
 
 
-// Quién produjo la evaluación: la sonda (R-04), el consultor con evidencia (R-03) o la revisión documental con IA (§2, dimensión policy).
+// Quién produjo la evaluación: la sonda (R-04), el admin_empresa con evidencia (R-03) o la revisión documental con IA (§2, dimensión policy).
 enum EvaluationOrigin {
   automated
   manual
@@ -160,7 +160,7 @@ enum ClientControlChangeStatus {
   @@schema("tenant")
 }
 
-// Crear un control propio, darlo de baja o editar sus dimensiones o su interpretación son PROPUESTAS que la empresa hace y el consultor decide (D65, §7.1).
+// Crear un control propio, darlo de baja o editar sus dimensiones o su interpretación son PROPUESTAS de la empresa (D65, §7.1; D96 las vuelve cambios directos del admin_empresa: ver `compliance-controls.md`).
 // Mientras está pendiente, el control sigue como estaba (y contando). Una por tipo y por control a la vez: lo impone un índice único parcial en la migración.
 model ClientControlChange {
   id              String                    @id @default(uuid()) @db.Uuid
@@ -330,12 +330,9 @@ model EvidenceSubmission {
   @@schema("tenant")
 }
 
-// Quién revisó una entrega: el consultor y el auditor, cada uno la suya (D84). Una fila por entrega y por rol; `PUT` la crea o la reemplaza (queda en el rastro).
-// `ai_prevalidated` no se guarda: se deriva (la entrega tiene `ai_verdict` y ninguna revisión humana). La del auditor no mueve el cálculo (D77).
-// D96 · La evidencia tiene una sola revisión, la del admin_empresa. Los valores consultor y auditor quedan sin uso (los datos viejos no se tocan).
+// Quién revisó una entrega (D96): una sola revisión, la del admin_empresa; `PUT` la crea o la reemplaza (queda en el rastro).
+// `ai_prevalidated` no se guarda: se deriva (la entrega tiene `ai_verdict` y ninguna revisión humana).
 enum EvidenceReviewerRole {
-  consultor
-  auditor
   admin_empresa
 
   @@map("evidence_reviewer_role")
@@ -387,7 +384,7 @@ enum ExclusionStatus {
   @@schema("tenant")
 }
 
-// Excluir un ACTIVO de un test (o un check) cambia lo que se mide: la propone `admin_empresa` y la decide el `consultor` (D78). Mientras está `pending` no cambia nada.
+// Excluir un ACTIVO de un test (o un check) cambia lo que se mide: la propone y la decide `admin_empresa` en un solo acto (D96): nace `approved`. `pending` y `rejected` quedan sin uso.
 // `asset_id` nulo y `excluded_check_id` con valor es la exclusión de un check; hoy el contrato solo expone la de un activo (MD-144).
 model Exclusion {
   id                     String          @id @default(uuid()) @db.Uuid
@@ -396,7 +393,7 @@ model Exclusion {
   testId                 String          @map("test_id") @db.Uuid
   assetId                String?         @map("asset_id") @db.Uuid
   proposedBy             String          @map("proposed_by") @db.Uuid // admin_empresa
-  decidedBy              String?         @map("decided_by") @db.Uuid // el consultor; null mientras no decida
+  decidedBy              String?         @map("decided_by") @db.Uuid // el admin_empresa que la decide
   status                 ExclusionStatus @default(pending)
   requestedAt            DateTime        @default(now()) @map("requested_at")
   decidedAt              DateTime?       @map("decided_at")
@@ -447,7 +444,7 @@ model Evaluation {
   diagnosticPercentage     Decimal?         @map("diagnostic_percentage") @db.Decimal(5, 2)
   origin                   EvaluationOrigin
   clientResponse           String?          @map("client_response") @db.Text
-  consultantAssessment     String?          @map("consultant_assessment") @db.Text
+  verdictNote              String?          @map("verdict_note") @db.Text
   closureObservationReason String?          @map("closure_observation_reason") @db.Text
   coveredPeriod            String?          @map("covered_period")
 
@@ -672,19 +669,16 @@ model ClientControlTest {
   @@schema("tenant")
 }
 
-// Quién emite una evaluación del servicio (D77): el consultor prepara a la empresa y el auditor certifica.
+// Quién emite una evaluación del servicio (D77, en pausa por D96 y P35): solo el auditor certifica.
 enum AssessorRole {
-  consultor
   auditor
 
   @@map("assessor_role")
   @@schema("tenant")
 }
 
-// `ready`/`not_ready` son del consultor; `certified`/`not_certified`, del auditor (un CHECK de la base lo impone, SEG-56).
+// El auditor certifica o no (un CHECK de la base lo impone, SEG-56).
 enum AssessmentVerdict {
-  ready
-  not_ready
   certified
   not_certified
 
@@ -692,8 +686,8 @@ enum AssessmentVerdict {
   @@schema("tenant")
 }
 
-// La evaluación del consultor y la del auditor sobre un servicio y un marco (modelo-datos.md §7.5, D77, MD-155). Inmutable una vez emitida: para cambiar de opinión se
-// emite otra y la vigente es la última de ese rol sobre esa evaluación del servicio. No cambia el estado calculado.
+// La evaluación del auditor sobre un servicio y un marco (modelo-datos.md §7.5, D77, MD-155; en pausa por D96 y P35). Inmutable una vez emitida: para cambiar de opinión se
+// emite otra y la vigente es la última sobre esa evaluación del servicio. No cambia el estado calculado.
 model FrameworkAssessment {
   id                 String            @id @default(uuid()) @db.Uuid
   tenantId           String            @map("tenant_id") @db.Uuid

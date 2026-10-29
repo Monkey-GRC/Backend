@@ -2,11 +2,12 @@ import { Module } from '@nestjs/common';
 import { SetEvaluationPeriodUseCase } from './application/use-cases/evaluation-period.use-cases';
 import { ListExclusionsUseCase, RequestExclusionUseCase } from './application/use-cases/exclusion.use-cases';
 import {
-  CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListSubmissionsUseCase, ReviewEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
+  CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListSubmissionsUseCase, ListTestEvidenceUseCase, ReviewEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
 } from './application/use-cases/evidence.use-cases';
 import { CreateControlUseCase } from './application/use-cases/create-control.use-case';
 import { RetireControlUseCase, UpdateControlUseCase } from './application/use-cases/edit-control.use-cases';
 import { GetControlUseCase } from './application/use-cases/get-control.use-case';
+import { ListControlTestsUseCase } from './application/use-cases/list-control-tests.use-case';
 import { GetOverviewUseCase } from './application/use-cases/get-overview.use-case';
 import { ListControlsUseCase } from './application/use-cases/list-controls.use-case';
 import { CreateTreatmentUseCase, EvaluateRiskUseCase, EvaluationHistoryUseCase, ListTreatmentsUseCase } from './application/use-cases/risk-assessment.use-cases';
@@ -70,7 +71,7 @@ import { RisksController } from './presentation/risks.controller';
     { provide: TestVerdictRepository, useClass: TestVerdictPrismaRepository },
     IssueVerdictUseCase, ListVerdictsUseCase,
     { provide: EvidenceRepository, useClass: EvidencePrismaRepository },
-    ListEvidenceUseCase, ListSubmissionsUseCase, UploadEvidenceUseCase, GetEvidenceDownloadUseCase, ReviewEvidenceUseCase, CreateEvidenceRequirementUseCase, UploadTestEvidenceUseCase,
+    ListEvidenceUseCase, ListSubmissionsUseCase, UploadEvidenceUseCase, GetEvidenceDownloadUseCase, ReviewEvidenceUseCase, CreateEvidenceRequirementUseCase, UploadTestEvidenceUseCase, ListTestEvidenceUseCase, ListControlTestsUseCase,
   ],
 })
 export class ComplianceModule {}

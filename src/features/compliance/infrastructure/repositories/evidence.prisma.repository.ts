@@ -7,13 +7,15 @@ import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.inser
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { ReviewerRole } from '../../domain/evidence';
 import {
-  ControlEvidenceFacts, EvidenceAccess, EvidenceRepository, NewRequirement, NewReview, NewSubmission, RequirementRecord, ReviewSaved, SubmissionRecord,
+  ControlEvidenceFacts, EvidenceAccess, EvidenceRepository, NewRequirement, NewReview, NewSubmission, RequirementRecord, ReviewSaved, SubmissionRecord, TestEvidence,
 } from '../../domain/repositories/evidence.repository';
 import { loadControlResponsibles, usersOf } from '../control-responsibles';
 import { captureControlStates, recordControlStateChanges } from '../control-state-events';
 import { reviewsOf, toReviewRecord, versionOf } from './evidence-review.mapper';
 
 const PERSON = { select: { id: true, name: true, lastName: true } } as const;
+// Una dimensión que el control resuelve a mano; la documental (`policy`) también es manual (D88). Lo mismo que decide si cabe un veredicto (`test-verdict.prisma.repository.ts`).
+const MANUAL_DIMENSION_TYPES = new Set(['manual', 'technical_manual']);
 // La revisión que se lee es la del rol que pregunta, nunca la del otro (D84, SEG-61): por eso la entrega se pide con el rol.
 const submissionSelect = (viewer: ReviewerRole) =>
   ({
@@ -62,6 +64,53 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       if (!control) return null;
       const dims = (await loadControlResponsibles(tx, [controlId])).byControl.get(controlId);
       return { assignedUserIds: usersOf(dims), responsibleByDimension: Object.fromEntries(dims ?? []), requirements: control.evidenceRequirements.map(toRequirement) };
+    });
+  }
+
+  listByTest(scope: TenantScope, controlId: string, testId: string, viewer: ReviewerRole): Promise<TestEvidence | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const origin = await tx.clientControl.findFirst({
+        where: { id: controlId },
+        select: { id: true, serviceId: true, ownCode: true, control: { select: { code: true } }, tests: { where: { testId }, select: { test: { select: { dimension: true } } } } },
+      });
+      const dimension = origin?.tests[0]?.test.dimension;
+      if (!origin || !dimension) return null;
+      // Solo un test manual o documental tiene evidencia que mostrar; uno automático lo mide la sonda.
+      if (dimension !== 'policy') {
+        const kind = await tx.clientControlDimension.findFirst({ where: { clientControlId: controlId, dimension }, select: { type: true } });
+        if (!kind || !MANUAL_DIMENSION_TYPES.has(kind.type)) return null;
+      }
+
+      // D88: una prueba documental se respalda en SU control. D85: otro test manual vale en todos los controles vigentes del servicio que lo llevan.
+      const others =
+        dimension === 'policy'
+          ? []
+          : (await tx.clientControlTest.findMany({
+              where: { testId, clientControl: { serviceId: origin.serviceId, isActive: true, id: { not: origin.id } } },
+              select: { clientControl: { select: { id: true, ownCode: true, control: { select: { code: true } } } } },
+            }))
+              .map((l) => ({ id: l.clientControl.id, code: l.clientControl.control?.code ?? l.clientControl.ownCode }))
+              .sort((a, b) => a.code.localeCompare(b.code));
+      // El control de origen va primero, esté o no vigente.
+      const controls = [{ id: origin.id, code: origin.control?.code ?? origin.ownCode }, ...others];
+      const ids = controls.map((c) => c.id);
+
+      const rows = await tx.evidenceRequirement.findMany({
+        where: {
+          clientControlId: { in: ids },
+          ...(dimension === 'policy' ? { testId } : { OR: [{ testId }, { testId: null, dimension }] }),
+        },
+        orderBy: [{ sequence: 'asc' }],
+        select: { ...requirementSelect(viewer), clientControlId: true },
+      });
+      const byControl = (await loadControlResponsibles(tx, ids)).byControl;
+      return {
+        testId, dimension,
+        controls: controls.map((c) => ({ id: c.id, code: c.code, responsibleByDimension: Object.fromEntries(byControl.get(c.id) ?? []) })),
+        items: rows
+          .map((r) => ({ controlId: r.clientControlId, requirement: toRequirement(r) }))
+          .sort((a, b) => ids.indexOf(a.controlId) - ids.indexOf(b.controlId) || a.requirement.sequence - b.requirement.sequence),
+      };
     });
   }
 

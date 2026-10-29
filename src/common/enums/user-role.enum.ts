@@ -1,5 +1,5 @@
-// Los 5 roles (modelo-datos.md §5.1, D63, D64). Mismos valores que platform.user_role. No hay roles personalizados.
-export const USER_ROLES = ['admin_monkey', 'admin_empresa', 'funcional', 'consultor', 'auditor'] as const;
+// Los 4 roles (modelo-datos.md §5.1, D96). Mismos valores que platform.user_role. No hay roles personalizados.
+export const USER_ROLES = ['admin_monkey', 'admin_empresa', 'funcional', 'auditor'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
 // pending (D95): la cuenta existe pero la persona aún no activó su código, así que no puede iniciar sesión.

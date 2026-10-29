@@ -91,9 +91,24 @@ export type ControlEvidenceFacts = {
 /** El código (`EV-<control>-NN`) y la posición los pone el repositorio, dentro de la transacción y con el control bloqueado. */
 export type NewRequirement = { description: string; dimension: string; testId: string | null; validityWithinPeriod: string };
 
+/** Un control que lleva un test, con quién es responsable de cada una de sus dimensiones (D96): para decidir qué ve un `funcional`. */
+export type TestEvidenceControl = { id: string; code: string; responsibleByDimension: Record<string, string[]> };
+
+/** Lo que se subió para un test manual o documental, visto desde un control que lo lleva (D85, D88). */
+export type TestEvidence = {
+  testId: string;
+  dimension: string;
+  /** Los controles vigentes del servicio que llevan el test, el de origen incluido y primero. Si el test es documental solo está el de origen (D88). */
+  controls: TestEvidenceControl[];
+  /** Los requerimientos de esos controles que sirven al test, cada uno con el control de que es. */
+  items: Array<{ controlId: string; requirement: RequirementRecord }>;
+};
+
 export abstract class EvidenceRepository {
   /** Los requerimientos del control con sus entregas. `null` si el control no existe para esta empresa. `viewer`: de quién es la revisión que se lee. */
   abstract listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ assignedUserIds: string[]; responsibleByDimension: Record<string, string[]>; requirements: RequirementRecord[] } | null>;
+  /** `null` si el control no existe, no lleva el test, o el test no es manual ni documental. `viewer`: de quién es la revisión que se lee. */
+  abstract listByTest(scope: TenantScope, controlId: string, testId: string, viewer: ReviewerRole): Promise<TestEvidence | null>;
   /** `null` si el requerimiento no existe para esta empresa. */
   abstract findRequirement(scope: TenantScope, requirementId: string): Promise<EvidenceAccess | null>;
   abstract listSubmissions(scope: TenantScope, requirementId: string, page: number, pageSize: number, viewer: ReviewerRole): Promise<Page<SubmissionRecord> | null>;

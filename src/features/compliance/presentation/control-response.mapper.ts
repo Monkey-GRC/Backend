@@ -1,8 +1,9 @@
 import { ControlReadout, Dimension } from '../domain/control-readout';
 import { ControlDetail } from '../application/use-cases/get-control.use-case';
+import { codeOfControl } from '../domain/compliance-overview';
 
-// Forma de contracts/modules/compliance-controls.md. La vista de negocio no lleva códigos del catálogo, ni el texto de una prueba, ni al proveedor del
-// motor; `technical` solo se agrega cuando el caso de uso ya comprobó que el rol puede pedirla.
+// Forma de contracts/modules/compliance-controls.md. La vista de negocio lleva el código del control y el de sus requisitos (D80), pero no el texto de una prueba
+// ni al proveedor del motor; `technical` solo se agrega cuando el caso de uso ya comprobó que el rol puede pedirla.
 type Translate = (key: string) => string;
 
 // Un test sin nombre neutro (D70) se muestra con un texto genérico de su dimensión: nunca el nombre del comité.
@@ -12,7 +13,9 @@ const assignee = (a: ControlReadout['control']['assignee']) => (a ? { user_id: a
 
 const base = (r: ControlReadout) => ({
   id: r.control.id,
-  // El código del catálogo (`IAC-12`) es técnico: en un control del catálogo viaja solo en `technical.control_code`. `own_code` es la numeración de los controles propios (`C01`).
+  // D80: el código se muestra siempre, el del catálogo (`IAC-12`) o el propio (`C01`). `own_code` es solo la numeración de los controles propios.
+  code: codeOfControl(r),
+  requirement_codes: r.control.requirementCodes,
   own_code: r.control.origin === 'own' ? r.control.ownCode : null,
   name: r.control.name,
   origin: r.control.origin,
@@ -26,8 +29,6 @@ const base = (r: ControlReadout) => ({
 });
 
 const technicalBlock = (r: ControlReadout) => ({
-  control_code: r.control.catalogCode,
-  requirement_codes: r.control.requirementCodes,
   points_of_focus: r.control.pointsOfFocus,
   control_state: r.state,
   tests_count: r.tests.length,

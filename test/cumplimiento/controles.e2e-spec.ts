@@ -51,9 +51,9 @@ describe('Lista de acciones de protección', () => {
     expect([page, page_size, total_pages]).toEqual([1, 25, Math.ceil(total / 25)]);
     const first = list[0];
     expect(Object.keys(first).sort()).toEqual(
-      ['approval', 'assigned_to', 'coverage', 'id', 'name', 'origin', 'own_code', 'progress', 'readiness', 'trust_criteria', 'type'].sort(),
+      ['approval', 'assigned_to', 'code', 'coverage', 'id', 'name', 'origin', 'own_code', 'progress', 'readiness', 'requirement_codes', 'trust_criteria', 'type'].sort(),
     );
-    expect(first).toMatchObject({ origin: 'catalog', own_code: null, approval: 'approved', assigned_to: null });
+    expect(first).toMatchObject({ origin: 'catalog', own_code: null, approval: 'approved', assigned_to: null, code: expect.stringMatching(/^[A-Z]+-\d+$/) });
   });
 
   it('un servicio recién clonado y sin resultados está «Sin medir»: no inventa ningún cumplimiento', async () => {
@@ -62,26 +62,28 @@ describe('Lista de acciones de protección', () => {
     for (const c of all) expect(c.progress.done).toBe(0);
   });
 
-  it('la vista de negocio no trae códigos del catálogo, ni textos de pruebas, ni al proveedor del motor', async () => {
-    const text = JSON.stringify((await a.agent.get(`${listPath}?page_size=100`).expect(200)).body);
-    expect(text).not.toMatch(/"technical"|control_code|requirement_codes/);
-    expect(text).not.toMatch(/\bCC\d\.\d\b/); // códigos de requisito
+  it('la vista de negocio muestra el código del control y el de sus requisitos (D80), pero no textos de pruebas ni al proveedor del motor', async () => {
+    const body = (await a.agent.get(`${listPath}?page_size=100`).expect(200)).body;
+    const all = body.data.items as Array<Record<string, any>>;
+    for (const c of all) expect(c.code).toMatch(/^[A-Z]+-\d+$/);
+    expect(all.some((c) => c.requirement_codes.some((r: string) => /^CC\d\.\d$/.test(r)))).toBe(true);
+    const text = JSON.stringify(body);
+    expect(text).not.toMatch(/"technical"|control_code/);
     expect(text).not.toMatch(/\bT-[A-Z]{3}-\d{3}\b/); // códigos de prueba
-    expect(text).not.toMatch(/\b[A-Z]{2,4}-\d{1,3}\b/); // códigos de control del catálogo (IAC-12)
     expect(text).not.toMatch(/wazuh|prowler/i);
   });
 
-  it('pagina y ordena por el código interno sin mostrarlo', async () => {
+  it('pagina y ordena por el código del control', async () => {
     const res = await a.agent.get(`${listPath}?page_size=5&page=2`).expect(200);
     expect(res.body.data.items.length).toBe(5);
     expect(res.body.data.page).toBe(2);
     const asc = await auditor.get(`${listPath}?page_size=100&view=technical`).expect(200);
-    const codes = asc.body.data.items.map((c: any) => c.technical.control_code as string);
+    const codes = asc.body.data.items.map((c: any) => c.code as string);
     const num = (c: string) => Number(/\d+/.exec(c)?.[0]);
     const prefix = (c: string) => c.replace(/\d.*$/, '');
     expect(codes).toEqual([...codes].sort((x, y) => (prefix(x) !== prefix(y) ? prefix(x).localeCompare(prefix(y)) : num(x) - num(y))));
     const desc = await auditor.get(`${listPath}?page_size=100&view=technical&sort=-code`).expect(200);
-    expect(desc.body.data.items.map((c: any) => c.technical.control_code)).toEqual([...codes].reverse());
+    expect(desc.body.data.items.map((c: any) => c.code)).toEqual([...codes].reverse());
     const byName = (await items(a.agent, '?page_size=100&sort=name')).map((c) => c.name as string);
     expect(byName).toEqual([...byName].sort((x, y) => x.localeCompare(y, 'es')));
   });
@@ -122,8 +124,6 @@ describe('Quién puede pedir qué', () => {
     const audit = await items(auditor, '?view=technical&page_size=100');
     expect(admin.length).toBe(audit.length);
     expect(admin[0].technical).toEqual({
-      control_code: expect.stringMatching(/^[A-Z]+-\d+$/),
-      requirement_codes: expect.any(Array),
       points_of_focus: expect.any(Array),
       control_state: expect.any(String),
       tests_count: expect.any(Number),
@@ -146,13 +146,11 @@ describe('Quién puede pedir qué', () => {
     const technical = await items(auditor, '?view=technical&page_size=100');
     expect(technical.length).toBe((await items(a.agent, '?page_size=100')).length);
     expect(technical[0].technical).toEqual({
-      control_code: expect.stringMatching(/^[A-Z]+-\d+$/),
-      requirement_codes: expect.any(Array),
       points_of_focus: expect.any(Array),
       control_state: expect.any(String),
       tests_count: expect.any(Number),
     });
-    expect(technical.some((c) => c.technical.requirement_codes.some((r: string) => /^CC\d/.test(r)))).toBe(true);
+    expect(technical.some((c) => c.requirement_codes.some((r: string) => /^CC\d/.test(r)))).toBe(true);
   });
 
   it('el funcional sin acciones asignadas recibe una lista vacía, no un error', async () => {
@@ -203,6 +201,7 @@ describe('Detalle de una acción', () => {
       expect(rich.evidence[0]).toMatchObject({ responsible: null, latest_submission: null, description: expect.any(String) });
     }
     expect(Array.isArray(rich.causes)).toBe(true);
+    for (const cause of rich.causes) expect(cause).toEqual({ id: expect.any(String), code: expect.stringMatching(/^F\d+$/), name: expect.any(String) });
     expect(rich).not.toHaveProperty('technical');
   });
 
@@ -260,9 +259,10 @@ describe('El estado sale de los resultados guardados', () => {
     expect(failed.technical.control_state).toBe('ineffective');
     expect(failed.failing).toEqual([{ dimension: 'cloud', affected: [{ kind: 'asset', id: a.assetId, name: a.assetName }] }]);
     expect(failed.readiness).toMatch(/needs_work|almost_ready/);
-    // el cliente ve en qué falla, sin códigos
+    // el cliente ve en qué falla, con el código del control y sin códigos de prueba
     const business = (await a.agent.get(`/v1/controls/${c.id}`).expect(200)).body.data;
     expect(business.failing[0].affected[0].name).toBe(a.assetName);
+    expect(business.code).toMatch(/^[A-Z]+-\d+$/);
     expect(JSON.stringify(business)).not.toMatch(/\bT-[A-Z]{3}-\d{3}\b|control_code/);
   });
 

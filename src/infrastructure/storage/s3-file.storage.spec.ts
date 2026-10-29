@@ -19,6 +19,17 @@ describe('S3FileStorage.downloadUrl', () => {
     expect(new URL(await storage.downloadUrl('k', 'a.pdf', 60)).origin).toBe('http://minio:9000');
   });
 
+  it('inline y el tipo de contenido quedan fijados al firmar', async () => {
+    const storage = new S3FileStorage({ ...base, endpoint: 'http://minio:9000' });
+    const url = new URL(await storage.downloadUrl('k', 'a.pdf', 300, { disposition: 'inline', contentType: 'application/pdf' }));
+    expect(url.searchParams.get('response-content-disposition')).toBe('inline; filename="a.pdf"');
+    expect(url.searchParams.get('response-content-type')).toBe('application/pdf');
+    // Sin opciones sigue siendo una descarga y no fija el tipo.
+    const plain = new URL(await storage.downloadUrl('k', 'a.pdf', 300));
+    expect(plain.searchParams.get('response-content-disposition')).toBe('attachment; filename="a.pdf"');
+    expect(plain.searchParams.get('response-content-type')).toBeNull();
+  });
+
   it('el nombre del archivo no puede romper el encabezado', async () => {
     const storage = new S3FileStorage({ ...base, endpoint: 'http://minio:9000' });
     const url = new URL(await storage.downloadUrl('k', 'a"\r\nSet-Cookie: x.pdf', 60));

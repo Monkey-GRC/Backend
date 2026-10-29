@@ -1,7 +1,8 @@
 {
   "list": "Evidence this control asks for.",
+  "test_list": "Evidence for this test.",
   "submission_list": "Submitted versions of this evidence.",
-  "submitted": "Done, we received your evidence. A consultant will review it.",
+  "submitted": "Done, we received your evidence. Your company administrator will review it.",
   "download": "Temporary link to view or download the evidence.",
   "reviewed": "Done, we saved your review of this evidence.",
   "requirement_created": "Done, we added the evidence to this control.",

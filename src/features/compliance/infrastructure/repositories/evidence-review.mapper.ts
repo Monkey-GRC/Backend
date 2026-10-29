@@ -1,7 +1,7 @@
 import { Prisma } from '../../../../../generated/prisma/client';
 import { EvidenceReviewRecord, EvidenceState, ReviewerRole, evidenceStateOf } from '../../domain/evidence';
 
-// Lo que se lee de una revisión (`evidence_reviews`, D96). Se pide solo la del admin_empresa, que es la única que cuenta: las filas viejas de consultor y auditor no se leen.
+// Lo que se lee de una revisión (`evidence_reviews`, D96). Hay una sola por entrega: la del admin_empresa.
 export const REVIEW_SELECT = {
   reviewerRole: true, review: true, typeOk: true, periodOk: true, validOk: true, approvedOk: true, signedOk: true, contentOk: true, note: true, reviewedAt: true,
   reviewedByUser: { select: { id: true, name: true, lastName: true } },

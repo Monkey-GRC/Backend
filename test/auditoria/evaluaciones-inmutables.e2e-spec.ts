@@ -81,7 +81,7 @@ describe('Como la app (monkey_app)', () => {
     ['borrarla', `delete from tenant.evaluations where id = $1`],
   ])('no puede %s', async (_what, sql) => {
     await withRollback(async (db) => {
-      await asApp(db, { tenantId: a.companyId, role: 'consultor' }, async () => {
+      await asApp(db, { tenantId: a.companyId, role: 'admin_empresa' }, async () => {
         expect(await failure(db, sql, [evaluationId])).toMatch(REJECTED);
       });
     });
@@ -89,7 +89,7 @@ describe('Como la app (monkey_app)', () => {
 
   it('no puede vaciar la tabla', async () => {
     await withRollback(async (db) => {
-      await asApp(db, { tenantId: a.companyId, role: 'consultor' }, async () => {
+      await asApp(db, { tenantId: a.companyId, role: 'admin_empresa' }, async () => {
         expect(await failure(db, `truncate tenant.evaluations cascade`)).toMatch(REJECTED);
       });
     });
@@ -97,7 +97,7 @@ describe('Como la app (monkey_app)', () => {
 
   it('sí puede cerrar: confirmed_by y closure_observation_reason', async () => {
     await withRollback(async (db) => {
-      await asApp(db, { tenantId: a.companyId, role: 'consultor' }, async () => {
+      await asApp(db, { tenantId: a.companyId, role: 'admin_empresa' }, async () => {
         const r = await db.query(`update tenant.evaluations set confirmed_by = $2, closure_observation_reason = 'razón' where id = $1`, [evaluationId, userId]);
         expect(r.rowCount).toBe(1);
       });

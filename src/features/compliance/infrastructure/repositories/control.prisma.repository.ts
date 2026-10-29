@@ -69,6 +69,25 @@ export class ControlPrismaRepository extends ControlRepository {
     }, READ_TRANSACTION);
   }
 
+  sharedControlsOfTests(scope: TenantScope, controlId: string, testIds: string[]): Promise<Map<string, Array<{ id: string; code: string }>>> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const shared = new Map<string, Array<{ id: string; code: string }>>();
+      const control = await tx.clientControl.findFirst({ where: { id: controlId }, select: { serviceId: true } });
+      if (!control || testIds.length === 0) return shared;
+      const links = await tx.clientControlTest.findMany({
+        where: { testId: { in: testIds }, clientControl: { serviceId: control.serviceId, isActive: true, id: { not: controlId } } },
+        select: { testId: true, clientControl: { select: { id: true, ownCode: true, control: { select: { code: true } } } } },
+      });
+      for (const l of links) {
+        const list = shared.get(l.testId) ?? [];
+        list.push({ id: l.clientControl.id, code: l.clientControl.control?.code ?? l.clientControl.ownCode });
+        shared.set(l.testId, list);
+      }
+      for (const list of shared.values()) list.sort((a, b) => a.code.localeCompare(b.code));
+      return shared;
+    });
+  }
+
   loadControl(scope: TenantScope, controlId: string): Promise<ControlDetailData | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const found = await tx.clientControl.findFirst({ where: { id: controlId, isActive: true }, select: { serviceId: true } });
@@ -87,7 +106,7 @@ export class ControlPrismaRepository extends ControlRepository {
       });
       const links = await tx.clientCauseControl.findMany({
         where: { clientControlId: controlId, clientCause: { isActive: true } },
-        select: { clientCause: { select: { id: true, name: true } } },
+        select: { clientCause: { select: { id: true, code: true, name: true } } },
       });
 
       return {
@@ -103,7 +122,7 @@ export class ControlPrismaRepository extends ControlRepository {
             latestSubmission: latest ? { id: latest.id, version: Number(latest.version) || 0, evidenceState: evidenceStateOf({ aiVerdict: latest.aiVerdict, review: latest.reviews[0] ? toReviewRecord(latest.reviews[0]) : null }) } : null,
           };
         }),
-        causes: links.map((l) => ({ id: l.clientCause.id, name: l.clientCause.name })),
+        causes: links.map((l) => ({ id: l.clientCause.id, code: l.clientCause.code, name: l.clientCause.name })),
       };
     }, READ_TRANSACTION);
   }

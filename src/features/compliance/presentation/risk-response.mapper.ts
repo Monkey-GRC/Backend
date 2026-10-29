@@ -7,7 +7,8 @@ const technical = (on: boolean, code: string | null) => (on ? { technical: { cat
 
 const controlLink = (k: ControlLink, on: boolean) => ({
   control_id: k.controlId,
-  // El código del catálogo es técnico: un control del catálogo se identifica por su nombre; `own_code` es solo de los propios.
+  // D80: el código del control se muestra siempre, el del catálogo o el propio. `own_code` es solo la numeración de los propios.
+  code: k.catalogCode ?? k.ownCode,
   own_code: k.origin === 'own' ? k.ownCode : null,
   name: k.name,
   is_mandatory: k.isMandatory,

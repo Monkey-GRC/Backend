@@ -2,6 +2,7 @@ import { evidenceStateOf } from '../domain/evidence';
 import { RequirementRecord, SubmissionRecord } from '../domain/repositories/evidence.repository';
 import { fileNameOfKey } from '../application/evidence-file';
 import type { ViewMode } from '../application/view-access';
+import type { TestEvidenceView } from '../application/use-cases/evidence.use-cases';
 
 // Una entrega al JSON del contrato (compliance-evidence.md). La llave del objeto en el almacenamiento nunca sale.
 export function toSubmission(s: SubmissionRecord, view: ViewMode, includeRequirement = false) {
@@ -53,5 +54,14 @@ export function toRequirement(r: RequirementRecord, view: ViewMode) {
     origin: r.origin,
     responsible: r.responsible ? { id: r.responsible.id, type: r.responsible.type, person_name: r.responsible.personName } : null,
     submissions: r.submissions.map((s) => toSubmission(s, view)),
+  };
+}
+
+// GET /v1/controls/{id}/tests/{testId}/evidence: cada requerimiento dice de qué control es (D85) y `shared_with` avisa dónde más aplica el test.
+export function toTestEvidence(d: TestEvidenceView) {
+  return {
+    test_id: d.testId,
+    shared_with: d.sharedWith,
+    items: d.items.map((i) => ({ ...toRequirement(i.requirement, d.view), control: { id: i.controlId, code: d.controlCodes.get(i.controlId) as string } })),
   };
 }

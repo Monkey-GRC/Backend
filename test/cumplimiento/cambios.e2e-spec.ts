@@ -80,13 +80,14 @@ describe('MD-150 · crear un control propio', () => {
     expect(own[0]).toMatchObject({ own_code: 'C01', origin: 'own' });
   });
 
-  it('el siguiente control propio es C02 y los del catálogo no muestran su código', async () => {
+  it('el siguiente control propio es C02 y cada control se muestra con su código', async () => {
     const res = await a.agent.post(list(a)).send({ ...OWN, name: 'Segundo control propio', trust_criterion: 'confidentiality' }).expect(201);
     expect(res.body.data.own_code).toBe('C02');
     const all = (await a.agent.get(list(a, '?page_size=100')).expect(200)).body.data.items as Array<Record<string, any>>;
     expect(all.filter((x) => x.origin === 'catalog').every((x) => x.own_code === null)).toBe(true);
     expect(all.filter((x) => x.origin === 'own').map((x) => x.own_code).sort()).toEqual(['C01', 'C02']);
-    expect(JSON.stringify(all)).not.toMatch(/\b[A-Z]{2,4}-\d{1,3}\b/);
+    expect(all.filter((x) => x.origin === 'catalog').every((x) => /^[A-Z]+-\d+$/.test(x.code))).toBe(true); // D80: cada control se muestra con su código
+    expect(all.filter((x) => x.origin === 'own').every((x) => x.code === x.own_code)).toBe(true);
   });
 
   it('queda todo registrado: control propio, evento de cumplimiento y auditoría, sin propuesta', async () => {
@@ -100,9 +101,10 @@ describe('MD-150 · crear un control propio', () => {
     expect(events).toBe(1);
   });
 
-  it('la vista técnica del auditor no inventa un código de catálogo para un control propio', async () => {
+  it('un control propio se identifica con su código propio, sin requisitos ni código de catálogo inventado', async () => {
     const own = (await auditor.get(list(a, '?origin=own&view=technical')).expect(200)).body.data.items[0];
-    expect(own.technical).toMatchObject({ control_code: null, requirement_codes: [], points_of_focus: [] });
+    expect(own).toMatchObject({ code: own.own_code, requirement_codes: [] });
+    expect(own.technical).toMatchObject({ points_of_focus: [] });
   });
 
   it('valida por campo y devuelve todos los errores a la vez', async () => {
