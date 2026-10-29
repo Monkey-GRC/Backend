@@ -71,19 +71,19 @@ export abstract class CompanyRepository {
     excludeCompanyId: string,
   ): Promise<CompanyDetail | null>;
 
-  // D95 · Archivar: el estado, el corte de sesiones, la cancelación de lo que estaba en cola y el rastro, en una sola transacción.
+  // D97 · Archivar: el estado, el corte de sesiones, la cancelación de lo que estaba en cola y el rastro, en una sola transacción.
   // Devuelve cuántas sesiones se cerraron.
   abstract archive(scope: TenantScope, companyId: string, data: ArchiveData, audit: AuditIntent<{ sessionsClosed: number }>): Promise<number>;
 
-  // D95 · La copia de todo lo de la empresa (`platform.export_company`), antes de archivarla.
+  // D97 · La copia de todo lo de la empresa (`platform.export_company`), antes de archivarla.
   abstract exportSnapshot(scope: TenantScope, companyId: string): Promise<unknown>;
 
-  // D95 · Reactivar: vuelve a `active` y el plazo desaparece. Devuelve la llave de la copia que ya no hace falta (para borrarla).
+  // D97 · Reactivar: vuelve a `active` y el plazo desaparece. Devuelve la llave de la copia que ya no hace falta (para borrarla).
   abstract reactivate(scope: TenantScope, companyId: string, audit: AuditIntent<{ snapshotKey: string | null }>): Promise<string | null>;
 
   // Las archivadas, de la que vence antes a la que vence después.
   abstract listArchived(scope: TenantScope, dueBefore?: Date): Promise<ArchivedCompany[]>;
 
-  // D95 · Borrado definitivo (`platform.purge_company`) y su rastro mínimo, en una transacción. Devuelve el nombre de la empresa borrada.
+  // D97 · Borrado definitivo (`platform.purge_company`) y su rastro mínimo, en una transacción. Devuelve el nombre de la empresa borrada.
   abstract purge(scope: TenantScope, companyId: string, audit: AuditIntent<{ name: string }>): Promise<string>;
 }

@@ -10,7 +10,7 @@ enum IsolationStrategy {
 enum CompanyStatus {
   active
   suspended
-  // D95: archivada. Sin acceso ni motores; los datos se conservan hasta `archive_until` y entonces se borran por completo.
+  // D97: archivada. Sin acceso ni motores; los datos se conservan hasta `archive_until` y entonces se borran por completo.
   deactivated
 
   @@map("company_status")
@@ -18,7 +18,7 @@ enum CompanyStatus {
   @@schema("platform")
 }
 
-// D95: por qué se archiva una empresa (company_deactivation_reason en enums.md).
+// D97: por qué se archiva una empresa (company_deactivation_reason en enums.md).
 enum CompanyDeactivationReason {
   non_payment
   client_request
@@ -46,13 +46,13 @@ model Company {
   adminEmail        String            @map("admin_email")
   isolationStrategy IsolationStrategy @default(shared) @map("isolation_strategy")
   status            CompanyStatus     @default(active)
-  // D95: solo con status = deactivated. Se vacían al reactivar (el plazo deja de existir).
+  // D97: solo con status = deactivated. Se vacían al reactivar (el plazo deja de existir).
   deactivatedAt          DateTime?                  @map("deactivated_at")
   archiveUntil           DateTime?                  @map("archive_until")
   deactivationReasonCode CompanyDeactivationReason? @map("deactivation_reason_code")
   deactivationReason     String?                    @map("deactivation_reason")
   deactivatedBy          String?                    @map("deactivated_by") @db.Uuid
-  // Dónde está la copia cifrada que se toma al archivar (se borra con el resto, D95).
+  // Dónde está la copia cifrada que se toma al archivar (se borra con el resto, D97).
   archiveSnapshotKey     String?                    @map("archive_snapshot_key")
   createdAt         DateTime          @default(now()) @map("created_at")
   updatedAt         DateTime          @updatedAt @map("updated_at")
@@ -148,7 +148,7 @@ model AccessKey {
   @@schema("platform")
 }
 
-// D95: lo único que queda de una empresa borrada definitivamente — nombre, cuándo y quién (el sistema, por vencimiento; y quien la archivó).
+// D97: lo único que queda de una empresa borrada definitivamente — nombre, cuándo y quién (el sistema, por vencimiento; y quien la archivó).
 // Sin datos del cliente y sin clave foránea a `companies` (esa fila ya no existe). La escribe `platform.purge_company`, no la app.
 model CompanyPurgeLog {
   id          String    @id @default(uuid()) @db.Uuid

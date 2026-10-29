@@ -2,7 +2,7 @@ import { Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } fro
 import { ConfigService } from '@nestjs/config';
 import { PurgeExpiredCompaniesUseCase } from '../application/use-cases/purge-expired-companies.use-case';
 
-// D95 · La tarea programada del borrado definitivo: cada `COMPANY_PURGE_INTERVAL_MINUTES` (60 por defecto) borra las empresas archivadas cuyo plazo venció.
+// D97 · La tarea programada del borrado definitivo: cada `COMPANY_PURGE_INTERVAL_MINUTES` (60 por defecto) borra las empresas archivadas cuyo plazo venció.
 // `0` la apaga (las pruebas y los scripts). El aviso previo a los admin_monkey es informativo y no condiciona el borrado (DT-83).
 @Injectable()
 export class CompanyPurgeScheduler implements OnApplicationBootstrap, OnApplicationShutdown {

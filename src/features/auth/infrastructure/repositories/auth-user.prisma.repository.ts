@@ -4,7 +4,7 @@ import { PrismaService } from '../../../../infrastructure/database/prisma.servic
 import { AuthUser, UserCredentials } from '../../domain/entities/auth-user.entity';
 import { AuthUserRepository } from '../../domain/repositories/auth-user.repository';
 
-// `status` ya viene ajustado por la base: una persona de una empresa archivada (D95) sale `inactive` aunque su propia cuenta esté activa.
+// `status` ya viene ajustado por la base: una persona de una empresa archivada (D97) sale `inactive` aunque su propia cuenta esté activa.
 type LoginCandidateRow = { id: string; company_id: string; password_hash: string; status: UserCredentials['status'] };
 
 const CREDENTIAL_FIELDS = {

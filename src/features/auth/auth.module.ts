@@ -66,7 +66,7 @@ const seconds = (config: ConfigService, key: string): number => {
     }),
   ],
   controllers: [AuthController, MfaAdminController],
-  // D95: Monkey Admin pide el código de la persona antes de archivar o reactivar una empresa.
+  // D97: Monkey Admin pide el código de la persona antes de archivar o reactivar una empresa.
   exports: [StepUp],
   providers: [
     {

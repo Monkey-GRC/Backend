@@ -9,7 +9,7 @@ import { connect } from '../support/db';
 import { dosEmpresas, Tenant } from '../support/escenario';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
-// D95 · Archivar una empresa y borrarla definitivamente (SEG-64): corta accesos y motores, se puede deshacer dentro del plazo, y al vencer se borra
+// D97 · Archivar una empresa y borrarla definitivamente (SEG-68): corta accesos y motores, se puede deshacer dentro del plazo, y al vencer se borra
 // TODO lo suyo —incluida la auditoría inmutable— sin tocar a la otra empresa, dejando solo el rastro mínimo.
 let app: INestApplication;
 let a: Tenant;

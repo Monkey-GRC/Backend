@@ -25,7 +25,7 @@ export class CompanyResponse {
   @ApiProperty({ example: 'Next Audit & Consulting S.A.S.', description: 'Razón social.' }) name!: string;
   @ApiProperty({ example: 'contacto@ejemplo.com', description: 'Correo del administrador de la empresa; con él se canjea la clave de acceso.' }) admin_email!: string;
   @ApiProperty({ enum: ISOLATION, enumName: 'IsolationStrategy', description: '`shared` base compartida con aislamiento por empresa · `dedicated` base propia.' }) isolation_strategy!: string;
-  @ApiProperty({ enum: COMPANY_STATUS, enumName: 'CompanyStatus', description: '`deactivated`: archivada (D95), sin acceso ni motores hasta `archive_until`.' }) status!: string;
+  @ApiProperty({ enum: COMPANY_STATUS, enumName: 'CompanyStatus', description: '`deactivated`: archivada (D97), sin acceso ni motores hasta `archive_until`.' }) status!: string;
   @ApiProperty({ format: 'date-time' }) created_at!: string;
   @ApiProperty({ format: 'date-time', nullable: true, description: 'Cuándo se archivó; `null` si no está archivada.' }) deactivated_at!: string | null;
   @ApiProperty({ format: 'date-time', nullable: true, description: 'Cuándo se borra definitivamente con todos sus datos; `null` si no está archivada.' }) archive_until!: string | null;

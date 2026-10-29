@@ -9,7 +9,7 @@ const SYSTEM_SCOPE: TenantScope = { companyId: '', role: 'admin_monkey' };
 
 export type PurgeSummary = { purged: string[]; failed: Array<{ id: string; error: string }> };
 
-// D95 · Borrado definitivo de las empresas archivadas cuyo plazo venció: primero sus archivos, después todo lo de la base. Si algo falla, esa empresa queda archivada y se
+// D97 · Borrado definitivo de las empresas archivadas cuyo plazo venció: primero sus archivos, después todo lo de la base. Si algo falla, esa empresa queda archivada y se
 // reintenta en la siguiente pasada: nunca queda a medias en la base (es una sola transacción).
 @Injectable()
 export class PurgeExpiredCompaniesUseCase {
@@ -38,7 +38,7 @@ export class PurgeExpiredCompaniesUseCase {
           afterState: { company_name: name, purged_at: now.toISOString(), purged_by: 'system' },
         }));
         summary.purged.push(company.id);
-        this.logger.log(`Empresa ${company.id} borrada definitivamente (D95).`);
+        this.logger.log(`Empresa ${company.id} borrada definitivamente (D97).`);
       } catch (error) {
         const message = (error as Error).message;
         summary.failed.push({ id: company.id, error: message });

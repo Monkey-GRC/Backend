@@ -8,7 +8,7 @@ import { StepUp } from '../../../auth/application/services/step-up.service';
 import { CompanyDetail } from '../../domain/entities/company-overview';
 import { CompanyRepository } from '../../domain/repositories/company.repository';
 
-// D95 · Reactivar una empresa archivada, solo dentro del plazo. El plazo deja de existir: si se vuelve a archivar, se elige uno nuevo.
+// D97 · Reactivar una empresa archivada, solo dentro del plazo. El plazo deja de existir: si se vuelve a archivar, se elige uno nuevo.
 @Injectable()
 export class ReactivateCompanyUseCase {
   constructor(

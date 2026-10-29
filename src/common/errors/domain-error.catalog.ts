@@ -34,7 +34,7 @@ export const DOMAIN_ERROR_CATALOG: Record<
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     messageKey: 'company.dedicated_not_available',
   },
-  // D95 · Archivar y reactivar una empresa.
+  // D97 · Archivar y reactivar una empresa.
   CONFIRMATION_MISMATCH: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'company.confirmation_mismatch' },
   COMPANY_ALREADY_DEACTIVATED: { status: HttpStatus.CONFLICT, messageKey: 'company.already_deactivated' },
   COMPANY_NOT_DEACTIVATED: { status: HttpStatus.CONFLICT, messageKey: 'company.not_deactivated' },
