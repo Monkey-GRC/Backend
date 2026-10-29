@@ -15,8 +15,10 @@ export function toSubmission(s: SubmissionRecord, view: ViewMode, includeRequire
     integrity_hash: s.integrityHash,
     submitted_by: { id: s.submittedBy.id, name: s.submittedBy.name, last_name: s.submittedBy.lastName },
     submitted_at: s.submittedAt.toISOString(),
-    // D84 · Lo deriva el servidor de la revisión de quien pregunta (la del consultor para la empresa y el consultor, la del auditor para el auditor).
+    // D96 · Lo deriva el servidor de la única revisión de la entrega, la del admin_empresa.
     evidence_state: evidenceStateOf(s),
+    // D96 · El motivo con el que el admin_empresa rechazó (o la nota con la que validó): es lo que el funcional lee para corregir. `null` si no hay revisión o no dejó nota.
+    review_note: s.review?.note ?? null,
     // La IA sugiere y siempre va marcada; el contrato prevé una confianza que hoy no se guarda.
     ai: s.aiVerdict ? { is_ai_generated: true, ai_confidence: null, verdict: s.aiVerdict } : null,
   };

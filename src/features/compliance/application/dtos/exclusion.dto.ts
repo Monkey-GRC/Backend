@@ -8,14 +8,9 @@ const bool = ({ value }: { value: unknown }) => (value === 'true' ? true : value
 export class RequestExclusionDto {
   @ApiProperty({ format: 'uuid', description: 'Prueba que se pide excluir.' }) @IsUUID() test_id!: string;
   @ApiProperty({ format: 'uuid', description: 'Activo al que se le excluye la prueba.' }) @IsUUID() asset_id!: string;
-  @ApiProperty({ description: 'Por qué se pide la exclusión (máx. 2000).' }) @IsString() @IsNotEmpty() @MaxLength(2000) justification!: string;
+  @ApiProperty({ description: 'Por qué se excluye (máx. 2000).' }) @IsString() @IsNotEmpty() @MaxLength(2000) justification!: string;
   @ApiPropertyOptional({ description: 'Obligatoria si la prueba es automática: la evaluación automática no se sobrescribe sin sustento técnico (máx. 2000).' })
   @IsOptional() @IsString() @MaxLength(2000) technical_justification?: string;
-}
-
-export class DecideExclusionDto {
-  @ApiProperty({ enum: ['approved', 'rejected'], enumName: 'ExclusionDecision', description: 'La decisión del consultor.' }) @IsIn(['approved', 'rejected']) status!: 'approved' | 'rejected';
-  @ApiPropertyOptional({ description: 'Obligatoria al rechazar (máx. 2000).' }) @IsOptional() @IsString() @MaxLength(2000) decision_note?: string;
 }
 
 export class ListExclusionsQuery {

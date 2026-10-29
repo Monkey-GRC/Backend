@@ -17,7 +17,7 @@ const CRITERIA: OverviewCriterionData[] = [
 const test = (id: string): ReadoutTest => ({ testId: id, code: `T-${id}`, displayName: null, displayDescription: null, dimension: 'cloud', mandatory: true, active: true });
 const control = (id: string, patch: Partial<ReadoutControl> = {}): ReadoutControl => ({
   id, serviceId: 's1', ownCode: id.toUpperCase(), name: `Control ${id}`, origin: 'catalog', type: 'automated', interpretation: 'x', catalogDescription: 'x', dimensions: [],
-  tests: [test(`t-${id}`)], trustCriteria: ['security'], assignee: null, assignedUserIds: [], approval: 'approved', hasPendingChange: false, catalogCode: `IAC-${id}`, requirementCodes: ['CC6.1'], pointsOfFocus: [], documentary: [], ...patch,
+  tests: [test(`t-${id}`)], trustCriteria: ['security'], assignee: null, assignedUserIds: [], approval: 'approved', catalogCode: `IAC-${id}`, requirementCodes: ['CC6.1'], pointsOfFocus: [], documentary: [], ...patch,
 });
 const ASSETS: ReadoutAsset[] = [{ id: 'a1', name: 'cuenta-aws', type: 'cloud_service' }];
 const outcome = (c: ReadoutControl, result: AssetResult | null): ResultsIndex => (result ? new Map([[resultKey(c.id, `t-${c.id}`, 'a1'), result]]) : new Map());

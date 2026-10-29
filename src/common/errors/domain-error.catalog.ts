@@ -44,7 +44,6 @@ export const DOMAIN_ERROR_CATALOG: Record<
   SERVICE_NAME_TAKEN: { status: HttpStatus.CONFLICT, messageKey: 'service.name_taken' },
   SERVICE_HAS_EVALUATIONS: { status: HttpStatus.CONFLICT, messageKey: 'service.has_evaluations' },
   // Acciones de protección (contracts/modules/compliance-controls.md).
-  CHANGE_ALREADY_PENDING: { status: HttpStatus.CONFLICT, messageKey: 'control_change.already_pending' },
   CONTROL_RETIRED: { status: HttpStatus.CONFLICT, messageKey: 'control.retired' },
   RESPONSIBLE_ALREADY_EXISTS: { status: HttpStatus.CONFLICT, messageKey: 'responsible.already_exists' },
   RESPONSIBLE_IN_USE: { status: HttpStatus.CONFLICT, messageKey: 'responsible.in_use' },
@@ -54,14 +53,12 @@ export const DOMAIN_ERROR_CATALOG: Record<
   RISK_INACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'risk.inactive' },
   CAUSE_INACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'cause.inactive' },
   // Exclusiones (contracts/modules/compliance-audit.md).
-  ALREADY_DECIDED: { status: HttpStatus.CONFLICT, messageKey: 'exclusion.already_decided' },
   EXCLUSION_ALREADY_EXISTS: { status: HttpStatus.CONFLICT, messageKey: 'exclusion.already_exists' },
   EVALUATION_NOT_DEFINED: { status: HttpStatus.CONFLICT, messageKey: 'exclusion.evaluation_not_defined' },
   // Veredictos y evaluaciones del servicio (MD-155).
   TEST_NOT_MANUAL: { status: HttpStatus.CONFLICT, messageKey: 'verdict.test_not_manual' },
   TEST_DECIDED_BY_EVIDENCE: { status: HttpStatus.CONFLICT, messageKey: 'verdict.decided_by_evidence' },
   TEST_HAS_NO_ASSETS: { status: HttpStatus.CONFLICT, messageKey: 'verdict.test_has_no_assets' },
-  EVALUATION_ALREADY_ISSUED: { status: HttpStatus.CONFLICT, messageKey: 'evaluation_period.already_issued' },
   EVIDENCE_VERSION_CONFLICT: { status: HttpStatus.CONFLICT, messageKey: 'evidence.version_conflict' },
   FRAMEWORK_NOT_CONTRACTED: { status: HttpStatus.CONFLICT, messageKey: 'framework.not_contracted' },
   FRAMEWORK_NOT_AVAILABLE: { status: HttpStatus.CONFLICT, messageKey: 'framework.not_available' },
@@ -72,6 +69,11 @@ export const DOMAIN_ERROR_CATALOG: Record<
   STORAGE_UNAVAILABLE: { status: HttpStatus.SERVICE_UNAVAILABLE, messageKey: 'file.storage_unavailable' },
   SYSTEM_DESCRIPTION_NOT_A_FILE: { status: HttpStatus.NOT_FOUND, messageKey: 'file.not_a_file' },
   ACCESS_KEY_RATE_LIMITED: { status: HttpStatus.TOO_MANY_REQUESTS, messageKey: 'auth.access_key_rate_limited' },
+  ACTIVATION_CODE_INVALID: { status: HttpStatus.NOT_FOUND, messageKey: 'auth.activation_code_invalid' },
+  ACTIVATION_CODE_ALREADY_USED: { status: HttpStatus.CONFLICT, messageKey: 'auth.activation_code_already_used' },
+  ACTIVATION_CODE_EXPIRED: { status: HttpStatus.CONFLICT, messageKey: 'auth.activation_code_expired' },
+  ACTIVATION_CODE_EMAIL_MISMATCH: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'auth.activation_code_email_mismatch' },
+  ACTIVATION_CODE_RATE_LIMITED: { status: HttpStatus.TOO_MANY_REQUESTS, messageKey: 'auth.activation_code_rate_limited' },
   // Componente 3 (contracts/modules/onboarding-technical-control.md).
   ASSET_NOT_VALIDATED: { status: HttpStatus.CONFLICT, messageKey: 'asset.not_validated' },
   ASSET_ALREADY_ACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'asset.already_active' },

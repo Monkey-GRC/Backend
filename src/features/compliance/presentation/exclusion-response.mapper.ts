@@ -1,14 +1,12 @@
-import { ExclusionView } from '../application/use-cases/exclusion.use-cases';
 import { Dimension } from '../domain/control-readout';
-import { Person } from '../domain/repositories/exclusion.repository';
+import { ExclusionRecord, Person } from '../domain/repositories/exclusion.repository';
 import { neutralName } from './control-response.mapper';
 
 // Forma de contracts/modules/compliance-audit.md (MD-144). El test sale con su nombre neutro (D70): nunca el texto del comité ni el proveedor de la sonda.
 const day = (d: Date) => d.toISOString().slice(0, 10);
 const person = (p: Person) => ({ id: p.id, name: p.name, last_name: p.lastName });
 
-export const toExclusion = (v: ExclusionView, t: (key: string) => string, now: Date = new Date()) => {
-  const e = v.exclusion;
+export const toExclusion = (e: ExclusionRecord, t: (key: string) => string, now: Date = new Date()) => {
   return {
     id: e.id,
     service_id: e.serviceId,
@@ -19,8 +17,6 @@ export const toExclusion = (v: ExclusionView, t: (key: string) => string, now: D
     status: e.status,
     // Una aprobada cuya vigencia ya pasó deja de excluir: el activo vuelve a contar.
     is_expired: e.status === 'approved' && day(e.validUntil) < day(now),
-    // Pendiente y sin consultor que la apruebe: la pantalla avisa que hay que asignar uno (P24, D83).
-    awaiting_consultant: v.awaitingConsultant,
     valid_from: day(e.validFrom),
     valid_until: day(e.validUntil),
     proposed_by: person(e.proposedBy),

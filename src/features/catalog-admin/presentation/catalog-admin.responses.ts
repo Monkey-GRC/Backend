@@ -72,7 +72,7 @@ export class CatalogControlDimensionResponse {
   @ApiProperty({ enum: CONTROL_TYPES, description: 'Cómo se evalúa en esa dimensión.' }) type!: string;
   @ApiProperty({ description: 'Si requiere la sonda (evaluación automática).' }) requires_probe!: boolean;
   @ApiProperty({ description: 'Si requiere apoyo de IA (siempre etiquetado como generado por IA).' }) requires_ai!: boolean;
-  @ApiProperty({ description: 'Si requiere confirmación del consultor o auditor.' }) requires_compliance_confirmation!: boolean;
+  @ApiProperty({ description: 'Si requiere confirmación del admin_empresa.' }) requires_compliance_confirmation!: boolean;
 }
 
 export class ControlTestRefResponse {

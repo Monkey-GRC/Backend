@@ -68,8 +68,6 @@ export const toOverview = (serviceId: string, frameworks: OverviewFramework[], t
               unique_controls: f.technical.uniqueControls,
               failing: f.technical.failing,
               pending: f.technical.pending,
-              // El veredicto del consultor y el del auditor (D77, MD-155) todavía no se guardan.
-              assessments: { consultant: null, auditor: null },
             },
           }
         : {}),

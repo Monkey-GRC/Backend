@@ -52,7 +52,6 @@ export type ReadoutControl = {
   assignedUserIds: string[];
   /** Estado de aprobación de un control propio (la propuesta `create`); un control del catálogo siempre está aprobado. */
   approval: 'approved' | 'pending' | 'rejected';
-  hasPendingChange: boolean;
   catalogCode: string | null;
   requirementCodes: string[];
   pointsOfFocus: string[];
@@ -75,7 +74,6 @@ export type ControlReadout = {
   failing: FailingItem[];
   tests: Array<{ test: ReadoutTest; state: TestState }>;
   approval: 'approved' | 'pending' | 'rejected';
-  hasPendingChange: boolean;
 };
 
 /**
@@ -97,7 +95,7 @@ export function readinessOf(input: { state: ControlState; done: number; total: n
  * (lo que no se midió nunca es cumplimiento). Sin activos de la dimensión, el test no tiene sobre qué correr.
  *
  * Un test de la dimensión documental (`policy`) se resuelve por las evidencias que la persona entregó PARA ESE TEST EN ESTE CONTROL (D88, `testId` igual), con la
- * agregación de RN-04. La revisión del consultor es el veredicto. Un documento que el catálogo sugiere para el control sin decir a qué prueba sirve (`testId` nulo) no
+ * agregación de RN-04. La validación del admin_empresa es el veredicto (D96). Un documento que el catálogo sugiere para el control sin decir a qué prueba sirve (`testId` nulo) no
  * cuenta para ninguna. Sin evidencias, o sin revisar, está pendiente: nunca cumplido.
  */
 function stateOfTest(control: ReadoutControl, test: ReadoutTest, assets: readonly ReadoutAsset[], results: ResultsIndex): { state: TestState; failed: ReadoutAsset[] } {
@@ -146,7 +144,6 @@ export function readControl(control: ReadoutControl, assets: readonly ReadoutAss
     failing: [...byDimension.entries()].map(([dimension, affected]) => ({ dimension, affected })),
     tests: evaluated.map((e) => ({ test: e.test, state: e.state })),
     approval: control.approval,
-    hasPendingChange: control.hasPendingChange,
   };
 }
 

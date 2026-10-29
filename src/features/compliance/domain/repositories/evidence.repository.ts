@@ -19,7 +19,7 @@ export type SubmissionRecord = {
   submittedBy: PersonRef;
   submittedAt: Date;
   aiVerdict: string | null;
-  /** La revisión de QUIEN PREGUNTA (la del consultor para la empresa y el consultor; la del auditor para el auditor). Nunca la del otro rol (D84, SEG-61). */
+  /** La única revisión de la entrega, la del admin_empresa (D96). */
   review: EvidenceReviewRecord | null;
 };
 

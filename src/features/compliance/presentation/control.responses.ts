@@ -69,12 +69,11 @@ export class ControlListItemResponse {
   @ApiProperty({ enum: ['catalog', 'own'], enumName: 'ControlOrigin', description: '`catalog` viene del catálogo clonado · `own` lo creó la empresa.' }) origin!: string;
   @ApiProperty({ enum: CONTROL_TYPES, enumName: 'ControlType' }) type!: string;
   @ApiProperty({ enum: TRUST_CRITERIA, enumName: 'TrustCriterion', isArray: true, description: 'Categorías (criterios de confianza) a las que sirve el control.' }) trust_criteria!: string[];
-  @ApiProperty({ enum: APPROVAL, enumName: 'Approval', description: 'Un control propio nace `pending` hasta que el consultor lo aprueba; uno del catálogo siempre está `approved`.' }) approval!: string;
+  @ApiProperty({ enum: APPROVAL, enumName: 'Approval', description: 'Siempre `approved` desde D96: ya no hay consultor que apruebe un control propio.' }) approval!: string;
   @ApiProperty({ enum: READINESS, enumName: 'Readiness', description: READINESS_DOC }) readiness!: string;
   @ApiProperty({ type: ProgressResponse, description: 'Avance: pruebas cumplidas de las que cuentan. Informa; no decide el cumplimiento.' }) progress!: ProgressResponse;
   @ApiProperty({ type: CoverageResponse, description: 'Cobertura: cuánto de lo medible se midió.' }) coverage!: CoverageResponse;
   @ApiProperty({ type: ControlAssigneeResponse, nullable: true, description: 'Persona a cargo; `null` si no hay.' }) assigned_to!: ControlAssigneeResponse | null;
-  @ApiProperty({ description: 'Si hay una propuesta de cambio esperando decisión.' }) has_pending_change!: boolean;
   @ApiProperty({ type: ControlTechnicalResponse, required: false, description: 'Solo en la vista técnica (`view=technical`).' }) technical?: ControlTechnicalResponse;
 }
 
@@ -118,16 +117,3 @@ export class ControlDetailResponse extends ControlListItemResponse {
 }
 
 export class PersonRefResponse extends PersonResponse {}
-
-export class ControlChangeResponse {
-  @ApiProperty({ format: 'uuid' }) id!: string;
-  @ApiProperty({ format: 'uuid' }) control_id!: string;
-  @ApiProperty({ enum: ['create', 'retire', 'edit_dimensions', 'edit_interpretation'], enumName: 'ControlChangeType' }) change_type!: string;
-  @ApiProperty({ enum: APPROVAL, enumName: 'Approval', description: '`pending` espera la decisión del consultor.' }) status!: string;
-  @ApiProperty({ type: Object, nullable: true, description: 'Lo que se propone; su forma depende de `change_type`.' }) proposed_values!: Record<string, unknown> | null;
-  @ApiProperty({ type: PersonRefResponse }) requested_by!: PersonRefResponse;
-  @ApiProperty({ format: 'date-time' }) requested_at!: string;
-  @ApiProperty({ type: PersonRefResponse, nullable: true }) decided_by!: PersonRefResponse | null;
-  @ApiProperty({ nullable: true, description: 'Nota del consultor al decidir.' }) decision_note!: string | null;
-  @ApiProperty({ format: 'date-time', nullable: true }) decided_at!: string | null;
-}

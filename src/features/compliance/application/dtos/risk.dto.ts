@@ -52,7 +52,7 @@ export class LinkCauseControlDto {
 class PageQuery {
   @ApiPropertyOptional({ default: 1, minimum: 1, description: 'Página, desde 1.' }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @ApiPropertyOptional({ default: 25, minimum: 1, maximum: 100, description: 'Elementos por página.' }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) page_size = 25;
-  @ApiPropertyOptional({ enum: ['technical'], description: 'Vista técnica: agrega el bloque `technical`. Solo `auditor`, `consultor` y, por ahora, `admin_empresa`; para otro rol responde 403.' }) @IsOptional() @IsIn(['technical']) view?: 'technical';
+  @ApiPropertyOptional({ enum: ['technical'], description: 'Vista técnica: agrega el bloque `technical`. Solo `auditor` y `admin_empresa`; para otro rol responde 403.' }) @IsOptional() @IsIn(['technical']) view?: 'technical';
   @ApiPropertyOptional({ description: '`true` incluye también los dados de baja.' }) @IsOptional() @Transform(bool) @IsBoolean() include_inactive?: boolean;
   @ApiPropertyOptional({ enum: ['catalog', 'own'], enumName: 'ControlOrigin', description: '`catalog` clonados del catálogo · `own` creados por la empresa.' }) @IsOptional() @IsIn(['catalog', 'own']) origin?: 'catalog' | 'own';
 }
@@ -69,5 +69,5 @@ export class ListCausesQuery extends PageQuery {
 }
 
 export class ViewQuery {
-  @ApiPropertyOptional({ enum: ['technical'], description: 'Vista técnica: agrega el bloque `technical`. Solo `auditor`, `consultor` y, por ahora, `admin_empresa`; para otro rol responde 403.' }) @IsOptional() @IsIn(['technical']) view?: 'technical';
+  @ApiPropertyOptional({ enum: ['technical'], description: 'Vista técnica: agrega el bloque `technical`. Solo `auditor` y `admin_empresa`; para otro rol responde 403.' }) @IsOptional() @IsIn(['technical']) view?: 'technical';
 }

@@ -29,7 +29,6 @@ export type DomainErrorCode =
   | 'ORGANIZATION_NOT_DECLARED'
   | 'SERVICE_NAME_TAKEN'
   | 'SERVICE_HAS_EVALUATIONS'
-  | 'CHANGE_ALREADY_PENDING'
   | 'CONTROL_RETIRED'
   | 'RESPONSIBLE_ALREADY_EXISTS'
   | 'RESPONSIBLE_IN_USE'
@@ -40,14 +39,12 @@ export type DomainErrorCode =
   | 'RISK_INACTIVE'
   | 'CAUSE_INACTIVE'
   // Exclusiones (contracts/modules/compliance-audit.md, MD-144).
-  | 'ALREADY_DECIDED'
   | 'EXCLUSION_ALREADY_EXISTS'
   | 'EVALUATION_NOT_DEFINED'
   // Veredictos y evaluaciones del servicio (contracts/modules/compliance-audit.md y compliance-overview.md, MD-155).
   | 'TEST_NOT_MANUAL'
   | 'TEST_DECIDED_BY_EVIDENCE'
   | 'TEST_HAS_NO_ASSETS'
-  | 'EVALUATION_ALREADY_ISSUED'
   // Evidencias (contracts/modules/compliance-evidence.md, MD-126): dos subidas a la vez pidieron la misma versión; se reintenta.
   | 'EVIDENCE_VERSION_CONFLICT'
   // D47: el marco no está entre los que Monkey Admin contrató para la empresa.
@@ -62,6 +59,12 @@ export type DomainErrorCode =
   | 'SYSTEM_DESCRIPTION_NOT_A_FILE'
   // Activación de cuenta: demasiados intentos con la clave desde una misma dirección.
   | 'ACCESS_KEY_RATE_LIMITED'
+  // Activación de cuentas que crea el administrador (contracts/modules/users-team.md, D95, D96).
+  | 'ACTIVATION_CODE_INVALID'
+  | 'ACTIVATION_CODE_ALREADY_USED'
+  | 'ACTIVATION_CODE_EXPIRED'
+  | 'ACTIVATION_CODE_EMAIL_MISMATCH'
+  | 'ACTIVATION_CODE_RATE_LIMITED'
   // Componente 3 (contracts/modules/onboarding-technical-control.md).
   | 'ASSET_NOT_VALIDATED'
   | 'ASSET_ALREADY_ACTIVE'

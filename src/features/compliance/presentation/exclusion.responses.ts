@@ -21,14 +21,13 @@ export class ExclusionResponse {
   @ApiProperty({ type: ExclusionAssetResponse, description: 'Activo al que se le excluye esa prueba.' }) asset!: ExclusionAssetResponse;
   @ApiProperty({ description: 'Por qué se pide la exclusión.' }) justification!: string;
   @ApiProperty({ nullable: true, description: 'Sustento técnico. Obligatorio si la prueba es automática: la evaluación automática no se sobrescribe sin él.' }) technical_justification!: string | null;
-  @ApiProperty({ enum: ['pending', 'approved', 'rejected'], enumName: 'ExclusionStatus', description: '`pending` espera la decisión del consultor.' }) status!: string;
+  @ApiProperty({ enum: ['pending', 'approved', 'rejected'], enumName: 'ExclusionStatus', description: 'Hoy siempre `approved`: la crea y la decide el admin_empresa en un solo acto (D96). `pending` y `rejected` quedan sin uso.' }) status!: string;
   @ApiProperty({ description: 'Una exclusión aprobada cuya vigencia ya pasó deja de excluir: el activo vuelve a contar.' }) is_expired!: boolean;
-  @ApiProperty({ description: 'Pendiente y sin consultor que la apruebe: la pantalla avisa que hay que asignar uno (P24, D83).' }) awaiting_consultant!: boolean;
   @ApiProperty({ example: '2026-01-01', description: 'Inicio de la vigencia (la fija el período del servicio, no el cliente).' }) valid_from!: string;
   @ApiProperty({ example: '2026-12-31', description: 'Fin de la vigencia.' }) valid_until!: string;
-  @ApiProperty({ type: PersonResponse, description: 'Quién la propuso.' }) proposed_by!: PersonResponse;
+  @ApiProperty({ type: PersonResponse, description: 'Quién la creó (el admin_empresa).' }) proposed_by!: PersonResponse;
   @ApiProperty({ format: 'date-time' }) requested_at!: string;
-  @ApiProperty({ type: PersonResponse, nullable: true, description: 'Quién la decidió.' }) decided_by!: PersonResponse | null;
-  @ApiProperty({ nullable: true, description: 'Nota de la decisión (obligatoria al rechazar).' }) decision_note!: string | null;
+  @ApiProperty({ type: PersonResponse, nullable: true, description: 'Quién la decidió (la misma persona).' }) decided_by!: PersonResponse | null;
+  @ApiProperty({ nullable: true, description: 'Nota de la decisión (sin uso por ahora).' }) decision_note!: string | null;
   @ApiProperty({ format: 'date-time', nullable: true }) decided_at!: string | null;
 }

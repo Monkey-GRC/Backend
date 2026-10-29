@@ -50,9 +50,9 @@ describe('Lista de acciones de protección', () => {
     expect([page, page_size, total_pages]).toEqual([1, 25, Math.ceil(total / 25)]);
     const first = list[0];
     expect(Object.keys(first).sort()).toEqual(
-      ['approval', 'assigned_to', 'coverage', 'has_pending_change', 'id', 'name', 'origin', 'own_code', 'progress', 'readiness', 'trust_criteria', 'type'].sort(),
+      ['approval', 'assigned_to', 'coverage', 'id', 'name', 'origin', 'own_code', 'progress', 'readiness', 'trust_criteria', 'type'].sort(),
     );
-    expect(first).toMatchObject({ origin: 'catalog', own_code: null, approval: 'approved', has_pending_change: false, assigned_to: null });
+    expect(first).toMatchObject({ origin: 'catalog', own_code: null, approval: 'approved', assigned_to: null });
   });
 
   it('un servicio recién clonado y sin resultados está «Sin medir»: no inventa ningún cumplimiento', async () => {
@@ -109,7 +109,7 @@ describe('Quién puede pedir qué', () => {
     await monkey.get(listPath).expect(403);
   });
 
-  it('la vista técnica la piden el administrador (D81), el auditor y el consultor; el funcional recibe 403', async () => {
+  it('la vista técnica la piden el administrador (D81) y el auditor; el funcional recibe 403', async () => {
     await funcional.get(`${listPath}?view=technical`).expect(403);
     const id = (await items(a.agent))[0].id;
     await funcional.get(`/v1/controls/${id}?view=technical`).expect(403);
@@ -172,7 +172,7 @@ describe('Quién puede pedir qué', () => {
     await funcional.get(`/v1/controls/${mine.id}`).expect(200);
     await funcional.get(`/v1/controls/${other.id}`).expect(403);
     // y el administrador sigue viéndolas todas, con el nombre de la persona asignada
-    expect((await items(a.agent, `?assigned_to=${funcionalId}`)).map((c) => c.id)).toEqual([mine.id]);
+    expect((await items(a.agent)).find((c) => c.id === mine.id)?.assigned_to).toMatchObject({ user_id: funcionalId });
   });
 });
 
@@ -201,7 +201,6 @@ describe('Detalle de una acción', () => {
       approval: 'approved',
       interpretation: { text: expect.any(String), is_customized: false },
       readiness: 'not_measured',
-      has_pending_change: false,
     });
     expect(rich.dimensions[0]).toEqual({ dimension: expect.any(String), applies: expect.any(Boolean), type: expect.anything(), reason_not_applicable: null });
     if (rich.evidence.length) {

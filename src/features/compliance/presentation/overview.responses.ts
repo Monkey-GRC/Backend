@@ -50,17 +50,11 @@ export class OverviewEvaluationResponse {
   @ApiProperty({ nullable: true, example: false, description: '`true` si la fecha de corte está congelada; `false` si es «hoy». Nulo si no hay período definido.' }) cutoff_frozen!: boolean | null;
 }
 
-export class OverviewAssessmentsResponse {
-  @ApiProperty({ nullable: true, example: null, description: 'Veredicto del consultor. Todavía no se guarda (D77, MD-155).' }) consultant!: unknown;
-  @ApiProperty({ nullable: true, example: null, description: 'Veredicto del auditor. Todavía no se guarda (D77, MD-155).' }) auditor!: unknown;
-}
-
 export class OverviewFrameworkTechnicalResponse {
   @ApiProperty({ enum: ROLLUP_STATES, enumName: 'RollupState' }) state!: string;
   @ApiProperty({ example: 52, description: 'Controles únicos del marco.' }) unique_controls!: number;
   @ApiProperty({ isArray: true, type: String, description: 'Códigos de los controles que fallan.' }) failing!: string[];
   @ApiProperty({ isArray: true, type: String, description: 'Códigos de los controles pendientes (lo pendiente no cuenta como cumplido).' }) pending!: string[];
-  @ApiProperty({ type: OverviewAssessmentsResponse }) assessments!: OverviewAssessmentsResponse;
 }
 
 export class OverviewFrameworkResponse {
