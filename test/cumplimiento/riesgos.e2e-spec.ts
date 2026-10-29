@@ -71,8 +71,8 @@ describe('Lo que trae un servicio recién clonado', () => {
     expect(d.potential_impact.every((v: string) => ['reputational', 'financial_loss', 'regulatory_sanction', 'litigation', 'customer_trust_loss', 'operation_interruption'].includes(v))).toBe(true);
     expect(d.causes.length).toBe(rich.causes_count);
     const withControls = d.causes.find((c: any) => c.controls.length > 0);
-    expect(withControls.controls[0]).toEqual({ control_id: expect.any(String), own_code: null, name: expect.any(String), is_mandatory: true, effect: null });
-    expect(JSON.stringify(d.causes.map((c: any) => c.controls))).not.toMatch(/\b[A-Z]{2,4}-\d{1,3}\b/);
+    expect(withControls.controls[0]).toEqual({ control_id: expect.any(String), code: expect.stringMatching(/^[A-Z]+-\d+$/), own_code: null, name: expect.any(String), is_mandatory: true, effect: null });
+    expect(d.causes.every((c: any) => /^F\d+$/.test(c.code))).toBe(true); // D80: la causa y el control se muestran con su código
     expect(d).not.toHaveProperty('technical');
   });
 
@@ -112,7 +112,7 @@ describe('Crear y vincular (el árbol se lee completo)', () => {
     const tree = (await a.agent.get(`/v1/risks/${riskId}`).expect(200)).body.data;
     expect(tree.causes).toHaveLength(1);
     expect(tree.causes[0]).toMatchObject({ id: causeId, code: 'F057', failure_category: 'information_technology' });
-    expect(tree.causes[0].controls).toEqual([{ control_id: controlId, own_code: null, name: expect.any(String), is_mandatory: true, effect: 'probability' }]);
+    expect(tree.causes[0].controls).toEqual([{ control_id: controlId, code: expect.stringMatching(/^[A-Z]+-\d+$/), own_code: null, name: expect.any(String), is_mandatory: true, effect: 'probability' }]);
     expect((await a.agent.get(`/v1/causes/${causeId}`).expect(200)).body.data.risks).toEqual([{ id: riskId, code: 'R011', name: RISK.name }]);
     expect((await all(a.agent, risks(a, '?origin=own')))[0].causes_count).toBe(1);
   });

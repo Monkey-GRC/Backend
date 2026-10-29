@@ -54,8 +54,6 @@ export class ControlTechnicalTestResponse {
 }
 
 export class ControlTechnicalResponse {
-  @ApiProperty({ nullable: true, example: 'IAC-12', description: 'Código del control en el catálogo. Los controles propios no lo tienen.' }) control_code!: string | null;
-  @ApiProperty({ isArray: true, type: String, example: ['CC6.1'], description: 'Requisitos del marco a los que sirve.' }) requirement_codes!: string[];
   @ApiProperty({ isArray: true, type: String, description: 'Puntos de enfoque a los que sirve.' }) points_of_focus!: string[];
   @ApiProperty({ enum: CONTROL_STATES, enumName: 'ControlState', description: 'Estado del control según el motor del comité (derivado, nunca almacenado).' }) control_state!: string;
   @ApiProperty({ example: 3, description: 'Pruebas del control.' }) tests_count!: number;
@@ -64,7 +62,9 @@ export class ControlTechnicalResponse {
 
 export class ControlListItemResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
-  @ApiProperty({ nullable: true, example: 'C01', description: 'Numeración de los controles propios de la empresa. Un control del catálogo no la tiene: se identifica por su nombre.' }) own_code!: string | null;
+  @ApiProperty({ example: 'IAC-12', description: 'Código que identifica al control y se muestra siempre (D80): el del catálogo (`IAC-12`) o el propio (`C01`).' }) code!: string;
+  @ApiProperty({ isArray: true, type: String, example: ['CC6.1'], description: 'Requisitos del marco que cubre el control. Un control propio no cubre ninguno.' }) requirement_codes!: string[];
+  @ApiProperty({ nullable: true, example: 'C01', description: 'Numeración de los controles propios de la empresa; un control del catálogo no la tiene.' }) own_code!: string | null;
   @ApiProperty() name!: string;
   @ApiProperty({ enum: ['catalog', 'own'], enumName: 'ControlOrigin', description: '`catalog` viene del catálogo clonado · `own` lo creó la empresa.' }) origin!: string;
   @ApiProperty({ enum: CONTROL_TYPES, enumName: 'ControlType' }) type!: string;
@@ -104,6 +104,7 @@ export class EvidenceRequirementSummaryResponse {
 
 export class ControlCauseRefResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ example: 'F001', description: 'Código de la causa (D80).' }) code!: string;
   @ApiProperty() name!: string;
 }
 
