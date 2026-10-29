@@ -65,6 +65,12 @@ export type DomainErrorCode =
   | 'ACTIVATION_CODE_EXPIRED'
   | 'ACTIVATION_CODE_EMAIL_MISMATCH'
   | 'ACTIVATION_CODE_RATE_LIMITED'
+  // El equipo y el reparto por dimensión (contracts/modules/users-team.md, D96).
+  | 'LAST_ADMIN'
+  | 'USER_NOT_ACTIVATED'
+  | 'USER_ALREADY_ACTIVE'
+  | 'USER_LACKS_DIMENSION'
+  | 'DIMENSION_IN_USE'
   // Componente 3 (contracts/modules/onboarding-technical-control.md).
   | 'ASSET_NOT_VALIDATED'
   | 'ASSET_ALREADY_ACTIVE'

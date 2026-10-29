@@ -160,7 +160,7 @@ describe('Quién puede pedir qué', () => {
 
   it('el funcional ve solo la acción que tiene asignada; las demás son 403', async () => {
     const [mine, other] = (await items(a.agent, '?page_size=100')).slice(0, 2);
-    await owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, assigned_by) values (gen_random_uuid(), $1, $2, $3, $4)`, [
+    await owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, dimension, assigned_by) select gen_random_uuid(), $1, $2, $3::uuid, d.dimension, $4 from (select distinct t.dimension from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $3::uuid) d`, [
       a.companyId,
       funcionalId,
       mine.id,

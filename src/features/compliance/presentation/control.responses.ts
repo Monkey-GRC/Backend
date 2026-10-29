@@ -69,7 +69,7 @@ export class ControlListItemResponse {
   @ApiProperty({ enum: ['catalog', 'own'], enumName: 'ControlOrigin', description: '`catalog` viene del catálogo clonado · `own` lo creó la empresa.' }) origin!: string;
   @ApiProperty({ enum: CONTROL_TYPES, enumName: 'ControlType' }) type!: string;
   @ApiProperty({ enum: TRUST_CRITERIA, enumName: 'TrustCriterion', isArray: true, description: 'Categorías (criterios de confianza) a las que sirve el control.' }) trust_criteria!: string[];
-  @ApiProperty({ enum: APPROVAL, enumName: 'Approval', description: 'Siempre `approved` desde D96: ya no hay consultor que apruebe un control propio.' }) approval!: string;
+  @ApiProperty({ enum: APPROVAL, enumName: 'Approval', description: 'Siempre `approved` desde D96: el `admin_empresa` crea el control propio y nace aprobado.' }) approval!: string;
   @ApiProperty({ enum: READINESS, enumName: 'Readiness', description: READINESS_DOC }) readiness!: string;
   @ApiProperty({ type: ProgressResponse, description: 'Avance: pruebas cumplidas de las que cuentan. Informa; no decide el cumplimiento.' }) progress!: ProgressResponse;
   @ApiProperty({ type: CoverageResponse, description: 'Cobertura: cuánto de lo medible se midió.' }) coverage!: CoverageResponse;

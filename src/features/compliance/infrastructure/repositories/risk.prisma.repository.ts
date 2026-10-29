@@ -6,6 +6,7 @@ import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.inser
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { Page } from '../../../../common/pagination/page';
 import { nextCode } from '../../domain/risk-types';
+import { loadControlResponsibles, usersOf } from '../control-responsibles';
 import {
   CauseInput, CauseNode, CausePatch, CauseRecord, Changed, ControlLink, EvaluationEntry, GraphRef, RiskEvaluation, RiskGraph, RiskInput, RiskNode, RiskPatch, RiskRecord, RiskRepository,
   RiskTreatmentRecord,
@@ -57,13 +58,15 @@ export class RiskPrismaRepository extends RiskRepository {
                 select: {
                   id: true, ownCode: true, name: true, isActive: true,
                   control: { select: { name: true, code: true } },
-                  userControlAssignments: { select: { userId: true } },
                 },
               },
             },
           },
         },
       });
+
+      // D96 · Qué controles son de qué funcional sale del responsable efectivo por dimensión.
+      const responsibles = await loadControlResponsibles(tx, serviceId, [...new Set(causes.flatMap((c) => c.causeControls.map((l) => l.clientControl.id)))]);
 
       return {
         serviceId,
@@ -80,7 +83,7 @@ export class RiskPrismaRepository extends RiskRepository {
             .map<ControlLink>((l) => ({
               controlId: l.clientControl.id, ownCode: l.clientControl.ownCode, name: l.clientControl.control?.name ?? l.clientControl.name ?? l.clientControl.ownCode,
               origin: l.clientControl.control ? 'catalog' : 'own', catalogCode: l.clientControl.control?.code ?? null, isMandatory: l.isMandatory, effect: l.effect,
-              assignedUserIds: l.clientControl.userControlAssignments.map((a) => a.userId),
+              assignedUserIds: usersOf(responsibles.byControl.get(l.clientControl.id)),
             })),
         })),
       };

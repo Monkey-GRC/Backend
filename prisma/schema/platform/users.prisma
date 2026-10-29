@@ -2,7 +2,6 @@ enum UserRole {
   admin_monkey
   admin_empresa
   funcional
-  consultor
   auditor
 
   @@map("user_role")
@@ -19,16 +18,6 @@ enum UserStatus {
 
   @@map("user_status")
 
-  @@schema("platform")
-}
-
-// active: puede entrar · suspended: la empresa le cortó el acceso (solo la empresa lo reactiva) · revoked: admin_monkey la retiró.
-enum ConsultantAssignmentStatus {
-  active
-  suspended
-  revoked
-
-  @@map("consultant_assignment_status")
   @@schema("platform")
 }
 
@@ -76,11 +65,11 @@ model User {
 
   company    Company     @relation(fields: [companyId], references: [id])
 
+  dimensions                UserDimension[]
+  dimensionOwnerships       ServiceDimensionOwner[] @relation("DimensionOwner")
+  dimensionOwnershipsGranted ServiceDimensionOwner[] @relation("DimensionOwnerAssignedBy")
   controlAssignments        UserControlAssignment[] @relation("AssignedUser")
   controlAssignmentsGranted UserControlAssignment[] @relation("AssignedByUser")
-  consultantAssignments        ConsultantAssignment[]  @relation("ConsultantUser")
-  consultantAssignmentsGranted ConsultantAssignment[]  @relation("ConsultantAssignedByUser")
-  consultantAssignmentsChanged ConsultantAssignment[]  @relation("ConsultantStatusChangedByUser")
   sessions                  Session[]
   activationCodes           UserActivationCode[]    @relation("ActivationCodeUser")
   activationCodesCreated    UserActivationCode[]    @relation("ActivationCodeCreatedBy")
@@ -115,6 +104,8 @@ model UserControlAssignment {
   companyId       String @map("company_id") @db.Uuid
   userId   String   @map("user_id") @db.Uuid
   clientControlId String @map("client_control_id") @db.Uuid
+  // D96 · La excepción es por control Y dimensión: una fila por par, que manda sobre el responsable del servicio en esa dimensión.
+  dimension Dimension
   assignedBy String   @map("assigned_by") @db.Uuid
   assignedAt DateTime @default(now()) @map("assigned_at")
 
@@ -123,33 +114,51 @@ model UserControlAssignment {
   clientControl ClientControl @relation(fields: [clientControlId], references: [id])
   company        Company       @relation(fields: [companyId], references: [id])
 
-  @@unique([userId, clientControlId])
+  @@unique([clientControlId, dimension])
   @@index([companyId])
+  @@index([userId])
   @@index([clientControlId])
   @@map("user_control_assignments")
   @@schema("platform")
 }
 
-// El único acceso entre empresas (modelo-datos.md §5.2, D64): el consultor es de Next y su cuenta vive en la empresa interna de Monkey; a cada
-// empresa que atiende entra solo por una asignación activa. La crea admin_monkey; la empresa puede suspenderla y solo la empresa la reactiva.
-model ConsultantAssignment {
-  id               String                     @id @default(uuid()) @db.Uuid
-  consultantUserId String                     @map("consultant_user_id") @db.Uuid
-  companyId        String                     @map("company_id") @db.Uuid
-  assignedBy       String                     @map("assigned_by") @db.Uuid
-  status           ConsultantAssignmentStatus @default(active)
-  statusChangedBy  String?                    @map("status_changed_by") @db.Uuid
-  assignedAt       DateTime                   @default(now()) @map("assigned_at")
-  statusChangedAt  DateTime?                  @map("status_changed_at")
+// D96 · La especialidad de un funcional: una o más de las cinco dimensiones. Es un atributo de la persona, no un rol. Que el usuario sea `funcional` lo impone la aplicación.
+model UserDimension {
+  id        String    @id @default(uuid()) @db.Uuid
+  companyId String    @map("company_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  dimension Dimension
+  createdAt DateTime  @default(now()) @map("created_at")
 
-  consultantUser      User    @relation("ConsultantUser", fields: [consultantUserId], references: [id])
-  assignedByUser      User    @relation("ConsultantAssignedByUser", fields: [assignedBy], references: [id])
-  statusChangedByUser User?   @relation("ConsultantStatusChangedByUser", fields: [statusChangedBy], references: [id])
-  company             Company @relation(fields: [companyId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 
-  @@unique([consultantUserId, companyId])
+  @@unique([userId, dimension])
   @@index([companyId])
-  @@map("consultant_assignments")
+  @@map("user_dimensions")
+  @@schema("platform")
+}
+
+// D96 · El responsable principal de un servicio en una dimensión: un funcional con esa especialidad. Una fila por servicio y dimensión. El responsable efectivo de un
+// control en una dimensión es su excepción (`user_control_assignments`) o, si no hay, esta fila; no se guarda una fila por control.
+model ServiceDimensionOwner {
+  id         String    @id @default(uuid()) @db.Uuid
+  companyId  String    @map("company_id") @db.Uuid
+  serviceId  String    @map("service_id") @db.Uuid
+  dimension  Dimension
+  userId     String    @map("user_id") @db.Uuid
+  assignedBy String    @map("assigned_by") @db.Uuid
+  assignedAt DateTime  @default(now()) @map("assigned_at")
+
+  user           User    @relation("DimensionOwner", fields: [userId], references: [id])
+  assignedByUser User    @relation("DimensionOwnerAssignedBy", fields: [assignedBy], references: [id])
+  service        Service @relation(fields: [serviceId], references: [id])
+  company        Company @relation(fields: [companyId], references: [id])
+
+  @@unique([serviceId, dimension])
+  @@index([companyId])
+  @@index([userId])
+  @@map("service_dimension_owners")
   @@schema("platform")
 }
 

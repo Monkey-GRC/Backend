@@ -3,6 +3,7 @@ import { Dimension, ReadoutControl, resultKey } from '../domain/control-readout'
 import { AssetResult } from '../domain/engine/states';
 import { ServiceReadoutData } from '../domain/repositories/control.repository';
 import { DocumentaryEvidence } from '../domain/evidence';
+import { DIMENSION_ORDER, loadControlResponsibles, usersOf } from './control-responsibles';
 import { requirementState, reviewsOf } from './repositories/evidence-review.mapper';
 
 // Orden canónico de las categorías (enums.md `trust_criterion`).
@@ -31,10 +32,11 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
       },
       dimensions: { select: { dimension: true, type: true, reasonNotApplicable: true } },
       tests: { select: { testId: true, test: { select: { code: true, dimension: true, displayName: true, displayDescription: true } } } },
-      // Puede haber más de una persona asignada; el contrato muestra una (la primera) y el permiso cuenta todas. MD-158 define cómo se reparte.
-      userControlAssignments: { orderBy: { assignedAt: 'asc' }, select: { user: { select: { id: true, name: true, lastName: true } } } },
     },
   });
+
+  // D96 · Quién es responsable de qué: la excepción del control o el principal del servicio, por dimensión. De ahí sale lo que un funcional ve.
+  const responsibles = await loadControlResponsibles(tx, serviceId, rows.map((r) => r.id));
 
   // D88 · Las evidencias requeridas de estas acciones, con el estado de su última entrega según la revisión del admin_empresa (la que consume el motor, D96): de ellas sale el estado
   // de cada prueba documental en su control. Una sola consulta para todo el servicio.
@@ -59,7 +61,9 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
       requirementCodes.add(req.code);
       pointsOfFocus.add(`${req.code}-POF${link.pointOfFocus.number}`);
     }
-    const assigned = c.userControlAssignments[0]?.user;
+    const byDimension = responsibles.byControl.get(c.id);
+    const assignedIds = usersOf(byDimension);
+    const assigned = assignedIds[0] ? responsibles.people.get(assignedIds[0]) : undefined;
     return {
       id: c.id,
       serviceId: c.serviceId,
@@ -75,7 +79,8 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
       // Un control propio no llega a ningún requisito: su categoría es la que eligió la empresa.
       trustCriteria: c.control ? [...criteria].sort((a, b) => CRITERIA_ORDER.indexOf(a) - CRITERIA_ORDER.indexOf(b)) : c.trustCriterion ? [c.trustCriterion] : [],
       assignee: assigned ? { userId: assigned.id, name: assigned.name, lastName: assigned.lastName } : null,
-      assignedUserIds: c.userControlAssignments.map((a) => a.user.id),
+      assignedUserIds: assignedIds,
+      responsibleByDimension: Object.fromEntries(DIMENSION_ORDER.flatMap((d) => (byDimension?.has(d) ? [[d, byDimension.get(d)]] : []))),
       approval: 'approved',
       catalogCode: c.control?.code ?? null,
       requirementCodes: [...requirementCodes].sort(),

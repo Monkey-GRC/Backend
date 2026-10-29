@@ -61,7 +61,6 @@ model Company {
   frameworks CompanyFramework[]
   users      User[]
   apiKeys    ApiKey[]
-  consultantAssignments ConsultantAssignment[]
   organization              Organization?
   organizationRegulations   OrganizationRegulation[]
   organizationResponsibles  OrganizationResponsible[]
@@ -86,6 +85,8 @@ model Company {
   clientControlDimensions ClientControlDimension[]
   clientControlTests    ClientControlTest[]
   userControlAssignments UserControlAssignment[]
+  userDimensions         UserDimension[]
+  serviceDimensionOwners ServiceDimensionOwner[]
   actionPlans           ActionPlan[]
   mitigations           Mitigation[]
   residualRisks         ResidualRisk[]

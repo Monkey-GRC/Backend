@@ -9,6 +9,7 @@ import { ReviewerRole } from '../../domain/evidence';
 import {
   ControlEvidenceFacts, EvidenceAccess, EvidenceRepository, NewRequirement, NewReview, NewSubmission, RequirementRecord, ReviewSaved, SubmissionRecord,
 } from '../../domain/repositories/evidence.repository';
+import { loadControlResponsibles, usersOf } from '../control-responsibles';
 import { captureControlStates, recordControlStateChanges } from '../control-state-events';
 import { reviewsOf, toReviewRecord, versionOf } from './evidence-review.mapper';
 
@@ -52,14 +53,15 @@ export class EvidencePrismaRepository extends EvidenceRepository {
     super();
   }
 
-  listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ assignedUserIds: string[]; requirements: RequirementRecord[] } | null> {
+  listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ assignedUserIds: string[]; responsibleByDimension: Record<string, string>; requirements: RequirementRecord[] } | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const control = await tx.clientControl.findFirst({
         where: { id: controlId },
-        select: { userControlAssignments: { select: { userId: true } }, evidenceRequirements: { orderBy: { sequence: 'asc' }, select: requirementSelect(viewer) } },
+        select: { serviceId: true, evidenceRequirements: { orderBy: { sequence: 'asc' }, select: requirementSelect(viewer) } },
       });
       if (!control) return null;
-      return { assignedUserIds: control.userControlAssignments.map((a) => a.userId), requirements: control.evidenceRequirements.map(toRequirement) };
+      const dims = (await loadControlResponsibles(tx, control.serviceId, [controlId])).byControl.get(controlId);
+      return { assignedUserIds: usersOf(dims), responsibleByDimension: Object.fromEntries(dims ?? []), requirements: control.evidenceRequirements.map(toRequirement) };
     });
   }
 
@@ -161,7 +163,6 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         where: { id: controlId },
         select: {
           id: true, serviceId: true, isActive: true, ownCode: true,
-          userControlAssignments: { select: { userId: true } },
           dimensions: { select: { dimension: true, reasonNotApplicable: true } },
           tests: { select: { testId: true, test: { select: { code: true, displayName: true, dimension: true } } } },
           evidenceRequirements: { select: { sequence: true, validityWithinPeriod: true } },
@@ -174,9 +175,11 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         const sibling = await tx.evidenceRequirement.findFirst({ where: { clientControl: { serviceId: c.serviceId } }, select: { validityWithinPeriod: true } });
         validity = sibling?.validityWithinPeriod ?? null;
       }
+      const dims = (await loadControlResponsibles(tx, c.serviceId, [c.id])).byControl.get(c.id);
       return {
         controlId: c.id, serviceId: c.serviceId, active: c.isActive, ownCode: c.ownCode,
-        assignedUserIds: c.userControlAssignments.map((a) => a.userId),
+        assignedUserIds: usersOf(dims),
+        responsibleByDimension: Object.fromEntries(dims ?? []),
         dimensions: c.dimensions.filter((d) => d.reasonNotApplicable === null).map((d) => d.dimension),
         tests: c.tests.map((t) => ({ id: t.testId, code: t.test.code, displayName: t.test.displayName, dimension: t.test.dimension })),
         validityWithinPeriod: validity,
@@ -234,12 +237,14 @@ export class EvidencePrismaRepository extends EvidenceRepository {
   private async accessOf(tx: TransactionClient, requirementId: string): Promise<EvidenceAccess | null> {
     const r = await tx.evidenceRequirement.findFirst({
       where: { id: requirementId },
-      select: { id: true, clientControl: { select: { id: true, serviceId: true, isActive: true, userControlAssignments: { select: { userId: true } } } } },
+      select: { id: true, dimension: true, clientControl: { select: { id: true, serviceId: true, isActive: true } } },
     });
     if (!r) return null;
+    // D96 · A quien le toca el requerimiento es al responsable de SU dimensión en este control, no a cualquiera que atienda otra dimensión del control.
+    const responsible = (await loadControlResponsibles(tx, r.clientControl.serviceId, [r.clientControl.id])).byControl.get(r.clientControl.id)?.get(r.dimension as never);
     return {
       requirementId: r.id, controlId: r.clientControl.id, serviceId: r.clientControl.serviceId, controlActive: r.clientControl.isActive,
-      assignedUserIds: r.clientControl.userControlAssignments.map((a) => a.userId),
+      assignedUserIds: responsible ? [responsible] : [],
     };
   }
 }

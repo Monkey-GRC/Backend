@@ -18,7 +18,7 @@ import { ViewMode, viewModeOf } from '../view-access';
 // MD-126 · Evidencias de un control (contracts/modules/compliance-evidence.md, D84). La empresa solo APORTA: sube `admin_empresa` y el `funcional` dueño del control;
 // el auditor lee y descarga (lo impone @Roles en la ruta). Subir no valida: la validación es del admin_empresa (MD-127, D96).
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
-/** Un control de la propia empresa que el `funcional` no tiene asignado: no es de otra empresa (eso sería 404), es que no le toca (403). */
+/** Algo de la propia empresa de lo que el `funcional` no es responsable: no es de otra empresa (eso sería 404), es que no le toca (403). */
 const assertCanTouch = (p: Principal, assignedUserIds: string[]): void => {
   if (p.role === 'funcional' && !assignedUserIds.includes(p.userId)) throw new DomainError('FORBIDDEN');
 };
@@ -34,7 +34,9 @@ export class ListEvidenceUseCase {
     const data = await this.repo.listByControl(scopeOf(p), controlId, reviewerRoleFor(p.role));
     if (!data) throw new DomainError('NOT_FOUND');
     assertCanTouch(p, data.assignedUserIds);
-    return { view: mode, requirements: data.requirements };
+    // D96, SEG-66 · El funcional recibe solo los requerimientos de las dimensiones de las que es responsable en este control.
+    const requirements = p.role === 'funcional' ? data.requirements.filter((r) => data.responsibleByDimension[r.dimension] === p.userId) : data.requirements;
+    return { view: mode, requirements };
   }
 }
 
@@ -137,6 +139,8 @@ export class UploadTestEvidenceUseCase {
     if (!facts.active) throw new DomainError('CONTROL_RETIRED');
     const test = facts.tests.find((t) => t.id === testId);
     if (!test) throw new DomainError('NOT_FOUND');
+    // D96 · Además de ser responsable del control en alguna dimensión, lo es de la dimensión DE ESTA prueba.
+    assertCanTouch(p, facts.responsibleByDimension[test.dimension] ? [facts.responsibleByDimension[test.dimension]] : []);
     if (test.dimension !== 'policy') throw new ValidationException([{ field: 'test_id', code: 'test.not_documentary' }]);
     // El archivo se comprueba ANTES de crear el lugar donde quedará: uno rechazado no deja un requerimiento vacío.
     assertEvidenceFile(file);

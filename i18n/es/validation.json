@@ -40,5 +40,6 @@
   "cutoff_out_of_period": "La fecha de corte debe estar dentro del período.",
   "cutoff_in_future": "La fecha de corte no puede ser futura.",
   "test_not_in_control": "Ese control no lleva esa prueba.",
-  "test_not_documentary": "Solo una prueba documental se respalda con un documento."
+  "test_not_documentary": "Solo una prueba documental se respalda con un documento.",
+  "dimensions_not_allowed": "Esta cuenta no lleva especialidades."
 }
