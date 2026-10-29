@@ -19,7 +19,7 @@ const companyFields = (c: Company) => ({
   isolation_strategy: c.isolationStrategy,
   status: c.status,
   created_at: c.createdAt.toISOString(),
-  // D95: solo una empresa archivada trae estos campos.
+  // D97: solo una empresa archivada trae estos campos.
   deactivated_at: iso(c.archive?.deactivatedAt ?? null),
   archive_until: iso(c.archive?.archiveUntil ?? null),
   deactivation_reason_code: c.archive?.reasonCode ?? null,

@@ -1,4 +1,4 @@
--- D95 · Archivar una empresa y borrarla definitivamente (enmienda D41).
+-- D97 · Archivar una empresa y borrarla definitivamente (enmienda D41).
 --
 -- Cuatro piezas, todas dentro de la base para que no dependan de que la app se porte bien:
 --

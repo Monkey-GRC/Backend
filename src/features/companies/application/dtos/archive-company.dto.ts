@@ -5,10 +5,10 @@ import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Matches, Max, MaxLength,
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 
 export const DEACTIVATION_REASONS = ['non_payment', 'client_request', 'other'] as const;
-export const DEFAULT_RETENTION_DAYS = 180; // 6 meses (D95)
+export const DEFAULT_RETENTION_DAYS = 180; // 6 meses (D97)
 export const MIN_RETENTION_DAYS = 7;
 
-// contracts/modules/monkey-admin.md — POST /v1/companies/{id}/deactivation (D95).
+// contracts/modules/monkey-admin.md — POST /v1/companies/{id}/deactivation (D97).
 export class ArchiveCompanyDto {
   @ApiProperty({ example: 'Next Audit & Consulting S.A.S.', description: 'La razón social, escrita **exactamente** como está registrada.' })
   @IsString()

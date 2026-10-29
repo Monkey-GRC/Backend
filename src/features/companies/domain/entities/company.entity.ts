@@ -2,7 +2,7 @@ export type IsolationStrategy = 'dedicated' | 'shared';
 export type CompanyStatus = 'active' | 'suspended' | 'deactivated';
 export type DeactivationReason = 'non_payment' | 'client_request' | 'other';
 
-// D95: lo que se sabe de una empresa archivada. Existe solo con status = deactivated.
+// D97: lo que se sabe de una empresa archivada. Existe solo con status = deactivated.
 export type CompanyArchive = {
   deactivatedAt: Date;
   archiveUntil: Date;

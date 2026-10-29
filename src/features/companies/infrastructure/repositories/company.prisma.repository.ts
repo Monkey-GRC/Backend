@@ -183,7 +183,7 @@ export class CompanyPrismaRepository extends CompanyRepository {
     return this.prisma.withScope(scope, async (tx) => {
       const where = {
         id: { not: query.excludeCompanyId },
-        // Las archivadas (D95) salen del listado por defecto; se ven con el filtro `status=deactivated`.
+        // Las archivadas (D97) salen del listado por defecto; se ven con el filtro `status=deactivated`.
         status: query.status ?? { not: 'deactivated' as const },
       };
       const field = query.sort.replace('-', '') === 'name' ? 'name' : 'createdAt';

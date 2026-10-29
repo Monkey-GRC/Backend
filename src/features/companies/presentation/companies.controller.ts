@@ -95,7 +95,7 @@ export class CompaniesController {
   }
 
   // Va antes que `:id`: «pending-purge» no es un UUID.
-  @ApiOperation({ summary: 'Empresas archivadas y cuándo se borran', description: 'D95. Las empresas archivadas, de la que se borra antes a la que se borra después, con los días que faltan. Es lo que Monkey Admin muestra para saber cuáles están por vencer.' })
+  @ApiOperation({ summary: 'Empresas archivadas y cuándo se borran', description: 'D97. Las empresas archivadas, de la que se borra antes a la que se borra después, con los días que faltan. Es lo que Monkey Admin muestra para saber cuáles están por vencer.' })
   @ApiItems(PendingPurgeCompanyResponse, 'Empresas archivadas.')
   @Get('pending-purge')
   async pendingPurge(@CurrentUser() principal: Principal) {
@@ -123,7 +123,7 @@ export class CompaniesController {
 
   @ApiOperation({
     summary: 'Archivar una empresa',
-    description: 'D95. Corta el acceso de todos sus usuarios, detiene las evaluaciones y fija cuándo se borra todo (`retention_days`, 180 por defecto). Los datos se conservan hasta entonces y se toma una copia cifrada. Pide la razón social exacta, un motivo y el código TOTP **de quien archiva**. Reversible con `reactivation` dentro del plazo.',
+    description: 'D97. Corta el acceso de todos sus usuarios, detiene las evaluaciones y fija cuándo se borra todo (`retention_days`, 180 por defecto). Los datos se conservan hasta entonces y se toma una copia cifrada. Pide la razón social exacta, un motivo y el código TOTP **de quien archiva**. Reversible con `reactivation` dentro del plazo.',
   })
   @ApiData(CompanyDetailResponse, 'Empresa archivada.')
   @ApiDomainErrors('CONFIRMATION_MISMATCH', 'COMPANY_ALREADY_DEACTIVATED', 'MFA_CODE_INVALID', 'ACCOUNT_LOCKED')
@@ -146,7 +146,7 @@ export class CompaniesController {
 
   @ApiOperation({
     summary: 'Reactivar una empresa archivada',
-    description: 'D95. Solo dentro del plazo. La empresa vuelve a `active` y el plazo desaparece; sus usuarios deben iniciar sesión de nuevo. Pide un motivo y el código TOTP de quien reactiva.',
+    description: 'D97. Solo dentro del plazo. La empresa vuelve a `active` y el plazo desaparece; sus usuarios deben iniciar sesión de nuevo. Pide un motivo y el código TOTP de quien reactiva.',
   })
   @ApiData(CompanyDetailResponse, 'Empresa reactivada.')
   @ApiDomainErrors('COMPANY_NOT_DEACTIVATED', 'COMPANY_ARCHIVE_EXPIRED', 'MFA_CODE_INVALID', 'ACCOUNT_LOCKED')

@@ -1,4 +1,4 @@
--- D95 · Archivar una empresa y borrarla definitivamente al vencer un plazo.
+-- D97 · Archivar una empresa y borrarla definitivamente al vencer un plazo.
 --
 -- `deactivated` es el estado de una empresa archivada: sin acceso ni motores, con sus datos intactos hasta `archive_until`.
 -- Los cuatro campos del archivado se vacían al reactivar. `company_purge_log` es lo único que sobrevive al borrado definitivo:

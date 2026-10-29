@@ -9,7 +9,7 @@ import { verifyTotp } from '../../domain/totp';
 import { MfaAttempts } from './mfa-attempts.service';
 import { MfaPolicy } from './mfa-policy.service';
 
-// Pide un código vigente de la app de la PROPIA persona antes de una acción grave (D95: archivar y reactivar una empresa). Es el mismo código y las mismas
+// Pide un código vigente de la app de la PROPIA persona antes de una acción grave (D97: archivar y reactivar una empresa). Es el mismo código y las mismas
 // reglas del ingreso (D94): un paso ya usado no sirve otra vez y un código equivocado suma al bloqueo de la cuenta.
 @Injectable()
 export class StepUp {

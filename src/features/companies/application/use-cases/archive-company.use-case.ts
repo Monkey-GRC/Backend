@@ -20,7 +20,7 @@ export type ArchiveCompanyInput = {
 
 const DAY_MS = 86_400_000;
 
-// D95 · Archivar una empresa: corta accesos y motores y fija cuándo se borra todo. Es reversible hasta ese día.
+// D97 · Archivar una empresa: corta accesos y motores y fija cuándo se borra todo. Es reversible hasta ese día.
 @Injectable()
 export class ArchiveCompanyUseCase {
   constructor(
