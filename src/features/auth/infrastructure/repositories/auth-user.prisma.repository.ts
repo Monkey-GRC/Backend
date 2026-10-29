@@ -4,7 +4,8 @@ import { PrismaService } from '../../../../infrastructure/database/prisma.servic
 import { AuthUser, UserCredentials } from '../../domain/entities/auth-user.entity';
 import { AuthUserRepository } from '../../domain/repositories/auth-user.repository';
 
-type LoginCandidateRow = { id: string; company_id: string; password_hash: string };
+// `status` ya viene ajustado por la base: una persona de una empresa archivada (D95) sale `inactive` aunque su propia cuenta esté activa.
+type LoginCandidateRow = { id: string; company_id: string; password_hash: string; status: UserCredentials['status'] };
 
 const CREDENTIAL_FIELDS = {
   role: true,
@@ -34,7 +35,7 @@ export class AuthUserPrismaRepository extends AuthUserRepository {
     // Antes de conocer el tenant RLS devuelve cero filas: la única puerta es la función
     // SECURITY DEFINER angosta de la migración 20 (D29). El email es único global.
     const rows = await this.prisma.$queryRaw<LoginCandidateRow[]>`
-      SELECT id, company_id, password_hash FROM platform.find_login_candidates(${email})
+      SELECT id, company_id, password_hash, status FROM platform.find_login_candidates(${email})
     `;
     const candidate = rows[0];
     if (!candidate) return null;
@@ -50,7 +51,10 @@ export class AuthUserPrismaRepository extends AuthUserRepository {
     );
     if (!user) return null;
 
-    return toCredentials(candidate.id, candidate.company_id, candidate.password_hash, user);
+    return toCredentials(candidate.id, candidate.company_id, candidate.password_hash, {
+      ...user,
+      status: candidate.status !== 'active' ? candidate.status : user.status,
+    });
   }
 
   async findCredentialsById(scope: TenantScope, userId: string): Promise<UserCredentials | null> {

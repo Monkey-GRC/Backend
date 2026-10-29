@@ -5,7 +5,7 @@ import type { CompanySort } from '../../domain/repositories/company.repository';
 import type { CompanyStatus } from '../../domain/entities/company.entity';
 
 const SORTS: CompanySort[] = ['created_at', '-created_at', 'name', '-name'];
-const STATUSES: CompanyStatus[] = ['active', 'suspended'];
+const STATUSES: CompanyStatus[] = ['active', 'suspended', 'deactivated'];
 
 // GET /v1/companies?page=1&page_size=25&sort=-created_at&status=active
 export class ListCompaniesQuery {

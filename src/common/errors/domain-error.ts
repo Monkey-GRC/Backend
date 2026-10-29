@@ -20,6 +20,11 @@ export type DomainErrorCode =
   | 'COMPANY_NAME_TAKEN'
   | 'ADMIN_EMAIL_TAKEN'
   | 'DEDICATED_DATABASE_NOT_AVAILABLE'
+  // D95 · Archivar y reactivar una empresa (contracts/modules/monkey-admin.md).
+  | 'CONFIRMATION_MISMATCH'
+  | 'COMPANY_ALREADY_DEACTIVATED'
+  | 'COMPANY_NOT_DEACTIVATED'
+  | 'COMPANY_ARCHIVE_EXPIRED'
   // Componente 2 (contracts/modules/onboarding-service-context.md).
   | 'ORGANIZATION_NOT_DECLARED'
   | 'SERVICE_NAME_TAKEN'

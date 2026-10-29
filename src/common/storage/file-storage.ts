@@ -10,4 +10,8 @@ export abstract class FileStorage {
 
   // Borrado de mejor esfuerzo: no lanza si el objeto ya no existe.
   abstract remove(key: string): Promise<void>;
+
+  // Borra TODO lo que cuelga de un prefijo (los archivos de una empresa, D95). A diferencia de `remove`, **no** es de mejor esfuerzo: si algo no se pudo
+  // borrar lanza, para que el borrado definitivo no se dé por hecho y se reintente.
+  abstract removePrefix(prefix: string): Promise<void>;
 }

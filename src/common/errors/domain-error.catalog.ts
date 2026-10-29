@@ -34,6 +34,11 @@ export const DOMAIN_ERROR_CATALOG: Record<
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     messageKey: 'company.dedicated_not_available',
   },
+  // D95 · Archivar y reactivar una empresa.
+  CONFIRMATION_MISMATCH: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'company.confirmation_mismatch' },
+  COMPANY_ALREADY_DEACTIVATED: { status: HttpStatus.CONFLICT, messageKey: 'company.already_deactivated' },
+  COMPANY_NOT_DEACTIVATED: { status: HttpStatus.CONFLICT, messageKey: 'company.not_deactivated' },
+  COMPANY_ARCHIVE_EXPIRED: { status: HttpStatus.CONFLICT, messageKey: 'company.archive_expired' },
   // Componente 2 (contracts/modules/onboarding-service-context.md).
   ORGANIZATION_NOT_DECLARED: { status: HttpStatus.CONFLICT, messageKey: 'organization.not_declared' },
   SERVICE_NAME_TAKEN: { status: HttpStatus.CONFLICT, messageKey: 'service.name_taken' },

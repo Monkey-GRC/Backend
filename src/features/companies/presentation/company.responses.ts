@@ -3,7 +3,8 @@ import { ApiProperty } from '@nestjs/swagger';
 // Formas del `data` de contracts/modules/monkey-admin.md, solo para la documentación (las arma company-response.mapper.ts).
 
 const ISOLATION = ['shared', 'dedicated'] as const;
-const COMPANY_STATUS = ['active', 'suspended'] as const;
+const COMPANY_STATUS = ['active', 'suspended', 'deactivated'] as const;
+const DEACTIVATION_REASON = ['non_payment', 'client_request', 'other'] as const;
 const ACCESS_KEY_STATUS = ['pending', 'used', 'expired', 'revoked'] as const;
 
 export class ContractedFrameworkResponse {
@@ -24,8 +25,20 @@ export class CompanyResponse {
   @ApiProperty({ example: 'Next Audit & Consulting S.A.S.', description: 'Razón social.' }) name!: string;
   @ApiProperty({ example: 'contacto@ejemplo.com', description: 'Correo del administrador de la empresa; con él se canjea la clave de acceso.' }) admin_email!: string;
   @ApiProperty({ enum: ISOLATION, enumName: 'IsolationStrategy', description: '`shared` base compartida con aislamiento por empresa · `dedicated` base propia.' }) isolation_strategy!: string;
-  @ApiProperty({ enum: COMPANY_STATUS, enumName: 'CompanyStatus' }) status!: string;
+  @ApiProperty({ enum: COMPANY_STATUS, enumName: 'CompanyStatus', description: '`deactivated`: archivada (D95), sin acceso ni motores hasta `archive_until`.' }) status!: string;
   @ApiProperty({ format: 'date-time' }) created_at!: string;
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'Cuándo se archivó; `null` si no está archivada.' }) deactivated_at!: string | null;
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'Cuándo se borra definitivamente con todos sus datos; `null` si no está archivada.' }) archive_until!: string | null;
+  @ApiProperty({ enum: DEACTIVATION_REASON, enumName: 'CompanyDeactivationReason', nullable: true }) deactivation_reason_code!: string | null;
+  @ApiProperty({ nullable: true, description: 'Motivo escrito al archivar.' }) deactivation_reason!: string | null;
+}
+
+export class PendingPurgeCompanyResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty({ format: 'date-time', description: 'Cuándo se borra definitivamente la empresa con todos sus datos.' }) archive_until!: string;
+  @ApiProperty({ example: 12, description: 'Días que faltan para el borrado definitivo (0 si es hoy o ya venció).' }) days_left!: number;
+  @ApiProperty({ enum: DEACTIVATION_REASON, enumName: 'CompanyDeactivationReason', nullable: true }) deactivation_reason_code!: string | null;
 }
 
 export class RegisteredCompanyResponse extends CompanyResponse {

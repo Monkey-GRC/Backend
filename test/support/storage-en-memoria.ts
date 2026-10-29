@@ -21,4 +21,8 @@ export class StorageEnMemoria extends FileStorage {
   async remove(key: string): Promise<void> {
     this.objects.delete(key);
   }
+
+  async removePrefix(prefix: string): Promise<void> {
+    for (const key of [...this.objects.keys()]) if (key.startsWith(prefix)) this.objects.delete(key);
+  }
 }

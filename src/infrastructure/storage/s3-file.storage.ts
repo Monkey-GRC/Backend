@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Logger } from '@nestjs/common';
 import { FileStorage } from '../../common/storage/file-storage';
@@ -57,5 +57,18 @@ export class S3FileStorage extends FileStorage {
     } catch (error) {
       this.logger.warn(`No se pudo borrar ${key}: ${(error as Error).message}`);
     }
+  }
+
+  async removePrefix(prefix: string): Promise<void> {
+    let token: string | undefined;
+    do {
+      const page = await this.client.send(new ListObjectsV2Command({ Bucket: this.config.bucket, Prefix: prefix, ContinuationToken: token }));
+      const keys = (page.Contents ?? []).map((o) => ({ Key: o.Key! }));
+      if (keys.length > 0) {
+        const result = await this.client.send(new DeleteObjectsCommand({ Bucket: this.config.bucket, Delete: { Objects: keys, Quiet: true } }));
+        if (result.Errors?.length) throw new Error(`No se pudo borrar ${result.Errors.length} objeto(s) de ${prefix}`);
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
   }
 }
