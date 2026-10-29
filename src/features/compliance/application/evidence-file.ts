@@ -14,6 +14,9 @@ const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 const PNG = 'image/png';
 const JPEG = 'image/jpeg';
 
+/** Los tipos que el navegador puede mostrar sin descargarlos (`disposition=inline`): PDF, PNG y JPG. DOCX y XLSX solo se descargan. */
+export const INLINE_TYPES: readonly string[] = [PDF, PNG, JPEG];
+
 const startsWith = (b: Buffer, bytes: number[]): boolean => b.length >= bytes.length && bytes.every((x, i) => b[i] === x);
 
 // Nombres de las entradas de un zip leídos del directorio central, SIN descomprimir nada (un .docx y un .xlsx son zips: «PK» no basta para distinguirlos de

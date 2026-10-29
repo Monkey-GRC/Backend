@@ -36,3 +36,15 @@ export class ListSubmissionsQuery {
   @ApiPropertyOptional({ default: 25, minimum: 1, maximum: 100, description: 'Elementos por página.' }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) page_size = 25;
   @ApiPropertyOptional({ enum: ['technical'], description: 'Vista técnica: agrega el bloque `technical` de cada entrega. Solo `auditor` y `admin_empresa`; para otro rol responde 403.' }) @IsOptional() @IsIn(['technical']) view?: 'technical';
 }
+
+// GET /v1/controls/{id}/tests (compliance-audit.md)
+export class ListControlTestsQuery {
+  @ApiPropertyOptional({ default: 1, minimum: 1, description: 'Página, desde 1.' }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
+  @ApiPropertyOptional({ default: 25, minimum: 1, maximum: 100, description: 'Elementos por página.' }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) page_size = 25;
+}
+
+// GET /v1/evidence-submissions/{id}/download (compliance-evidence.md)
+export class DownloadEvidenceQuery {
+  @ApiPropertyOptional({ enum: ['attachment', 'inline'], default: 'attachment', description: '`attachment`: el navegador descarga el archivo. `inline`: la pantalla lo muestra sin descargarlo; solo PDF, PNG y JPG (con DOCX o XLSX responde 422).' })
+  @IsOptional() @IsIn(['attachment', 'inline']) disposition?: 'attachment' | 'inline';
+}
