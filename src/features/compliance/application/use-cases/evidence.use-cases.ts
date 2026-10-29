@@ -10,9 +10,9 @@ import { FileStorage } from '../../../../common/storage/file-storage';
 import type { UploadedFile } from '../../../../common/storage/uploaded-file';
 import { ValidationException } from '../../../../common/errors/validation.exception';
 import { evidenceStateOf, reviewerRoleFor } from '../../domain/evidence';
-import { EvidenceAccess, EvidenceRepository, RequirementRecord, SubmissionRecord } from '../../domain/repositories/evidence.repository';
+import { EvidenceAccess, EvidenceRepository, RequirementRecord, SubmissionRecord, TestEvidence } from '../../domain/repositories/evidence.repository';
 import { CreateEvidenceRequirementDto, ReviewEvidenceDto } from '../dtos/evidence.dto';
-import { assertEvidenceFile, evidenceKey, fileNameOfKey } from '../evidence-file';
+import { assertEvidenceFile, evidenceKey, fileNameOfKey, INLINE_TYPES } from '../evidence-file';
 import { ViewMode, viewModeOf } from '../view-access';
 
 // MD-126 · Evidencias de un control (contracts/modules/compliance-evidence.md, D84). La empresa solo APORTA: sube `admin_empresa` y el `funcional` dueño del control;
@@ -37,6 +37,32 @@ export class ListEvidenceUseCase {
     // D96, SEG-66 · El funcional recibe solo los requerimientos de las dimensiones de las que es responsable en este control.
     const requirements = p.role === 'funcional' ? data.requirements.filter((r) => data.responsibleByDimension[r.dimension] === p.userId) : data.requirements;
     return { view: mode, requirements };
+  }
+}
+
+/** Lo que se subió para un test manual o documental, ya filtrado para quien pregunta. */
+export type TestEvidenceView = { view: ViewMode; testId: string; sharedWith: Array<{ id: string; code: string }>; items: TestEvidence['items']; controlCodes: Map<string, string> };
+
+// D85, D88 · La evidencia de un test manual o documental, para mostrarla en el test del control. D96, SEG-66: el `funcional` recibe solo lo de las dimensiones de las que es
+// responsable y solo ve el código de los otros controles que llevan el test si también es responsable en ellos; lo demás se omite, no falla.
+@Injectable()
+export class ListTestEvidenceUseCase {
+  constructor(private readonly repo: EvidenceRepository) {}
+
+  async execute(p: Principal, controlId: string, testId: string, view: 'technical' | undefined): Promise<TestEvidenceView> {
+    const mode = viewModeOf(p, view);
+    const data = await this.repo.listByTest(scopeOf(p), controlId, testId, reviewerRoleFor(p.role));
+    if (!data) throw new DomainError('NOT_FOUND');
+    const responsibleOf = (control: string, dimension: string) => data.controls.find((c) => c.id === control)?.responsibleByDimension[dimension];
+    const mine = (control: string, dimension: string) => p.role !== 'funcional' || responsibleOf(control, dimension) === p.userId;
+    const items = data.items.filter((i) => mine(i.controlId, i.requirement.dimension));
+    return {
+      view: mode,
+      testId: data.testId,
+      sharedWith: data.controls.filter((c) => c.id !== controlId && mine(c.id, data.dimension)).map((c) => ({ id: c.id, code: c.code })),
+      items,
+      controlCodes: new Map(data.controls.filter((c) => items.some((i) => i.controlId === c.id)).map((c) => [c.id, c.code])),
+    };
   }
 }
 
@@ -199,18 +225,21 @@ export class CreateEvidenceRequirementUseCase {
 export class GetEvidenceDownloadUseCase {
   constructor(private readonly repo: EvidenceRepository, private readonly storage: FileStorage, private readonly audit: AuditLogWriter) {}
 
-  async execute(p: Principal, submissionId: string, meta: RequestMeta): Promise<{ url: string; fileName: string; fileType: string; expiresIn: number }> {
+  /** `inline` hace que la pantalla muestre el archivo sin descargarlo; solo PDF, PNG y JPG (`422 disposition.not_supported` con otro tipo). */
+  async execute(p: Principal, submissionId: string, disposition: 'attachment' | 'inline', meta: RequestMeta): Promise<{ url: string; fileName: string; fileType: string; disposition: 'attachment' | 'inline'; expiresIn: number }> {
     const found = await this.repo.findSubmission(scopeOf(p), submissionId, reviewerRoleFor(p.role));
     if (!found) throw new DomainError('NOT_FOUND');
     assertCanTouch(p, found.access.assignedUserIds);
+    if (disposition === 'inline' && !INLINE_TYPES.includes(found.submission.fileType)) throw new ValidationException([{ field: 'disposition', code: 'disposition.not_supported' }]);
 
     const fileName = fileNameOfKey(found.submission.fileKey);
-    const url = await this.storage.downloadUrl(found.submission.fileKey, fileName, DOWNLOAD_LINK_SECONDS);
+    // El tipo y la disposición se fijan al firmar: quien recibe el enlace no los puede cambiar.
+    const url = await this.storage.downloadUrl(found.submission.fileKey, fileName, DOWNLOAD_LINK_SECONDS, { disposition, contentType: found.submission.fileType });
     // Generar el enlace no cambia ningún dato, así que no hay con qué ser atómico: se registra aparte (de mejor esfuerzo), con la entrega y sin la URL firmada.
     await this.audit.write({
       tenantId: p.companyId, userId: p.userId, action: 'evidence.download', resource: 'evidence_submission', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
-      beforeState: null, afterState: { id: found.submission.id, requirement_id: found.submission.requirementId, version: found.submission.version, file_name: fileName },
+      beforeState: null, afterState: { id: found.submission.id, requirement_id: found.submission.requirementId, version: found.submission.version, file_name: fileName, disposition },
     });
-    return { url, fileName, fileType: found.submission.fileType, expiresIn: DOWNLOAD_LINK_SECONDS };
+    return { url, fileName, fileType: found.submission.fileType, disposition, expiresIn: DOWNLOAD_LINK_SECONDS };
   }
 }

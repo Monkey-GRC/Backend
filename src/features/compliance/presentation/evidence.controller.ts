@@ -9,15 +9,15 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
 import { toPageResponse } from '../../../common/pagination/page';
-import { CreateEvidenceRequirementDto, ListEvidenceQuery, ListSubmissionsQuery, ReviewEvidenceDto } from '../application/dtos/evidence.dto';
+import { CreateEvidenceRequirementDto, DownloadEvidenceQuery, ListEvidenceQuery, ListSubmissionsQuery, ReviewEvidenceDto } from '../application/dtos/evidence.dto';
 import { EVIDENCE_UPLOAD_LIMIT_BYTES } from '../application/evidence-file';
 import {
-  CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListSubmissionsUseCase, ReviewEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
+  CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListSubmissionsUseCase, ListTestEvidenceUseCase, ReviewEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
 } from '../application/use-cases/evidence.use-cases';
-import { toRequirement, toSubmission } from './evidence-response.mapper';
+import { toRequirement, toSubmission, toTestEvidence } from './evidence-response.mapper';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiItems, ApiPaged } from '../../../common/swagger/api-envelope';
-import { EvidenceDownloadResponse, EvidenceRequirementResponse, EvidenceSubmissionResponse } from './evidence.responses';
+import { EvidenceDownloadResponse, EvidenceRequirementResponse, EvidenceSubmissionResponse, TestEvidenceResponse } from './evidence.responses';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
@@ -37,6 +37,7 @@ export class EvidenceController {
     private readonly reviewEvidence: ReviewEvidenceUseCase,
     private readonly createRequirement: CreateEvidenceRequirementUseCase,
     private readonly uploadForTest: UploadTestEvidenceUseCase,
+    private readonly listTestEvidence: ListTestEvidenceUseCase,
   ) {}
 
   @ApiOperation({ summary: 'Evidencias de un control', description: 'Los requerimientos de evidencia del control, cada uno con su responsable y todas sus entregas (la más reciente primero). Un `funcional` solo ve los controles que tiene asignados. Con `view=technical` (solo `auditor` y, por ahora, `admin_empresa`) agrega el bloque `technical`.' })
@@ -45,6 +46,14 @@ export class EvidenceController {
   async evidence(@CurrentUser() p: Principal, @Param('controlId', idPipe) controlId: string, @Query() q: ListEvidenceQuery) {
     const { view, requirements } = await this.listEvidence.execute(p, controlId, q.view);
     return new ResponseDto(HttpStatus.OK, t('evidence.list'), { items: requirements.map((r) => toRequirement(r, view)) });
+  }
+
+  @ApiOperation({ summary: 'Evidencia de un test manual', description: 'Lo que se subió para un test **manual o documental** de un control, para mostrarlo en el test. Una prueba documental (D88) devuelve solo el requerimiento de esa prueba en este control; otro test manual (D85) devuelve los de **todos los controles vigentes del servicio que lo llevan**, cada uno con su control, y `shared_with` dice dónde más aplica. Un `funcional` recibe solo lo de las dimensiones de las que es responsable. `404` si el control no lleva el test o no es manual ni documental.' })
+  @ApiData(TestEvidenceResponse, 'Requerimientos del test con sus entregas.')
+  @Get('controls/:controlId/tests/:testId/evidence')
+  async testEvidence(@CurrentUser() p: Principal, @Param('controlId', idPipe) controlId: string, @Param('testId', idPipe) testId: string, @Query() q: ListEvidenceQuery) {
+    const result = await this.listTestEvidence.execute(p, controlId, testId, q.view);
+    return new ResponseDto(HttpStatus.OK, t('evidence.test_list'), toTestEvidence(result));
   }
 
   // Multipart, campo `file`. PDF, DOCX, XLSX, PNG o JPG, hasta 25 MB (SEG-60); se valida el contenido, no solo el tipo que declara el navegador.
@@ -119,12 +128,12 @@ export class EvidenceController {
   }
 
   // El archivo nunca es público: un enlace firmado de 5 minutos. Cada enlace generado queda en el rastro.
-  @ApiOperation({ summary: 'Descargar una evidencia', description: 'Devuelve un **enlace firmado de 5 minutos**: el archivo nunca es público. Cada enlace generado queda en el rastro de auditoría (sin la URL firmada).' })
-  @ApiData(EvidenceDownloadResponse, 'Enlace temporal de descarga.')
+  @ApiOperation({ summary: 'Descargar o ver una evidencia', description: 'Devuelve un **enlace firmado de 5 minutos**: el archivo nunca es público. Con `disposition=inline` la pantalla lo muestra sin descargarlo (solo PDF, PNG y JPG; con DOCX o XLSX responde `422 disposition.not_supported`). La disposición y el tipo de contenido van fijados en el enlace. Cada enlace generado, también el `inline`, queda en el rastro de auditoría (sin la URL firmada).' })
+  @ApiData(EvidenceDownloadResponse, 'Enlace temporal de descarga o de vista.')
   @ApiDomainErrors('STORAGE_UNAVAILABLE')
   @Get('evidence-submissions/:submissionId/download')
-  async downloadLink(@CurrentUser() p: Principal, @Param('submissionId', idPipe) submissionId: string, @Req() req: Request) {
-    const link = await this.download.execute(p, submissionId, metaOf(req));
-    return new ResponseDto(HttpStatus.OK, t('evidence.download'), { url: link.url, file_name: link.fileName, file_type: link.fileType, expires_in: link.expiresIn });
+  async downloadLink(@CurrentUser() p: Principal, @Param('submissionId', idPipe) submissionId: string, @Query() q: DownloadEvidenceQuery, @Req() req: Request) {
+    const link = await this.download.execute(p, submissionId, q.disposition ?? 'attachment', metaOf(req));
+    return new ResponseDto(HttpStatus.OK, t('evidence.download'), { url: link.url, file_name: link.fileName, file_type: link.fileType, disposition: link.disposition, expires_in: link.expiresIn });
   }
 }

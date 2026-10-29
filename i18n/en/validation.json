@@ -39,6 +39,7 @@
   "period_invalid_range": "The end of the period cannot be before the start.",
   "cutoff_out_of_period": "The cutoff date must fall within the period.",
   "test_not_in_control": "That control does not include that test.",
+  "disposition_not_supported": "That file type cannot be shown on screen: only PDF, PNG and JPG. Download it to view it.",
   "test_not_documentary": "Only a documentary test is backed by a document.",
   "cutoff_in_future":"The cutoff date cannot be in the future.",
   "dimensions_not_allowed": "This account does not carry specialties."

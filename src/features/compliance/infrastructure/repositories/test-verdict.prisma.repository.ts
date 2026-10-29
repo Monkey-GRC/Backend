@@ -7,7 +7,7 @@ import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.inser
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { dimensionOfAssetType, readControl } from '../../domain/control-readout';
 import type { TestState } from '../../domain/engine/states';
-import { NewVerdict, TestVerdictRepository, VerdictIssued, VerdictRecord } from '../../domain/repositories/test-verdict.repository';
+import { LastVerdict, NewVerdict, TestVerdictRepository, VerdictIssued, VerdictRecord, VerdictResult } from '../../domain/repositories/test-verdict.repository';
 import { captureControlStates, recordControlStateChanges } from '../control-state-events';
 import { loadServiceSnapshot } from '../service-snapshot.loader';
 
@@ -70,6 +70,27 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
         actor: { userId: input.confirmedBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent },
       });
       return issued;
+    });
+  }
+
+  latestByControl(scope: TenantScope, controlId: string): Promise<Map<string, LastVerdict>> {
+    return this.prisma.withScope(scope, async (tx) => {
+      // Una fila por test, la más reciente: un veredicto son varias filas con el mismo instante y quien lo dio.
+      const rows = await tx.evaluation.findMany({
+        where: { clientControlId: controlId, origin: 'manual' },
+        orderBy: [{ evaluatedAt: 'desc' }, { id: 'asc' }],
+        distinct: ['testId'],
+        select: { testId: true, result: true, evaluatedAt: true, confirmedByUser: PERSON },
+      });
+      return new Map(
+        rows.map((r) => [
+          r.testId,
+          {
+            result: r.result as VerdictResult, evaluatedAt: r.evaluatedAt,
+            confirmedBy: r.confirmedByUser ? { id: r.confirmedByUser.id, name: r.confirmedByUser.name ?? '', lastName: r.confirmedByUser.lastName ?? '' } : { id: '', name: '', lastName: '' },
+          },
+        ]),
+      );
     });
   }
 

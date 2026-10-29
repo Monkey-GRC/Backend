@@ -22,6 +22,9 @@ export type VerdictRecord = {
   appliesToControls: Array<{ id: string; code: string }>;
 };
 
+/** El veredicto más reciente de un test manual en un control (sin la nota: la nota es del historial). */
+export type LastVerdict = { result: VerdictResult; evaluatedAt: Date; confirmedBy: { id: string; name: string; lastName: string } };
+
 export type VerdictIssued = VerdictRecord & { testState: TestState };
 
 export type NewVerdict = {
@@ -38,6 +41,9 @@ export abstract class TestVerdictRepository {
    * empresa o no lleva el test. Lanza `CONTROL_RETIRED`, `TEST_DECIDED_BY_EVIDENCE` (documental), `TEST_NOT_MANUAL` y `TEST_HAS_NO_ASSETS`.
    */
   abstract issue(scope: TenantScope, controlId: string, testId: string, input: NewVerdict, audit: AuditIntent<VerdictIssued>): Promise<VerdictIssued | null>;
+
+  /** El último veredicto de cada test manual de un control: test → veredicto. Un test sin veredicto no aparece. */
+  abstract latestByControl(scope: TenantScope, controlId: string): Promise<Map<string, LastVerdict>>;
 
   /** El historial del test visto desde un control, del más reciente al más antiguo. `null` si el control no existe o no lleva el test. */
   abstract list(scope: TenantScope, controlId: string, testId: string, page: number, pageSize: number): Promise<Page<VerdictRecord> | null>;

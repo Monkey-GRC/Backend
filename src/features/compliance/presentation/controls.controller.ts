@@ -15,6 +15,10 @@ import { RetireControlUseCase, UpdateControlUseCase } from '../application/use-c
 import { GetControlUseCase } from '../application/use-cases/get-control.use-case';
 import { ListControlsUseCase } from '../application/use-cases/list-controls.use-case';
 import { toControlDetail, toControlListItem } from './control-response.mapper';
+import { toControlTestItem } from './control-test-response.mapper';
+import { ControlTestItemResponse } from './control-test.responses';
+import { ListControlTestsQuery } from '../application/dtos/evidence.dto';
+import { ListControlTestsUseCase } from '../application/use-cases/list-control-tests.use-case';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiNoBody, ApiPaged } from '../../../common/swagger/api-envelope';
 import { ControlDetailResponse, ControlListItemResponse } from './control.responses';
@@ -36,6 +40,7 @@ export class ControlsController {
     private readonly createControl: CreateControlUseCase,
     private readonly updateControl: UpdateControlUseCase,
     private readonly retireControl: RetireControlUseCase,
+    private readonly listControlTests: ListControlTestsUseCase,
   ) {}
 
   @ApiOperation({ summary: 'Listar los controles de un servicio', description: 'Los controles del servicio con su estado, **avance y cobertura juntos**, quién los tiene a cargo. Filtros por criterio, tipo, estado y origen. El `funcional` solo ve los que tiene asignados. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
@@ -53,6 +58,15 @@ export class ControlsController {
       view: q.view,
     });
     return new ResponseDto(HttpStatus.OK, t('control.list'), toPageResponse(page, (r) => toControlListItem(r, view === 'technical')));
+  }
+
+  // MD-177 · La vista técnica de un control: todas sus pruebas con su estado (compliance-audit.md). Solo `admin_empresa` y `auditor` (D81); el caso de uso responde 403 a otro rol.
+  @ApiOperation({ summary: 'Pruebas de un control', description: 'Las pruebas que verifican el control, **todas con su estado**, también las que aún no tienen activos conectados («Sin activos»). Es la vista técnica (D81): solo `admin_empresa` y `auditor`; el `funcional` y `admin_monkey` reciben `403`. `shared_with` son los otros controles del servicio que llevan la prueba, cuyo veredicto vale en todos (D85); en una prueba documental va vacío (D88). `last_verdict` es el último veredicto del `admin_empresa` sobre una prueba manual no documental. `ai_suggestion` hoy es siempre `null`. Paginada.' })
+  @ApiPaged(ControlTestItemResponse, 'Página de pruebas del control.')
+  @Get('controls/:id/tests')
+  async tests(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Query() q: ListControlTestsQuery) {
+    const page = await this.listControlTests.execute(principal, id, q.page, q.page_size);
+    return new ResponseDto(HttpStatus.OK, t('control_test.list'), toPageResponse(page, (i) => toControlTestItem(i, t)));
   }
 
   // MD-150 · Solo el administrador de la empresa crea un control propio.

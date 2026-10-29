@@ -59,9 +59,25 @@ export class EvidenceRequirementResponse {
   @ApiProperty({ type: EvidenceSubmissionResponse, isArray: true, description: 'Entregas, de la versión más reciente a la más antigua.' }) submissions!: EvidenceSubmissionResponse[];
 }
 
+export class EvidenceControlRefResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ example: 'IAC-12', description: 'Código del control (D80): el del catálogo o el propio.' }) code!: string;
+}
+
+export class TestEvidenceItemResponse extends EvidenceRequirementResponse {
+  @ApiProperty({ type: EvidenceControlRefResponse, description: 'El control del servicio al que pertenece este requerimiento (D85).' }) control!: EvidenceControlRefResponse;
+}
+
+export class TestEvidenceResponse {
+  @ApiProperty({ format: 'uuid', description: 'La prueba cuya evidencia se lista.' }) test_id!: string;
+  @ApiProperty({ type: EvidenceControlRefResponse, isArray: true, description: 'Los **otros** controles del servicio que llevan el test, para avisar «este test también aplica a…» (D85). Vacío si es solo de este control o es documental (D88); un `funcional` solo ve aquellos de los que es responsable.' }) shared_with!: EvidenceControlRefResponse[];
+  @ApiProperty({ type: TestEvidenceItemResponse, isArray: true, description: 'Requerimientos que sirven al test, con sus entregas y el control de origen.' }) items!: TestEvidenceItemResponse[];
+}
+
 export class EvidenceDownloadResponse {
   @ApiProperty({ format: 'uri', description: 'Enlace firmado. **Vence en 5 minutos**; el archivo nunca es público. Cada enlace generado queda en el rastro de auditoría.' }) url!: string;
   @ApiProperty({ example: 'politica-de-accesos.pdf', description: 'Nombre del archivo.' }) file_name!: string;
   @ApiProperty({ example: 'application/pdf', description: 'Tipo del archivo (tipo de contenido).' }) file_type!: string;
+  @ApiProperty({ enum: ['attachment', 'inline'], enumName: 'EvidenceDisposition', description: 'Cómo se entrega: `attachment` se descarga, `inline` se muestra en pantalla. Va fijado en el enlace firmado.' }) disposition!: string;
   @ApiProperty({ example: 300, description: 'Segundos que dura el enlace.' }) expires_in!: number;
 }
