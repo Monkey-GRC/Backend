@@ -1,7 +1,7 @@
 import { TransactionClient } from '../../../infrastructure/database/prisma.service';
 import { Dimension } from '../domain/control-readout';
 
-// D97 · Quién hace el trabajo de un control en una dimensión: por ahora, TODOS los `funcional` activos de la empresa que tienen esa especialidad. No hace falta asignarles nada:
+// D98 · Quién hace el trabajo de un control en una dimensión: por ahora, TODOS los `funcional` activos de la empresa que tienen esa especialidad. No hace falta asignarles nada:
 // quien entra con la dimensión «servidores» ve y atiende todo lo de servidores. El reparto a personas concretas (responsable de un servicio, excepción de un control) existe en
 // la base y en la API, pero queda aparte hasta que se decida cómo usarlo; hoy no cambia lo que nadie ve. Solo cuentan las dimensiones en que el control tiene pruebas.
 export const DIMENSION_ORDER: readonly Dimension[] = ['policy', 'server', 'database', 'app', 'cloud'];

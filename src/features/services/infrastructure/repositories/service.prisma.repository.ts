@@ -155,7 +155,7 @@ export class ServicePrismaRepository extends ServiceRepository {
     return this.prisma.withScope(scope, async (tx) => !!(await tx.service.findFirst({ where: { id: serviceId, ...(await this.specialtyOf(tx, scope.userId as string)) }, select: { id: true } })));
   }
 
-  // D97 · Un funcional lee los servicios que tienen pruebas de alguna de sus especialidades (los controles de todo servicio llevan pruebas documentales, así que quien tiene la
+  // D98 · Un funcional lee los servicios que tienen pruebas de alguna de sus especialidades (los controles de todo servicio llevan pruebas documentales, así que quien tiene la
   // documental los ve todos). Sin especialidad, ninguno.
   private async specialtyOf(tx: TransactionClient, userId: string) {
     const dimensions = (await tx.userDimension.findMany({ where: { userId }, select: { dimension: true } })).map((d) => d.dimension);

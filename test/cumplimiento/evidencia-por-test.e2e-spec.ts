@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import { FileStorage } from '../../src/common/storage/file-storage';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
+import { darEspecialidades } from '../support/especialidades';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
 // MD-177 · Ver la evidencia de un test manual y listarla por test; ver un PDF, PNG o JPG sin descargarlo (contracts/modules/compliance-evidence.md, D85, D88, D96).
@@ -14,8 +15,8 @@ let a: Tenant;
 let b: Tenant;
 let monkey: Agent;
 let auditor: Agent;
-let funcionalDoc: Agent; // responsable de la dimensión documental del control de origen
-let funcionalOtro: Agent; // sin ninguna responsabilidad
+let funcionalDoc: Agent; // con la especialidad documental (D98)
+let funcionalOtro: Agent; // con una especialidad distinta de la del test compartido
 let adminId: string;
 let controlX: string;
 let controlY: string;
@@ -37,16 +38,13 @@ async function cuenta(companyId: string, email: string, role: 'auditor' | 'funci
     [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
   ))[0].id;
 }
-const assign = (userId: string, control: string, dimension: string) =>
-  owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, dimension, assigned_by) values (gen_random_uuid(), $1, $2, $3, $4::catalog.dimension, $5)`, [a.companyId, userId, control, dimension, adminId]);
-
 beforeAll(async () => {
   app = await bootApp({}, (builder) => builder.overrideProvider(FileStorage).useValue(storage));
   ({ a, b, monkey } = await dosEmpresas(app));
   adminId = (await owner<{ id: string }>(`select id from platform.users where email = $1`, [a.email]))[0].id;
   await cuenta(a.companyId, `auditor-evt-${RUN}@cumplimiento.test`, 'auditor');
   const docId = await cuenta(a.companyId, `funcional-evt-${RUN}@cumplimiento.test`, 'funcional');
-  await cuenta(a.companyId, `funcional2-evt-${RUN}@cumplimiento.test`, 'funcional');
+  const otroId = await cuenta(a.companyId, `funcional2-evt-${RUN}@cumplimiento.test`, 'funcional');
   auditor = await login(app, `auditor-evt-${RUN}@cumplimiento.test`);
   funcionalDoc = await login(app, `funcional-evt-${RUN}@cumplimiento.test`);
   funcionalOtro = await login(app, `funcional2-evt-${RUN}@cumplimiento.test`);
@@ -64,7 +62,7 @@ beforeAll(async () => {
   controlX = docControls[0].id;
   docTest = { id: docControls[0].test_id, code: docControls[0].code };
   controlY = (await owner<{ id: string }>(`select client_control_id id from tenant.client_control_tests where test_id = $1 and client_control_id <> $2 and client_control_id in (select id from tenant.client_controls where service_id = $3 and is_active) limit 1`, [docTest.id, controlX, a.serviceId]))[0].id;
-  await assign(docId, controlX, 'policy');
+  await darEspecialidades(a.companyId, docId, 'policy');
 
   // Un test no documental que lleven al menos dos controles vigentes: se marca como manual en esos controles y se les pone un requerimiento que lo sirva.
   const shared = await owner<{ id: string; code: string; dimension: string }>(
@@ -74,6 +72,8 @@ beforeAll(async () => {
   );
   expect(shared.length).toBe(1);
   sharedTest = { id: shared[0].id, code: shared[0].code };
+  // El otro funcional atiende una dimensión distinta de la del test compartido (y no la documental): no ve nada de esto.
+  await darEspecialidades(a.companyId, otroId, (['server', 'cloud', 'database', 'app'] as const).find((d) => d !== shared[0].dimension)!);
   sharedControls = (await owner<{ id: string }>(`select cc.id from tenant.client_control_tests x join tenant.client_controls cc on cc.id = x.client_control_id where x.test_id = $1 and cc.service_id = $2 and cc.is_active order by cc.own_code limit 2`, [sharedTest.id, a.serviceId])).map((r) => r.id);
   for (const [i, controlId] of sharedControls.entries()) {
     await owner(`update tenant.client_control_dimensions set type = 'manual' where client_control_id = $1 and dimension = $2::catalog.dimension`, [controlId, shared[0].dimension]);
@@ -128,7 +128,7 @@ describe('MD-177 · la evidencia de una prueba documental, en su control (D88)',
     await listOf(funcionalDoc, controlX, docTest.id, '?view=technical').expect(403);
   });
 
-  it('el funcional responsable de la dimensión la ve; otro funcional recibe la lista vacía, no un error; el auditor ve todo', async () => {
+  it('el funcional con la especialidad la ve; otro funcional recibe la lista vacía, no un error; el auditor ve todo', async () => {
     expect((await listOf(funcionalDoc, controlX, docTest.id).expect(200)).body.data.items).toHaveLength(1);
     expect((await listOf(funcionalOtro, controlX, docTest.id).expect(200)).body.data.items).toEqual([]);
     expect((await listOf(auditor, controlX, docTest.id).expect(200)).body.data.items).toHaveLength(1);
@@ -165,21 +165,20 @@ describe('MD-177 · un test manual que llevan varios controles (D85)', () => {
     expect(back.body.data.shared_with.map((c: any) => c.id)).toContain(origin);
   });
 
-  it('el funcional sin responsabilidad en esa dimensión no ve ni los requerimientos ni los controles compartidos', async () => {
+  it('el funcional sin esa especialidad no ve ni los requerimientos ni los controles compartidos', async () => {
     const res = await listOf(funcionalOtro, sharedControls[0], sharedTest.id).expect(200);
     expect(res.body.data.items).toEqual([]);
     expect(res.body.data.shared_with).toEqual([]);
   });
 
-  it('el funcional responsable solo ve lo de los controles en que lo es', async () => {
-    const dimension = (await owner<{ dimension: string }>(`select dimension from catalog.tests where id = $1`, [sharedTest.id]))[0].dimension;
+  it('el funcional con la especialidad de esa dimensión lo ve en todos los controles que lo llevan, sin que nadie se lo asigne (D98)', async () => {
+    const dimension = (await owner<{ dimension: 'server' | 'cloud' | 'database' | 'app' }>(`select dimension::text dimension from catalog.tests where id = $1`, [sharedTest.id]))[0].dimension;
     const funcionalId = (await owner<{ id: string }>(`select id from platform.users where email = $1`, [`funcional-evt-${RUN}@cumplimiento.test`]))[0].id;
-    await assign(funcionalId, sharedControls[0], dimension);
+    await darEspecialidades(a.companyId, funcionalId, dimension);
     const res = await listOf(funcionalDoc, sharedControls[0], sharedTest.id).expect(200);
-    expect(res.body.data.items.map((i: any) => i.control.id)).toEqual([sharedControls[0]]);
-    expect(res.body.data.shared_with).toEqual([]);
-  });
-});
+    expect(res.body.data.items.map((i: any) => i.control.id)).toContain(sharedControls[0]);
+    expect(res.body.data.shared_with.length).toBeGreaterThan(0);
+  });});
 
 describe('MD-177 · ver un archivo sin descargarlo (disposition=inline)', () => {
   let pdfSubmission: string;

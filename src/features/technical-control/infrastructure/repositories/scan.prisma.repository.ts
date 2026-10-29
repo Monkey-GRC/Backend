@@ -540,7 +540,7 @@ export class ScanPrismaRepository extends ScanRepository {
       });
       if (!link) return null;
       const serviceId = link.clientControl.serviceId;
-      // D97 · Lo automático que falla en la nube le llega a quienes tienen la especialidad de nube.
+      // D98 · Lo automático que falla en la nube le llega a quienes tienen la especialidad de nube.
       const specialists = await tx.userDimension.findMany({ where: { dimension: 'cloud', user: { role: 'funcional', status: 'active' } }, select: { userId: true } });
       return { serviceId, responsibleUserIds: specialists.map((s) => s.userId) };
     });

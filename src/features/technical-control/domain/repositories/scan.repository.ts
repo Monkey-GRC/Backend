@@ -117,7 +117,7 @@ export abstract class ScanRepository {
 
   // D90 · ¿Es `testId` una prueba de nube de ese control del cliente? Devuelve el servicio del control, o null si el control o la prueba no existen para esta empresa
   // (o la prueba no es de nube: no hay nada técnico que explicar).
-  // `responsibleUserIds` son los `funcional` activos con la especialidad de nube (D97).
+  // `responsibleUserIds` son los `funcional` activos con la especialidad de nube (D98).
   abstract findCloudTestOfControl(scope: TenantScope, controlId: string, testId: string): Promise<{ serviceId: string; responsibleUserIds: string[] } | null>;
   // D90 · Lo que falló en la última evaluación completada de cada conexión de nube del servicio, solo en los checks de esa prueba. Con `includeProposed`, también cuentan
   // los vínculos que el comité aún no ratificó (igual que `writeEvaluations`). `measuredAt` es la fecha de la evaluación más reciente; null si ninguna conexión se evaluó.

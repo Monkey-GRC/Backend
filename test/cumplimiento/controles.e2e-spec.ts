@@ -157,7 +157,7 @@ describe('Quién puede pedir qué', () => {
     expect(await items(funcional)).toEqual([]);
   });
 
-  it('el funcional ve los controles de su especialidad, sin que nadie se los asigne; los demás son 403 (D97)', async () => {
+  it('el funcional ve los controles de su especialidad, sin que nadie se los asigne; los demás son 403 (D98)', async () => {
     const { dimension, con, sin } = await controlesQueSeparan(a.serviceId);
     await darEspecialidades(a.companyId, funcionalId, dimension);
     const visible = await items(funcional, '?page_size=100');

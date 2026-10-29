@@ -69,7 +69,7 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
       if (!found) return null;
       // Nadie se desactiva a sí mismo ni se quita sus especialidades: la empresa se quedaría sin quien la administre. El nombre sí se puede corregir.
       if (found.id === scope.userId && (change.status || change.dimensions)) throw new DomainError('LAST_ADMIN');
-      // admin_monkey no se toca desde aquí: para quien llama, no existe. Otro administrador de la empresa sí (D97).
+      // admin_monkey no se toca desde aquí: para quien llama, no existe. Otro administrador de la empresa sí (D98).
       if (!isTeamRole(found.role)) return null;
       const before = toMember(found);
 

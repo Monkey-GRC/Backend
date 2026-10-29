@@ -47,7 +47,7 @@ export type EvidenceAccess = {
   controlId: string;
   serviceId: string;
   controlActive: boolean;
-  /** Quiénes atienden la DIMENSIÓN del requerimiento (D97): un `funcional` solo actúa sobre lo de sus especialidades. */
+  /** Quiénes atienden la DIMENSIÓN del requerimiento (D98): un `funcional` solo actúa sobre lo de sus especialidades. */
   assignedUserIds: string[];
 };
 
@@ -78,7 +78,7 @@ export type ControlEvidenceFacts = {
   ownCode: string;
   /** Las personas responsables del control en alguna de sus dimensiones. */
   assignedUserIds: string[];
-  /** Quiénes atienden cada dimensión del control (D97). */
+  /** Quiénes atienden cada dimensión del control (D98). */
   responsibleByDimension: Record<string, string[]>;
   /** Dimensiones que el control exige y aplican. */
   dimensions: string[];

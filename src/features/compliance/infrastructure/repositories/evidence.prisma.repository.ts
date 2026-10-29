@@ -289,7 +289,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       select: { id: true, dimension: true, clientControl: { select: { id: true, serviceId: true, isActive: true } } },
     });
     if (!r) return null;
-    // D97 · Le toca a quienes atienden la dimensión del requerimiento, no a cualquiera que atienda otra dimensión del control.
+    // D98 · Le toca a quienes atienden la dimensión del requerimiento, no a cualquiera que atienda otra dimensión del control.
     const users = (await loadControlResponsibles(tx, [r.clientControl.id])).byControl.get(r.clientControl.id)?.get(r.dimension as never) ?? [];
     return {
       requirementId: r.id, controlId: r.clientControl.id, serviceId: r.clientControl.serviceId, controlActive: r.clientControl.isActive,

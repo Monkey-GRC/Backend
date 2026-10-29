@@ -165,7 +165,7 @@ export class UploadTestEvidenceUseCase {
     if (!facts.active) throw new DomainError('CONTROL_RETIRED');
     const test = facts.tests.find((t) => t.id === testId);
     if (!test) throw new DomainError('NOT_FOUND');
-    // D97 · Además de atender el control en alguna dimensión, atiende la dimensión DE ESTA prueba.
+    // D98 · Además de atender el control en alguna dimensión, atiende la dimensión DE ESTA prueba.
     assertCanTouch(p, facts.responsibleByDimension[test.dimension] ?? []);
     if (test.dimension !== 'policy') throw new ValidationException([{ field: 'test_id', code: 'test.not_documentary' }]);
     // El archivo se comprueba ANTES de crear el lugar donde quedará: uno rechazado no deja un requerimiento vacío.

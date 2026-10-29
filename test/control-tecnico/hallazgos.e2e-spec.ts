@@ -159,7 +159,7 @@ describe('Qué falló y cómo corregirlo (D90)', () => {
     await funcional.get(path).expect(403);
   });
 
-  it('el funcional con la especialidad de nube sí lo ve (D97), sin que nadie se lo asigne; si la pierde, ya no', async () => {
+  it('el funcional con la especialidad de nube sí lo ve (D98), sin que nadie se lo asigne; si la pierde, ya no', async () => {
     const [{ id }] = await owner<{ id: string }>('select id from platform.users where email = $1', [`funcional-d90-${RUN}@cumplimiento.test`]);
     await darEspecialidades(a.companyId, id, 'cloud');
     try {
