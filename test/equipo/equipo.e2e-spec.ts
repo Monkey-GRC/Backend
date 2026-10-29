@@ -1,7 +1,9 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import * as auditInsert from '../../src/infrastructure/audit/audit-log.insert';
+import { FileStorage } from '../../src/common/storage/file-storage';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
+import { StorageEnMemoria } from '../support/storage-en-memoria';
 import { dosEmpresas, Tenant } from '../support/escenario';
 
 // D96 · El equipo de la empresa y el reparto del trabajo por dimensión (contracts/modules/users-team.md). Todo por HTTP real contra el Postgres desechable, con el rol de la app
@@ -28,7 +30,7 @@ async function activo(t: Tenant, agent: Agent, k: string, role: 'funcional' | 'a
 }
 
 beforeAll(async () => {
-  app = await bootApp();
+  app = await bootApp({}, (builder) => builder.overrideProvider(FileStorage).useValue(new StorageEnMemoria()));
   ({ a, b, monkey } = await dosEmpresas(app));
   adminId = (await owner<{ id: string }>('select id from platform.users where email = $1', [a.email]))[0].id;
 });
