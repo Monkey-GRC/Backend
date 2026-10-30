@@ -15,6 +15,7 @@ import { TeamModule } from './features/team/team.module';
 import { TechnicalControlModule } from './features/technical-control/technical-control.module';
 import { AuditModule } from './infrastructure/audit/audit.module';
 import { DatabaseModule } from './infrastructure/database/database.module';
+import { MailModule } from './infrastructure/mail/mail.module';
 import { SecurityModule } from './infrastructure/security/security.module';
 import { StorageModule } from './infrastructure/storage/storage.module';
 
@@ -32,6 +33,7 @@ import { StorageModule } from './infrastructure/storage/storage.module';
     DatabaseModule,
     AuditModule,
     SecurityModule,
+    MailModule,
     StorageModule,
     AuthModule,
     CompaniesModule,
