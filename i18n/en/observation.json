@@ -1,0 +1,12 @@
+{
+  "created": "Done, the observation is open and the company can now see it.",
+  "list": "Observations of the service.",
+  "detail": "Observation.",
+  "updated": "Done, the observation was updated.",
+  "answered": "Done, the answer was recorded. The auditor will review it.",
+  "closed": "Done, the observation is closed.",
+  "returned": "Done, the observation is open again.",
+  "closed_locked": "This observation is already closed: it cannot be changed or reopened. If something else is needed, create a new one.",
+  "not_open": "This observation was already answered: only an open observation can be answered.",
+  "invalid_transition": "Only an observation the company already answered can be closed or returned."
+}

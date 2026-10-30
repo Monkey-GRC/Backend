@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { SetEvaluationPeriodUseCase } from './application/use-cases/evaluation-period.use-cases';
 import { ListExclusionsUseCase, RequestExclusionUseCase } from './application/use-cases/exclusion.use-cases';
 import {
+  AnswerObservationUseCase, CreateObservationUseCase, GetObservationUseCase, ListObservationsUseCase, UpdateObservationUseCase,
+} from './application/use-cases/observation.use-cases';
+import {
   CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListSubmissionsUseCase, ListTestEvidenceUseCase, ReviewEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
 } from './application/use-cases/evidence.use-cases';
 import { CreateControlUseCase } from './application/use-cases/create-control.use-case';
@@ -22,6 +25,7 @@ import { ControlRepository } from './domain/repositories/control.repository';
 import { EvidenceRepository } from './domain/repositories/evidence.repository';
 import { EvaluationPeriodRepository } from './domain/repositories/evaluation-period.repository';
 import { ExclusionRepository } from './domain/repositories/exclusion.repository';
+import { ObservationRepository } from './domain/repositories/observation.repository';
 import { TestVerdictRepository } from './domain/repositories/test-verdict.repository';
 import { RiskRepository } from './domain/repositories/risk.repository';
 import { ResponsibleRepository } from './domain/repositories/responsible.repository';
@@ -29,6 +33,7 @@ import { ControlEditPrismaRepository } from './infrastructure/repositories/contr
 import { EvidencePrismaRepository } from './infrastructure/repositories/evidence.prisma.repository';
 import { EvaluationPeriodPrismaRepository } from './infrastructure/repositories/evaluation-period.prisma.repository';
 import { ExclusionPrismaRepository } from './infrastructure/repositories/exclusion.prisma.repository';
+import { ObservationPrismaRepository } from './infrastructure/repositories/observation.prisma.repository';
 import { TestVerdictPrismaRepository } from './infrastructure/repositories/test-verdict.prisma.repository';
 import { ControlPrismaRepository } from './infrastructure/repositories/control.prisma.repository';
 import { RiskPrismaRepository } from './infrastructure/repositories/risk.prisma.repository';
@@ -38,6 +43,7 @@ import { ControlsController } from './presentation/controls.controller';
 import { EvaluationPeriodController } from './presentation/evaluation-period.controller';
 import { EvidenceController } from './presentation/evidence.controller';
 import { ExclusionsController } from './presentation/exclusions.controller';
+import { ObservationsController } from './presentation/observations.controller';
 import { OverviewController } from './presentation/overview.controller';
 import { ResponsiblesController } from './presentation/responsibles.controller';
 import { RiskAssessmentController } from './presentation/risk-assessment.controller';
@@ -45,7 +51,7 @@ import { RisksController } from './presentation/risks.controller';
 
 // Cumplimiento (modelo-datos.md §7 y §9). El motor de evaluación vive en `domain/engine/` (funciones puras).
 @Module({
-  controllers: [ControlsController, ResponsiblesController, RisksController, RiskAssessmentController, ExclusionsController, EvidenceController, OverviewController, VerdictsController, EvaluationPeriodController],
+  controllers: [ControlsController, ResponsiblesController, RisksController, RiskAssessmentController, ExclusionsController, ObservationsController, EvidenceController, OverviewController, VerdictsController, EvaluationPeriodController],
   providers: [
     { provide: ControlRepository, useClass: ControlPrismaRepository },
     { provide: ControlEditRepository, useClass: ControlEditPrismaRepository },
@@ -66,6 +72,8 @@ import { RisksController } from './presentation/risks.controller';
     EvaluateRiskUseCase, EvaluationHistoryUseCase, CreateTreatmentUseCase, ListTreatmentsUseCase,
     { provide: ExclusionRepository, useClass: ExclusionPrismaRepository },
     ListExclusionsUseCase, RequestExclusionUseCase,
+    { provide: ObservationRepository, useClass: ObservationPrismaRepository },
+    CreateObservationUseCase, ListObservationsUseCase, GetObservationUseCase, UpdateObservationUseCase, AnswerObservationUseCase,
     { provide: EvaluationPeriodRepository, useClass: EvaluationPeriodPrismaRepository },
     SetEvaluationPeriodUseCase,
     { provide: TestVerdictRepository, useClass: TestVerdictPrismaRepository },
