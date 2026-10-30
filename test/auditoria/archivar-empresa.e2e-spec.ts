@@ -59,6 +59,16 @@ describe('archivar', () => {
     expect((await archive(a, { reason: 'x' })).status).toBe(422);
     expect((await archive(a, { retention_days: 3 })).status).toBe(422);
     expect(await status(a)).toBe('active');
+    // D97 punto 12 · El intento rechazado deja rastro mínimo: quién, qué empresa y por qué, nunca lo que se escribió.
+    const rechazos = await owner<{ result: string; user_id: string | null; after_state: Record<string, unknown> }>(
+      `select result, user_id, after_state from audit.audit_logs where action = 'company.deactivate' and result = 'error' and after_state->>'company_id' = $1`,
+      [a.companyId],
+    );
+    expect(rechazos.length).toBeGreaterThanOrEqual(2);
+    for (const r of rechazos) {
+      expect(r.user_id).not.toBeNull();
+      expect(r.after_state).toEqual({ company_id: a.companyId, reason: 'confirmation_mismatch' });
+    }
   });
 
   it('solo admin_monkey: la propia empresa no puede archivarse', async () => {
@@ -105,7 +115,7 @@ describe('una empresa archivada', () => {
     expect(cifrada.startsWith('v1.')).toBe(true);
     expect(cifrada).not.toContain(a.companyName);
     const [rastro] = await owner<{ after_state: Record<string, unknown> }>(
-      `select after_state from audit.audit_logs where tenant_id is null and action = 'company.deactivate' and after_state->>'company_id' = $1`,
+      `select after_state from audit.audit_logs where tenant_id is null and action = 'company.deactivate' and result = 'success' and after_state->>'company_id' = $1`,
       [a.companyId],
     );
     expect(rastro.after_state).toMatchObject({ name: a.companyName, reason_code: 'non_payment' });

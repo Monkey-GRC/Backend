@@ -1,5 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { Injectable } from '@nestjs/common';
+import { AuditLogWriter } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
@@ -28,6 +30,7 @@ export class ArchiveCompanyUseCase {
     private readonly stepUp: StepUp,
     private readonly cipher: CredentialCipher,
     private readonly storage: FileStorage,
+    private readonly audit: AuditLogWriter,
   ) {}
 
   async execute(principal: Principal, companyId: string, input: ArchiveCompanyInput, meta: RequestMeta): Promise<CompanyDetail> {
@@ -36,8 +39,14 @@ export class ArchiveCompanyUseCase {
     const detail = await this.companies.findById(scope, companyId, principal.companyId);
     if (!detail) throw new DomainError('NOT_FOUND');
     const { company } = detail;
-    if (company.status === 'deactivated') throw new DomainError('COMPANY_ALREADY_DEACTIVATED');
-    if (input.confirmName !== company.name) throw new DomainError('CONFIRMATION_MISMATCH');
+    if (company.status === 'deactivated') {
+      await this.recordRefusal(principal, companyId, 'already_deactivated', meta);
+      throw new DomainError('COMPANY_ALREADY_DEACTIVATED');
+    }
+    if (input.confirmName !== company.name) {
+      await this.recordRefusal(principal, companyId, 'confirmation_mismatch', meta);
+      throw new DomainError('CONFIRMATION_MISMATCH');
+    }
 
     await this.stepUp.assert(scope, principal.userId, input.totpCode, meta);
 
@@ -46,7 +55,8 @@ export class ArchiveCompanyUseCase {
     const now = new Date();
     const snapshot = await this.companies.exportSnapshot(scope, companyId);
     const packed = gzipSync(Buffer.from(JSON.stringify(snapshot), 'utf8')).toString('base64');
-    const snapshotKey = `${companyId}/archive/${now.toISOString().replace(/[:.]/g, '-')}.snapshot`;
+    // El sufijo único evita que dos archivados simultáneos compartan llave: el que pierde borra la suya, y no debe llevarse la copia del que ganó.
+    const snapshotKey = `${companyId}/archive/${now.toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.snapshot`;
     await this.storage.put(snapshotKey, Buffer.from(this.cipher.encrypt({ snapshot: packed }), 'utf8'), 'application/octet-stream');
 
     const archiveUntil = new Date(now.getTime() + input.retentionDays * DAY_MS);
@@ -83,5 +93,19 @@ export class ArchiveCompanyUseCase {
 
     const archived = await this.companies.findById(scope, companyId, principal.companyId);
     return archived!;
+  }
+
+  // D97 punto 12 · Un intento rechazado también deja rastro, pero solo el mínimo: quién, sobre qué empresa y por qué no pasó (nunca lo que escribió).
+  private recordRefusal(principal: Principal, companyId: string, reason: 'already_deactivated' | 'confirmation_mismatch', meta: RequestMeta): Promise<void> {
+    return this.audit.write({
+      tenantId: null,
+      userId: principal.userId,
+      action: 'company.deactivate',
+      resource: 'company',
+      result: 'error',
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+      afterState: { company_id: companyId, reason },
+    });
   }
 }
