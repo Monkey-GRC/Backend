@@ -15,9 +15,9 @@ export class ContractedFrameworkResponse {
 
 export class RegisteredAccessKeyResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
-  @ApiProperty({ example: 'MNK-7F3A-92KD-5QXB', description: '**Única vez que el código viaja en claro**: hay que entregarlo al cliente ahora; después no se puede volver a ver.' }) code!: string;
   @ApiProperty({ enum: ACCESS_KEY_STATUS, enumName: 'AccessKeyStatus', description: '`pending` canjeable · `used` ya canjeada · `expired` venció · `revoked` anulada.' }) status!: string;
   @ApiProperty({ format: 'date-time', description: 'Hasta cuándo se puede canjear.' }) expires_at!: string;
+  @ApiProperty({ enum: ['sent', 'failed'], enumName: 'AccessKeyDeliveryStatus', description: 'D99 · `sent`: el servicio de correo aceptó el mensaje (no garantiza que llegue). `failed`: no salió; se puede reenviar. **La clave nunca viaja en la respuesta.**' }) delivery_status!: string;
 }
 
 export class CompanyResponse {
@@ -44,7 +44,7 @@ export class PendingPurgeCompanyResponse {
 export class RegisteredCompanyResponse extends CompanyResponse {
   @ApiProperty({ type: ContractedFrameworkResponse, isArray: true, description: 'Marcos contratados al registrar la empresa.' }) frameworks!: ContractedFrameworkResponse[];
   @ApiProperty({ format: 'date-time' }) updated_at!: string;
-  @ApiProperty({ type: RegisteredAccessKeyResponse, description: 'Clave de acceso del primer administrador.' }) access_key!: RegisteredAccessKeyResponse;
+  @ApiProperty({ type: RegisteredAccessKeyResponse, description: 'Clave de acceso del primer administrador (enviada por correo).' }) access_key!: RegisteredAccessKeyResponse;
 }
 
 export class CompanyListItemResponse extends CompanyResponse {

@@ -22,7 +22,7 @@ need() {
 
 ENV="$ROOT/.env"
 RUNNER="$ROOT/runner.env"
-need "$ENV" PORT CORS_ORIGINS APP_DATABASE_URL JWT_SECRET TOKEN_HASH_PEPPER CREDENTIALS_ENCRYPTION_KEY PROBE_MODE
+need "$ENV" PORT CORS_ORIGINS APP_DATABASE_URL JWT_SECRET TOKEN_HASH_PEPPER CREDENTIALS_ENCRYPTION_KEY PROBE_MODE MAIL_PROVIDER MAIL_API_KEY MAIL_FROM PLATFORM_APP_URL
 
 if [ -f "$ENV" ] && [ "$(value "$ENV" PROBE_MODE)" = "runner" ]; then
   # Con la comprobación REAL, el backend necesita hablar con el trabajador y decirle al cliente quién asume su rol.

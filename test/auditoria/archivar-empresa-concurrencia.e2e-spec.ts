@@ -5,6 +5,7 @@ import { FileStorage } from '../../src/common/storage/file-storage';
 import { PurgeExpiredCompaniesUseCase } from '../../src/features/companies/application/use-cases/purge-expired-companies.use-case';
 import { CompanyRepository } from '../../src/features/companies/domain/repositories/company.repository';
 import { bootApp, owner, PASSWORD, RUN } from '../support/app';
+import { claveEnviadaA } from '../support/correo-en-memoria';
 import { connect } from '../support/db';
 import { dosEmpresas } from '../support/escenario';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
@@ -37,7 +38,7 @@ async function nueva(): Promise<Nueva> {
   const res = await monkey.post('/v1/companies').send({ name, requires_dedicated_database: false, admin_email: email, framework_codes: ['soc2'] });
   expect(res.status).toBe(201);
   const [{ id }] = await owner<{ id: string }>('select id from platform.companies where name = $1', [name]);
-  return { id, name, email, code: res.body.data.access_key.code };
+  return { id, name, email, code: claveEnviadaA(email) };
 }
 
 const archive = (c: Nueva, over: Record<string, unknown> = {}) =>

@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
+import { claveEnviadaA } from '../support/correo-en-memoria';
 import { dosEmpresas, Tenant } from '../support/escenario';
 
 // Requisitos de autenticación (seguridad/requisitos.md, SEG-12, 13, 15, 17, 18, 23 y 24): lo que antes solo estaba
@@ -29,16 +30,16 @@ const lastSession = async (email: string) =>
 describe('SEG-13 · política de contraseña (12+, mayúscula, minúscula, número y símbolo)', () => {
   it('rechaza contraseñas débiles con el error por campo, sin gastar la clave; acepta una buena', async () => {
     const email = `politica-${RUN}@aislamiento.test`;
-    const company = (await monkey.post('/v1/companies').send({ name: `Empresa política ${RUN}`, requires_dedicated_database: false, admin_email: email, framework_codes: ['soc2'] })).body.data;
+    await monkey.post('/v1/companies').send({ name: `Empresa política ${RUN}`, requires_dedicated_database: false, admin_email: email, framework_codes: ['soc2'] });
     const weak = ['Corta1!', 'sinmayuscula123!', 'SINMINUSCULA123!', 'SinNumeroAquiii!', 'SinSimbolo12345'];
     for (const password of weak) {
-      const res = await http().post('/v1/auth/redeem').send({ code: company.access_key.code, email, password });
+      const res = await http().post('/v1/auth/redeem').send({ code: claveEnviadaA(email), email, password });
       expect(res.status).toBe(422);
       expect(res.body.error.code).toBe('VALIDATION_FAILED');
       expect(JSON.stringify(res.body.error.fields)).toContain('password');
     }
     // La clave no se gastó con los intentos rechazados: una contraseña buena sigue sirviendo.
-    expect((await http().post('/v1/auth/redeem').send({ code: company.access_key.code, email, password: PASSWORD })).status).toBe(201);
+    expect((await http().post('/v1/auth/redeem').send({ code: claveEnviadaA(email), email, password: PASSWORD })).status).toBe(201);
   });
 
   it('la contraseña se guarda con bcrypt, nunca en claro', async () => {
@@ -177,7 +178,7 @@ describe('SEG-17 y SEG-18 · tokens guardados con HMAC y cookies seguras', () =>
 
     const email = `hash-${RUN}@aislamiento.test`;
     const company = (await monkey.post('/v1/companies').send({ name: `Empresa hash ${RUN}`, requires_dedicated_database: false, admin_email: email, framework_codes: ['soc2'] })).body.data;
-    const code: string = company.access_key.code;
+    const code: string = claveEnviadaA(email);
     const [key] = await owner<{ code_hash: string }>('select code_hash from platform.access_keys where company_id = $1', [company.id]);
     expect(key.code_hash).not.toBe(code);
     expect(key.code_hash).not.toContain(code.replace(/-/g, ''));

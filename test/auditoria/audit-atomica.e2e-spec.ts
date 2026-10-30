@@ -2,6 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import * as auditInsert from '../../src/infrastructure/audit/audit-log.insert';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
+import { claveEnviadaA } from '../support/correo-en-memoria';
 import { dosEmpresas, servicePayload, Tenant } from '../support/escenario';
 
 // SEG-36 (D41, DT-28): la auditoría se escribe en la MISMA transacción que la acción. Estas pruebas lo demuestran de
@@ -186,11 +187,11 @@ describe('Si el rastro falla, la acción se revierte (y el rastro también)', ()
     const email = `canje-${RUN}@aislamiento.test`;
     const company = (await monkey.post('/v1/companies').send({ name: `Empresa canje ${RUN}`, requires_dedicated_database: false, admin_email: email, framework_codes: ['soc2'] })).body.data;
     auditFailsAfterInsert();
-    const res = await request(app.getHttpServer()).post('/v1/auth/redeem').send({ code: company.access_key.code, email, password: PASSWORD });
+    const res = await request(app.getHttpServer()).post('/v1/auth/redeem').send({ code: claveEnviadaA(email), email, password: PASSWORD });
     expect(res.status).toBe(500);
     expect((await owner<{ status: string }>('select status from platform.access_keys where company_id = $1', [company.id]))[0].status).toBe('pending');
     expect((await owner('select 1 from platform.users where email = $1', [email])).length).toBe(0);
     // Y el canje sigue funcionando después: nada quedó a medias.
-    expect((await request(app.getHttpServer()).post('/v1/auth/redeem').send({ code: company.access_key.code, email, password: PASSWORD })).status).toBe(201);
+    expect((await request(app.getHttpServer()).post('/v1/auth/redeem').send({ code: claveEnviadaA(email), email, password: PASSWORD })).status).toBe(201);
   });
 });

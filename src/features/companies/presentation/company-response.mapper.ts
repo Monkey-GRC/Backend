@@ -5,10 +5,10 @@ import {
   ContractedFramework,
 } from '../domain/entities/company-overview';
 import { Company } from '../domain/entities/company.entity';
+import type { DeliveryStatus } from '../application/access-key-delivery.service';
 import { RegisterCompanyResult } from '../application/use-cases/register-company.use-case';
 
-// Formas de contracts/modules/monkey-admin.md, en snake_case. Ni `code` ni `code_hash` salen
-// nunca en un listado o detalle: el código en claro solo viaja en la respuesta del registro.
+// Formas de contracts/modules/monkey-admin.md, en snake_case. Ni `code` ni `code_hash` salen nunca en una respuesta (D99).
 
 const iso = (date: Date | null) => date?.toISOString() ?? null;
 
@@ -35,14 +35,17 @@ export function toRegisteredCompanyResponse(result: RegisterCompanyResult) {
     ...companyFields(result.company),
     frameworks: frameworksField(result.frameworks),
     updated_at: result.company.updatedAt.toISOString(),
-    access_key: {
-      id: result.accessKey.id,
-      code: result.accessKeyCode,
-      status: result.accessKey.statusAt(now),
-      expires_at: result.accessKey.expiresAt.toISOString(),
-    },
+    access_key: toIssuedAccessKey(result.accessKey, result.deliveryStatus, now),
   };
 }
+
+// D99 · La clave nunca sale en una respuesta: viaja por correo. Aquí solo si el correo salió.
+export const toIssuedAccessKey = (key: AccessKey, deliveryStatus: DeliveryStatus, now = new Date()) => ({
+  id: key.id,
+  status: key.statusAt(now),
+  expires_at: key.expiresAt.toISOString(),
+  delivery_status: deliveryStatus,
+});
 
 export function toCompanyListItem(overview: CompanyOverview, now = new Date()) {
   const key = overview.currentAccessKey;
