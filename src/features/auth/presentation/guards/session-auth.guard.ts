@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { Principal } from '../../../../common/auth/principal';
 import { IS_PUBLIC_KEY } from '../../../../common/decorators/public.decorator';
-import { ValidateSessionUseCase } from '../../application/use-cases/validate-session.use-case';
+import { ValidateSessionUseCase } from '../../application/use-cases/session/validate-session.use-case';
 import { ACCESS_COOKIE, readCookie } from '../auth-cookies';
 
 // Guard global: todo endpoint exige sesión válida salvo los marcados con @Public().

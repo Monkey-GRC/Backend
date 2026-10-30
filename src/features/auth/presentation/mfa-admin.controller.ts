@@ -6,7 +6,7 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiDomainErrors, ApiNoBody } from '../../../common/swagger/api-envelope';
-import { ResetMfaUseCase } from '../application/use-cases/reset-mfa.use-case';
+import { ResetMfaUseCase } from '../application/use-cases/mfa/reset-mfa.use-case';
 import { requestMeta } from './auth-cookies';
 
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
