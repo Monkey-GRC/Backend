@@ -240,10 +240,11 @@ export class ServicePrismaRepository extends ServiceRepository {
       const before = await this.readOrNull(tx, id);
       if (!before) return null;
 
-      // El histórico es inmutable: con evaluaciones, evidencias entregadas o planes de acción el
-      // servicio no se borra.
+      // El histórico es inmutable: con evaluaciones, evidencias entregadas, planes de acción u observaciones
+      // del auditor (que nunca se borran, MD-154) el servicio no se borra.
       const history =
         (await tx.evaluation.count({ where: { serviceId: id } })) +
+        (await tx.auditObservation.count({ where: { serviceId: id } })) +
         (await tx.evidenceSubmission.count({
           where: { evidenceRequirement: { clientControl: { serviceId: id } } },
         })) +
