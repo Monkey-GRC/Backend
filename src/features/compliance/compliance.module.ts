@@ -1,53 +1,53 @@
 import { Module } from '@nestjs/common';
-import { SetEvaluationPeriodUseCase } from './application/use-cases/evaluation-period.use-cases';
-import { ListExclusionsUseCase, RequestExclusionUseCase } from './application/use-cases/exclusion.use-cases';
+import { SetEvaluationPeriodUseCase } from './application/periods/evaluation-period.use-cases';
+import { ListExclusionsUseCase, RequestExclusionUseCase } from './application/exclusions/exclusion.use-cases';
 import {
   AnswerObservationUseCase, CreateObservationUseCase, GetObservationUseCase, ListObservationsUseCase, UpdateObservationUseCase,
-} from './application/use-cases/observation.use-cases';
+} from './application/observations/observation.use-cases';
 import {
   CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListSubmissionsUseCase, ListTestEvidenceUseCase, ReviewEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
-} from './application/use-cases/evidence.use-cases';
-import { CreateControlUseCase } from './application/use-cases/create-control.use-case';
-import { RetireControlUseCase, UpdateControlUseCase } from './application/use-cases/edit-control.use-cases';
-import { GetControlUseCase } from './application/use-cases/get-control.use-case';
-import { ListControlTestsUseCase } from './application/use-cases/list-control-tests.use-case';
-import { GetOverviewUseCase } from './application/use-cases/get-overview.use-case';
-import { ListControlsUseCase } from './application/use-cases/list-controls.use-case';
-import { CreateTreatmentUseCase, EvaluateRiskUseCase, EvaluationHistoryUseCase, ListTreatmentsUseCase } from './application/use-cases/risk-assessment.use-cases';
-import { IssueVerdictUseCase, ListVerdictsUseCase } from './application/use-cases/verdict.use-cases';
-import { CreateResponsibleUseCase, DeleteResponsibleUseCase, ListResponsiblesUseCase, UpdateResponsibleUseCase } from './application/use-cases/responsible.use-cases';
+} from './application/evidence/evidence.use-cases';
+import { CreateControlUseCase } from './application/controls/create-control.use-case';
+import { RetireControlUseCase, UpdateControlUseCase } from './application/controls/edit-control.use-cases';
+import { GetControlUseCase } from './application/controls/get-control.use-case';
+import { ListControlTestsUseCase } from './application/controls/list-control-tests.use-case';
+import { GetOverviewUseCase } from './application/overview/get-overview.use-case';
+import { ListControlsUseCase } from './application/controls/list-controls.use-case';
+import { CreateTreatmentUseCase, EvaluateRiskUseCase, EvaluationHistoryUseCase, ListTreatmentsUseCase } from './application/risks/risk-assessment.use-cases';
+import { IssueVerdictUseCase, ListVerdictsUseCase } from './application/verdicts/verdict.use-cases';
+import { CreateResponsibleUseCase, DeleteResponsibleUseCase, ListResponsiblesUseCase, UpdateResponsibleUseCase } from './application/responsibles/responsible.use-cases';
 import {
   CreateCauseUseCase, CreateRiskUseCase, DeactivateCauseUseCase, DeactivateRiskUseCase, GetCauseUseCase, GetRiskUseCase, LinkUseCases, ListCausesUseCase, ListRisksUseCase, ReactivateRiskUseCase,
   UpdateCauseUseCase, UpdateRiskUseCase,
-} from './application/use-cases/risk.use-cases';
-import { ControlEditRepository } from './domain/repositories/control-edit.repository';
-import { ControlRepository } from './domain/repositories/control.repository';
-import { EvidenceRepository } from './domain/repositories/evidence.repository';
-import { EvaluationPeriodRepository } from './domain/repositories/evaluation-period.repository';
-import { ExclusionRepository } from './domain/repositories/exclusion.repository';
-import { ObservationRepository } from './domain/repositories/observation.repository';
-import { TestVerdictRepository } from './domain/repositories/test-verdict.repository';
-import { RiskRepository } from './domain/repositories/risk.repository';
-import { ResponsibleRepository } from './domain/repositories/responsible.repository';
-import { ControlEditPrismaRepository } from './infrastructure/repositories/control-edit.prisma.repository';
-import { EvidencePrismaRepository } from './infrastructure/repositories/evidence.prisma.repository';
-import { EvaluationPeriodPrismaRepository } from './infrastructure/repositories/evaluation-period.prisma.repository';
-import { ExclusionPrismaRepository } from './infrastructure/repositories/exclusion.prisma.repository';
-import { ObservationPrismaRepository } from './infrastructure/repositories/observation.prisma.repository';
-import { TestVerdictPrismaRepository } from './infrastructure/repositories/test-verdict.prisma.repository';
-import { ControlPrismaRepository } from './infrastructure/repositories/control.prisma.repository';
-import { RiskPrismaRepository } from './infrastructure/repositories/risk.prisma.repository';
-import { ResponsiblePrismaRepository } from './infrastructure/repositories/responsible.prisma.repository';
-import { VerdictsController } from './presentation/verdicts.controller';
-import { ControlsController } from './presentation/controls.controller';
-import { EvaluationPeriodController } from './presentation/evaluation-period.controller';
-import { EvidenceController } from './presentation/evidence.controller';
-import { ExclusionsController } from './presentation/exclusions.controller';
-import { ObservationsController } from './presentation/observations.controller';
-import { OverviewController } from './presentation/overview.controller';
-import { ResponsiblesController } from './presentation/responsibles.controller';
-import { RiskAssessmentController } from './presentation/risk-assessment.controller';
-import { RisksController } from './presentation/risks.controller';
+} from './application/risks/risk.use-cases';
+import { ControlEditRepository } from './domain/controls/control-edit.repository';
+import { ControlRepository } from './domain/controls/control.repository';
+import { EvidenceRepository } from './domain/evidence/evidence.repository';
+import { EvaluationPeriodRepository } from './domain/periods/evaluation-period.repository';
+import { ExclusionRepository } from './domain/exclusions/exclusion.repository';
+import { ObservationRepository } from './domain/observations/observation.repository';
+import { TestVerdictRepository } from './domain/verdicts/test-verdict.repository';
+import { RiskRepository } from './domain/risks/risk.repository';
+import { ResponsibleRepository } from './domain/responsibles/responsible.repository';
+import { ControlEditPrismaRepository } from './infrastructure/controls/control-edit.prisma.repository';
+import { EvidencePrismaRepository } from './infrastructure/evidence/evidence.prisma.repository';
+import { EvaluationPeriodPrismaRepository } from './infrastructure/periods/evaluation-period.prisma.repository';
+import { ExclusionPrismaRepository } from './infrastructure/exclusions/exclusion.prisma.repository';
+import { ObservationPrismaRepository } from './infrastructure/observations/observation.prisma.repository';
+import { TestVerdictPrismaRepository } from './infrastructure/verdicts/test-verdict.prisma.repository';
+import { ControlPrismaRepository } from './infrastructure/controls/control.prisma.repository';
+import { RiskPrismaRepository } from './infrastructure/risks/risk.prisma.repository';
+import { ResponsiblePrismaRepository } from './infrastructure/responsibles/responsible.prisma.repository';
+import { VerdictsController } from './presentation/verdicts/verdicts.controller';
+import { ControlsController } from './presentation/controls/controls.controller';
+import { EvaluationPeriodController } from './presentation/periods/evaluation-period.controller';
+import { EvidenceController } from './presentation/evidence/evidence.controller';
+import { ExclusionsController } from './presentation/exclusions/exclusions.controller';
+import { ObservationsController } from './presentation/observations/observations.controller';
+import { OverviewController } from './presentation/overview/overview.controller';
+import { ResponsiblesController } from './presentation/responsibles/responsibles.controller';
+import { RiskAssessmentController } from './presentation/risks/risk-assessment.controller';
+import { RisksController } from './presentation/risks/risks.controller';
 
 // Cumplimiento (modelo-datos.md §7 y §9). El motor de evaluación vive en `domain/engine/` (funciones puras).
 @Module({

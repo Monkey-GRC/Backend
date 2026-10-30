@@ -13,19 +13,19 @@ import { MfaCodeDto, VerifyMfaDto } from '../application/dtos/mfa.dto';
 import { LookupAccessKeyDto } from '../application/dtos/lookup-access-key.dto';
 import { RedeemAccessKeyDto } from '../application/dtos/redeem-access-key.dto';
 import { SESSION_POLICY } from '../application/session-policy.token';
-import { ActivateAccountUseCase } from '../application/use-cases/activate-account.use-case';
-import { GetCurrentUserUseCase } from '../application/use-cases/get-current-user.use-case';
-import { GetOnboardingProgressUseCase } from '../application/use-cases/get-onboarding-progress.use-case';
-import { ConfirmMfaSetupUseCase } from '../application/use-cases/confirm-mfa-setup.use-case';
-import { LoginUseCase } from '../application/use-cases/login.use-case';
-import { LogoutUseCase } from '../application/use-cases/logout.use-case';
-import { LookupActivationCodeUseCase } from '../application/use-cases/lookup-activation-code.use-case';
-import { LookupAccessKeyUseCase } from '../application/use-cases/lookup-access-key.use-case';
-import { RedeemAccessKeyUseCase } from '../application/use-cases/redeem-access-key.use-case';
-import { RefreshSessionUseCase } from '../application/use-cases/refresh-session.use-case';
-import { RegenerateRecoveryCodesUseCase } from '../application/use-cases/regenerate-recovery-codes.use-case';
-import { StartMfaSetupUseCase } from '../application/use-cases/start-mfa-setup.use-case';
-import { VerifyMfaUseCase } from '../application/use-cases/verify-mfa.use-case';
+import { ActivateAccountUseCase } from '../application/use-cases/activation/activate-account.use-case';
+import { GetCurrentUserUseCase } from '../application/use-cases/session/get-current-user.use-case';
+import { GetOnboardingProgressUseCase } from '../application/use-cases/session/get-onboarding-progress.use-case';
+import { ConfirmMfaSetupUseCase } from '../application/use-cases/mfa/confirm-mfa-setup.use-case';
+import { LoginUseCase } from '../application/use-cases/session/login.use-case';
+import { LogoutUseCase } from '../application/use-cases/session/logout.use-case';
+import { LookupActivationCodeUseCase } from '../application/use-cases/activation/lookup-activation-code.use-case';
+import { LookupAccessKeyUseCase } from '../application/use-cases/access-key/lookup-access-key.use-case';
+import { RedeemAccessKeyUseCase } from '../application/use-cases/access-key/redeem-access-key.use-case';
+import { RefreshSessionUseCase } from '../application/use-cases/session/refresh-session.use-case';
+import { RegenerateRecoveryCodesUseCase } from '../application/use-cases/mfa/regenerate-recovery-codes.use-case';
+import { StartMfaSetupUseCase } from '../application/use-cases/mfa/start-mfa-setup.use-case';
+import { VerifyMfaUseCase } from '../application/use-cases/mfa/verify-mfa.use-case';
 import {
   clearAuthCookies,
   clearMfaChallengeCookie,
