@@ -47,7 +47,7 @@ export type EvidenceAccess = {
   controlId: string;
   serviceId: string;
   controlActive: boolean;
-  /** Quién es el responsable efectivo de la DIMENSIÓN del requerimiento (D96): un `funcional` solo actúa sobre lo suyo. Vacío si nadie lo es. */
+  /** Quiénes atienden la DIMENSIÓN del requerimiento (D98): un `funcional` solo actúa sobre lo de sus especialidades. */
   assignedUserIds: string[];
 };
 
@@ -78,8 +78,8 @@ export type ControlEvidenceFacts = {
   ownCode: string;
   /** Las personas responsables del control en alguna de sus dimensiones. */
   assignedUserIds: string[];
-  /** Quién es el responsable efectivo de cada dimensión del control (D96). */
-  responsibleByDimension: Record<string, string>;
+  /** Quiénes atienden cada dimensión del control (D98). */
+  responsibleByDimension: Record<string, string[]>;
   /** Dimensiones que el control exige y aplican. */
   dimensions: string[];
   /** Las pruebas que el control lleva (el vínculo `client_control_tests`). */
@@ -92,7 +92,7 @@ export type ControlEvidenceFacts = {
 export type NewRequirement = { description: string; dimension: string; testId: string | null; validityWithinPeriod: string };
 
 /** Un control que lleva un test, con quién es responsable de cada una de sus dimensiones (D96): para decidir qué ve un `funcional`. */
-export type TestEvidenceControl = { id: string; code: string; responsibleByDimension: Record<string, string> };
+export type TestEvidenceControl = { id: string; code: string; responsibleByDimension: Record<string, string[]> };
 
 /** Lo que se subió para un test manual o documental, visto desde un control que lo lleva (D85, D88). */
 export type TestEvidence = {
@@ -106,7 +106,7 @@ export type TestEvidence = {
 
 export abstract class EvidenceRepository {
   /** Los requerimientos del control con sus entregas. `null` si el control no existe para esta empresa. `viewer`: de quién es la revisión que se lee. */
-  abstract listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ assignedUserIds: string[]; responsibleByDimension: Record<string, string>; requirements: RequirementRecord[] } | null>;
+  abstract listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ assignedUserIds: string[]; responsibleByDimension: Record<string, string[]>; requirements: RequirementRecord[] } | null>;
   /** `null` si el control no existe, no lleva el test, o el test no es manual ni documental. `viewer`: de quién es la revisión que se lee. */
   abstract listByTest(scope: TenantScope, controlId: string, testId: string, viewer: ReviewerRole): Promise<TestEvidence | null>;
   /** `null` si el requerimiento no existe para esta empresa. */

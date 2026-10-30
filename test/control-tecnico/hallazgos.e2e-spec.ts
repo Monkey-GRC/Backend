@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import { ImportScanUseCase } from '../../src/features/technical-control/application/use-cases/scan.use-cases';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { awsBody, dosEmpresas, Tenant } from '../support/escenario';
+import { darEspecialidades } from '../support/especialidades';
 
 // D90 · Qué falló y cómo corregirlo (contracts/modules/compliance-audit.md): para una prueba de nube de un control, lo que no cumplió la última evaluación y la guía para
 // corregirlo. Sale por HTTP con la sesión real de cada rol, contra el Postgres desechable. Nada de lo que sale nombra al proveedor de la sonda.
@@ -153,28 +154,21 @@ describe('Qué falló y cómo corregirlo (D90)', () => {
     expect(res.body.data.items).toHaveLength(1);
   });
 
-  it('el auditor también lo ve; un funcional que no es responsable de la nube en ese control, no (403)', async () => {
+  it('el auditor también lo ve; un funcional sin la especialidad de nube, no (403)', async () => {
     await auditor.get(path).expect(200);
     await funcional.get(path).expect(403);
   });
 
-  it('el funcional responsable de la nube en ese control sí lo ve (D96): por el servicio, o por la excepción del control', async () => {
+  it('el funcional con la especialidad de nube sí lo ve (D98), sin que nadie se lo asigne; si la pierde, ya no', async () => {
     const [{ id }] = await owner<{ id: string }>('select id from platform.users where email = $1', [`funcional-d90-${RUN}@cumplimiento.test`]);
-    const [{ id: adminId }] = await owner<{ id: string }>('select id from platform.users where email = $1', [a.email]);
-    await owner(`insert into platform.service_dimension_owners (id, company_id, service_id, dimension, user_id, assigned_by) values (gen_random_uuid(), $1, $2, 'cloud', $3, $4)`, [a.companyId, a.serviceId, id, adminId]);
+    await darEspecialidades(a.companyId, id, 'cloud');
     try {
       expect((await funcional.get(path).expect(200)).body.data.total).toBe(3);
-      // La excepción de otro funcional en este control le quita el acceso al principal del servicio.
-      const [{ id: otro }] = await owner<{ id: string }>(`select id from platform.users where company_id = $1 and role = 'auditor' limit 1`, [a.companyId]);
-      await owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, dimension, assigned_by) values (gen_random_uuid(), $1, $2, $3, 'cloud', $4)`, [a.companyId, otro, controlId, adminId]);
-      await funcional.get(path).expect(403);
     } finally {
-      await owner('delete from platform.user_control_assignments where client_control_id = $1', [controlId]);
-      await owner('delete from platform.service_dimension_owners where service_id = $1', [a.serviceId]);
+      await owner('delete from platform.user_dimensions where user_id = $1', [id]);
     }
     await funcional.get(path).expect(403);
   });
-
   it('para otra empresa el control no existe (404), igual que un control o una prueba inventados', async () => {
     await b.agent.get(path).expect(404);
     await a.agent.get(`/v1/controls/${controlId}/tests/00000000-0000-4000-8000-000000000000/findings`).expect(404);

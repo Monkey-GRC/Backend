@@ -3,8 +3,8 @@
 export const DIMENSIONS = ['policy', 'server', 'database', 'app', 'cloud'] as const;
 export type Dimension = (typeof DIMENSIONS)[number];
 
-/** Los roles que el admin_empresa puede crear y mover. Nunca otro administrador ni admin_monkey. */
-export const TEAM_ROLES = ['funcional', 'auditor'] as const;
+/** Los roles que el admin_empresa puede crear y mover: otro administrador de su empresa, un funcional o un auditor. Nunca admin_monkey. */
+export const TEAM_ROLES = ['admin_empresa', 'funcional', 'auditor'] as const;
 export type TeamRole = (typeof TEAM_ROLES)[number];
 
 export type TeamMember = {

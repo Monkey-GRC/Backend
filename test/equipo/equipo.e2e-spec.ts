@@ -17,7 +17,8 @@ let adminId: string;
 const realInsert = auditInsert.insertAuditLog;
 const email = (k: string) => `${k}-${RUN}@equipo.test`;
 const fields = (res: { body: any }) => (res.body.error.fields as Array<{ field: string; code: string }>).map(({ field, code }) => ({ field, code }));
-const invite = (agent: Agent, body: object) => agent.post('/v1/users').send(body);
+// Toda cuenta lleva nombre y apellido (D97); las pruebas que no hablan del nombre mandan uno cualquiera.
+const invite = (agent: Agent, body: object) => agent.post('/v1/users').send({ name: 'Persona', last_name: 'De Prueba', ...body });
 const owners = (t: Tenant) => `/v1/services/${t.serviceId}/dimension-owners`;
 const auditRows = (action: string) => owner<{ n: number }>('select count(*)::int n from audit.audit_logs where tenant_id = $1 and action = $2', [a.companyId, action]).then((r) => r[0].n);
 
@@ -43,7 +44,7 @@ describe('Invitar a una persona del equipo', () => {
   it('nace pending, con su código en claro una sola vez, y con él activa su cuenta y entra', async () => {
     const res = await invite(a.agent, { email: email('ana'), role: 'funcional', dimensions: ['server', 'database'] }).expect(201);
     expect(res.body.data).toMatchObject({
-      email: email('ana'), name: null, last_name: null, role: 'funcional', status: 'pending', is_mfa_enabled: false, last_login_at: null, dimensions: ['database', 'server'],
+      email: email('ana'), name: 'Persona', last_name: 'De Prueba', role: 'funcional', status: 'pending', is_mfa_enabled: false, last_login_at: null, dimensions: ['database', 'server'],
       activation_code: { code: expect.stringMatching(/^MNK-[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/), status: 'pending', expires_at: expect.any(String) },
     });
     // Una cuenta pendiente no entra: se ve igual que una contraseña mala.
@@ -65,16 +66,41 @@ describe('Invitar a una persona del equipo', () => {
     expect(row.code_hash).not.toContain(res.body.data.activation_code.code.replace(/-/g, ''));
   });
 
-  it('un auditor no lleva especialidades; un funcional las necesita; el rol es uno de los dos', async () => {
+  it('un auditor y un administrador no llevan especialidades; un funcional las necesita; el rol es uno de los tres', async () => {
     expect(fields(await invite(a.agent, { email: email('x1'), role: 'funcional' }).expect(422))).toEqual([{ field: 'dimensions', code: 'array.min' }]);
     expect(fields(await invite(a.agent, { email: email('x2'), role: 'funcional', dimensions: [] }).expect(422))).toEqual([{ field: 'dimensions', code: 'array.min' }]);
     expect(fields(await invite(a.agent, { email: email('x3'), role: 'auditor', dimensions: ['app'] }).expect(422))).toEqual([{ field: 'dimensions', code: 'dimensions.not_allowed' }]);
-    expect(fields(await invite(a.agent, { email: email('x4'), role: 'admin_empresa' }).expect(422))).toEqual([{ field: 'role', code: 'enum.invalid' }]);
+    expect(fields(await invite(a.agent, { email: email('x4'), role: 'admin_monkey' }).expect(422))).toEqual([{ field: 'role', code: 'enum.invalid' }]);
     expect(fields(await invite(a.agent, { email: email('x5'), role: 'superadmin' }).expect(422))).toEqual([{ field: 'role', code: 'enum.invalid' }]);
     expect(fields(await invite(a.agent, { email: 'no-es-correo', role: 'auditor' }).expect(422))).toEqual([{ field: 'email', code: 'email.invalid' }]);
     expect(fields(await invite(a.agent, { email: email('x6'), role: 'funcional', dimensions: ['nube'] }).expect(422))).toEqual([{ field: 'dimensions', code: 'enum.invalid' }]);
   });
 
+  it('toda cuenta lleva nombre y apellido: sin ellos es 422, y se guardan limpios', async () => {
+    const sin = await a.agent.post('/v1/users').send({ email: email('sinnombre'), role: 'auditor' }).expect(422);
+    expect(fields(sin)).toEqual(expect.arrayContaining([{ field: 'name', code: 'required' }, { field: 'last_name', code: 'required' }]));
+    expect(fields(await a.agent.post('/v1/users').send({ email: email('vacio'), role: 'auditor', name: '   ', last_name: 'X' }).expect(422))).toEqual([{ field: 'name', code: 'required' }]);
+    const res = await a.agent.post('/v1/users').send({ email: email('limpio'), role: 'auditor', name: '  Marta  ', last_name: ' Ruiz ' }).expect(201);
+    expect(res.body.data).toMatchObject({ name: 'Marta', last_name: 'Ruiz' });
+  });
+
+  it('el administrador puede invitar a otro administrador (con nombre, sin especialidades); este activa su cuenta y administra el equipo', async () => {
+    expect(fields(await invite(a.agent, { email: email('adm-x'), role: 'admin_empresa', dimensions: ['app'] }).expect(422))).toEqual([{ field: 'dimensions', code: 'dimensions.not_allowed' }]);
+    const created = (await invite(a.agent, { email: email('adm2'), name: 'Lucía', last_name: 'Gómez', role: 'admin_empresa' }).expect(201)).body.data;
+    expect(created).toMatchObject({ role: 'admin_empresa', status: 'pending', name: 'Lucía', dimensions: [] });
+    const session = request.agent(app.getHttpServer());
+    await session.post('/v1/auth/activate').send({ code: created.activation_code.code, email: email('adm2'), password: PASSWORD }).expect(201);
+    // El nuevo administrador ya invita, y no lo puede hacer ningún funcional ni auditor.
+    await invite(session as unknown as Agent, { email: email('adm2-invita'), role: 'auditor' }).expect(201);
+    expect((await a.agent.get('/v1/users?role=admin_empresa&page_size=100').expect(200)).body.data.items.map((i: any) => i.email)).toEqual(expect.arrayContaining([a.email, email('adm2')]));
+  });
+
+  it('un correo que ya existe se rechaza con su mensaje y no crea nada; el nombre de un correo ya registrado se corrige desde el equipo', async () => {
+    await invite(a.agent, { email: email('yaexiste'), name: 'Sin', last_name: 'Apellido', role: 'auditor' }).expect(201);
+    const dup = await invite(a.agent, { email: email('yaexiste'), role: 'funcional', dimensions: ['app'] }).expect(409);
+    expect(dup.body.error.code).toBe('EMAIL_TAKEN');
+    expect((await owner('select 1 from platform.users where email = $1', [email('yaexiste')])).length).toBe(1);
+  });
   it('el correo es único en toda la plataforma, también frente a otra empresa; y se guarda en minúsculas', async () => {
     await invite(a.agent, { email: email('dup').toUpperCase(), role: 'auditor' }).expect(201);
     expect((await invite(a.agent, { email: email('dup'), role: 'auditor' }).expect(409)).body.error.code).toBe('EMAIL_TAKEN');
@@ -180,6 +206,38 @@ describe('Editar, desactivar y reactivar', () => {
   });
 });
 
+describe('Corregir el nombre y administrar a otros administradores (D97)', () => {
+  it('el administrador corrige el nombre de cualquier persona del equipo, incluido él mismo, y queda en la auditoría', async () => {
+    const p = (await invite(a.agent, { email: email('nom'), name: 'Viejo', last_name: 'Nombre', role: 'funcional', dimensions: ['app'] }).expect(201)).body.data;
+    const res = await a.agent.patch(`/v1/users/${p.id}`).send({ name: ' Nuevo ', last_name: 'Apellido' }).expect(200);
+    expect(res.body.data).toMatchObject({ name: 'Nuevo', last_name: 'Apellido', status: 'pending', dimensions: ['app'] });
+    const [row] = await owner<{ before_state: any; after_state: any }>(`select before_state, after_state from audit.audit_logs where tenant_id = $1 and action = 'user.update' order by created_at desc limit 1`, [a.companyId]);
+    expect(row.before_state).toMatchObject({ name: 'Viejo' });
+    expect(row.after_state).toMatchObject({ name: 'Nuevo', last_name: 'Apellido' });
+    // a sí mismo solo puede corregirse el nombre, nunca desactivarse ni quitarse la especialidad
+    await a.agent.patch(`/v1/users/${adminId}`).send({ name: 'Admin', last_name: 'Principal' }).expect(200);
+    expect((await a.agent.patch(`/v1/users/${adminId}`).send({ status: 'inactive' }).expect(409)).body.error.code).toBe('LAST_ADMIN');
+    expect(fields(await a.agent.patch(`/v1/users/${p.id}`).send({ name: '   ' }).expect(422))).toEqual([{ field: 'name', code: 'required' }]);
+  });
+
+  it('un administrador puede desactivar y reactivar a otro administrador; la empresa nunca se queda sin administrador', async () => {
+    const otro = await activo(a, a.agent, 'adm-baja', 'admin_empresa' as never);
+    await a.agent.patch(`/v1/users/${otro.id}`).send({ status: 'inactive' }).expect(200);
+    await otro.session.get('/v1/auth/me').expect(401);
+    await a.agent.patch(`/v1/users/${otro.id}`).send({ status: 'active' }).expect(200);
+    // el otro administrador tampoco puede desactivarse a sí mismo
+    const mismo = await login(app, email('adm-baja'));
+    expect((await mismo.patch(`/v1/users/${otro.id}`).send({ status: 'inactive' }).expect(409)).body.error.code).toBe('LAST_ADMIN');
+  });
+
+  it('el administrador de otra empresa no existe para quien llama (404); un funcional no corrige nombres', async () => {
+    const ajena = (await owner<{ id: string }>('select id from platform.users where email = $1', [b.email]))[0].id;
+    await a.agent.patch(`/v1/users/${ajena}`).send({ name: 'X' }).expect(404);
+    const f = await activo(a, a.agent, 'nom-f', 'funcional', ['app']);
+    await f.session.patch(`/v1/users/${f.id}`).send({ name: 'Yo' }).expect(403);
+  });
+});
+
 describe('Reemitir el código de activación', () => {
   it('revoca el anterior, el nuevo sí activa, y una cuenta ya activa no lo necesita (409 USER_ALREADY_ACTIVE)', async () => {
     const first = (await invite(a.agent, { email: email('reem'), role: 'auditor' }).expect(201)).body.data;
@@ -190,7 +248,7 @@ describe('Reemitir el código de activación', () => {
     await request(app.getHttpServer()).post('/v1/auth/activate').send({ code: second.activation_code.code, email: email('reem'), password: PASSWORD }).expect(201);
     expect((await a.agent.post(`/v1/users/${first.id}/activation-code`).expect(409)).body.error.code).toBe('USER_ALREADY_ACTIVE');
     expect(await auditRows('user.activation_code_regenerate')).toBeGreaterThan(0);
-    await a.agent.post(`/v1/users/${adminId}/activation-code`).expect(404);
+    await a.agent.post(`/v1/users/${adminId}/activation-code`).expect(409); // un administrador ya activo tampoco necesita código
     await b.agent.post(`/v1/users/${first.id}/activation-code`).expect(404);
   });
 });
@@ -354,12 +412,11 @@ describe('Responsable de un control, por dimensión', () => {
   });
 });
 
-describe('SEG-66 · el funcional solo ve y toca lo de su dimensión', () => {
+describe('D97 · el funcional atiende todo lo de su especialidad, sin que nadie se lo asigne', () => {
   let mixto: string; // un control con pruebas documentales y de otra dimensión
   let otraDim: string;
   let docTest: string;
-  let soloOtra: string; // otro control que también lleva pruebas de la otra dimensión
-  let sinOtra: string | undefined; // un control que no las lleva
+  let sinOtra: string | undefined; // un control que no lleva pruebas de esa otra dimensión
   let doc: { id: string; session: Agent };
   let tec: { id: string; session: Agent };
   let nadie: { id: string; session: Agent };
@@ -374,47 +431,43 @@ describe('SEG-66 · el funcional solo ve y toca lo de su dimensión', () => {
     mixto = m.id;
     otraDim = m.dims.find((d) => d !== 'policy')!;
     docTest = (await owner<{ test_id: string }>(`select x.test_id from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $1 and t.dimension = 'policy' order by t.code limit 1`, [mixto]))[0].test_id;
-    soloOtra = rows.find((r) => r.dims.includes(otraDim) && r.id !== mixto)!.id;
     sinOtra = rows.find((r) => !r.dims.includes(otraDim))?.id;
+    // Se crean como lo hace el administrador: con sus especialidades al invitarlos. Nadie les asigna nada después.
     doc = await activo(a, a.agent, 'seg-doc', 'funcional', ['policy']);
     tec = await activo(a, a.agent, 'seg-tec', 'funcional', [otraDim]);
     nadie = await activo(a, a.agent, 'seg-nadie', 'funcional', ['app']);
-    await a.agent.patch(`${owners(a)}/policy`).send({ user_id: doc.id }).expect(200);
-    await a.agent.patch(`${owners(a)}/${otraDim}`).send({ user_id: tec.id }).expect(200);
   });
 
   const ids = async (agent: Agent) => ((await agent.get(`/v1/services/${a.serviceId}/controls?page_size=100`).expect(200)).body.data.items as any[]).map((c) => c.id);
   const pdf = () => Buffer.from(`%PDF-1.7\n% seg66 ${RUN}\n`);
 
-  it('la lista trae solo los controles de los que es responsable en alguna dimensión; sin responsabilidades llega vacía, no falla', async () => {
+  it('al entrar ve de una vez los controles de su especialidad; sin controles de su especialidad la lista llega vacía, no falla', async () => {
     const todos = await ids(a.agent);
-    const docs = await ids(doc.session);
+    // Todo control lleva pruebas documentales: quien atiende lo documental los ve todos; el técnico, solo los que llevan su dimensión.
+    expect((await ids(doc.session)).length).toBe(todos.length);
     const tecs = await ids(tec.session);
-    // Todo control lleva pruebas documentales: quien es responsable de lo documental lo ve entero; el técnico, solo los que llevan su dimensión.
-    expect(docs.length).toBe(todos.length);
-    expect(tecs).toEqual(expect.arrayContaining([mixto, soloOtra]));
+    expect(tecs).toContain(mixto);
     if (sinOtra) expect(tecs).not.toContain(sinOtra);
     expect(tecs.length).toBeLessThanOrEqual(todos.length);
-    expect(await ids(nadie.session)).toEqual([]);
+    expect(await ids(nadie.session)).not.toContain(mixto);
   });
 
-  it('un control del que no es responsable es 403, no 404 (existe y es de su empresa); el de otra empresa, 404', async () => {
+  it('un control que no lleva su especialidad es 403, no 404 (existe y es de su empresa); el de otra empresa, 404', async () => {
     if (sinOtra) await tec.session.get(`/v1/controls/${sinOtra}`).expect(403);
-    await tec.session.get(`/v1/controls/${soloOtra}`).expect(200);
-    await doc.session.get(`/v1/controls/${soloOtra}`).expect(200);
+    await tec.session.get(`/v1/controls/${mixto}`).expect(200);
     await nadie.session.get(`/v1/controls/${mixto}`).expect(403);
     await nadie.session.get(`/v1/controls/${mixto}/evidence`).expect(403);
+    await b.agent.get(`/v1/controls/${mixto}`).expect(404);
   });
 
   it('la evidencia de un control mixto: cada uno ve y sube solo la de su dimensión', async () => {
     await a.agent.get(`/v1/controls/${mixto}/evidence`).expect(200);
     const subida = await doc.session.post(`/v1/controls/${mixto}/tests/${docTest}/evidence`).attach('file', pdf(), 'doc.pdf');
     expect(subida.status).toBe(201);
-    const verDoc = ((await doc.session.get(`/v1/controls/${mixto}/evidence`).expect(200)).body.data.items as any[]);
+    const verDoc = (await doc.session.get(`/v1/controls/${mixto}/evidence`).expect(200)).body.data.items as any[];
     expect(verDoc.length).toBeGreaterThan(0);
     expect(verDoc.every((r) => r.dimension === 'policy')).toBe(true);
-    // El técnico es responsable del control en otra dimensión: entra, pero no ve ni sube lo documental.
-    const verTec = ((await tec.session.get(`/v1/controls/${mixto}/evidence`).expect(200)).body.data.items as any[]);
+    const verTec = (await tec.session.get(`/v1/controls/${mixto}/evidence`).expect(200)).body.data.items as any[];
     expect(verTec.every((r) => r.dimension !== 'policy')).toBe(true);
     await tec.session.post(`/v1/controls/${mixto}/tests/${docTest}/evidence`).attach('file', pdf(), 'x.pdf').expect(403);
     const requirement = verDoc.find((r) => r.submissions.length)!.id;
@@ -423,36 +476,29 @@ describe('SEG-66 · el funcional solo ve y toca lo de su dimensión', () => {
     await a.agent.get(`/v1/evidence-requirements/${requirement}/submissions`).expect(200);
   });
 
-  it('la excepción de un control manda sobre el responsable del servicio: pasa a verlo quien la recibe y deja de verlo el principal', async () => {
-    await a.agent.patch(`/v1/controls/${soloOtra}/responsibles/${otraDim}`).send({ user_id: null }).expect(200);
-    const otro = await activo(a, a.agent, 'seg-exc', 'funcional', [otraDim]);
-    expect(await ids(otro.session)).toEqual([]);
-    await a.agent.patch(`/v1/controls/${soloOtra}/responsibles/${otraDim}`).send({ user_id: otro.id }).expect(200);
-    expect(await ids(otro.session)).toEqual([soloOtra]);
-    expect(await ids(tec.session)).not.toContain(soloOtra);
-    await tec.session.get(`/v1/controls/${soloOtra}`).expect(403);
-    await a.agent.patch(`/v1/controls/${soloOtra}/responsibles/${otraDim}`).send({ user_id: null }).expect(200);
-    expect(await ids(tec.session)).toContain(soloOtra);
+  it('dos funcionales con la misma especialidad atienden lo mismo: ninguno le quita nada al otro', async () => {
+    const otro = await activo(a, a.agent, 'seg-tec2', 'funcional', [otraDim]);
+    expect(await ids(otro.session)).toEqual(await ids(tec.session));
   });
 
-  it('cambiar al responsable del servicio mueve a todos los controles sin excepción, sin tocar uno por uno', async () => {
-    const otro = await activo(a, a.agent, 'seg-mov', 'funcional', [otraDim]);
-    expect(await ids(otro.session)).toEqual([]);
-    await a.agent.patch(`${owners(a)}/${otraDim}`).send({ user_id: otro.id }).expect(200);
-    expect((await ids(otro.session)).length).toBeGreaterThan(0);
-    expect(await ids(tec.session)).toEqual([]);
-    await a.agent.patch(`${owners(a)}/${otraDim}`).send({ user_id: tec.id }).expect(200);
-    expect((await ids(tec.session)).length).toBeGreaterThan(0);
+  it('cambiar sus especialidades cambia lo que ve al instante; desactivarlo, lo deja fuera', async () => {
+    const p = await activo(a, a.agent, 'seg-cambio', 'funcional', ['app']);
+    const antes = await ids(p.session);
+    await a.agent.patch(`/v1/users/${p.id}`).send({ dimensions: [otraDim] }).expect(200);
+    const despues = await ids(p.session);
+    expect(despues).toContain(mixto);
+    expect(despues).not.toEqual(antes);
+    await a.agent.patch(`/v1/users/${p.id}`).send({ status: 'inactive' }).expect(200);
+    await p.session.get(`/v1/services/${a.serviceId}/controls`).expect(401);
   });
 
-  it('lee los servicios solo en los que es responsable; el auditor, todos; declarar o editar un servicio sigue siendo solo del administrador', async () => {
+  it('lee los servicios que llevan su especialidad; el auditor, todos; declarar o editar un servicio sigue siendo solo del administrador', async () => {
     const list = async (agent: Agent) => ((await agent.get('/v1/services').expect(200)).body.data.items as any[]).map((s) => s.id);
     expect(await list(a.agent)).toContain(a.serviceId);
-    expect(await list(tec.session)).toContain(a.serviceId); // es responsable de una dimensión del servicio
-    expect(await list(nadie.session)).toEqual([]); // sin responsabilidades, la lista llega vacía
+    expect(await list(tec.session)).toContain(a.serviceId);
+    expect(await list(nadie.session)).not.toContain(b.serviceId);
     expect(await list(await login(app, email('rol-a')))).toContain(a.serviceId);
     await tec.session.get(`/v1/services/${a.serviceId}`).expect(200);
-    await nadie.session.get(`/v1/services/${a.serviceId}`).expect(403);
     await b.agent.get(`/v1/services/${a.serviceId}`).expect(404);
     for (const agent of [tec.session, nadie.session, await login(app, email('rol-a'))]) {
       await agent.post('/v1/services').send({}).expect(403);
@@ -460,9 +506,10 @@ describe('SEG-66 · el funcional solo ve y toca lo de su dimensión', () => {
       await agent.delete(`/v1/services/${a.serviceId}`).expect(403);
     }
   });
+
   it('el administrador y el auditor siguen viéndolo todo', async () => {
     const todos = await ids(a.agent);
-    expect(todos).toEqual(expect.arrayContaining([mixto, soloOtra]));
+    expect(todos).toContain(mixto);
     const au = await login(app, email('rol-a'));
     expect((await ids(au)).length).toBe(todos.length);
   });

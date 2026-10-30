@@ -66,7 +66,7 @@ export class RiskPrismaRepository extends RiskRepository {
       });
 
       // D96 · Qué controles son de qué funcional sale del responsable efectivo por dimensión.
-      const responsibles = await loadControlResponsibles(tx, serviceId, [...new Set(causes.flatMap((c) => c.causeControls.map((l) => l.clientControl.id)))]);
+      const responsibles = await loadControlResponsibles(tx, [...new Set(causes.flatMap((c) => c.causeControls.map((l) => l.clientControl.id)))]);
 
       return {
         serviceId,

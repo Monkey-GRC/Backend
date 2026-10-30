@@ -6,6 +6,7 @@ import * as auditInsert from '../../src/infrastructure/audit/audit-log.insert';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { asApp, failure, withRollback } from '../support/db';
 import { dosEmpresas, Tenant } from '../support/escenario';
+import { darEspecialidades } from '../support/especialidades';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
 // MD-126 · Subir una evidencia con su huella y versión, y descargarla con un enlace firmado (contracts/modules/compliance-evidence.md, D84, SEG-60). La empresa solo aporta:
@@ -47,15 +48,14 @@ async function cuenta(companyId: string, email: string, role: 'auditor' | 'funci
     [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
   ))[0].id;
 }
-const assign = (companyId: string, userId: string, control: string, assignedBy: string) =>
-  owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, dimension, assigned_by) select gen_random_uuid(), $1, $2, $3::uuid, d.dimension, $4 from (select distinct t.dimension from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $3::uuid) d`, [companyId, userId, control, assignedBy]);
+// D97 · El funcional atiende la evidencia documental por su especialidad; otro, con otra especialidad, no la toca.
 
 beforeAll(async () => {
   app = await bootApp({}, (builder) => builder.overrideProvider(FileStorage).useValue(storage));
   ({ a, b, monkey } = await dosEmpresas(app));
   await cuenta(a.companyId, `auditor-evi-${RUN}@cumplimiento.test`, 'auditor');
   const funcionalId = await cuenta(a.companyId, `funcional-evi-${RUN}@cumplimiento.test`, 'funcional');
-  await cuenta(a.companyId, `funcional2-evi-${RUN}@cumplimiento.test`, 'funcional');
+  const funcionalAjenoId = await cuenta(a.companyId, `funcional2-evi-${RUN}@cumplimiento.test`, 'funcional');
   auditor = await login(app, `auditor-evi-${RUN}@cumplimiento.test`);
   funcional = await login(app, `funcional-evi-${RUN}@cumplimiento.test`);
   funcionalAjeno = await login(app, `funcional2-evi-${RUN}@cumplimiento.test`);
@@ -69,8 +69,8 @@ beforeAll(async () => {
   );
   expect(reqs.length).toBe(2);
   [{ id: requirementId, client_control_id: controlId }, { id: otherRequirementId, client_control_id: otherControlId }] = reqs;
-  const adminId = (await owner<{ id: string }>(`select id from platform.users where email = $1`, [a.email]))[0].id;
-  await assign(a.companyId, funcionalId, controlId, adminId);
+  await darEspecialidades(a.companyId, funcionalId, 'policy');
+  await darEspecialidades(a.companyId, funcionalAjenoId, 'cloud');
 });
 afterAll(async () => {
   await app?.close();
@@ -87,9 +87,11 @@ describe('MD-126 · listar la evidencia de un control', () => {
     for (const k of ['code', 'sequence', 'description', 'dimension', 'validity_within_period']) expect(item).toHaveProperty(k);
   });
 
-  it('el funcional ve el control que tiene asignado; el de otro compañero es 403 y uno de otra empresa, 404', async () => {
+  it('el funcional con la especialidad documental ve la evidencia; otro con otra especialidad no ve la documental; uno de otra empresa, 404', async () => {
     await funcional.get(`/v1/controls/${controlId}/evidence`).expect(200);
-    await funcional.get(`/v1/controls/${otherControlId}/evidence`).expect(403);
+    const ajeno = await funcionalAjeno.get(`/v1/controls/${controlId}/evidence`);
+    expect([200, 403]).toContain(ajeno.status);
+    if (ajeno.status === 200) expect(ajeno.body.data.items.map((i: any) => i.id)).not.toContain(requirementId);
     await b.agent.get(`/v1/controls/${controlId}/evidence`).expect(404);
   });
 
@@ -169,9 +171,9 @@ describe('MD-126 · subir una evidencia', () => {
     expect(storage.objects.size).toBe(antes);
   });
 
-  it('sube el funcional dueño del control; el de otro control es 403; auditor y admin_monkey, 403; otra empresa, 404; ID inválido, 404', async () => {
+  it('sube el funcional con la especialidad documental; otro con otra especialidad, el auditor y admin_monkey, 403; otra empresa, 404; ID inválido, 404', async () => {
     await upload(funcional, requirementId, pdf('func'), 'del-funcional.pdf').expect(201);
-    await upload(funcional, otherRequirementId, pdf(), 'x.pdf').expect(403);
+    await upload(funcional, otherRequirementId, pdf('func2'), 'del-funcional-2.pdf').expect(201); // atiende lo documental de todos los controles
     await upload(funcionalAjeno, requirementId, pdf(), 'x.pdf').expect(403);
     await upload(auditor, requirementId, pdf(), 'x.pdf').expect(403);
     await upload(monkey, requirementId, pdf(), 'x.pdf').expect(403);
@@ -247,7 +249,7 @@ describe('MD-126 · descargar con un enlace firmado de 5 minutos', () => {
     expect(JSON.stringify(row.after_state)).not.toContain('X-Signature');
   });
 
-  it('descargan el funcional dueño y el auditor; el funcional de otro control, 403; otra empresa y admin_monkey, 404/403', async () => {
+  it('descargan el funcional de la especialidad y el auditor; el de otra especialidad, 403; otra empresa y admin_monkey, 404/403', async () => {
     await funcional.get(`/v1/evidence-submissions/${submissionId}/download`).expect(200);
     await auditor.get(`/v1/evidence-submissions/${submissionId}/download`).expect(200);
     await funcionalAjeno.get(`/v1/evidence-submissions/${submissionId}/download`).expect(403);

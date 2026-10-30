@@ -35,7 +35,7 @@ export class ListEvidenceUseCase {
     if (!data) throw new DomainError('NOT_FOUND');
     assertCanTouch(p, data.assignedUserIds);
     // D96, SEG-66 · El funcional recibe solo los requerimientos de las dimensiones de las que es responsable en este control.
-    const requirements = p.role === 'funcional' ? data.requirements.filter((r) => data.responsibleByDimension[r.dimension] === p.userId) : data.requirements;
+    const requirements = p.role === 'funcional' ? data.requirements.filter((r) => (data.responsibleByDimension[r.dimension] ?? []).includes(p.userId)) : data.requirements;
     return { view: mode, requirements };
   }
 }
@@ -44,7 +44,7 @@ export class ListEvidenceUseCase {
 export type TestEvidenceView = { view: ViewMode; testId: string; sharedWith: Array<{ id: string; code: string }>; items: TestEvidence['items']; controlCodes: Map<string, string> };
 
 // D85, D88 · La evidencia de un test manual o documental, para mostrarla en el test del control. D96, SEG-66: el `funcional` recibe solo lo de las dimensiones de las que es
-// responsable y solo ve el código de los otros controles que llevan el test si también es responsable en ellos; lo demás se omite, no falla.
+// solo ve el código de los otros controles que llevan el test si también atiende esa dimensión en ellos; lo demás se omite, no falla.
 @Injectable()
 export class ListTestEvidenceUseCase {
   constructor(private readonly repo: EvidenceRepository) {}
@@ -53,8 +53,8 @@ export class ListTestEvidenceUseCase {
     const mode = viewModeOf(p, view);
     const data = await this.repo.listByTest(scopeOf(p), controlId, testId, reviewerRoleFor(p.role));
     if (!data) throw new DomainError('NOT_FOUND');
-    const responsibleOf = (control: string, dimension: string) => data.controls.find((c) => c.id === control)?.responsibleByDimension[dimension];
-    const mine = (control: string, dimension: string) => p.role !== 'funcional' || responsibleOf(control, dimension) === p.userId;
+    const responsibleOf = (control: string, dimension: string) => data.controls.find((c) => c.id === control)?.responsibleByDimension[dimension] ?? [];
+    const mine = (control: string, dimension: string) => p.role !== 'funcional' || responsibleOf(control, dimension).includes(p.userId);
     const items = data.items.filter((i) => mine(i.controlId, i.requirement.dimension));
     return {
       view: mode,
@@ -165,8 +165,8 @@ export class UploadTestEvidenceUseCase {
     if (!facts.active) throw new DomainError('CONTROL_RETIRED');
     const test = facts.tests.find((t) => t.id === testId);
     if (!test) throw new DomainError('NOT_FOUND');
-    // D96 · Además de ser responsable del control en alguna dimensión, lo es de la dimensión DE ESTA prueba.
-    assertCanTouch(p, facts.responsibleByDimension[test.dimension] ? [facts.responsibleByDimension[test.dimension]] : []);
+    // D98 · Además de atender el control en alguna dimensión, atiende la dimensión DE ESTA prueba.
+    assertCanTouch(p, facts.responsibleByDimension[test.dimension] ?? []);
     if (test.dimension !== 'policy') throw new ValidationException([{ field: 'test_id', code: 'test.not_documentary' }]);
     // El archivo se comprueba ANTES de crear el lugar donde quedará: uno rechazado no deja un requerimiento vacío.
     assertEvidenceFile(file);

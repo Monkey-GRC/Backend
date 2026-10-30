@@ -8,6 +8,7 @@ import * as auditInsert from '../../src/infrastructure/audit/audit-log.insert';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { asApp, connect, failure } from '../support/db';
 import { dosEmpresas, servicePayload, Tenant } from '../support/escenario';
+import { darEspecialidades, Dimension, dimensionesDe } from '../support/especialidades';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
 // MD-154 · Las observaciones del auditor (contracts/modules/compliance-audit.md, SEG-69 y SEG-70): las escribe y cierra solo el `auditor` y solo las suyas, las responde el `admin_empresa` o el
@@ -51,8 +52,6 @@ async function cuenta(companyId: string, email: string, role: 'auditor' | 'funci
     [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
   ))[0].id;
 }
-const assign = (companyId: string, userId: string, control: string, assignedBy: string) =>
-  owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, dimension, assigned_by) select gen_random_uuid(), $1, $2, $3::uuid, d.dimension, $4 from (select distinct t.dimension from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $3::uuid) d`, [companyId, userId, control, assignedBy]);
 
 const create = (agent: Agent, serviceId: string, body: Record<string, unknown>) => agent.post(`/v1/services/${serviceId}/observations`).send(body);
 const base = { type: 'observation', body: 'Falta el procedimiento de baja de cuentas de contratistas.' };
@@ -84,14 +83,26 @@ beforeAll(async () => {
   funcionalAjeno = await login(app, `funcional2-obs-${RUN}@cumplimiento.test`);
 
   // Dos controles del servicio de A con evidencia requerida: el primero es del funcional; el segundo no. Cada uno con una entrega de evidencia.
-  const reqs = await owner<{ id: string; client_control_id: string }>(
+  // El funcional atiende una dimensión (D98) que lleva el primer control y no el segundo.
+  const all = await owner<{ id: string; client_control_id: string }>(
     `select distinct on (er.client_control_id) er.id, er.client_control_id from tenant.evidence_requirements er join tenant.client_controls cc on cc.id = er.client_control_id
-      where cc.service_id = $1 and cc.is_active order by er.client_control_id, er.sequence limit 2`,
+      where cc.service_id = $1 and cc.is_active order by er.client_control_id, er.sequence`,
     [a.serviceId],
   );
-  expect(reqs.length).toBe(2);
+  const dims = new Map<string, Dimension[]>(await Promise.all(all.map(async (r) => [r.client_control_id, await dimensionesDe(r.client_control_id)] as [string, Dimension[]])));
+  let dimension: Dimension | undefined;
+  let reqs: typeof all = [];
+  for (const first of all) {
+    const d = dims.get(first.client_control_id)!.find((x) => all.some((o) => o !== first && !dims.get(o.client_control_id)!.includes(x)));
+    if (d) {
+      dimension = d;
+      reqs = [first, all.find((o) => o !== first && !dims.get(o.client_control_id)!.includes(d))!];
+      break;
+    }
+  }
+  expect(dimension).toBeDefined();
   [control1, control2] = reqs.map((r) => r.client_control_id);
-  await assign(a.companyId, funcionalId, control1, adminId);
+  await darEspecialidades(a.companyId, funcionalId, dimension!);
   const up = async (req: string, marca: string) => (await a.agent.post(`/v1/evidence-requirements/${req}/submissions`).attach('file', pdf(marca), 'evidencia.pdf').expect(201)).body.data.id as string;
   submission1 = await up(reqs[0].id, '1');
   submission2 = await up(reqs[1].id, '2');

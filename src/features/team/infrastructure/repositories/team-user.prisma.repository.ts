@@ -32,7 +32,7 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
     try {
       return await this.prisma.withScope(scope, async (tx) => {
         const user = await tx.user.create({
-          data: { companyId: scope.companyId, email: input.email, passwordHash: input.passwordHash, role: input.role, status: 'pending' },
+          data: { companyId: scope.companyId, email: input.email, name: input.name, lastName: input.lastName, passwordHash: input.passwordHash, role: input.role, status: 'pending' },
           select: { id: true },
         });
         if (input.dimensions.length) {
@@ -67,9 +67,9 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
     return this.prisma.withScope(scope, async (tx) => {
       const found = await tx.user.findFirst({ where: { id }, select: SELECT });
       if (!found) return null;
-      // Nadie se desactiva a sí mismo: el administrador que se quedara sin cuenta dejaría a la empresa sin quien reparta el trabajo.
-      if (found.id === scope.userId) throw new DomainError('LAST_ADMIN');
-      // Un administrador (de la empresa o de Monkey) no se toca desde aquí: para quien llama, no existe.
+      // Nadie se desactiva a sí mismo ni se quita sus especialidades: la empresa se quedaría sin quien la administre. El nombre sí se puede corregir.
+      if (found.id === scope.userId && (change.status || change.dimensions)) throw new DomainError('LAST_ADMIN');
+      // admin_monkey no se toca desde aquí: para quien llama, no existe. Otro administrador de la empresa sí (D98).
       if (!isTeamRole(found.role)) return null;
       const before = toMember(found);
 
@@ -77,6 +77,7 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
       if (change.status && found.status === 'pending') throw new DomainError('USER_NOT_ACTIVATED');
 
       let sessionsClosed = 0;
+      if (change.name !== undefined || change.lastName !== undefined) await tx.user.update({ where: { id }, data: { ...(change.name !== undefined ? { name: change.name } : {}), ...(change.lastName !== undefined ? { lastName: change.lastName } : {}) } });
       if (change.dimensions) await this.replaceDimensions(tx, scope, id, before.dimensions, change.dimensions);
       if (change.status && change.status !== found.status) {
         await tx.user.update({ where: { id }, data: { status: change.status } });
