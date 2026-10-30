@@ -118,6 +118,7 @@ model ClientControl {
   userControlAssignments UserControlAssignment[]
   clientCauseControls   ClientCauseControl[]
   evaluations           Evaluation[]
+  auditObservations     AuditObservation[]
   evidenceRequirements  EvidenceRequirement[]
   dimensions            ClientControlDimension[]
   tests                 ClientControlTest[]
@@ -323,6 +324,9 @@ model EvidenceSubmission {
 
   reviews EvidenceReview[]
 
+  observations       AuditObservation[] @relation("ObservationEvidence")
+  observationAnswers AuditObservation[] @relation("ObservationAnswerEvidence")
+
   @@index([tenantId])
   @@unique([evidenceRequirementId, version])
   @@index([evidenceRequirementId])
@@ -416,6 +420,63 @@ model Exclusion {
   @@index([testId])
   @@index([assetId])
   @@map("exclusions")
+  @@schema("tenant")
+}
+
+enum AuditObservationType {
+  observation
+  recommendation
+  information_request
+
+  @@map("audit_observation_type")
+  @@schema("tenant")
+}
+
+enum AuditObservationStatus {
+  open
+  answered
+  closed
+
+  @@map("audit_observation_status")
+  @@schema("tenant")
+}
+
+// §7.6, MD-154 · Lo que redacta el `auditor` y debe atender la empresa. NO es un hallazgo (lo detecta el sistema) y NO mueve el porcentaje. `open` → `answered` → `closed`:
+// responde el `admin_empresa` (o el `funcional` responsable del control); solo cierra, o devuelve a `open`, quien la escribió. Una cerrada no se toca y ninguna se borra: la base lo impone
+// con un trigger (ver la migración de RLS). `client_control_id` se completa solo cuando solo se manda la evidencia (la entrega pertenece a un único control). Al devolverla a `open`
+// la última respuesta se conserva; la anterior queda en `audit_logs`.
+model AuditObservation {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  tenantId             String                 @map("tenant_id") @db.Uuid
+  serviceId            String                 @map("service_id") @db.Uuid
+  clientControlId      String?                @map("client_control_id") @db.Uuid
+  evidenceSubmissionId String?                @map("evidence_submission_id") @db.Uuid
+  createdBy            String                 @map("created_by") @db.Uuid // el auditor que la escribe
+  type                 AuditObservationType
+  body                 String                 @db.Text
+  status               AuditObservationStatus @default(open)
+  answerNote           String?                @map("answer_note") @db.Text
+  answerEvidenceId     String?                @map("answer_evidence_id") @db.Uuid
+  answeredBy           String?                @map("answered_by") @db.Uuid
+  answeredAt           DateTime?              @map("answered_at")
+  closedBy             String?                @map("closed_by") @db.Uuid // siempre quien la escribió
+  closedAt             DateTime?              @map("closed_at")
+  createdAt            DateTime               @default(now()) @map("created_at")
+
+  service        Service             @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  clientControl  ClientControl?      @relation(fields: [clientControlId], references: [id], onDelete: Restrict)
+  evidence       EvidenceSubmission? @relation("ObservationEvidence", fields: [evidenceSubmissionId], references: [id], onDelete: Restrict)
+  answerEvidence EvidenceSubmission? @relation("ObservationAnswerEvidence", fields: [answerEvidenceId], references: [id], onDelete: Restrict)
+  createdByUser  User                @relation("ObservationCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  answeredByUser User?               @relation("ObservationAnsweredBy", fields: [answeredBy], references: [id], onDelete: Restrict)
+  closedByUser   User?               @relation("ObservationClosedBy", fields: [closedBy], references: [id], onDelete: Restrict)
+  tenant         Company             @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([serviceId, status])
+  @@index([clientControlId, status])
+  @@index([evidenceSubmissionId])
+  @@map("audit_observations")
   @@schema("tenant")
 }
 

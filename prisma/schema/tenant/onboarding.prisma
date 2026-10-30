@@ -388,6 +388,7 @@ model Service {
   clientCauses            ClientCause[]
   serviceAssets           ServiceAsset[]
   exclusions              Exclusion[]
+  auditObservations       AuditObservation[]
   clientControls ClientControl[]
   clientControlChanges ClientControlChange[]
   evaluations    Evaluation[]
