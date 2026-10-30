@@ -36,6 +36,8 @@ export const DOMAIN_ERROR_CATALOG: Record<
   },
   // D97 · Archivar y reactivar una empresa.
   CONFIRMATION_MISMATCH: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'company.confirmation_mismatch' },
+  // D99 · Reenviar la clave de una empresa que ya la canjeó.
+  ACCESS_KEY_NOT_PENDING: { status: HttpStatus.CONFLICT, messageKey: 'access_key.not_pending' },
   COMPANY_ALREADY_DEACTIVATED: { status: HttpStatus.CONFLICT, messageKey: 'company.already_deactivated' },
   COMPANY_NOT_DEACTIVATED: { status: HttpStatus.CONFLICT, messageKey: 'company.not_deactivated' },
   COMPANY_ARCHIVE_EXPIRED: { status: HttpStatus.CONFLICT, messageKey: 'company.archive_expired' },
@@ -59,6 +61,9 @@ export const DOMAIN_ERROR_CATALOG: Record<
   TEST_NOT_MANUAL: { status: HttpStatus.CONFLICT, messageKey: 'verdict.test_not_manual' },
   TEST_DECIDED_BY_EVIDENCE: { status: HttpStatus.CONFLICT, messageKey: 'verdict.decided_by_evidence' },
   TEST_HAS_NO_ASSETS: { status: HttpStatus.CONFLICT, messageKey: 'verdict.test_has_no_assets' },
+  OBSERVATION_CLOSED: { status: HttpStatus.CONFLICT, messageKey: 'observation.closed_locked' },
+  OBSERVATION_NOT_OPEN: { status: HttpStatus.CONFLICT, messageKey: 'observation.not_open' },
+  INVALID_TRANSITION: { status: HttpStatus.CONFLICT, messageKey: 'observation.invalid_transition' },
   EVIDENCE_VERSION_CONFLICT: { status: HttpStatus.CONFLICT, messageKey: 'evidence.version_conflict' },
   FRAMEWORK_NOT_CONTRACTED: { status: HttpStatus.CONFLICT, messageKey: 'framework.not_contracted' },
   FRAMEWORK_NOT_AVAILABLE: { status: HttpStatus.CONFLICT, messageKey: 'framework.not_available' },

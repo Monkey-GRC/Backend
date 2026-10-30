@@ -5,6 +5,8 @@ import bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/app.setup';
+import { Mailer } from '../../src/common/mail/mailer';
+import { correo } from './correo-en-memoria';
 import { connect, testDatabaseUrl } from './db';
 
 export const PASSWORD = 'UnaClaveLarga123!';
@@ -46,7 +48,9 @@ export async function bootApp(env: Record<string, string> = {}, configure?: (bui
     ...env,
   });
   // Las variables se fijan antes de compilar el módulo: es cuando los servicios leen la configuración.
-  const builder = Test.createTestingModule({ imports: [AppModule] });
+  // D99 · Nunca se envía correo de verdad: la clave de acceso se lee de `claveEnviadaA`.
+  correo.falla = false;
+  const builder = Test.createTestingModule({ imports: [AppModule] }).overrideProvider(Mailer).useValue(correo);
   const moduleRef = await (configure ? configure(builder) : builder).compile();
   const app = moduleRef.createNestApplication();
   // Los errores que las pruebas provocan a propósito (p. ej. un rastro que falla) no deben llenar la salida.

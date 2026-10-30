@@ -27,15 +27,17 @@ import { GetCompanyUseCase } from '../application/use-cases/get-company.use-case
 import { ListCompaniesUseCase } from '../application/use-cases/list-companies.use-case';
 import { ListPendingPurgeUseCase } from '../application/use-cases/list-pending-purge.use-case';
 import { ReactivateCompanyUseCase } from '../application/use-cases/reactivate-company.use-case';
+import { RegenerateAccessKeyUseCase } from '../application/use-cases/regenerate-access-key.use-case';
 import { RegisterCompanyUseCase } from '../application/use-cases/register-company.use-case';
 import {
   toCompanyDetail,
   toCompanyListItem,
+  toIssuedAccessKey,
   toRegisteredCompanyResponse,
 } from './company-response.mapper';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiItems, ApiPaged } from '../../../common/swagger/api-envelope';
-import { CompanyDetailResponse, CompanyListItemResponse, PendingPurgeCompanyResponse, RegisteredCompanyResponse } from './company.responses';
+import { CompanyDetailResponse, CompanyListItemResponse, PendingPurgeCompanyResponse, RegisteredAccessKeyResponse, RegisteredCompanyResponse } from './company.responses';
 
 const t = (key: string): string =>
   (I18nContext.current()?.t(key) as string | undefined) ?? key;
@@ -47,6 +49,7 @@ const t = (key: string): string =>
 export class CompaniesController {
   constructor(
     private readonly registerCompany: RegisterCompanyUseCase,
+    private readonly regenerateAccessKey: RegenerateAccessKeyUseCase,
     private readonly listCompanies: ListCompaniesUseCase,
     private readonly getCompany: GetCompanyUseCase,
     private readonly archiveCompany: ArchiveCompanyUseCase,
@@ -54,8 +57,8 @@ export class CompaniesController {
     private readonly listPendingPurge: ListPendingPurgeUseCase,
   ) {}
 
-  @ApiOperation({ summary: 'Registrar una empresa cliente', description: 'Crea la empresa con su estrategia de aislamiento, le contrata los marcos indicados (por defecto SOC 2) y genera la clave de acceso de su primer administrador. **El código de la clave viaja en claro solo en esta respuesta**; hay que entregarlo al cliente. Queda registro de auditoría.' })
-  @ApiData(RegisteredCompanyResponse, 'Empresa registrada, con su clave de acceso en claro (única vez).', { status: 201 })
+  @ApiOperation({ summary: 'Registrar una empresa cliente', description: 'Crea la empresa con su estrategia de aislamiento, le contrata los marcos indicados (por defecto SOC 2) y genera la clave de acceso de su primer administrador, que **se envía por correo a `admin_email`** (D99): no viaja en la respuesta ni se muestra en ninguna pantalla. Si el correo no sale, la empresa se crea igual y `access_key.delivery_status` es `failed`: se reenvía con `access-key/regenerate`. Queda registro de auditoría.' })
+  @ApiData(RegisteredCompanyResponse, 'Empresa registrada; la clave de acceso salió por correo.', { status: 201 })
   @ApiDomainErrors('COMPANY_NAME_TAKEN', 'ADMIN_EMAIL_TAKEN', 'FRAMEWORK_NOT_AVAILABLE', 'DEDICATED_DATABASE_NOT_AVAILABLE')
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -79,6 +82,23 @@ export class CompaniesController {
       t('company.created'),
       toRegisteredCompanyResponse(result),
     );
+  }
+
+  @ApiOperation({ summary: 'Reenviar la clave de acceso con una clave nueva', description: 'D99. Anula la clave pendiente de la empresa, emite otra con vigencia completa y la envía por correo a `admin_email`. La clave no viaja en la respuesta. Solo mientras la empresa no haya canjeado la clave.' })
+  @ApiData(RegisteredAccessKeyResponse, 'Clave nueva emitida; `delivery_status` dice si el correo salió.')
+  @ApiDomainErrors('ACCESS_KEY_NOT_PENDING', 'COMPANY_ALREADY_DEACTIVATED')
+  @Post(':id/access-key/regenerate')
+  @HttpCode(HttpStatus.OK)
+  async regenerate(
+    @CurrentUser() principal: Principal,
+    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND })) id: string,
+    @Req() req: Request,
+  ) {
+    const { accessKey, deliveryStatus } = await this.regenerateAccessKey.execute(principal, id, {
+      ipAddress: req.ip ?? '',
+      userAgent: req.get('user-agent') ?? '',
+    });
+    return new ResponseDto(HttpStatus.OK, t('access_key.regenerated'), toIssuedAccessKey(accessKey, deliveryStatus));
   }
 
   @ApiOperation({ summary: 'Listar empresas', description: 'Empresas clientes con su estado, marcos contratados y el estado de su clave de acceso. Nunca incluye el código de la clave.' })

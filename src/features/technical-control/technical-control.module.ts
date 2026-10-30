@@ -39,8 +39,8 @@ import { AssetsController } from './presentation/assets.controller';
 import { ConnectionTemplatesController } from './presentation/connection-templates.controller';
 import { ExecutionsController } from './presentation/executions.controller';
 import { FindingsController } from './presentation/findings.controller';
-import { RunnerController } from './presentation/runner.controller';
-import { RunnerTokenGuard } from './presentation/runner-token.guard';
+import { RunnerController } from './presentation/runner/runner.controller';
+import { RunnerTokenGuard } from './presentation/runner/runner-token.guard';
 import { TechnicalControlController } from './presentation/technical-control.controller';
 
 @Module({

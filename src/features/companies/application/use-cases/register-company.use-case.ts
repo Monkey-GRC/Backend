@@ -13,6 +13,7 @@ import { ContractedFramework } from '../../domain/entities/company-overview';
 import { Company } from '../../domain/entities/company.entity';
 import { ValidationException } from '../../../../common/errors/validation.exception';
 import { CompanyRepository } from '../../domain/repositories/company.repository';
+import { AccessKeyDelivery, DeliveryStatus } from '../access-key-delivery.service';
 import { ACCESS_KEY_TTL_HOURS } from '../access-key-policy.token';
 
 export type RegisterCompanyInput = {
@@ -27,8 +28,8 @@ export type RegisterCompanyResult = {
   company: Company;
   accessKey: AccessKey;
   frameworks: ContractedFramework[];
-  // En claro solo aquí, una vez: no se guarda ni se puede volver a consultar.
-  accessKeyCode: string;
+  // D99 · La clave ya no sale del servidor: viaja por correo. Aquí solo si el correo salió.
+  deliveryStatus: DeliveryStatus;
 };
 
 @Injectable()
@@ -36,6 +37,7 @@ export class RegisterCompanyUseCase {
   constructor(
     private readonly companies: CompanyRepository,
     private readonly tokens: TokenHasher,
+    private readonly delivery: AccessKeyDelivery,
     @Inject(ACCESS_KEY_TTL_HOURS) private readonly accessKeyTtlHours: number,
   ) {}
 
@@ -114,6 +116,20 @@ export class RegisterCompanyUseCase {
       }),
     );
 
-    return { company, accessKey, frameworks, accessKeyCode };
+    // Después de confirmar la empresa: si el correo falla, la empresa y su clave quedan y se puede reenviar (D99).
+    const deliveryStatus = await this.delivery.deliver(
+      {
+        actorId: principal.userId,
+        companyId: company.id,
+        companyName: company.name,
+        adminEmail: company.adminEmail,
+        accessKeyId: accessKey.id,
+        code: accessKeyCode,
+        expiresAt: accessKey.expiresAt,
+      },
+      meta,
+    );
+
+    return { company, accessKey, frameworks, deliveryStatus };
   }
 }

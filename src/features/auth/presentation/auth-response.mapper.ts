@@ -1,5 +1,5 @@
 import { AuthUser } from '../domain/entities/auth-user.entity';
-import { OnboardingProgress } from '../application/use-cases/get-onboarding-progress.use-case';
+import { OnboardingProgress } from '../application/use-cases/session/get-onboarding-progress.use-case';
 
 // Forma del objeto user + company de contracts/modules/auth.md (snake_case en el cable).
 // `onboarding` solo viaja para el admin_empresa, que es quien recorre el onboarding.

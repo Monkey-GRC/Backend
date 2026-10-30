@@ -31,6 +31,8 @@ const POSTGRES_ENUM: Record<string, string> = {
   responsible_type: 'OrganizationResponsibleType',
   cause_control_effect: 'ClientCauseControlEffect',
   exclusion_status: 'ExclusionStatus',
+  audit_observation_type: 'AuditObservationType',
+  audit_observation_status: 'AuditObservationStatus',
   assessor_role: 'AssessorRole',
   assessment_verdict: 'AssessmentVerdict',
   dimension: 'Dimension',

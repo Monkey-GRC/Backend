@@ -33,6 +33,7 @@ export const API_TAGS = {
   riskAssessment: 'Cumplimiento · Evaluación y tratamiento del riesgo',
   responsibles: 'Cumplimiento · Responsables',
   exclusions: 'Cumplimiento · Exclusiones',
+  observations: 'Cumplimiento · Observaciones del auditor',
 } as const;
 
 export const API_TAG_DESCRIPTIONS: Record<(typeof API_TAGS)[keyof typeof API_TAGS], string> = {
@@ -76,6 +77,8 @@ export const API_TAG_DESCRIPTIONS: Record<(typeof API_TAGS)[keyof typeof API_TAG
     'Responsables de aportar evidencias (personas o áreas) de la empresa. Contrato: `contracts/modules/compliance-responsibles.md`.',
   [API_TAGS.exclusions]:
     'Exclusiones de requisitos o controles que el administrador de la empresa crea y decide en un solo acto (D96). Contrato: `contracts/modules/compliance-audit.md`.',
+  [API_TAGS.observations]:
+    'Observaciones que escribe el auditor sobre un servicio, un control o una evidencia, y que la empresa responde y el auditor cierra (D96). No mueven el porcentaje. Contrato: `contracts/modules/compliance-audit.md`.',
 };
 
 // Los textos de error salen de i18n/es: la tabla de la descripción nunca se desfasa del producto.

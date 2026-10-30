@@ -30,6 +30,9 @@ export type CompanyListQuery = PageRequest & {
 
 export type RegisteredCompany = { company: Company; accessKey: AccessKey; frameworks: ContractedFramework[] };
 
+// `revokedKeys`: cuántas claves pendientes se anularon al emitir la nueva.
+export type RotatedAccessKey = { company: Company; accessKey: AccessKey; revokedKeys: number };
+
 export type ArchiveData = {
   reasonCode: 'non_payment' | 'client_request' | 'other';
   reason: string;
@@ -63,6 +66,16 @@ export abstract class CompanyRepository {
     audit: AuditIntent<RegisteredCompany>,
   ): Promise<RegisteredCompany>;
 
+  // D99 · Reenviar la clave: anula la pendiente y emite otra, en una transacción con su rastro (`access_key.regenerate`).
+  // Lanza `NOT_FOUND` (no existe o es la interna de Monkey), `COMPANY_ALREADY_DEACTIVATED` (archivada) o `ACCESS_KEY_NOT_PENDING` (ya la canjeó).
+  abstract rotateAccessKey(
+    scope: TenantScope,
+    companyId: string,
+    excludeCompanyId: string,
+    accessKey: NewAccessKey,
+    audit: AuditIntent<RotatedAccessKey>,
+  ): Promise<RotatedAccessKey>;
+
   abstract list(scope: TenantScope, query: CompanyListQuery): Promise<Page<CompanyOverview>>;
 
   abstract findById(
@@ -72,18 +85,21 @@ export abstract class CompanyRepository {
   ): Promise<CompanyDetail | null>;
 
   // D97 · Archivar: el estado, el corte de sesiones, la cancelación de lo que estaba en cola y el rastro, en una sola transacción.
-  // Devuelve cuántas sesiones se cerraron.
+  // Devuelve cuántas sesiones se cerraron. Si otra petición la archivó entre la verificación y este cambio, lanza `COMPANY_ALREADY_DEACTIVATED`.
   abstract archive(scope: TenantScope, companyId: string, data: ArchiveData, audit: AuditIntent<{ sessionsClosed: number }>): Promise<number>;
 
   // D97 · La copia de todo lo de la empresa (`platform.export_company`), antes de archivarla.
   abstract exportSnapshot(scope: TenantScope, companyId: string): Promise<unknown>;
 
   // D97 · Reactivar: vuelve a `active` y el plazo desaparece. Devuelve la llave de la copia que ya no hace falta (para borrarla).
+  // Lanza `COMPANY_NOT_DEACTIVATED` o `COMPANY_ARCHIVE_EXPIRED` si, entre la verificación y este cambio, la empresa dejó de estar archivada o venció su plazo.
   abstract reactivate(scope: TenantScope, companyId: string, audit: AuditIntent<{ snapshotKey: string | null }>): Promise<string | null>;
 
   // Las archivadas, de la que vence antes a la que vence después.
   abstract listArchived(scope: TenantScope, dueBefore?: Date): Promise<ArchivedCompany[]>;
 
   // D97 · Borrado definitivo (`platform.purge_company`) y su rastro mínimo, en una transacción. Devuelve el nombre de la empresa borrada.
-  abstract purge(scope: TenantScope, companyId: string, audit: AuditIntent<{ name: string }>): Promise<string>;
+  // Una empresa se borra una sola vez aunque haya varias réplicas corriendo la tarea: quien toma el candado de esa empresa ejecuta `cleanFiles` (sus archivos) y
+  // después la base; quien no lo toma, o la encuentra ya borrada, recibe `null` y no hace nada.
+  abstract purge(scope: TenantScope, companyId: string, cleanFiles: () => Promise<void>, audit: AuditIntent<{ name: string }>): Promise<string | null>;
 }

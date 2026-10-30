@@ -65,6 +65,10 @@ jobs:
       - name: Compilar
         run: npm run build
 
+      # `nest build` deja fuera los *.spec.ts y las pruebas e2e, y `ts-jest` no frena por tipos: sin este paso un error de tipos en una prueba llegaba a `develop` sin que nada lo viera.
+      - name: Verificar los tipos (incluye las pruebas)
+        run: npx tsc --noEmit
+
       - name: Pruebas unitarias
         run: npm test
 

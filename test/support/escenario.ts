@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { Agent, login, PASSWORD, RUN, seedAdminMonkey } from './app';
+import { claveEnviadaA } from './correo-en-memoria';
 
 export type Tenant = {
   agent: Agent;
@@ -57,7 +58,7 @@ async function crearTenant(app: INestApplication, admin: Agent, k: string): Prom
     `registrar ${k}`,
   );
   const agent = request.agent(app.getHttpServer());
-  must(await agent.post('/v1/auth/redeem').send({ code: company.access_key.code, email, password: PASSWORD }), 201, `canjear clave ${k}`);
+  must(await agent.post('/v1/auth/redeem').send({ code: claveEnviadaA(email), email, password: PASSWORD }), 201, `canjear clave ${k}`);
   must(await agent.put('/v1/onboarding/organizational-context').send(orgPayload), 200, `contexto organizacional ${k}`);
   const serviceName = `Servicio ${k} ${RUN}`;
   const service = must(await agent.post('/v1/services').send(servicePayload(serviceName)), 201, `servicio ${k}`);

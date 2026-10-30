@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
+import { DomainError } from '../../../../common/errors/domain-error';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
@@ -15,6 +16,7 @@ import {
   ArchiveData,
   ArchivedCompany,
   RegisteredCompany,
+  RotatedAccessKey,
   CompanyListQuery,
   CompanyRepository,
   NewAccessKey,
@@ -179,6 +181,30 @@ export class CompanyPrismaRepository extends CompanyRepository {
     });
   }
 
+  rotateAccessKey(
+    scope: TenantScope,
+    companyId: string,
+    excludeCompanyId: string,
+    key: NewAccessKey,
+    audit: AuditIntent<RotatedAccessKey>,
+  ): Promise<RotatedAccessKey> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const row = await tx.company.findFirst({ where: { id: companyId, NOT: { id: excludeCompanyId } } });
+      if (!row) throw new DomainError('NOT_FOUND');
+      if (row.status === 'deactivated') throw new DomainError('COMPANY_ALREADY_DEACTIVATED');
+      if ((await tx.accessKey.count({ where: { companyId, status: 'used' } })) > 0) throw new DomainError('ACCESS_KEY_NOT_PENDING');
+
+      // La anterior deja de servir aunque no haya vencido: se reenvía porque el correo se perdió o no salió.
+      const revoked = await tx.accessKey.updateMany({ where: { companyId, status: 'pending' }, data: { status: 'revoked' } });
+      const accessKey = await tx.accessKey.create({
+        data: { companyId, createdBy: key.createdBy, codeHash: key.codeHash, expiresAt: key.expiresAt },
+      });
+      const rotated = { company: toCompany(row), accessKey: toAccessKey(accessKey), revokedKeys: revoked.count };
+      await insertAuditLog(tx, audit(rotated));
+      return rotated;
+    });
+  }
+
   list(scope: TenantScope, query: CompanyListQuery): Promise<Page<CompanyOverview>> {
     return this.prisma.withScope(scope, async (tx) => {
       const where = {
@@ -250,8 +276,9 @@ export class CompanyPrismaRepository extends CompanyRepository {
     audit: AuditIntent<{ sessionsClosed: number }>,
   ): Promise<number> {
     return this.prisma.withScope(scope, async (tx) => {
-      await tx.company.update({
-        where: { id: companyId },
+      // La condición va en el mismo UPDATE: si dos peticiones llegan a la vez, solo una cambia la fila (la otra espera su turno y ya no la encuentra activa).
+      const archived = await tx.company.updateMany({
+        where: { id: companyId, status: { not: 'deactivated' } },
         data: {
           status: 'deactivated',
           deactivatedAt: data.at,
@@ -262,6 +289,7 @@ export class CompanyPrismaRepository extends CompanyRepository {
           archiveSnapshotKey: data.snapshotKey,
         },
       });
+      if (archived.count === 0) throw new DomainError('COMPANY_ALREADY_DEACTIVATED');
       // Lo que sigue es de tenant: sessions, mfa_challenges y executions solo se ven con el `app.tenant_id` de esa empresa (RLS). Se fija el de la empresa y,
       // al final, se restaura el de quien actúa.
       await tx.$queryRaw`SELECT set_config('app.tenant_id', ${companyId}, true)`;
@@ -292,9 +320,13 @@ export class CompanyPrismaRepository extends CompanyRepository {
 
   reactivate(scope: TenantScope, companyId: string, audit: AuditIntent<{ snapshotKey: string | null }>): Promise<string | null> {
     return this.prisma.withScope(scope, async (tx) => {
-      const before = await tx.company.findUniqueOrThrow({ where: { id: companyId }, select: { archiveSnapshotKey: true } });
-      await tx.company.update({
-        where: { id: companyId },
+      // Se vuelve a comprobar aquí, con la fila bloqueada (FOR UPDATE): entre la verificación del caso de uso y este cambio la empresa pudo reactivarse por otra
+      // petición o vencer su plazo, y el borrado definitivo no debe competir con una reactivación tardía.
+      const [before] = await tx.$queryRaw<Array<{ status: string; archiveSnapshotKey: string | null }>>`
+        SELECT status::text AS status, archive_snapshot_key AS "archiveSnapshotKey" FROM platform.companies WHERE id = ${companyId}::uuid FOR UPDATE`;
+      if (!before) throw new DomainError('NOT_FOUND');
+      const reactivated = await tx.company.updateMany({
+        where: { id: companyId, status: 'deactivated', archiveUntil: { gt: new Date() } },
         data: {
           status: 'active',
           deactivatedAt: null,
@@ -305,6 +337,7 @@ export class CompanyPrismaRepository extends CompanyRepository {
           archiveSnapshotKey: null,
         },
       });
+      if (reactivated.count === 0) throw new DomainError(before.status !== 'deactivated' ? 'COMPANY_NOT_DEACTIVATED' : 'COMPANY_ARCHIVE_EXPIRED');
       await insertAuditLog(tx, audit({ snapshotKey: before.archiveSnapshotKey }));
       return before.archiveSnapshotKey;
     });
@@ -327,10 +360,17 @@ export class CompanyPrismaRepository extends CompanyRepository {
     });
   }
 
-  purge(scope: TenantScope, companyId: string, audit: AuditIntent<{ name: string }>): Promise<string> {
+  purge(scope: TenantScope, companyId: string, cleanFiles: () => Promise<void>, audit: AuditIntent<{ name: string }>): Promise<string | null> {
     return this.prisma.withScope(
       scope,
       async (tx) => {
+        // Un candado por empresa, que vive lo que dure la transacción: con varias réplicas corriendo la tarea, solo una borra sus archivos y su base. Quien no lo
+        // consigue la deja a la que ya va en camino; quien lo consigue tarde la encuentra ya borrada.
+        const [{ locked }] = await tx.$queryRaw<Array<{ locked: boolean }>>`SELECT pg_try_advisory_xact_lock(hashtextextended(${'company_purge:' + companyId}, 0)) AS locked`;
+        if (!locked) return null;
+        if ((await tx.company.count({ where: { id: companyId } })) === 0) return null;
+        // Primero los archivos y después la base, con el candado tomado: si algo falla la empresa sigue archivada y se reintenta en la pasada siguiente.
+        await cleanFiles();
         const rows = await tx.$queryRaw<Array<{ name: string }>>`SELECT platform.purge_company(${companyId}::uuid) AS name`;
         const name = rows[0]!.name;
         // El rastro mínimo también en la auditoría: sin `company_id` ni datos del cliente, para que la propia purga no lo borre.

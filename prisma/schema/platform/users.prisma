@@ -87,6 +87,9 @@ model User {
   assessmentsIssued         FrameworkAssessment[] @relation("AssessmentIssuedBy")
   exclusionsProposed        Exclusion[]          @relation("ExclusionProposedBy")
   exclusionsDecided         Exclusion[]          @relation("ExclusionDecidedBy")
+  observationsWritten       AuditObservation[]   @relation("ObservationCreatedBy")
+  observationsAnswered      AuditObservation[]   @relation("ObservationAnsweredBy")
+  observationsClosed        AuditObservation[]   @relation("ObservationClosedBy")
   controlChangesRequested   ClientControlChange[] @relation("ControlChangeRequestedBy")
   controlChangesDecided     ClientControlChange[] @relation("ControlChangeDecidedBy")
   evaluationsConfirmed      Evaluation[]
