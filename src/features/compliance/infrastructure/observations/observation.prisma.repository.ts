@@ -78,7 +78,7 @@ export class ObservationPrismaRepository extends ObservationRepository {
       if (f.onlyControlsOf) {
         // El `funcional` ve las de los controles de los que es responsable (en cualquier dimensión); las de un servicio completo, no.
         const controls = (await tx.clientControl.findMany({ where: { serviceId }, select: { id: true } })).map((c) => c.id);
-        const responsibles = await loadControlResponsibles(tx, serviceId, controls);
+        const responsibles = await loadControlResponsibles(tx, controls);
         const mine = controls.filter((id) => usersOf(responsibles.byControl.get(id)).includes(f.onlyControlsOf as string));
         where.clientControlId = { in: f.clientControlId ? mine.filter((id) => id === f.clientControlId) : mine };
       } else if (f.clientControlId) {
@@ -136,7 +136,7 @@ export class ObservationPrismaRepository extends ObservationRepository {
   private async access(tx: TransactionClient, row: Row): Promise<ObservationAccess> {
     const record = toRecord(row);
     if (!record.clientControlId) return { record, responsibleUserIds: [] };
-    const responsibles = await loadControlResponsibles(tx, record.serviceId, [record.clientControlId]);
+    const responsibles = await loadControlResponsibles(tx, [record.clientControlId]);
     return { record, responsibleUserIds: usersOf(responsibles.byControl.get(record.clientControlId)) };
   }
 
