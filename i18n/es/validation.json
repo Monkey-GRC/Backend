@@ -42,5 +42,9 @@
   "test_not_in_control": "Ese control no lleva esa prueba.",
   "disposition_not_supported": "Ese tipo de archivo no se puede mostrar en pantalla: solo PDF, PNG y JPG. Descárgalo para verlo.",
   "test_not_documentary": "Solo una prueba documental se respalda con un documento.",
-  "dimensions_not_allowed": "Esta cuenta no lleva especialidades."
+  "dimensions_not_allowed": "Esta cuenta no lleva especialidades.",
+  "closure_reason_required": "Hay observaciones abiertas del auditor en este control: indica por qué das el veredicto igual.",
+  "control_mismatch": "Esa evidencia no es de ese control.",
+  "body_or_status_required": "Envía el texto nuevo (body) o el estado (status).",
+  "body_or_status_exclusive": "Cambia el texto o el estado, pero no los dos a la vez."
 }

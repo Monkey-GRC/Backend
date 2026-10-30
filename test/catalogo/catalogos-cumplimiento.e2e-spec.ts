@@ -19,7 +19,7 @@ afterAll(async () => {
   await app?.close();
 });
 
-const NAMES = ['risk_criterion', 'failure_category', 'risk_level', 'risk_treatment_decision', 'responsible_type', 'cause_control_effect', 'exclusion_status', 'assessor_role', 'assessment_verdict', 'dimension', 'control_type', 'catalog_origin', 'loss_type', 'risk_scale'];
+const NAMES = ['risk_criterion', 'failure_category', 'risk_level', 'risk_treatment_decision', 'responsible_type', 'cause_control_effect', 'exclusion_status', 'audit_observation_type', 'audit_observation_status', 'assessor_role', 'assessment_verdict', 'dimension', 'control_type', 'catalog_origin', 'loss_type', 'risk_scale'];
 
 const items = async (agent: Agent, name: string, lang?: string): Promise<Item[]> => {
   const req = agent.get(`/v1/catalogs/${name}`);

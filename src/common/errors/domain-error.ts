@@ -45,6 +45,10 @@ export type DomainErrorCode =
   | 'TEST_NOT_MANUAL'
   | 'TEST_DECIDED_BY_EVIDENCE'
   | 'TEST_HAS_NO_ASSETS'
+  // Observaciones del auditor (contracts/modules/compliance-audit.md, MD-154): una cerrada no se toca; responder solo una abierta; cerrar o devolver solo una respondida.
+  | 'OBSERVATION_CLOSED'
+  | 'OBSERVATION_NOT_OPEN'
+  | 'INVALID_TRANSITION'
   // Evidencias (contracts/modules/compliance-evidence.md, MD-126): dos subidas a la vez pidieron la misma versión; se reintenta.
   | 'EVIDENCE_VERSION_CONFLICT'
   // D47: el marco no está entre los que Monkey Admin contrató para la empresa.

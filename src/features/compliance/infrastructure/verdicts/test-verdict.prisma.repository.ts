@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { DomainError } from '../../../../common/errors/domain-error';
+import { ValidationException } from '../../../../common/errors/validation.exception';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
@@ -32,6 +33,12 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
       if (dimension === 'policy') throw new DomainError('TEST_DECIDED_BY_EVIDENCE');
       const kind = await tx.clientControlDimension.findFirst({ where: { clientControlId: controlId, dimension }, select: { type: true } });
       if (!kind || !MANUAL_DIMENSION_TYPES.has(kind.type)) throw new DomainError('TEST_NOT_MANUAL');
+
+      // MD-154, D85 · Con observaciones del auditor abiertas en el control de origen el veredicto se da igual, pero explicando por qué. Criterio provisional: cuenta solo el control de
+      // origen y solo las `open` (una que la empresa ya respondió, `answered`, deja de pedir explicación). Una observación no mueve el porcentaje: esto solo exige constancia.
+      if (!input.closureObservationReason && (await tx.auditObservation.count({ where: { clientControlId: controlId, status: 'open' } })) > 0) {
+        throw new ValidationException([{ field: 'closure_observation_reason', code: 'closure_reason.required' }]);
+      }
 
       // RN-13 / D85: cuenta en todos los controles vigentes del servicio que llevan el test, y sobre todos los activos de su dimensión.
       const controls = await tx.clientControlTest.findMany({
