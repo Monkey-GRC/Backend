@@ -96,6 +96,7 @@ model Company {
   evidenceReviews       EvidenceReview[]
   frameworkAssessments  FrameworkAssessment[]
   exclusions            Exclusion[]
+  auditObservations     AuditObservation[]
   evaluations           Evaluation[]
   findings              Finding[]
   vulnerabilities       Vulnerability[]

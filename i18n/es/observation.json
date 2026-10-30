@@ -1,0 +1,12 @@
+{
+  "created": "Listo, la observación quedó abierta y la empresa ya la puede ver.",
+  "list": "Observaciones del servicio.",
+  "detail": "Observación.",
+  "updated": "Listo, actualizamos la observación.",
+  "answered": "Listo, la respuesta quedó registrada. El auditor la revisará.",
+  "closed": "Listo, la observación quedó cerrada.",
+  "returned": "Listo, la observación volvió a quedar abierta.",
+  "closed_locked": "Esta observación ya está cerrada: no se puede modificar ni reabrir. Si hace falta algo más, crea otra.",
+  "not_open": "Esta observación ya fue respondida: solo se puede responder una observación abierta.",
+  "invalid_transition": "Solo se puede cerrar o devolver una observación que la empresa ya respondió."
+}

@@ -272,6 +272,16 @@
     "approved": "Aprobada",
     "rejected": "Rechazada"
   },
+  "audit_observation_type": {
+    "observation": "Observación",
+    "recommendation": "Recomendación",
+    "information_request": "Solicitud de información"
+  },
+  "audit_observation_status": {
+    "open": "Abierta",
+    "answered": "Respondida",
+    "closed": "Cerrada"
+  },
   "dimension": {
     "policy": "Documental",
     "server": "Servidor",

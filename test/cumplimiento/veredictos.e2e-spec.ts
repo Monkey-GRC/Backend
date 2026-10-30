@@ -222,3 +222,55 @@ describe('Quién puede dar un veredicto y sobre qué', () => {
     expect(stored[0].n).toBeGreaterThan(0);
   });
 });
+
+// MD-154, D85 · Con observaciones del auditor abiertas en el control de origen, el veredicto exige explicar por qué se da igual (`closure_reason.required`). Cuentan solo las `open` del
+// control de origen: una que la empresa ya respondió, una cerrada o una de otro control no piden nada.
+describe('Un veredicto con observaciones abiertas del auditor en el control de origen', () => {
+  const observe = async (control: string | null) => (await auditor.post(`/v1/services/${a.serviceId}/observations`).send({ type: 'observation', body: 'Revisar la firma de las actas.', ...(control ? { client_control_id: control } : {}) }).expect(201)).body.data;
+  const closeOut = async (id: string) => {
+    await a.agent.post(`/v1/observations/${id}/answer`).send({ answer_note: 'Se firmaron las actas.' }).expect(200);
+    await auditor.patch(`/v1/observations/${id}`).send({ status: 'closed' }).expect(200);
+  };
+
+  it('sin la razón: 422 closure_reason.required, y no se escribe ninguna evaluación', async () => {
+    const o = await observe(manualControl);
+    const before = (await owner<{ n: number }>('select count(*)::int n from tenant.evaluations where tenant_id = $1', [a.companyId]))[0].n;
+    const res = await give(a.agent, 'compliant', { note: 'Sin explicar.' });
+    expect(res.status).toBe(422);
+    expect(res.body.error.fields).toEqual([expect.objectContaining({ field: 'closure_observation_reason', code: 'closure_reason.required' })]);
+    expect((await owner<{ n: number }>('select count(*)::int n from tenant.evaluations where tenant_id = $1', [a.companyId]))[0].n).toBe(before);
+    await closeOut(o.id);
+  });
+
+  it('con la razón: 201, y queda guardada en la evaluación', async () => {
+    const o = await observe(manualControl);
+    const res = await give(a.agent, 'compliant', { note: 'Con razón.', closure_observation_reason: 'La observación es de forma y no afecta al control.' }).expect(201);
+    expect(res.body.data.closure_observation_reason).toBe('La observación es de forma y no afecta al control.');
+    await closeOut(o.id);
+  });
+
+  it('una razón en blanco no vale', async () => {
+    const o = await observe(manualControl);
+    expect((await give(a.agent, 'compliant', { closure_observation_reason: '   ' })).status).toBe(422);
+    await closeOut(o.id);
+  });
+
+  it('respondida o cerrada deja de pedir la razón; también una de otro control o de un servicio completo', async () => {
+    const respondida = await observe(manualControl);
+    await a.agent.post(`/v1/observations/${respondida.id}/answer`).send({ answer_note: 'Atendida.' }).expect(200);
+    const ajena = await observe(automaticTest.control);
+    const servicio = await observe(null);
+    await give(a.agent, 'compliant', { note: 'Ya atendidas o ajenas.' }).expect(201);
+    await auditor.patch(`/v1/observations/${respondida.id}`).send({ status: 'closed' }).expect(200);
+    await closeOut(ajena.id);
+    await closeOut(servicio.id);
+  });
+
+  it('si el auditor devuelve la respondida a abierta, vuelve a pedir la razón', async () => {
+    const o = await observe(manualControl);
+    await a.agent.post(`/v1/observations/${o.id}/answer`).send({ answer_note: 'Atendida.' }).expect(200);
+    await auditor.patch(`/v1/observations/${o.id}`).send({ status: 'open' }).expect(200);
+    expect((await give(a.agent, 'compliant')).status).toBe(422);
+    await closeOut(o.id);
+  });
+});

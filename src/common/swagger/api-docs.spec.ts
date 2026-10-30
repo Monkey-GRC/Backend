@@ -131,7 +131,7 @@ describe('documentación de la API encendida (local)', () => {
 
   it('documenta toda la API pública y deja fuera la interna del trabajador', () => {
     const ids = operations().map((o) => o.id);
-    expect(ids.length).toBe(141);
+    expect(ids.length).toBe(146);
     expect(ids.some((id) => id.includes('/internal/'))).toBe(false);
   });
 
