@@ -25,8 +25,10 @@ function detail(status: 'active' | 'deactivated', archiveUntil?: Date): CompanyD
 }
 
 const calls: string[] = [];
-let repo: jest.Mocked<Pick<CompanyRepository, 'findById' | 'exportSnapshot' | 'archive' | 'reactivate' | 'listArchived' | 'purge'>>;
-let storage: jest.Mocked<Pick<FileStorage, 'put' | 'remove' | 'removePrefix'>>;
+// Dobles sencillos: cada método es un `jest.fn` sin firma (los argumentos que importan se revisan con `mock.calls`).
+type Fake<K extends string> = Record<K, jest.Mock>;
+let repo: Fake<'findById' | 'exportSnapshot' | 'archive' | 'reactivate' | 'listArchived' | 'purge'>;
+let storage: Fake<'put' | 'remove' | 'removePrefix'>;
 let stepUp: { assert: jest.Mock };
 let audit: { write: jest.Mock };
 const cipher = { encrypt: jest.fn((v: unknown) => `v1.${JSON.stringify(v).length}`) } as unknown as CredentialCipher;
