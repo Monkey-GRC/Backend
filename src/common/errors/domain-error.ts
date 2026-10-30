@@ -23,6 +23,7 @@ export type DomainErrorCode =
   // D97 · Archivar y reactivar una empresa (contracts/modules/monkey-admin.md).
   | 'CONFIRMATION_MISMATCH'
   | 'COMPANY_ALREADY_DEACTIVATED'
+  | 'ACCESS_KEY_NOT_PENDING'
   | 'COMPANY_NOT_DEACTIVATED'
   | 'COMPANY_ARCHIVE_EXPIRED'
   // Componente 2 (contracts/modules/onboarding-service-context.md).

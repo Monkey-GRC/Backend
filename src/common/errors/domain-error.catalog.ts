@@ -36,6 +36,8 @@ export const DOMAIN_ERROR_CATALOG: Record<
   },
   // D97 · Archivar y reactivar una empresa.
   CONFIRMATION_MISMATCH: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'company.confirmation_mismatch' },
+  // D99 · Reenviar la clave de una empresa que ya la canjeó.
+  ACCESS_KEY_NOT_PENDING: { status: HttpStatus.CONFLICT, messageKey: 'access_key.not_pending' },
   COMPANY_ALREADY_DEACTIVATED: { status: HttpStatus.CONFLICT, messageKey: 'company.already_deactivated' },
   COMPANY_NOT_DEACTIVATED: { status: HttpStatus.CONFLICT, messageKey: 'company.not_deactivated' },
   COMPANY_ARCHIVE_EXPIRED: { status: HttpStatus.CONFLICT, messageKey: 'company.archive_expired' },

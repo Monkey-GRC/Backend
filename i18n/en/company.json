@@ -1,5 +1,5 @@
 {
-  "created": "Company registered. Copy the access key: it won't be shown again.",
+  "created": "Company registered. The access key was sent to the administrative email.",
   "list": "Registered companies.",
   "detail": "Company detail.",
   "name_taken": "An active company with that legal name already exists.",

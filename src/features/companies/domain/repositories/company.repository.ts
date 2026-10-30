@@ -30,6 +30,9 @@ export type CompanyListQuery = PageRequest & {
 
 export type RegisteredCompany = { company: Company; accessKey: AccessKey; frameworks: ContractedFramework[] };
 
+// `revokedKeys`: cuántas claves pendientes se anularon al emitir la nueva.
+export type RotatedAccessKey = { company: Company; accessKey: AccessKey; revokedKeys: number };
+
 export type ArchiveData = {
   reasonCode: 'non_payment' | 'client_request' | 'other';
   reason: string;
@@ -62,6 +65,16 @@ export abstract class CompanyRepository {
     accessKey: NewAccessKey,
     audit: AuditIntent<RegisteredCompany>,
   ): Promise<RegisteredCompany>;
+
+  // D99 · Reenviar la clave: anula la pendiente y emite otra, en una transacción con su rastro (`access_key.regenerate`).
+  // Lanza `NOT_FOUND` (no existe o es la interna de Monkey), `COMPANY_ALREADY_DEACTIVATED` (archivada) o `ACCESS_KEY_NOT_PENDING` (ya la canjeó).
+  abstract rotateAccessKey(
+    scope: TenantScope,
+    companyId: string,
+    excludeCompanyId: string,
+    accessKey: NewAccessKey,
+    audit: AuditIntent<RotatedAccessKey>,
+  ): Promise<RotatedAccessKey>;
 
   abstract list(scope: TenantScope, query: CompanyListQuery): Promise<Page<CompanyOverview>>;
 

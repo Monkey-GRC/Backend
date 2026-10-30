@@ -16,6 +16,7 @@ import {
   ArchiveData,
   ArchivedCompany,
   RegisteredCompany,
+  RotatedAccessKey,
   CompanyListQuery,
   CompanyRepository,
   NewAccessKey,
@@ -177,6 +178,30 @@ export class CompanyPrismaRepository extends CompanyRepository {
       // En la misma transacción que la empresa, la clave y el contrato (SEG-36).
       await insertAuditLog(tx, audit(registered));
       return registered;
+    });
+  }
+
+  rotateAccessKey(
+    scope: TenantScope,
+    companyId: string,
+    excludeCompanyId: string,
+    key: NewAccessKey,
+    audit: AuditIntent<RotatedAccessKey>,
+  ): Promise<RotatedAccessKey> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const row = await tx.company.findFirst({ where: { id: companyId, NOT: { id: excludeCompanyId } } });
+      if (!row) throw new DomainError('NOT_FOUND');
+      if (row.status === 'deactivated') throw new DomainError('COMPANY_ALREADY_DEACTIVATED');
+      if ((await tx.accessKey.count({ where: { companyId, status: 'used' } })) > 0) throw new DomainError('ACCESS_KEY_NOT_PENDING');
+
+      // La anterior deja de servir aunque no haya vencido: se reenvía porque el correo se perdió o no salió.
+      const revoked = await tx.accessKey.updateMany({ where: { companyId, status: 'pending' }, data: { status: 'revoked' } });
+      const accessKey = await tx.accessKey.create({
+        data: { companyId, createdBy: key.createdBy, codeHash: key.codeHash, expiresAt: key.expiresAt },
+      });
+      const rotated = { company: toCompany(row), accessKey: toAccessKey(accessKey), revokedKeys: revoked.count };
+      await insertAuditLog(tx, audit(rotated));
+      return rotated;
     });
   }
 
