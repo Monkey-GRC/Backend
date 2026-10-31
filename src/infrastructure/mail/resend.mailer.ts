@@ -21,7 +21,7 @@ export class ResendMailer extends Mailer {
       res = await fetch(ENDPOINT, {
         method: 'POST',
         headers: { Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: this.from, to: [message.to], subject: message.subject, text: message.text }),
+        body: JSON.stringify({ from: this.from, to: [message.to], subject: message.subject, text: message.text, ...(message.html ? { html: message.html } : {}) }),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
     } catch (error) {

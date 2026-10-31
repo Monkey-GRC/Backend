@@ -17,6 +17,12 @@ describe('ResendMailer', () => {
     expect(JSON.parse(init!.body as string)).toMatchObject({ from: 'Monkey <no-reply@x.test>', to: ['secreto@acme.test'], subject: 'S' });
   });
 
+  it('manda también la versión HTML cuando el mensaje la trae', async () => {
+    fetchMock.mockResolvedValue(new Response('{}', { status: 200 }));
+    await new ResendMailer('k', 'f').send({ ...msg, html: '<p>hola</p>' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string)).toMatchObject({ text: msg.text, html: '<p>hola</p>' });
+  });
+
   it('un rechazo lanza con el estado y el tipo, sin el mensaje ni el destinatario', async () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ name: 'daily_quota_exceeded', message: 'secreto@acme.test MNK-AAAA-BBBB-CCCC' }), { status: 429 }));
     const error = await new ResendMailer('k', 'f').send(msg).catch((e: Error) => e);
