@@ -20,9 +20,21 @@ describe('buildAccessKeyEmail', () => {
     expect(`${msg.subject}${msg.text}`.toLowerCase()).not.toMatch(/wazuh|prowler/);
   });
 
+  it('la versión HTML lleva la clave, el botón y el logo de la Platform, escapa el nombre y no nombra al proveedor', () => {
+    const msg = buildAccessKeyEmail({ companyName: '<b>Acme</b> & Cía', adminEmail: 'admin@acme.test', code: CODE, expiresAt: input.expiresAt, redeemUrl: 'https://app.monkey.test/register' });
+    expect(msg.html).toContain(CODE);
+    expect(msg.html).toContain('href="https://app.monkey.test/register"');
+    expect(msg.html).toContain('src="https://app.monkey.test/images/logo/email-logo.png"');
+    expect(msg.html).toContain('&lt;b&gt;Acme&lt;/b&gt; &amp; Cía');
+    expect(msg.html).not.toContain('<b>Acme</b>');
+    expect(msg.html?.toLowerCase()).not.toMatch(/wazuh|prowler/);
+  });
+
   it('sin URL configurada no inventa un enlace', () => {
     const msg = buildAccessKeyEmail({ companyName: 'Acme', adminEmail: 'a@a.test', code: CODE, expiresAt: input.expiresAt, redeemUrl: null });
     expect(msg.text).not.toContain('http');
+    expect(msg.html).not.toContain('href=');
+    expect(msg.html).not.toContain('<img');
   });
 });
 

@@ -50,6 +50,10 @@ export abstract class CompanyRepository {
 
   abstract existsWithAdminEmail(scope: TenantScope, adminEmail: string): Promise<boolean>;
 
+  // El correo de una persona es único en toda la plataforma (users.email): si ya es de un usuario, la clave que se emitiera para ese
+  // correo no se podría canjear nunca.
+  abstract existsUserWithEmail(scope: TenantScope, email: string): Promise<boolean>;
+
   // catalog.frameworks: lectura libre. Devuelve cuáles de estos códigos existen en el catálogo.
   abstract existingFrameworkCodes(codes: string[]): Promise<string[]>;
 

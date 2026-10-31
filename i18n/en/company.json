@@ -3,7 +3,7 @@
   "list": "Registered companies.",
   "detail": "Company detail.",
   "name_taken": "An active company with that legal name already exists.",
-  "admin_email_taken": "That email is already the administrative contact of another company.",
+  "admin_email_taken": "That email already belongs to another Monkey account.",
   "dedicated_not_available": "Dedicated databases are not available yet. Register the company without one for now.",
   "deactivated": "Company archived. No access or evaluations until it is permanently deleted.",
   "reactivated": "Company reactivated.",

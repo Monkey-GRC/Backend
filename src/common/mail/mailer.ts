@@ -1,8 +1,10 @@
 export type MailMessage = {
   to: string;
   subject: string;
-  // Solo texto: lo que viaja es una clave de un solo uso, no hace falta maquetar nada.
+  // Versión en texto: es la que leen los clientes sin HTML y la que queda en el log local.
   text: string;
+  // Versión maquetada (opcional). Siempre acompaña al texto, nunca lo reemplaza.
+  html?: string;
 };
 
 // Puerto del correo saliente (D99). Lo implementa la infraestructura; los casos de uso solo conocen esta

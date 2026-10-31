@@ -63,7 +63,7 @@ export class RegisterCompanyUseCase {
     if (await this.companies.existsActiveWithName(scope, name)) {
       throw new DomainError('COMPANY_NAME_TAKEN');
     }
-    if (await this.companies.existsWithAdminEmail(scope, adminEmail)) {
+    if ((await this.companies.existsWithAdminEmail(scope, adminEmail)) || (await this.companies.existsUserWithEmail(scope, adminEmail))) {
       throw new DomainError('ADMIN_EMAIL_TAKEN');
     }
 

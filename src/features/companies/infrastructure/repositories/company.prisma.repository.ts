@@ -106,6 +106,13 @@ export class CompanyPrismaRepository extends CompanyRepository {
     );
   }
 
+  // `users` tiene RLS por empresa: Monkey Admin no ve a las personas de otras empresas con un SELECT normal. La búsqueda por correo del login
+  // (find_login_candidates, SECURITY DEFINER) sí cruza empresas y devuelve solo los datos mínimos; aquí solo importa si hay alguna fila.
+  async existsUserWithEmail(scope: TenantScope, email: string): Promise<boolean> {
+    const rows = await this.prisma.withScope(scope, (tx) => tx.$queryRaw<{ id: string }[]>`SELECT id FROM platform.find_login_candidates(${email}) LIMIT 1`);
+    return rows.length > 0;
+  }
+
   async existingFrameworkCodes(codes: string[]): Promise<string[]> {
     // catalog.*: lectura libre, no necesita tenant.
     const rows = await this.prisma.framework.findMany({
