@@ -3,7 +3,7 @@
   "list": "Empresas registradas.",
   "detail": "Detalle de la empresa.",
   "name_taken": "Ya existe una empresa activa con esa razón social.",
-  "admin_email_taken": "Ese correo ya es el administrativo de otra empresa.",
+  "admin_email_taken": "Ese correo ya pertenece a otra cuenta de Monkey.",
   "dedicated_not_available": "La base de datos dedicada todavía no está disponible. Registra la empresa sin ella por ahora.",
   "deactivated": "Empresa archivada. Sin acceso ni evaluaciones hasta el borrado definitivo.",
   "reactivated": "Empresa reactivada.",
