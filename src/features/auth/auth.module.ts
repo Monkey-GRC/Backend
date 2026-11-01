@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { RateLimitGuard } from '../../common/rate-limit/rate-limit.guard';
 import { SessionPolicy } from './domain/entities/session.entity';
 import { AccessTokenService } from './domain/ports/access-token.service';
 import { PasswordHasher } from './domain/ports/password-hasher';
@@ -11,15 +12,21 @@ import { ActivationRepository } from './domain/repositories/activation.repositor
 import { OnboardingProgressReader } from './domain/ports/onboarding-progress.reader';
 import { AuthUserRepository } from './domain/repositories/auth-user.repository';
 import { MfaRepository } from './domain/repositories/mfa.repository';
+import { PasswordRepository } from './domain/repositories/password.repository';
 import { SessionRepository } from './domain/repositories/session.repository';
 import { AccessKeyAttemptLimiter } from './application/services/access-key-attempt-limiter.service';
 import { MfaAttempts } from './application/services/mfa-attempts.service';
 import { MfaChallengeService } from './application/services/mfa-challenge.service';
+import { PasswordNotifier } from './application/services/password-notifier.service';
+import { PasswordRules } from './application/services/password-rules.service';
 import { MfaPolicy } from './application/services/mfa-policy.service';
 import { SessionIssuer } from './application/services/session-issuer.service';
 import { StepUp } from './application/services/step-up.service';
 import { SESSION_POLICY } from './application/session-policy.token';
 import { ActivateAccountUseCase } from './application/use-cases/activation/activate-account.use-case';
+import { ChangePasswordUseCase } from './application/use-cases/password/change-password.use-case';
+import { ForgotPasswordUseCase } from './application/use-cases/password/forgot-password.use-case';
+import { ResetPasswordUseCase } from './application/use-cases/password/reset-password.use-case';
 import { ConfirmMfaSetupUseCase } from './application/use-cases/mfa/confirm-mfa-setup.use-case';
 import { LookupActivationCodeUseCase } from './application/use-cases/activation/lookup-activation-code.use-case';
 import { RedeemAccessKeyUseCase } from './application/use-cases/access-key/redeem-access-key.use-case';
@@ -38,6 +45,7 @@ import { AccessKeyRedemptionPrismaRepository } from './infrastructure/repositori
 import { ActivationPrismaRepository } from './infrastructure/repositories/activation.prisma.repository';
 import { AuthUserPrismaRepository } from './infrastructure/repositories/auth-user.prisma.repository';
 import { MfaPrismaRepository } from './infrastructure/repositories/mfa.prisma.repository';
+import { PasswordPrismaRepository } from './infrastructure/repositories/password.prisma.repository';
 import { OnboardingProgressPrismaReader } from './infrastructure/repositories/onboarding-progress.prisma.reader';
 import { SessionPrismaRepository } from './infrastructure/repositories/session.prisma.repository';
 import { BcryptPasswordHasher } from './infrastructure/security/bcrypt-password.hasher';
@@ -81,6 +89,7 @@ const seconds = (config: ConfigService, key: string): number => {
     { provide: AuthUserRepository, useClass: AuthUserPrismaRepository },
     { provide: SessionRepository, useClass: SessionPrismaRepository },
     { provide: MfaRepository, useClass: MfaPrismaRepository },
+    { provide: PasswordRepository, useClass: PasswordPrismaRepository },
     { provide: PasswordHasher, useClass: BcryptPasswordHasher },
     { provide: AccessTokenService, useClass: JwtAccessTokenService },
     { provide: AccessKeyRedemptionRepository, useClass: AccessKeyRedemptionPrismaRepository },
@@ -93,6 +102,11 @@ const seconds = (config: ConfigService, key: string): number => {
     MfaChallengeService,
     MfaAttempts,
     StepUp,
+    PasswordRules,
+    PasswordNotifier,
+    ChangePasswordUseCase,
+    ForgotPasswordUseCase,
+    ResetPasswordUseCase,
     LoginUseCase,
     VerifyMfaUseCase,
     StartMfaSetupUseCase,
@@ -107,9 +121,11 @@ const seconds = (config: ConfigService, key: string): number => {
     LogoutUseCase,
     ValidateSessionUseCase,
     GetCurrentUserUseCase,
-    // El orden importa: primero se autentica (SessionAuthGuard), después se autoriza por rol.
+    // El orden importa: primero se autentica (SessionAuthGuard), después se autoriza por rol y al final se limita el ritmo.
     { provide: APP_GUARD, useClass: SessionAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    // SEG-19 · Al final: solo cuenta las peticiones que ya pasaron la sesión y el rol.
+    { provide: APP_GUARD, useClass: RateLimitGuard },
   ],
 })
 export class AuthModule {}
