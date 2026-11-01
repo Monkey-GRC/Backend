@@ -20,11 +20,15 @@ describe('buildAccessKeyEmail', () => {
     expect(`${msg.subject}${msg.text}`.toLowerCase()).not.toMatch(/wazuh|prowler/);
   });
 
-  it('la versión HTML lleva la clave, el botón y el logo de la Platform, escapa el nombre y no nombra al proveedor', () => {
+  it('la versión HTML lleva la clave, el botón y el logo incrustado, escapa el nombre y no nombra al proveedor', () => {
     const msg = buildAccessKeyEmail({ companyName: '<b>Acme</b> & Cía', adminEmail: 'admin@acme.test', code: CODE, expiresAt: input.expiresAt, redeemUrl: 'https://app.monkey.test/register' });
     expect(msg.html).toContain(CODE);
     expect(msg.html).toContain('href="https://app.monkey.test/register"');
-    expect(msg.html).toContain('src="https://app.monkey.test/images/logo/email-logo.png"');
+    // El logo viaja DENTRO del correo (cid), no como una URL: así se ve también desde una dirección local y con las imágenes remotas bloqueadas.
+    expect(msg.html).toContain('src="cid:monkey-logo"');
+    expect(msg.inlineImages).toHaveLength(1);
+    expect(msg.inlineImages![0]).toMatchObject({ cid: 'monkey-logo', contentType: 'image/png' });
+    expect(Buffer.from(msg.inlineImages![0].contentBase64, 'base64').subarray(1, 4).toString()).toBe('PNG');
     expect(msg.html).toContain('&lt;b&gt;Acme&lt;/b&gt; &amp; Cía');
     expect(msg.html).not.toContain('<b>Acme</b>');
     expect(msg.html?.toLowerCase()).not.toMatch(/wazuh|prowler/);
@@ -34,7 +38,7 @@ describe('buildAccessKeyEmail', () => {
     const msg = buildAccessKeyEmail({ companyName: 'Acme', adminEmail: 'a@a.test', code: CODE, expiresAt: input.expiresAt, redeemUrl: null });
     expect(msg.text).not.toContain('http');
     expect(msg.html).not.toContain('href=');
-    expect(msg.html).not.toContain('<img');
+    expect(msg.html).toContain('cid:monkey-logo'); // el logo no depende de ninguna dirección
   });
 });
 
