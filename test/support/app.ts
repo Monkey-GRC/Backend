@@ -43,6 +43,9 @@ export async function bootApp(env: Record<string, string> = {}, configure?: (bui
     MONKEY_AWS_PRINCIPAL_ARN: MONKEY_PRINCIPAL_ARN,
     VALIDATION_WAIT_SECONDS: '25',
     NODE_ENV: 'test',
+    // SEG-19 · Las pruebas de siempre disparan muchas peticiones seguidas con el mismo usuario; solo test/autenticacion/limite-peticiones.e2e-spec.ts baja estos topes.
+    RATE_LIMIT_USER_PER_MINUTE: '100000',
+    RATE_LIMIT_COMPANY_PER_MINUTE: '1000000',
     // D97 · Sin tarea programada del borrado definitivo: las pruebas la ejecutan a mano.
     COMPANY_PURGE_INTERVAL_MINUTES: '0',
     ...env,
