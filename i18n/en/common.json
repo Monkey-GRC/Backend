@@ -4,6 +4,6 @@
   "forbidden": "You don't have permission for this action.",
   "not_found": "Resource not found.",
   "conflict": "The request conflicts with the current state.",
-  "rate_limited": "Too many requests. Try again shortly.",
+  "rate_limited": "You made too many requests in a short time. Wait a moment and try again.",
   "internal_error": "Internal server error."
 }

@@ -3,6 +3,8 @@
 export type DomainErrorCode =
   | 'UNAUTHENTICATED'
   | 'FORBIDDEN'
+  // SEG-19 · Más de 100 peticiones por minuto por usuario o de 1000 por empresa.
+  | 'RATE_LIMITED'
   | 'NOT_FOUND'
   | 'INVALID_CREDENTIALS'
   | 'SESSION_EXPIRED'
@@ -12,6 +14,11 @@ export type DomainErrorCode =
   | 'MFA_CODE_INVALID'
   | 'MFA_SETUP_NOT_STARTED'
   | 'MFA_NOT_ENABLED'
+  // D101 · Cambio y recuperación de contraseña (contracts/modules/auth.md).
+  | 'CURRENT_PASSWORD_INVALID'
+  | 'PASSWORD_REUSED'
+  | 'PASSWORD_CHANGE_LIMIT'
+  | 'PASSWORD_RESET_INVALID'
   | 'ACCESS_KEY_INVALID'
   | 'ACCESS_KEY_ALREADY_USED'
   | 'ACCESS_KEY_EXPIRED'

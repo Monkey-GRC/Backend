@@ -8,6 +8,7 @@ export const DOMAIN_ERROR_CATALOG: Record<
 > = {
   UNAUTHENTICATED: { status: HttpStatus.UNAUTHORIZED, messageKey: 'common.unauthenticated' },
   FORBIDDEN: { status: HttpStatus.FORBIDDEN, messageKey: 'common.forbidden' },
+  RATE_LIMITED: { status: HttpStatus.TOO_MANY_REQUESTS, messageKey: 'common.rate_limited' },
   NOT_FOUND: { status: HttpStatus.NOT_FOUND, messageKey: 'common.not_found' },
   INVALID_CREDENTIALS: { status: HttpStatus.UNAUTHORIZED, messageKey: 'auth.invalid_credentials' },
   SESSION_EXPIRED: { status: HttpStatus.UNAUTHORIZED, messageKey: 'auth.session_expired' },
@@ -18,6 +19,11 @@ export const DOMAIN_ERROR_CATALOG: Record<
   MFA_CODE_INVALID: { status: HttpStatus.UNAUTHORIZED, messageKey: 'auth.mfa_code_invalid' },
   MFA_SETUP_NOT_STARTED: { status: HttpStatus.CONFLICT, messageKey: 'auth.mfa_setup_not_started' },
   MFA_NOT_ENABLED: { status: HttpStatus.CONFLICT, messageKey: 'auth.mfa_not_enabled' },
+  // D101 · Contraseña actual equivocada (403, no 401: el cliente no debe tomarlo por sesión caída), una repetida, demasiados cambios y un enlace de recuperación que no sirve.
+  CURRENT_PASSWORD_INVALID: { status: HttpStatus.FORBIDDEN, messageKey: 'auth.current_password_invalid' },
+  PASSWORD_REUSED: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'auth.password_reused' },
+  PASSWORD_CHANGE_LIMIT: { status: HttpStatus.TOO_MANY_REQUESTS, messageKey: 'auth.password_change_limit' },
+  PASSWORD_RESET_INVALID: { status: HttpStatus.UNAUTHORIZED, messageKey: 'auth.password_reset_invalid' },
   // Canje de la clave (contracts/modules/auth.md, POST /v1/auth/redeem).
   ACCESS_KEY_INVALID: { status: HttpStatus.NOT_FOUND, messageKey: 'auth.access_key_invalid' },
   ACCESS_KEY_ALREADY_USED: { status: HttpStatus.CONFLICT, messageKey: 'auth.access_key_already_used' },
