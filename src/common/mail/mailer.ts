@@ -1,3 +1,12 @@
+// Una imagen que viaja DENTRO del correo y se referencia en el HTML como `<img src="cid:<cid>">`. Se ve aunque el cliente bloquee las imágenes remotas y aunque la dirección de la app
+// no sea pública (en local); por eso el logo va así y no como una URL.
+export type InlineImage = {
+  cid: string;
+  filename: string;
+  contentType: string;
+  contentBase64: string;
+};
+
 export type MailMessage = {
   to: string;
   subject: string;
@@ -5,6 +14,7 @@ export type MailMessage = {
   text: string;
   // Versión maquetada (opcional). Siempre acompaña al texto, nunca lo reemplaza.
   html?: string;
+  inlineImages?: InlineImage[];
 };
 
 // Puerto del correo saliente (D99). Lo implementa la infraestructura; los casos de uso solo conocen esta

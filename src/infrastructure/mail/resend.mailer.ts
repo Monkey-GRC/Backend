@@ -15,13 +15,27 @@ export class ResendMailer extends Mailer {
     super();
   }
 
+  // Las imágenes incrustadas viajan como adjuntos con `content_id`: el HTML las referencia con `cid:<content_id>` (guía de imágenes en línea de Resend).
+  private payload(message: MailMessage) {
+    return {
+      from: this.from,
+      to: [message.to],
+      subject: message.subject,
+      text: message.text,
+      ...(message.html ? { html: message.html } : {}),
+      ...(message.inlineImages?.length
+        ? { attachments: message.inlineImages.map((image) => ({ filename: image.filename, content: image.contentBase64, content_type: image.contentType, content_id: image.cid })) }
+        : {}),
+    };
+  }
+
   async send(message: MailMessage): Promise<void> {
     let res: Response;
     try {
       res = await fetch(ENDPOINT, {
         method: 'POST',
         headers: { Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: this.from, to: [message.to], subject: message.subject, text: message.text, ...(message.html ? { html: message.html } : {}) }),
+        body: JSON.stringify(this.payload(message)),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
     } catch (error) {

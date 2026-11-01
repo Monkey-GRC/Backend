@@ -23,6 +23,18 @@ describe('ResendMailer', () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string)).toMatchObject({ text: msg.text, html: '<p>hola</p>' });
   });
 
+  it('manda las imágenes incrustadas como adjuntos con content_id, para que el HTML las referencie con cid:', async () => {
+    fetchMock.mockResolvedValue(new Response('{}', { status: 200 }));
+    await new ResendMailer('k', 'f').send({ ...msg, html: '<img src="cid:monkey-logo">', inlineImages: [{ cid: 'monkey-logo', filename: 'monkey-logo.png', contentType: 'image/png', contentBase64: 'iVBORw0KGgo=' }] });
+    expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string).attachments).toEqual([{ filename: 'monkey-logo.png', content: 'iVBORw0KGgo=', content_type: 'image/png', content_id: 'monkey-logo' }]);
+  });
+
+  it('sin imágenes incrustadas no manda adjuntos', async () => {
+    fetchMock.mockResolvedValue(new Response('{}', { status: 200 }));
+    await new ResendMailer('k', 'f').send({ ...msg, html: '<p>hola</p>' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string).attachments).toBeUndefined();
+  });
+
   it('un rechazo lanza con el estado y el tipo, sin el mensaje ni el destinatario', async () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ name: 'daily_quota_exceeded', message: 'secreto@acme.test MNK-AAAA-BBBB-CCCC' }), { status: 429 }));
     const error = await new ResendMailer('k', 'f').send(msg).catch((e: Error) => e);
