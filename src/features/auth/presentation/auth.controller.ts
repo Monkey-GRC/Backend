@@ -10,6 +10,7 @@ import type { SessionPolicy } from '../domain/entities/session.entity';
 import { ActivateAccountDto, LookupActivationCodeDto } from '../application/dtos/activation.dto';
 import { LoginDto } from '../application/dtos/login.dto';
 import { MfaCodeDto, VerifyMfaDto } from '../application/dtos/mfa.dto';
+import { ChangePasswordDto, ForgotPasswordDto, ResetPasswordDto } from '../application/dtos/password.dto';
 import { LookupAccessKeyDto } from '../application/dtos/lookup-access-key.dto';
 import { RedeemAccessKeyDto } from '../application/dtos/redeem-access-key.dto';
 import { SESSION_POLICY } from '../application/session-policy.token';
@@ -17,6 +18,9 @@ import { ActivateAccountUseCase } from '../application/use-cases/activation/acti
 import { GetCurrentUserUseCase } from '../application/use-cases/session/get-current-user.use-case';
 import { GetOnboardingProgressUseCase } from '../application/use-cases/session/get-onboarding-progress.use-case';
 import { ConfirmMfaSetupUseCase } from '../application/use-cases/mfa/confirm-mfa-setup.use-case';
+import { ChangePasswordUseCase } from '../application/use-cases/password/change-password.use-case';
+import { ForgotPasswordUseCase } from '../application/use-cases/password/forgot-password.use-case';
+import { ResetPasswordUseCase } from '../application/use-cases/password/reset-password.use-case';
 import { LoginUseCase } from '../application/use-cases/session/login.use-case';
 import { LogoutUseCase } from '../application/use-cases/session/logout.use-case';
 import { LookupActivationCodeUseCase } from '../application/use-cases/activation/lookup-activation-code.use-case';
@@ -68,6 +72,9 @@ export class AuthController {
     private readonly startMfaSetup: StartMfaSetupUseCase,
     private readonly confirmMfaSetup: ConfirmMfaSetupUseCase,
     private readonly regenerateCodes: RegenerateRecoveryCodesUseCase,
+    private readonly changePassword: ChangePasswordUseCase,
+    private readonly forgotPassword: ForgotPasswordUseCase,
+    private readonly resetPassword: ResetPasswordUseCase,
     @Inject(SESSION_POLICY) private readonly policy: SessionPolicy,
   ) {}
 
@@ -195,6 +202,40 @@ export class AuthController {
   async recoveryCodes(@CurrentUser() principal: Principal, @Body() dto: MfaCodeDto, @Req() req: Request) {
     const codes = await this.regenerateCodes.execute(principal, dto.code, requestMeta(req));
     return new ResponseDto(HttpStatus.OK, t('auth.mfa_recovery_regenerated'), { recovery_codes: codes });
+  }
+
+  // ── Contraseña: cambio y recuperación (D101, SEG-14) ───────────────────────────────────────────────────────────────────────────────
+  @ApiOperation({ summary: 'Cambiar la contraseña', description: 'La persona cambia su contraseña cuando quiera. Con la sesión abierta pide la contraseña actual y un código vigente del segundo factor (`code`) o uno de recuperación (`recovery_code`). La nueva cumple la política (12+ caracteres con mayúscula, minúscula, número y símbolo), es distinta de la actual y de las 5 anteriores, y se permiten hasta 3 cambios en 24 h. Cierra las demás sesiones (esta sigue) y avisa por correo. La contraseña actual equivocada y un código equivocado suman al bloqueo de la cuenta (5 intentos, 15 min).' })
+  @ApiNoBody('Contraseña cambiada. No hay cuerpo.')
+  @ApiDomainErrors('CURRENT_PASSWORD_INVALID', 'MFA_CODE_INVALID', 'MFA_NOT_ENABLED', 'ACCOUNT_LOCKED', 'PASSWORD_REUSED', 'PASSWORD_CHANGE_LIMIT')
+  @Post('password/change')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async changeOwnPassword(@CurrentUser() principal: Principal, @Body() dto: ChangePasswordDto, @Req() req: Request): Promise<void> {
+    await this.changePassword.execute(
+      principal,
+      { currentPassword: dto.current_password, newPassword: dto.new_password, code: dto.code, recoveryCode: dto.recovery_code },
+      requestMeta(req),
+    );
+  }
+
+  @Public()
+  @ApiOperation({ summary: 'Pedir el enlace para recuperar la contraseña', description: 'Responde **siempre lo mismo** (`202`), exista o no la cuenta: no revela qué correos están registrados. Si la cuenta existe y está activa, le llega un enlace de un solo uso que vence a los 30 minutos; uno nuevo deja sin efecto los anteriores. Hasta 5 enlaces por cuenta cada hora.' })
+  @ApiEmpty('Si la cuenta existe, el enlace va en camino. `data` es `null`.', { status: 202 })
+  @Post('password/forgot')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async forgot(@Body() dto: ForgotPasswordDto, @Req() req: Request) {
+    await this.forgotPassword.execute(dto.email, requestMeta(req));
+    return new ResponseDto(HttpStatus.ACCEPTED, t('auth.password_forgot_requested'), null);
+  }
+
+  @Public()
+  @ApiOperation({ summary: 'Crear la contraseña nueva con el enlace del correo', description: 'Con el `token` del enlace, la contraseña nueva y —quien ya tiene el segundo factor— un código vigente (`code`) o de recuperación (`recovery_code`). Cierra **todas** las sesiones de la persona y avisa por correo; después inicia sesión con la nueva. Un enlace que no existe, venció o ya se usó responde igual.' })
+  @ApiNoBody('Contraseña cambiada. No hay cuerpo.')
+  @ApiDomainErrors('PASSWORD_RESET_INVALID', 'MFA_CODE_INVALID', 'ACCOUNT_LOCKED', 'PASSWORD_REUSED')
+  @Post('password/reset')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async reset(@Body() dto: ResetPasswordDto, @Req() req: Request): Promise<void> {
+    await this.resetPassword.execute({ token: dto.token, newPassword: dto.new_password, code: dto.code, recoveryCode: dto.recovery_code }, requestMeta(req));
   }
 
   // ── Activación de una cuenta que crea el administrador (D95, D96) ────────────────────────────────────────────────────────────────

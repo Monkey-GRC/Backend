@@ -4,6 +4,6 @@
   "forbidden": "No tienes permiso para esta acción.",
   "not_found": "Recurso no encontrado.",
   "conflict": "La solicitud choca con el estado actual.",
-  "rate_limited": "Demasiadas solicitudes. Intenta en un momento.",
+  "rate_limited": "Hiciste demasiadas peticiones en poco tiempo. Espera un momento e inténtalo de nuevo.",
   "internal_error": "Error interno del servidor."
 }
