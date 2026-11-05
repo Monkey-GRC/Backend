@@ -68,7 +68,7 @@ export class AuthUserPrismaRepository extends AuthUserRepository {
     const user = await this.prisma.withScope(scope, (tx) =>
       tx.user.findUnique({
         where: { id: userId },
-        include: { company: { select: { name: true } } },
+        include: { company: { select: { name: true } }, group: { select: { id: true, name: true, leader: { select: { id: true, name: true, lastName: true } } } } },
       }),
     );
     if (!user) return null;
@@ -85,6 +85,8 @@ export class AuthUserPrismaRepository extends AuthUserRepository {
       user.isMfaEnabled,
       user.lastLoginAt,
       user.createdAt,
+      user.group ? { id: user.group.id, name: user.group.name } : null,
+      user.role === 'delegado' && user.group ? user.group.leader : null,
     );
   }
 

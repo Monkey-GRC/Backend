@@ -12,15 +12,15 @@ import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiPaged } from '../../../common/swagger/api-envelope';
 import { CreateTeamMemberDto, ListTeamQuery, UpdateTeamMemberDto } from '../application/dtos/team.dto';
 import { CreateTeamMemberUseCase, ListTeamUseCase, ReissueActivationCodeUseCase, UpdateTeamMemberUseCase } from '../application/use-cases/team-users.use-cases';
-import { toMember, toMemberWithCode } from './team.mapper';
-import { TeamMemberCreatedResponse, TeamMemberResponse } from './team.responses';
+import { toInvitedMember, toMember, toMemberWithCode } from './team.mapper';
+import { TeamMemberCreatedResponse, TeamMemberInvitedResponse, TeamMemberResponse } from './team.responses';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
 
-// El equipo de la empresa (contracts/gestion-usuarios.md, D102). Solo `admin_empresa`: invita, edita, desactiva y reemite códigos. `admin_monkey` no crea ni desactiva cuentas
-// de una empresa. El restablecimiento del segundo factor (`DELETE /users/{id}/mfa`) vive en el módulo de autenticación.
+// El equipo de la empresa (contracts/gestion-usuarios.md, D102). `admin_empresa` invita, lista, edita, desactiva y reemite códigos; el `responsable` solo invita delegados a su
+// equipo y lista el suyo. `admin_monkey` no crea ni desactiva cuentas de una empresa. El restablecimiento del segundo factor (`DELETE /users/{id}/mfa`) vive en el módulo de autenticación.
 @ApiTags(API_TAGS.team)
 @Roles('admin_empresa')
 @Controller('users')
@@ -32,20 +32,23 @@ export class UsersController {
     private readonly reissue: ReissueActivationCodeUseCase,
   ) {}
 
-  @ApiOperation({ summary: 'Invitar a una persona del equipo', description: 'Crea una cuenta `responsable`, `delegado`, `auditor` o `admin_empresa`. Nace `pending` y **la respuesta trae su código de activación, una sola vez**: hay que entregárselo a la persona. Queda registro de auditoría, sin el código.' })
-  @ApiData(TeamMemberCreatedResponse, 'Cuenta creada, con su código de activación en claro (única vez).', { status: 201 })
-  @ApiDomainErrors('EMAIL_TAKEN', 'USER_LIMIT_REACHED')
+  @ApiOperation({ summary: 'Invitar a una persona del equipo', description: 'Crea una cuenta `responsable`, `delegado`, `auditor` o `admin_empresa` (el `responsable` solo crea delegados, en su equipo). Nace `pending`, cuenta para el cupo y deja registro de auditoría. Un `responsable` nuevo queda en el grupo «Responsables»; su equipo de delegados no nace con él. **La respuesta no trae el código de activación**: solo el estado de la invitación.' })
+  @ApiData(TeamMemberInvitedResponse, 'Cuenta creada, con el estado de su invitación.', { status: 201 })
+  @ApiDomainErrors('FORBIDDEN', 'NOT_FOUND', 'RESPONSIBLE_HAS_NO_TEAM', 'RESPONSIBLES_GROUP_INVALID', 'EMAIL_TAKEN', 'USER_LIMIT_REACHED')
+  @Roles('admin_empresa', 'responsable')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async invite(@CurrentUser() p: Principal, @Body() dto: CreateTeamMemberDto, @Req() req: Request) {
-    return new ResponseDto(HttpStatus.CREATED, t('user.created'), toMemberWithCode(await this.create.execute(p, dto, metaOf(req))));
+    return new ResponseDto(HttpStatus.CREATED, t('user.created'), toInvitedMember(await this.create.execute(p, dto, metaOf(req))));
   }
 
-  @ApiOperation({ summary: 'Listar el equipo de la empresa', description: 'Todas las cuentas de la empresa, incluido el propio administrador (solo lectura). Filtros por rol y estado. Nunca devuelve el código de activación.' })
+  @ApiOperation({ summary: 'Listar el equipo de la empresa', description: 'El administrador ve todas las cuentas de la empresa, incluido él (solo lectura); el `responsable`, solo su equipo. Filtros por rol, estado, grupo e interno/externo. Nunca devuelve el código de activación.' })
   @ApiPaged(TeamMemberResponse, 'Página de cuentas.')
+  @ApiDomainErrors('FORBIDDEN')
+  @Roles('admin_empresa', 'responsable')
   @Get()
   async members(@CurrentUser() p: Principal, @Query() q: ListTeamQuery) {
-    const page = await this.list.execute(p, { role: q.role, status: q.status, sort: q.sort, page: q.page, pageSize: q.page_size });
+    const page = await this.list.execute(p, { role: q.role, status: q.status, groupId: q.group_id, isInternal: q.is_internal, sort: q.sort, page: q.page, pageSize: q.page_size });
     return new ResponseDto(HttpStatus.OK, t('user.list'), toPageResponse(page, toMember));
   }
 

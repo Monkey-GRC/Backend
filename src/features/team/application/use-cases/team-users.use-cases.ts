@@ -9,20 +9,25 @@ import { generateAccessKeyCode, normalizeAccessKeyCode } from '../../../../commo
 import { TokenHasher } from '../../../../common/security/token-hasher';
 import { unusablePasswordHash } from '../../../../common/security/unusable-password-hash';
 import { MemberFilters, TeamUserRepository } from '../../domain/repositories/team-user.repository';
-import { IssuedActivationCode, TeamMember } from '../../domain/team.types';
+import { Invitation, IssuedActivationCode, TeamMember } from '../../domain/team.types';
 import { CreateTeamMemberDto, UpdateTeamMemberDto } from '../dtos/team.dto';
 import { ACTIVATION_CODE_TTL_HOURS } from '../activation-policy.token';
+import { planCreation } from './team-member-placement';
 
-// contracts/gestion-usuarios.md · Solo `admin_empresa` (lo impone @Roles en la ruta). El código de activación viaja en claro SOLO en la respuesta que lo emite; en la base
-// y en la auditoría no queda ni el código ni su huella (conventions.md).
+// contracts/gestion-usuarios.md · Crear y listar los abren `admin_empresa` y `responsable` (@Roles en la ruta y la regla de cada rol aquí); editar y reemitir, solo `admin_empresa`.
+// El código de activación nunca viaja en el alta (SEG-75): solo su huella queda en la base, y ni el código ni la huella van a la auditoría (conventions.md).
+// El reenvío (`ReissueActivationCodeUseCase`) sigue devolviéndolo hasta MD-190.
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 const entry = (p: Principal, meta: RequestMeta, action: string, before: unknown, after: unknown): AuditEntry => ({
   tenantId: p.companyId, userId: p.userId, action, resource: 'user', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
   beforeState: (before as Record<string, unknown>) ?? null, afterState: (after as Record<string, unknown>) ?? null,
 });
-const snapshot = (m: TeamMember) => ({ id: m.id, email: m.email, name: m.name, last_name: m.lastName, role: m.role, status: m.status });
+const snapshot = (m: TeamMember) => ({
+  id: m.id, email: m.email, name: m.name, last_name: m.lastName, role: m.role, status: m.status, group_id: m.group?.id ?? null, is_internal: m.isInternal,
+});
 
 export type MemberWithCode = { member: TeamMember; activationCode: IssuedActivationCode };
+export type InvitedMember = { member: TeamMember; invitation: Invitation };
 
 @Injectable()
 export class IssueActivationCode {
@@ -38,14 +43,19 @@ export class IssueActivationCode {
 export class CreateTeamMemberUseCase {
   constructor(private readonly repo: TeamUserRepository, private readonly codes: IssueActivationCode) {}
 
-  async execute(p: Principal, dto: CreateTeamMemberDto, meta: RequestMeta): Promise<MemberWithCode> {
+  async execute(p: Principal, dto: CreateTeamMemberDto, meta: RequestMeta): Promise<InvitedMember> {
+    const plan = planCreation(p, { role: dto.role, groupId: dto.group_id ?? null, isInternal: dto.is_internal ?? null });
     const issued = this.codes.issue();
     const member = await this.repo.create(
       scopeOf(p),
-      { email: dto.email, name: dto.name, lastName: dto.last_name, role: dto.role, passwordHash: await unusablePasswordHash(), codeHash: issued.codeHash, codeExpiresAt: issued.codeExpiresAt, createdBy: p.userId },
+      {
+        email: dto.email, name: dto.name, lastName: dto.last_name, role: dto.role, isInternal: plan.isInternal, placement: plan.placement,
+        passwordHash: await unusablePasswordHash(), codeHash: issued.codeHash, codeExpiresAt: issued.codeExpiresAt, createdBy: p.userId,
+      },
       (done) => entry(p, meta, 'user.create', null, snapshot(done)),
     );
-    return { member, activationCode: { code: issued.code, status: 'pending', expiresAt: issued.codeExpiresAt } };
+    // El correo con el código sale en MD-190; mientras tanto la invitación queda pendiente y el código no se devuelve.
+    return { member, invitation: { deliveryStatus: 'pending', expiresAt: issued.codeExpiresAt } };
   }
 }
 
@@ -53,8 +63,11 @@ export class CreateTeamMemberUseCase {
 export class ListTeamUseCase {
   constructor(private readonly repo: TeamUserRepository) {}
 
+  // El administrador ve todo el equipo; el responsable, solo el suyo: el servidor impone ese filtro y ningún `group_id` lo amplía.
   execute(p: Principal, filters: MemberFilters): Promise<Page<TeamMember>> {
-    return this.repo.list(scopeOf(p), filters);
+    if (p.role === 'admin_empresa') return this.repo.list(scopeOf(p), filters);
+    if (p.role === 'responsable') return this.repo.list(scopeOf(p), { ...filters, teamLeaderId: p.userId });
+    throw new DomainError('FORBIDDEN');
   }
 }
 

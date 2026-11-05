@@ -86,6 +86,8 @@ export const DOMAIN_ERROR_CATALOG: Record<
   ACTIVATION_CODE_EMAIL_MISMATCH: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'auth.activation_code_email_mismatch' },
   ACTIVATION_CODE_RATE_LIMITED: { status: HttpStatus.TOO_MANY_REQUESTS, messageKey: 'auth.activation_code_rate_limited' },
   LAST_ADMIN: { status: HttpStatus.CONFLICT, messageKey: 'user.last_admin' },
+  RESPONSIBLE_HAS_NO_TEAM: { status: HttpStatus.CONFLICT, messageKey: 'user.responsible_has_no_team' },
+  RESPONSIBLES_GROUP_INVALID: { status: HttpStatus.CONFLICT, messageKey: 'user.responsibles_group_invalid' },
   USER_NOT_ACTIVATED: { status: HttpStatus.CONFLICT, messageKey: 'user.not_activated' },
   USER_LIMIT_REACHED: { status: HttpStatus.CONFLICT, messageKey: 'user.limit_reached' },
   MAX_USERS_BELOW_CURRENT: { status: HttpStatus.CONFLICT, messageKey: 'company.max_users_below_current' },

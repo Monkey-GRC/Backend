@@ -80,6 +80,10 @@ export type DomainErrorCode =
   // El equipo de la empresa (contracts/gestion-usuarios.md, D102).
   | 'LAST_ADMIN'
   | 'USER_NOT_ACTIVATED'
+  // D104 · Se crea un delegado en el equipo de un responsable que aún no lo ha creado.
+  | 'RESPONSIBLE_HAS_NO_TEAM'
+  // D104 · El nombre «Responsables» lo tiene un grupo que no lidera un admin_empresa.
+  | 'RESPONSIBLES_GROUP_INVALID'
   // D103 · El cupo de usuarios de la empresa (companies.max_users): SEG-72.
   | 'USER_LIMIT_REACHED'
   | 'MAX_USERS_BELOW_CURRENT'

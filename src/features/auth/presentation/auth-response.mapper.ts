@@ -13,6 +13,8 @@ export function toAuthResponse(user: AuthUser, onboarding?: OnboardingProgress |
       role: user.role,
       status: user.status,
       is_mfa_enabled: user.isMfaEnabled,
+      group: user.group,
+      ...(user.role === 'delegado' ? { responsible: user.responsible ? { id: user.responsible.id, name: user.responsible.name, last_name: user.responsible.lastName } : null } : {}),
       last_login_at: user.lastLoginAt?.toISOString() ?? null,
       created_at: user.createdAt.toISOString(),
     },

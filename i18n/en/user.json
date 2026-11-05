@@ -1,9 +1,11 @@
 {
-  "created": "Done, we created the account. Hand over the activation code: you will only see it now.",
+  "created": "Done, we created the account. The invitation is pending delivery.",
   "list": "Your company's team.",
   "updated": "Done, we saved the account changes.",
   "activation_code_regenerated": "Done, we issued a new activation code. Hand it over: you will only see it now.",
   "last_admin": "You cannot deactivate your own account: the company would be left with nobody to assign the work.",
+  "responsible_has_no_team": "That manager does not have a delegate team yet. Create the team first and invite the person again.",
+  "responsibles_group_invalid": "The “Responsables” group of your company is not led by an administrator, so it cannot hold managers. Pick another managers group.",
   "not_activated": "This person has not activated their account yet. Meanwhile you can issue a new code.",
   "already_active": "This account is already activated: it does not need a new code.",
   "limit_reached": "Your company has reached the number of users it contracted. Deactivate an account or ask to raise the limit."
