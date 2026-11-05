@@ -9,6 +9,8 @@
   "boolean_invalid": "Debe ser verdadero o falso.",
   "uuid_invalid": "El identificador no es válido.",
   "array_min": "Selecciona al menos una opción.",
+  "group_id_not_allowed": "Este rol no admite grupo.",
+  "is_internal_not_allowed": "Solo un delegado se marca como interno o externo.",
   "field_not_allowed": "Este campo no está permitido.",
   "invalid": "El valor no es válido.",
   "number_invalid": "Debe ser un número entero.",

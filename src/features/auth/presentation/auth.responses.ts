@@ -3,6 +3,17 @@ import { USER_ROLES, USER_STATUSES } from '../../../common/enums/user-role.enum'
 
 // Formas del `data` de contracts/modules/auth.md, solo para la documentación (las arma auth-response.mapper.ts).
 
+export class AuthGroupResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ example: 'Responsables' }) name!: string;
+}
+
+export class AuthResponsibleResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ nullable: true }) name!: string | null;
+  @ApiProperty({ nullable: true }) last_name!: string | null;
+}
+
 export class AuthUserResponse {
   @ApiProperty({ format: 'uuid', example: 'c4a1f2e8-9b30-4d5a-b7e1-6f8c0d2a3b44' }) id!: string;
   @ApiProperty({ example: 'ana.perez@ejemplo.com', description: 'Correo en minúsculas; es único en todo Monkey.' }) email!: string;
@@ -11,6 +22,8 @@ export class AuthUserResponse {
   @ApiProperty({ enum: USER_ROLES, enumName: 'UserRole', description: 'Rol del usuario; el servidor lo lee de la base en cada petición.' }) role!: string;
   @ApiProperty({ enum: USER_STATUSES, enumName: 'UserStatus', description: 'Solo un usuario `active` puede iniciar sesión.' }) status!: string;
   @ApiProperty({ example: true, description: 'Si la persona ya activó el segundo factor (TOTP, D94). Es obligatorio para los 4 roles: lo configura en su primer ingreso.' }) is_mfa_enabled!: boolean;
+  @ApiProperty({ type: AuthGroupResponse, nullable: true, description: 'D104 · El grupo de la persona. `null` en `admin_empresa`, `auditor` y `admin_monkey`.' }) group!: AuthGroupResponse | null;
+  @ApiPropertyOptional({ type: AuthResponsibleResponse, nullable: true, description: 'D104 · Solo el `delegado`: a quién pertenece (el líder de su grupo).' }) responsible?: AuthResponsibleResponse | null;
   @ApiProperty({ format: 'date-time', nullable: true, example: null, description: 'Último inicio de sesión; `null` si nunca ha entrado.' }) last_login_at!: string | null;
   @ApiProperty({ format: 'date-time', example: '2026-10-01T09:12:44.000Z' }) created_at!: string;
 }

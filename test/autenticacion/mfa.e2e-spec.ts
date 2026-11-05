@@ -240,3 +240,29 @@ describe('quitar el segundo factor a un integrante del equipo', () => {
     process.env['MFA_REQUIRED'] = 'true';
   });
 });
+describe('D104 · el perfil del delegado en el segundo factor', () => {
+  it('confirmar el segundo factor y verificar el código devuelven group y responsible del delegado', async () => {
+    const respId = randomUUID();
+    const teamId = randomUUID();
+    const delId = randomUUID();
+    const delEmail = `mfa-del-${RUN}@mfa.test`;
+    const hash = await bcrypt.hash(PASSWORD, 4);
+    await owner(`insert into platform.users (id, company_id, email, name, last_name, password_hash, role, status) values ($1, $2, $3, 'Rita', 'Lider', $4, 'responsable', 'active')`, [respId, a.companyId, `mfa-resp-${RUN}@mfa.test`, hash]);
+    await owner(`insert into platform.user_groups (id, company_id, name, leader_id) values ($1, $2, $3, $4)`, [teamId, a.companyId, `Equipo mfa ${RUN}`, respId]);
+    await owner(`insert into platform.users (id, company_id, email, password_hash, role, status, group_id, is_internal) values ($1, $2, $3, $4, 'delegado', 'active', $5, true)`, [delId, a.companyId, delEmail, hash, teamId]);
+
+    const agent = request.agent(app.getHttpServer());
+    await signIn(agent, delEmail);
+    const secret = (await agent.post('/v1/auth/mfa/setup').send()).body.data.secret;
+    const confirmed = await agent.post('/v1/auth/mfa/setup/confirm').send({ code: totpAt(secret, new Date()) });
+    expect(confirmed.status).toBe(200);
+    const expected = { group: { id: teamId, name: `Equipo mfa ${RUN}` }, responsible: { id: respId, name: 'Rita', last_name: 'Lider' } };
+    expect(confirmed.body.data.user).toMatchObject(expected);
+
+    const again = request.agent(app.getHttpServer());
+    await signIn(again, delEmail);
+    const verified = await again.post('/v1/auth/mfa/verify').send({ code: totpAt(secret, new Date(Date.now() + 30_000)) });
+    expect(verified.status).toBe(200);
+    expect(verified.body.data.user).toMatchObject(expected);
+  });
+});

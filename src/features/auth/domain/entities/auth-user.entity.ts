@@ -60,6 +60,9 @@ export class AuthUser {
     public readonly isMfaEnabled: boolean,
     public readonly lastLoginAt: Date | null,
     public readonly createdAt: Date,
+    // D104 · El grupo de la persona (nulo en admin_empresa, auditor y admin_monkey) y, solo en el delegado, el líder de ese grupo.
+    public readonly group: { id: string; name: string } | null = null,
+    public readonly responsible: { id: string; name: string | null; lastName: string | null } | null = null,
   ) {}
 
   isActive(): boolean {

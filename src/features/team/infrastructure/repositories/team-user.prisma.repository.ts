@@ -5,19 +5,24 @@ import { assertRoomIn, assertUserRoom, lockUserQuota } from '../../../../common/
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
-import { PrismaService } from '../../../../infrastructure/database/prisma.service';
-import { MemberChange, MemberFilters, MemberUpdated, NewMember, TeamUserRepository } from '../../domain/repositories/team-user.repository';
-import { TEAM_ROLES, TeamMember } from '../../domain/team.types';
+import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
+import { isEmailTaken } from './unique-violation';
+import { MemberChange, MemberFilters, MemberUpdated, NewMember, Placement, TeamUserRepository } from '../../domain/repositories/team-user.repository';
+import { RESPONSIBLES_GROUP_NAME, TEAM_ROLES, TeamMember } from '../../domain/team.types';
 
 const SELECT = {
-  id: true, email: true, name: true, lastName: true, role: true, status: true, isMfaEnabled: true, lastLoginAt: true, createdAt: true,
+  id: true, email: true, name: true, lastName: true, role: true, status: true, isMfaEnabled: true, isInternal: true, lastLoginAt: true, createdAt: true,
+  group: { select: { id: true, name: true, leader: { select: { id: true, name: true, lastName: true } } } },
 } as const;
 type Row = Prisma.UserGetPayload<{ select: typeof SELECT }>;
 
 const toMember = (r: Row): TeamMember => ({
-  id: r.id, email: r.email, name: r.name, lastName: r.lastName, role: r.role, status: r.status, isMfaEnabled: r.isMfaEnabled, lastLoginAt: r.lastLoginAt, createdAt: r.createdAt,
+  id: r.id, email: r.email, name: r.name, lastName: r.lastName, role: r.role, status: r.status, isMfaEnabled: r.isMfaEnabled, isInternal: r.isInternal,
+  group: r.group ? { id: r.group.id, name: r.group.name } : null,
+  responsible: r.role === 'delegado' && r.group ? r.group.leader : null,
+  lastLoginAt: r.lastLoginAt, createdAt: r.createdAt,
 });
-const isUniqueViolation = (e: unknown) => (e as { code?: string })?.code === 'P2002';
+const LIVE_STATUSES = ['active', 'pending'] as const;
 const isTeamRole = (role: string) => (TEAM_ROLES as readonly string[]).includes(role);
 
 @Injectable()
@@ -30,11 +35,9 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
     try {
       return await this.prisma.withScope(scope, async (tx) => {
         await assertUserRoom(tx, scope.companyId);
+        const groupId = await this.resolveGroup(tx, scope, input.placement, input.createdBy);
         const user = await tx.user.create({
-          data: { companyId: scope.companyId, email: input.email, name: input.name, lastName: input.lastName, passwordHash: input.passwordHash, role: input.role, status: 'pending',
-            // DT-86: provisional hasta MD-188 (is_internal obligatorio y grupo en el alta del delegado)
-            ...(input.role === 'delegado' ? { isInternal: true } : {}),
-          },
+          data: { companyId: scope.companyId, email: input.email, name: input.name, lastName: input.lastName, passwordHash: input.passwordHash, role: input.role, status: 'pending', groupId, isInternal: input.isInternal },
           select: { id: true },
         });
         await tx.userActivationCode.create({
@@ -46,14 +49,59 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
       });
     } catch (e) {
       // El correo es único en toda la plataforma: otra empresa también lo cuenta, y con RLS no se ve de antemano. La restricción única lo detecta.
-      if (isUniqueViolation(e)) throw new DomainError('EMAIL_TAKEN');
+      if (isEmailTaken(e)) throw new DomainError('EMAIL_TAKEN');
       throw e;
+    }
+  }
+
+  // El grupo donde queda la cuenta nueva, según `placement`. Corre en la transacción del alta, que ya tiene bloqueada la fila de la empresa: dos altas no crean dos veces el grupo por omisión.
+  private async resolveGroup(tx: TransactionClient, scope: TenantScope, placement: Placement, createdBy: string): Promise<string | null> {
+    switch (placement.kind) {
+      case 'none':
+        return null;
+      // Un equipo de delegados es un grupo que lidera un responsable (D104).
+      case 'team-of': {
+        const team = await tx.userGroup.findFirst({ where: { id: placement.groupId, leader: { is: { role: 'responsable', status: { in: [...LIVE_STATUSES] } } } }, select: { id: true } });
+        if (!team) throw new DomainError('NOT_FOUND');
+        return team.id;
+      }
+      case 'own-team': {
+        const own = await tx.userGroup.findFirst({ where: { leaderId: placement.leaderId }, select: { id: true } });
+        if (placement.groupId && placement.groupId !== own?.id) throw new DomainError('FORBIDDEN');
+        // D104 · El equipo de delegados no nace con el responsable: lo crea él cuando quiere (MD-189).
+        if (!own) throw new DomainError('RESPONSIBLE_HAS_NO_TEAM');
+        return own.id;
+      }
+      case 'responsibles-group': {
+        const leader = { is: { role: 'admin_empresa' as const, status: { in: [...LIVE_STATUSES] } } };
+        if (placement.groupId) {
+          const chosen = await tx.userGroup.findFirst({ where: { id: placement.groupId, leader }, select: { id: true } });
+          if (!chosen) throw new DomainError('NOT_FOUND');
+          return chosen.id;
+        }
+        // El nombre es único por empresa (user_groups_company_id_name_key): «Responsables» es uno solo, y solo vale si lo lidera un admin_empresa. Si el nombre lo tiene
+        // otro grupo (p. ej. el equipo de un responsable), no se reutiliza —mezclaría a los responsables con un equipo de delegados— ni se crea otro con nombre distinto: se avisa.
+        const existing = await tx.userGroup.findFirst({ where: { name: RESPONSIBLES_GROUP_NAME }, select: { id: true, leader: { select: { role: true } } } });
+        if (existing) {
+          if (existing.leader.role !== 'admin_empresa') throw new DomainError('RESPONSIBLES_GROUP_INVALID');
+          return existing.id;
+        }
+        return (await tx.userGroup.create({ data: { companyId: scope.companyId, name: RESPONSIBLES_GROUP_NAME, leaderId: createdBy }, select: { id: true } })).id;
+      }
     }
   }
 
   list(scope: TenantScope, f: MemberFilters): Promise<Page<TeamMember>> {
     return this.prisma.withScope(scope, async (tx) => {
-      const where: Prisma.UserWhereInput = { companyId: scope.companyId, ...(f.role ? { role: f.role as never } : {}), ...(f.status ? { status: f.status as never } : {}) };
+      const where: Prisma.UserWhereInput = {
+        companyId: scope.companyId,
+        ...(f.role ? { role: f.role as never } : {}),
+        ...(f.status ? { status: f.status as never } : {}),
+        ...(f.groupId ? { groupId: f.groupId } : {}),
+        ...(f.isInternal !== undefined ? { isInternal: f.isInternal } : {}),
+        // El filtro del equipo se suma a los demás: un group_id ajeno no lo amplía.
+        ...(f.teamLeaderId ? { group: { is: { leaderId: f.teamLeaderId } } } : {}),
+      };
       const desc = f.sort.startsWith('-');
       const orderBy: Prisma.UserOrderByWithRelationInput[] = [f.sort.endsWith('email') ? { email: desc ? 'desc' : 'asc' } : { createdAt: desc ? 'desc' : 'asc' }, { id: 'asc' }];
       const total = await tx.user.count({ where });

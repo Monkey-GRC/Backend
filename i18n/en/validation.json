@@ -9,6 +9,8 @@
   "boolean_invalid": "Must be true or false.",
   "uuid_invalid": "The identifier is not valid.",
   "array_min": "Select at least one option.",
+  "group_id_not_allowed": "This role cannot belong to a group.",
+  "is_internal_not_allowed": "Only a delegate is marked as internal or external.",
   "field_not_allowed": "This field is not allowed.",
   "invalid": "The value is not valid.",
   "number_invalid": "Must be a whole number.",
