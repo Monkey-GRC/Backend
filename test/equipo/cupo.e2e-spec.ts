@@ -1,26 +1,24 @@
 import type { INestApplication } from '@nestjs/common';
-import request from 'supertest';
-import { Agent, bootApp, login, owner, PASSWORD, RUN, seedAdminMonkey } from '../support/app';
+import { Agent, bootApp, login, owner, RUN, seedAdminMonkey } from '../support/app';
 import { connect } from '../support/db';
 import { empresaConCupo } from '../support/escenario';
+import { invitarYActivar } from '../support/equipo';
 
 // D103 · SEG-72 · El cupo de usuarios se hace cumplir en el servidor: no se crea ni se reactiva a nadie por encima de companies.max_users, aunque las peticiones
 // lleguen a la vez. Cuentan active, pending y suspended de CUALQUIER rol; inactive no (desactivar libera el cupo). Todo por HTTP real, con el rol de la app (RLS).
 let app: INestApplication;
 let monkey: Agent;
 const correo = (k: string) => `${k}-${RUN}@cupo-equipo.test`;
-const invitar = (admin: Agent, k: string, role: 'responsable' | 'delegado' | 'auditor' | 'admin_empresa' = 'auditor') =>
+const invitar = (admin: Agent, k: string, role: 'responsable' | 'auditor' | 'admin_empresa' = 'auditor') =>
   admin.post('/v1/users').send({ email: correo(k), name: 'Persona', last_name: 'De Prueba', role });
 const contadas = (companyId: string) =>
   owner<{ n: number }>(`select count(*)::int n from platform.users where company_id = $1 and status in ('active', 'pending', 'suspended')`, [companyId]).then((r) => r[0].n);
 const fijarCupo = (companyId: string, max: number) => monkey.patch(`/v1/companies/${companyId}/max-users`).send({ max_users: max }).expect(200);
 const cambiar = (admin: Agent, id: string, body: object) => admin.patch(`/v1/users/${id}`).send(body);
 
-/** Invita, activa la cuenta con el código recibido y devuelve su id (ya `active`, así que se puede desactivar). */
-async function activa(admin: Agent, k: string, role: 'responsable' | 'delegado' | 'auditor' = 'auditor'): Promise<string> {
-  const created = (await invitar(admin, k, role).expect(201)).body.data;
-  await request(app.getHttpServer()).post('/v1/auth/activate').send({ code: created.activation_code.code, email: correo(k), password: PASSWORD }).expect(201);
-  return created.id;
+/** Invita, activa la cuenta con un código y devuelve su id (ya `active`, así que se puede desactivar). */
+async function activa(admin: Agent, k: string, role: 'auditor' | 'responsable' = 'auditor'): Promise<string> {
+  return (await invitarYActivar(app, admin, { email: correo(k), name: 'Persona', last_name: 'De Prueba', role })).id;
 }
 
 beforeAll(async () => {
@@ -40,7 +38,7 @@ describe('Crear a alguien con el cupo lleno', () => {
     const rastros = () => owner<{ n: number }>(`select count(*)::int n from audit.audit_logs where tenant_id = $1 and action = 'user.create'`, [e.companyId]).then((r) => r[0].n);
     const antes = await rastros();
 
-    const res = await invitar(e.agent, 'lleno-c', 'delegado').expect(409);
+    const res = await invitar(e.agent, 'lleno-c', 'responsable').expect(409);
     expect(res.body.error).toMatchObject({ code: 'USER_LIMIT_REACHED', max_users: 3, users_count: 3 });
     expect(await owner('select 1 from platform.users where email = $1', [correo('lleno-c')])).toHaveLength(0);
     expect(await owner('select 1 from platform.user_activation_codes c join platform.users u on u.id = c.user_id where u.email = $1', [correo('lleno-c')])).toHaveLength(0);

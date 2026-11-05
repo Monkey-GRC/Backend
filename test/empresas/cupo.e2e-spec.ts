@@ -4,6 +4,7 @@ import * as auditInsert from '../../src/infrastructure/audit/audit-log.insert';
 import { Agent, bootApp, login, owner, PASSWORD, RUN, seedAdminMonkey } from '../support/app';
 import { claveEnviadaA } from '../support/correo-en-memoria';
 import { empresaConCupo } from '../support/escenario';
+import { invitarYActivar, sembrarEquipo } from '../support/equipo';
 
 // D103 · SEG-72 · El cupo de usuarios de una empresa (contracts/empresas.md): lo fija y lo cambia SOLO admin_monkey, nunca por debajo de las cuentas que ya cuentan
 // (activas, pendientes y suspendidas, de cualquier rol), y deja su rastro. Todo por HTTP real contra el Postgres desechable, con el rol de la app (sujeto a RLS).
@@ -15,12 +16,10 @@ const CUENTAN = `('active', 'pending', 'suspended')`;
 const contadas = (companyId: string) => owner<{ n: number }>(`select count(*)::int n from platform.users where company_id = $1 and status in ${CUENTAN}`, [companyId]).then((r) => r[0].n);
 const cupoDe = (companyId: string) => owner<{ max_users: number | null }>('select max_users from platform.companies where id = $1', [companyId]).then((r) => r[0].max_users);
 
-/** Invita a alguien con el rol dado, activa su cuenta con el código que recibió y devuelve su sesión. */
-async function activo(admin: Agent, k: string, role: 'responsable' | 'delegado' | 'auditor'): Promise<Agent> {
-  const created = (await admin.post('/v1/users').send({ email: correo(k), name: 'Persona', last_name: 'De Prueba', role }).expect(201)).body.data;
-  const session = request.agent(app.getHttpServer());
-  await session.post('/v1/auth/activate').send({ code: created.activation_code.code, email: correo(k), password: PASSWORD }).expect(201);
-  return session;
+/** Invita a alguien con el rol dado, activa su cuenta y devuelve su id y su sesión. Un delegado va al equipo `equipo`. */
+async function activo(admin: Agent, k: string, role: 'responsable' | 'delegado' | 'auditor', equipo?: string): Promise<{ id: string; session: Agent }> {
+  const extra = role === 'delegado' ? { group_id: equipo, is_internal: true } : {};
+  return invitarYActivar(app, admin, { email: correo(k), name: 'Persona', last_name: 'De Prueba', role, ...extra });
 }
 
 beforeAll(async () => {
@@ -77,11 +76,12 @@ describe('Ver el cupo y el uso', () => {
 describe('PATCH /v1/companies/{id}/max-users', () => {
   it('solo admin_monkey: un admin_empresa, un responsable, un delegado y un auditor reciben 403 y el cupo no cambia; sin sesión es 401', async () => {
     const e = await empresaConCupo(app, monkey, 'Roles', 10);
+    const responsable = await activo(e.agent, 'roles-r', 'responsable');
     const sesiones = {
       admin_empresa: e.agent,
-      responsable: await activo(e.agent, 'roles-r', 'responsable'),
-      delegado: await activo(e.agent, 'roles-d', 'delegado'),
-      auditor: await activo(e.agent, 'roles-a', 'auditor'),
+      responsable: responsable.session,
+      delegado: (await activo(e.agent, 'roles-d', 'delegado', await sembrarEquipo(e.companyId, responsable.id))).session,
+      auditor: (await activo(e.agent, 'roles-a', 'auditor')).session,
     };
     for (const [rol, sesion] of Object.entries(sesiones)) {
       const res = await sesion.patch(`/v1/companies/${e.companyId}/max-users`).send({ max_users: 99 });
@@ -102,8 +102,8 @@ describe('PATCH /v1/companies/{id}/max-users', () => {
 
   it('por debajo de las cuentas que ya cuentan es 409 MAX_USERS_BELOW_CURRENT con los dos números, y el cupo no cambia (lo cuenta bien aunque admin_monkey no sea de esa empresa)', async () => {
     const e = await empresaConCupo(app, monkey, 'Debajo', 10);
-    await activo(e.agent, 'debajo-r', 'responsable');
-    await activo(e.agent, 'debajo-d', 'delegado'); // administrador + 2 = 3 cuentas
+    const responsable = await activo(e.agent, 'debajo-r', 'responsable');
+    await activo(e.agent, 'debajo-d', 'delegado', await sembrarEquipo(e.companyId, responsable.id)); // administrador + 2 = 3 cuentas
     expect(await contadas(e.companyId)).toBe(3);
     const res = await monkey.patch(`/v1/companies/${e.companyId}/max-users`).send({ max_users: 2 }).expect(409);
     expect(res.body.error).toMatchObject({ code: 'MAX_USERS_BELOW_CURRENT', max_users: 2, users_count: 3 });
