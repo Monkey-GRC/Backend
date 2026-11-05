@@ -44,7 +44,7 @@ describe('El auditor entra y se reconoce', () => {
 });
 
 describe('El auditor no pasa por rutas de Monkey Admin', () => {
-  const nueva = () => ({ name: `Empresa roles ${RUN}`, requires_dedicated_database: false, admin_email: `x-${RUN}@roles.test`, framework_codes: ['soc2'] });
+  const nueva = () => ({ name: `Empresa roles ${RUN}`, requires_dedicated_database: false, max_users: 1000, admin_email: `x-${RUN}@roles.test`, framework_codes: ['soc2'] });
 
   it('el auditor no registra empresas', async () => {
     expect((await auditorA.post('/v1/companies').send(nueva())).status).toBe(403);

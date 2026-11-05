@@ -7,10 +7,12 @@ import {
   IsBoolean,
   IsDefined,
   IsEmail,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
@@ -35,6 +37,12 @@ export class CreateCompanyDto {
   @IsEmail()
   @MaxLength(254)
   admin_email!: string;
+
+  @ApiProperty({ example: 10, minimum: 1, description: 'D103 · Cupo de usuarios contratado: cuentas `active`, `pending` y `suspended` de cualquier rol que la empresa puede tener a la vez.' })
+  @IsDefined()
+  @IsInt()
+  @Min(1)
+  max_users!: number;
 
   @ApiPropertyOptional({
     isArray: true,

@@ -21,7 +21,7 @@ const DAY = 86_400_000;
 
 function detail(status: 'active' | 'deactivated', archiveUntil?: Date): CompanyDetail {
   const archive = status === 'deactivated' ? { deactivatedAt: new Date(), archiveUntil: archiveUntil ?? new Date(Date.now() + DAY), reasonCode: 'non_payment' as const, reason: 'Facturas.' } : null;
-  return { company: new Company(ID, 'Acme S.A.S.', 'a@acme.test', 'shared', status, new Date(), new Date(), archive), currentAccessKey: null, frameworks: [], onboardingCompleted: false, accessKeys: [] };
+  return { company: new Company(ID, 'Acme S.A.S.', 'a@acme.test', 'shared', status, new Date(), new Date(), archive), currentAccessKey: null, frameworks: [], onboardingCompleted: false, usersCount: 0, accessKeys: [] };
 }
 
 const calls: string[] = [];

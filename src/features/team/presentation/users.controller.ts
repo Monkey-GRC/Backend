@@ -34,7 +34,7 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Invitar a una persona del equipo', description: 'Crea una cuenta `responsable`, `delegado`, `auditor` o `admin_empresa`. Nace `pending` y **la respuesta trae su código de activación, una sola vez**: hay que entregárselo a la persona. Queda registro de auditoría, sin el código.' })
   @ApiData(TeamMemberCreatedResponse, 'Cuenta creada, con su código de activación en claro (única vez).', { status: 201 })
-  @ApiDomainErrors('EMAIL_TAKEN')
+  @ApiDomainErrors('EMAIL_TAKEN', 'USER_LIMIT_REACHED')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async invite(@CurrentUser() p: Principal, @Body() dto: CreateTeamMemberDto, @Req() req: Request) {
@@ -51,7 +51,7 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Editar, desactivar o reactivar a una persona', description: 'Cambia el estado (`inactive`/`active`) o el nombre. **Desactivar cierra todas sus sesiones al instante** (CC6.3). No se desactiva a uno mismo, ni una cuenta `pending`. Sobre un administrador o alguien de otra empresa: `404`. Queda registro de auditoría.' })
   @ApiData(TeamMemberResponse, 'Cuenta ya cambiada.')
-  @ApiDomainErrors('LAST_ADMIN', 'USER_NOT_ACTIVATED')
+  @ApiDomainErrors('LAST_ADMIN', 'USER_NOT_ACTIVATED', 'USER_LIMIT_REACHED')
   @Patch(':id')
   async change(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Body() dto: UpdateTeamMemberDto, @Req() req: Request) {
     return new ResponseDto(HttpStatus.OK, t('user.updated'), toMember(await this.update.execute(p, id, dto, metaOf(req))));

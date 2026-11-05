@@ -5,5 +5,6 @@
   "activation_code_regenerated": "Listo, emitimos un código de activación nuevo. Entrégaselo: solo lo verás ahora.",
   "last_admin": "No puedes desactivar tu propia cuenta: la empresa se quedaría sin quien reparta el trabajo.",
   "not_activated": "Esta persona aún no activó su cuenta. Mientras tanto puedes emitir un código nuevo.",
-  "already_active": "Esta cuenta ya está activada: no necesita un código nuevo."
+  "already_active": "Esta cuenta ya está activada: no necesita un código nuevo.",
+  "limit_reached": "Tu empresa llegó al número de usuarios contratado. Desactiva una cuenta o pide ampliar el cupo."
 }

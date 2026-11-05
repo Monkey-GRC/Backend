@@ -11,5 +11,7 @@
   "confirmation_mismatch": "The legal name entered does not match the company's.",
   "already_deactivated": "The company is already archived.",
   "not_deactivated": "The company is not archived.",
-  "archive_expired": "The archive period has ended: the company is about to be deleted and can no longer be reactivated."
+  "archive_expired": "The archive period has ended: the company is about to be deleted and can no longer be reactivated.",
+  "max_users_updated": "User limit updated.",
+  "max_users_below_current": "The limit cannot be lower than the accounts already counted: deactivate some first."
 }

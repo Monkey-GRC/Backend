@@ -87,6 +87,8 @@ export const DOMAIN_ERROR_CATALOG: Record<
   ACTIVATION_CODE_RATE_LIMITED: { status: HttpStatus.TOO_MANY_REQUESTS, messageKey: 'auth.activation_code_rate_limited' },
   LAST_ADMIN: { status: HttpStatus.CONFLICT, messageKey: 'user.last_admin' },
   USER_NOT_ACTIVATED: { status: HttpStatus.CONFLICT, messageKey: 'user.not_activated' },
+  USER_LIMIT_REACHED: { status: HttpStatus.CONFLICT, messageKey: 'user.limit_reached' },
+  MAX_USERS_BELOW_CURRENT: { status: HttpStatus.CONFLICT, messageKey: 'company.max_users_below_current' },
   USER_ALREADY_ACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'user.already_active' },
   // Componente 3 (contracts/modules/onboarding-technical-control.md).
   ASSET_NOT_VALIDATED: { status: HttpStatus.CONFLICT, messageKey: 'asset.not_validated' },

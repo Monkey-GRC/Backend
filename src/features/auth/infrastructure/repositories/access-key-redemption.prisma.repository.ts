@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../../generated/prisma/client';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
+import { assertUserRoom } from '../../../../common/quota/user-quota';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
@@ -65,6 +66,10 @@ export class AccessKeyRedemptionPrismaRepository extends AccessKeyRedemptionRepo
           data: { status: 'used', usedAt: at },
         });
         if (marked.count !== 1) throw new KeyNoLongerPending();
+
+        // D103 · Toda cuenta que se crea pasa por el cupo, también la primera de la empresa. Hoy cabe siempre (max_users >= 1 y aún no hay cuentas), pero así la regla
+        // no depende de cómo se registre la empresa: si algún día no cupiera, la transacción se revierte entera y la clave queda sin consumir.
+        await assertUserRoom(tx, scope.companyId);
 
         const created = await tx.user.create({
           data: {

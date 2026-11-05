@@ -80,6 +80,9 @@ export type DomainErrorCode =
   // El equipo de la empresa (contracts/gestion-usuarios.md, D102).
   | 'LAST_ADMIN'
   | 'USER_NOT_ACTIVATED'
+  // D103 · El cupo de usuarios de la empresa (companies.max_users): SEG-72.
+  | 'USER_LIMIT_REACHED'
+  | 'MAX_USERS_BELOW_CURRENT'
   | 'USER_ALREADY_ACTIVE'
   // Componente 3 (contracts/modules/onboarding-technical-control.md).
   | 'ASSET_NOT_VALIDATED'

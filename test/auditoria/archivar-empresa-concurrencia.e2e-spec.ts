@@ -35,7 +35,7 @@ type Nueva = { id: string; name: string; email: string; code: string };
 async function nueva(): Promise<Nueva> {
   const name = `Concurrencia ${RUN} ${++n}`;
   const email = `concurrencia-${RUN}-${n}@aislamiento.test`;
-  const res = await monkey.post('/v1/companies').send({ name, requires_dedicated_database: false, admin_email: email, framework_codes: ['soc2'] });
+  const res = await monkey.post('/v1/companies').send({ name, requires_dedicated_database: false, max_users: 1000, admin_email: email, framework_codes: ['soc2'] });
   expect(res.status).toBe(201);
   const [{ id }] = await owner<{ id: string }>('select id from platform.companies where name = $1', [name]);
   return { id, name, email, code: claveEnviadaA(email) };

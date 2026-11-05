@@ -121,7 +121,7 @@ describe('Lo que es solo de Monkey Admin', () => {
   it('una empresa no puede registrar otra', async () => {
     const res = await a.agent
       .post('/v1/companies')
-      .send({ name: `Colada ${Date.now()}`, requires_dedicated_database: false, admin_email: `colada-${Date.now()}@x.test`, framework_codes: ['soc2'] });
+      .send({ name: `Colada ${Date.now()}`, requires_dedicated_database: false, max_users: 1000, admin_email: `colada-${Date.now()}@x.test`, framework_codes: ['soc2'] });
     expect(res.status).toBe(403);
   });
 

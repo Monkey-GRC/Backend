@@ -9,6 +9,7 @@ export type NewCompany = {
   name: string;
   adminEmail: string;
   isolationStrategy: IsolationStrategy;
+  maxUsers: number;
   // Marcos que se contratan al registrar la empresa (D47). Ya validados contra el catálogo.
   frameworkCodes: string[];
 };
@@ -87,6 +88,16 @@ export abstract class CompanyRepository {
     companyId: string,
     excludeCompanyId: string,
   ): Promise<CompanyDetail | null>;
+
+  // D103 · Cambiar el cupo. En una transacción: bloquea la empresa, compara con las cuentas que ya cuentan, escribe y audita.
+  // Lanza `NOT_FOUND` (no existe o es la interna de Monkey) o `MAX_USERS_BELOW_CURRENT` (cupo menor que `usersCount`).
+  abstract updateMaxUsers(
+    scope: TenantScope,
+    companyId: string,
+    excludeCompanyId: string,
+    maxUsers: number,
+    audit: AuditIntent<{ before: number | null; after: number }>,
+  ): Promise<void>;
 
   // D97 · Archivar: el estado, el corte de sesiones, la cancelación de lo que estaba en cola y el rastro, en una sola transacción.
   // Devuelve cuántas sesiones se cerraron. Si otra petición la archivó entre la verificación y este cambio, lanza `COMPANY_ALREADY_DEACTIVATED`.

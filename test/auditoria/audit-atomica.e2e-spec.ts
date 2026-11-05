@@ -178,14 +178,14 @@ describe('Si el rastro falla, la acción se revierte (y el rastro también)', ()
   it('registrar una empresa: no queda empresa sin rastro', async () => {
     const name = `Empresa fallida ${RUN}`;
     auditFailsAfterInsert();
-    const res = await monkey.post('/v1/companies').send({ name, requires_dedicated_database: false, admin_email: `fallida-${RUN}@aislamiento.test`, framework_codes: ['soc2'] });
+    const res = await monkey.post('/v1/companies').send({ name, requires_dedicated_database: false, max_users: 1000, admin_email: `fallida-${RUN}@aislamiento.test`, framework_codes: ['soc2'] });
     expect(res.status).toBe(500);
     expect((await owner('select 1 from platform.companies where name = $1', [name])).length).toBe(0);
   });
 
   it('canjear la clave: la clave sigue pendiente y no nace la cuenta', async () => {
     const email = `canje-${RUN}@aislamiento.test`;
-    const company = (await monkey.post('/v1/companies').send({ name: `Empresa canje ${RUN}`, requires_dedicated_database: false, admin_email: email, framework_codes: ['soc2'] })).body.data;
+    const company = (await monkey.post('/v1/companies').send({ name: `Empresa canje ${RUN}`, requires_dedicated_database: false, max_users: 1000, admin_email: email, framework_codes: ['soc2'] })).body.data;
     auditFailsAfterInsert();
     const res = await request(app.getHttpServer()).post('/v1/auth/redeem').send({ code: claveEnviadaA(email), email, password: PASSWORD });
     expect(res.status).toBe(500);

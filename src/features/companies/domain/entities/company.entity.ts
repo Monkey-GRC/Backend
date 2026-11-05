@@ -23,6 +23,8 @@ export class Company {
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
     public readonly archive: CompanyArchive | null = null,
+    // D103 · Cupo de usuarios contratado. `null`: la empresa aún no tiene cupo fijado («sin tope»).
+    public readonly maxUsers: number | null = null,
   ) {}
 
   // La razón social se compara sin mayúsculas ni espacios de más: "Acme  S.A.S" = "acme s.a.s".

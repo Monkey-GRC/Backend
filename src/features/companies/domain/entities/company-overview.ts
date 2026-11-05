@@ -16,6 +16,8 @@ export type CompanyOverview = {
   currentAccessKey: AccessKey | null;
   frameworks: ContractedFramework[];
   onboardingCompleted: boolean;
+  // D103 · Cuentas que cuentan para el cupo (active, pending, suspended).
+  usersCount: number;
 };
 
 export type CompanyDetail = CompanyOverview & {

@@ -18,6 +18,7 @@ const companyFields = (c: Company) => ({
   admin_email: c.adminEmail,
   isolation_strategy: c.isolationStrategy,
   status: c.status,
+  max_users: c.maxUsers,
   created_at: c.createdAt.toISOString(),
   // D97: solo una empresa archivada trae estos campos.
   deactivated_at: iso(c.archive?.deactivatedAt ?? null),
@@ -33,6 +34,8 @@ export function toRegisteredCompanyResponse(result: RegisterCompanyResult) {
   const now = new Date();
   return {
     ...companyFields(result.company),
+    // Recién registrada: aún no tiene cuentas.
+    users_count: 0,
     frameworks: frameworksField(result.frameworks),
     updated_at: result.company.updatedAt.toISOString(),
     access_key: toIssuedAccessKey(result.accessKey, result.deliveryStatus, now),
@@ -51,6 +54,7 @@ export function toCompanyListItem(overview: CompanyOverview, now = new Date()) {
   const key = overview.currentAccessKey;
   return {
     ...companyFields(overview.company),
+    users_count: overview.usersCount,
     frameworks: frameworksField(overview.frameworks),
     access_key_status: key?.statusAt(now) ?? null,
     access_key_expires_at: iso(key?.expiresAt ?? null),

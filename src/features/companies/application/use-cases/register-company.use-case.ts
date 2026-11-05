@@ -20,6 +20,7 @@ export type RegisterCompanyInput = {
   name: string;
   requiresDedicatedDatabase: boolean;
   adminEmail: string;
+  maxUsers: number;
   // Marcos que se contratan para la empresa (D47).
   frameworkCodes: string[];
 };
@@ -89,6 +90,7 @@ export class RegisterCompanyUseCase {
         name,
         adminEmail,
         isolationStrategy: Company.isolationFor(input.requiresDedicatedDatabase),
+        maxUsers: input.maxUsers,
         frameworkCodes: input.frameworkCodes,
       },
       {
@@ -109,6 +111,7 @@ export class RegisterCompanyUseCase {
           name: created.company.name,
           admin_email: created.company.adminEmail,
           isolation_strategy: created.company.isolationStrategy,
+          max_users: created.company.maxUsers,
           framework_codes: created.frameworks.map((f) => f.code),
           access_key_id: created.accessKey.id,
           access_key_expires_at: created.accessKey.expiresAt.toISOString(),

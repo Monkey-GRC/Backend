@@ -19,7 +19,7 @@ afterAll(async () => app?.close());
 
 const registrar = async (over: Record<string, unknown> = {}) => {
   const email = `clave-correo-${RUN}-${++n}@aislamiento.test`;
-  const res = await monkey.post('/v1/companies').send({ name: `Clave correo ${RUN} ${n}`, requires_dedicated_database: false, admin_email: email, framework_codes: ['soc2'], ...over });
+  const res = await monkey.post('/v1/companies').send({ name: `Clave correo ${RUN} ${n}`, requires_dedicated_database: false, max_users: 1000, admin_email: email, framework_codes: ['soc2'], ...over });
   return { res, email, id: res.body?.data?.id as string };
 };
 const canjear = (code: string, email: string) => request(app.getHttpServer()).post('/v1/auth/redeem').send({ code, email, password: PASSWORD });
