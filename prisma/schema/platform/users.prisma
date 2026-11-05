@@ -123,6 +123,8 @@ model UserGroup {
   leader  User    @relation("GroupLeader", fields: [leaderId], references: [id])
   members User[]  @relation("GroupMembers")
 
+  // D104 · Un nombre por empresa: «Responsables» es un solo grupo aunque dos altas lleguen a la vez.
+  @@unique([companyId, name])
   @@index([companyId])
   @@index([leaderId])
   @@map("user_groups")
