@@ -1,0 +1,8 @@
+{
+  "list": "Your company's groups.",
+  "created": "Done, we created the group.",
+  "updated": "Done, we saved the group changes.",
+  "team_already_exists": "This responsible already has a team of delegates: they can only lead one.",
+  "name_taken": "A group with that name already exists in your company. Pick another one (the name \"Responsables\" is reserved).",
+  "reserved": "The \"Responsables\" group is the default group for responsibles and cannot be renamed."
+}

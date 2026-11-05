@@ -8,5 +8,6 @@
   "responsibles_group_invalid": "El grupo «Responsables» de tu empresa no lo lidera un administrador, así que no sirve para ubicar a los responsables. Elige otro grupo de responsables.",
   "not_activated": "Esta persona aún no activó su cuenta. Mientras tanto puedes emitir un código nuevo.",
   "already_active": "Esta cuenta ya está activada: no necesita un código nuevo.",
-  "limit_reached": "Tu empresa llegó al número de usuarios contratado. Desactiva una cuenta o pide ampliar el cupo."
+  "limit_reached": "Tu empresa llegó al número de usuarios contratado. Desactiva una cuenta o pide ampliar el cupo.",
+  "has_assignments": "Esta persona ejecuta controles. Si continúas, esos controles quedan sin ejecutor y siguen con su dueño; confirma para seguir."
 }

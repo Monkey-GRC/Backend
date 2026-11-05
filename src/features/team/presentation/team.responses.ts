@@ -46,3 +46,18 @@ export class InvitationResponse {
 export class TeamMemberInvitedResponse extends TeamMemberResponse {
   @ApiProperty({ type: InvitationResponse }) invitation!: InvitationResponse;
 }
+
+export class GroupLeaderResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ nullable: true }) name!: string | null;
+  @ApiProperty({ nullable: true }) last_name!: string | null;
+  @ApiProperty({ enum: ['admin_empresa', 'responsable'], enumName: 'GroupLeaderRole' }) role!: string;
+}
+
+export class GroupResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ example: 'Equipo de María' }) name!: string;
+  @ApiProperty({ enum: ['responsables', 'team'], enumName: 'GroupKind', description: '`responsables` lo lidera el administrador; `team` es el equipo de delegados de un responsable.' }) kind!: string;
+  @ApiProperty({ type: GroupLeaderResponse, description: 'El líder del grupo.' }) leader!: GroupLeaderResponse;
+  @ApiProperty({ description: 'Cuántas cuentas pertenecen al grupo (de cualquier estado).' }) members_count!: number;
+}

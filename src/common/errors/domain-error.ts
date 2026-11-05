@@ -84,6 +84,12 @@ export type DomainErrorCode =
   | 'RESPONSIBLE_HAS_NO_TEAM'
   // D104 · El nombre «Responsables» lo tiene un grupo que no lidera un admin_empresa.
   | 'RESPONSIBLES_GROUP_INVALID'
+  // D104 · Grupos (contracts/gestion-usuarios.md, MD-189): un responsable lidera un solo equipo; el nombre es único y «Responsables» está reservado.
+  | 'TEAM_ALREADY_EXISTS'
+  | 'GROUP_NAME_TAKEN'
+  | 'GROUP_RESERVED'
+  // Se mueve a quien ejecuta controles sin confirmar (`controls_count`).
+  | 'USER_HAS_ASSIGNMENTS'
   // D103 · El cupo de usuarios de la empresa (companies.max_users): SEG-72.
   | 'USER_LIMIT_REACHED'
   | 'MAX_USERS_BELOW_CURRENT'

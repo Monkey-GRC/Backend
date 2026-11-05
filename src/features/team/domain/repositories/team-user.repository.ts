@@ -44,9 +44,10 @@ export type MemberFilters = {
   pageSize: number;
 };
 
-export type MemberChange = { status?: 'active' | 'inactive'; name?: string; lastName?: string };
+// `groupId` mueve a un delegado a otro equipo; `confirmUnassign` solo se evalúa al mover (la baja con aviso es MD-191).
+export type MemberChange = { status?: 'active' | 'inactive'; name?: string; lastName?: string; groupId?: string; confirmUnassign?: boolean };
 
-export type MemberUpdated = { before: TeamMember; after: TeamMember; sessionsClosed: number };
+export type MemberUpdated = { before: TeamMember; after: TeamMember; sessionsClosed: number; controlsUnassigned: number };
 
 export abstract class TeamUserRepository {
   // EMAIL_TAKEN si ya hay una cuenta con ese correo (el correo es único global). Un responsable nuevo queda solo en «Responsables»: su equipo de delegados no nace con él (D104).
@@ -55,6 +56,8 @@ export abstract class TeamUserRepository {
   abstract list(scope: TenantScope, filters: MemberFilters): Promise<Page<TeamMember>>;
 
   // null si no existe, es de otra empresa o es `admin_monkey` (404).
+  // Mover (`groupId`): 422 `group_id.not_allowed` si no es un delegado; NOT_FOUND si el destino no es el `team` de un responsable activo o pendiente de la empresa; el mismo equipo no cambia nada.
+  // Si ejecuta controles: USER_HAS_ASSIGNMENTS (con `controls_count`) sin `confirmUnassign`; con él, esos controles quedan sin ejecutor y siguen con su dueño. Todo en la misma transacción.
   // LAST_ADMIN si uno mismo se desactiva (el nombre sí se puede corregir); USER_NOT_ACTIVATED si cambia el estado de una cuenta `pending`. Desactivar cierra todas sus sesiones en la misma transacción.
   abstract update(scope: TenantScope, id: string, change: MemberChange, at: Date, audit: AuditIntent<MemberUpdated>): Promise<TeamMember | null>;
 
