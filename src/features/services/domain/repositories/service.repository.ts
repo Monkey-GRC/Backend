@@ -26,7 +26,7 @@ export abstract class ServiceRepository {
 
   abstract list(scope: TenantScope, request: PageRequest): Promise<Page<ServiceDetail>>;
   abstract findById(scope: TenantScope, id: string): Promise<ServiceDetail | null>;
-  // D96 · ¿La persona es responsable de alguna dimensión de este servicio (la del servicio o una excepción de un control)? Es lo que le da a un `funcional` derecho a leerlo.
+  // D102 · ¿La persona es dueña o ejecutora de algún control de este servicio (`client_control_assignments`)? Es lo que le da a un `responsable` derecho a leerlo.
   abstract isResponsible(scope: TenantScope, serviceId: string): Promise<boolean>;
 
   // null si el servicio no existe (o es de otra empresa: RLS no deja verlo); en ese caso no hay cambio ni rastro.

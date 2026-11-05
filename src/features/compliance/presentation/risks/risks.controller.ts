@@ -25,10 +25,10 @@ const t = (key: string): string => (I18nContext.current()?.t(key) as string | un
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
 
-// Riesgos y causas de un servicio (contracts/modules/compliance-risks.md, MD-122). Los ven los cuatro roles de la empresa (el `funcional`, solo lo que llega a una acción
+// Riesgos y causas de un servicio (contracts/modules/compliance-risks.md, MD-122). Los ven los cuatro roles de la empresa (el `responsable`, solo lo que llega a una acción
 // suya); los gestiona solo el administrador. `admin_monkey` no entra al cumplimiento de una empresa por aquí.
 @ApiTags(API_TAGS.risks)
-@Roles('admin_empresa', 'funcional', 'auditor')
+@Roles('admin_empresa', 'responsable', 'auditor')
 @Controller()
 export class RisksController {
   constructor(

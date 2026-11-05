@@ -76,7 +76,7 @@ export type OverviewInput = {
   frameworks: readonly OverviewFrameworkData[];
   criteria: readonly OverviewCriterionData[];
   placements: ReadonlyMap<string, readonly Placement[]>;
-  /** Un `funcional` ve el marco y las categorías completos, pero solo los controles que falla entre los que tiene asignados. */
+  /** Un `responsable` ve el marco y las categorías completos, pero solo los controles que falla entre los que tiene asignados. */
   onlyFailingOf?: string | null;
   /** Hoy como día UTC, para la fecha de corte efectiva (por defecto, el día de hoy). */
   today?: Date;

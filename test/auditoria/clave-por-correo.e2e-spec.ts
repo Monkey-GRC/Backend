@@ -29,7 +29,7 @@ describe('registrar una empresa', () => {
   it('rechaza un admin_email que ya es de un usuario (aunque ninguna empresa lo tenga), sin importar mayúsculas, y no envía nada', async () => {
     // Una persona del equipo de la empresa A: su correo es de un usuario, pero ninguna empresa lo tiene como admin_email.
     const deUsuario = `equipo-${RUN}@aislamiento.test`;
-    await owner(`insert into platform.users (id, company_id, email, name, last_name, password_hash, role) values (gen_random_uuid(), $1, $2, 'Ana', 'Equipo', 'x', 'funcional')`, [a.companyId, deUsuario]);
+    await owner(`insert into platform.users (id, company_id, email, name, last_name, password_hash, role) values (gen_random_uuid(), $1, $2, 'Ana', 'Equipo', 'x', 'responsable')`, [a.companyId, deUsuario]);
     expect(await owner('select 1 from platform.companies where lower(admin_email) = $1', [deUsuario])).toHaveLength(0);
     const enviadosAntes = correo.paraEl(deUsuario).length;
     const { res } = await registrar({ admin_email: deUsuario.toUpperCase() });

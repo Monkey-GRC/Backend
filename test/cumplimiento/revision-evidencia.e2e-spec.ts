@@ -4,11 +4,11 @@ import { FileStorage } from '../../src/common/storage/file-storage';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { asApp, failure, withRollback } from '../support/db';
 import { dosEmpresas, Tenant } from '../support/escenario';
-import { darEspecialidades } from '../support/especialidades';
+import { asignarServicio } from '../support/asignaciones';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
 // MD-127 + D88 · La persona lee lo que pide una prueba documental y sube su documento PARA ESA PRUEBA en ese control; el admin_empresa la valida o la rechaza con motivo (D96),
-// en una sola revisión de la que sale el estado de la prueba (RN-04). El funcional y el auditor no revisan. Cada prueba sale por HTTP con la sesión real de cada rol, contra el Postgres desechable.
+// en una sola revisión de la que sale el estado de la prueba (RN-04). El responsable y el auditor no revisan. Cada prueba sale por HTTP con la sesión real de cada rol, contra el Postgres desechable.
 type Agent = Awaited<ReturnType<typeof login>>;
 type TestRef = { id: string; code: string };
 let app: INestApplication;
@@ -16,9 +16,9 @@ let a: Tenant;
 let b: Tenant;
 let monkey: Agent;
 let auditor: Agent;
-let funcional: Agent;
-let funcionalNoDoc: Agent;
-let funcionalId: string;
+let responsable: Agent;
+let responsableNoDoc: Agent;
+let responsableId: string;
 const storage = new StorageEnMemoria();
 
 let controlX: string; // un control con dos pruebas documentales
@@ -46,7 +46,7 @@ const docTestsOf = (controlId: string) =>
     [controlId],
   );
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional'): Promise<string> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<string> {
   return (await owner<{ id: string }>(
     `insert into platform.users (id, company_id, email, name, last_name, password_hash, role) values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role) returning id`,
     [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
@@ -57,12 +57,12 @@ beforeAll(async () => {
   app = await bootApp({}, (builder) => builder.overrideProvider(FileStorage).useValue(storage));
   ({ a, b, monkey } = await dosEmpresas(app));
   await cuenta(a.companyId, `auditor-rev-${RUN}@cumplimiento.test`, 'auditor');
-  funcionalId = await cuenta(a.companyId, `funcional-rev-${RUN}@cumplimiento.test`, 'funcional');
-  await darEspecialidades(a.companyId, await cuenta(a.companyId, `funcional-nodoc-rev-${RUN}@cumplimiento.test`, 'funcional'), 'cloud');
+  responsableId = await cuenta(a.companyId, `responsable-rev-${RUN}@cumplimiento.test`, 'responsable');
+  await cuenta(a.companyId, `responsable-nodoc-rev-${RUN}@cumplimiento.test`, 'responsable');
   auditor = await login(app, `auditor-rev-${RUN}@cumplimiento.test`);
-  funcional = await login(app, `funcional-rev-${RUN}@cumplimiento.test`);
-  await darEspecialidades(a.companyId, funcionalId, 'policy');
-  funcionalNoDoc = await login(app, `funcional-nodoc-rev-${RUN}@cumplimiento.test`);
+  responsable = await login(app, `responsable-rev-${RUN}@cumplimiento.test`);
+  await asignarServicio(a.companyId, a.serviceId, responsableId);
+  responsableNoDoc = await login(app, `responsable-nodoc-rev-${RUN}@cumplimiento.test`);
 
   const controls = await owner<{ id: string }>(
     `select cc.id from tenant.client_controls cc
@@ -161,10 +161,10 @@ describe('D88 · la persona sube su documento para UNA prueba, y solo esa prueba
 });
 
 describe('D88 · reglas de la subida por prueba', () => {
-  it('suben el administrador y el funcional de la especialidad documental; otro funcional de otra especialidad, auditor y admin_monkey, no (D97)', async () => {
+  it('suben el administrador y el responsable dueño; otro responsable sin asignación, auditor y admin_monkey, no (D102)', async () => {
     const [, t2] = testsY;
-    await forTest(funcional, controlY, t2.id, 'func').expect(201);
-    await forTest(funcionalNoDoc, controlY, t2.id, 'otra-especialidad').expect(403);
+    await forTest(responsable, controlY, t2.id, 'func').expect(201);
+    await forTest(responsableNoDoc, controlY, t2.id, 'sin-asignacion').expect(403);
     await forTest(auditor, controlY, t2.id, 'au').expect(403);
     await forTest(monkey, controlY, t2.id, 'm').expect(403);
   });
@@ -218,7 +218,7 @@ describe('D88 · reglas de la subida por prueba', () => {
   });
 });
 
-describe('D96 · solo el admin_empresa revisa; el funcional y el auditor leen', () => {
+describe('D96 · solo el admin_empresa revisa; el responsable y el auditor leen', () => {
   let v: string;
   let t: TestRef;
   beforeAll(async () => {
@@ -237,15 +237,15 @@ describe('D96 · solo el admin_empresa revisa; el funcional y el auditor leen', 
     expect((await docStates(controlX))[t.code]).toBe('compliant');
   });
 
-  it('el funcional dueño del control lee el motivo del rechazo, sin el detalle técnico', async () => {
+  it('el responsable dueño del control lee el motivo del rechazo, sin el detalle técnico', async () => {
     const t2 = testsY[1];
     const requirement = await requirementOfTest(controlY, t2.id);
     const submission = requirement.submissions[0].id;
     await review(a.agent, submission, { ...ALL_OK, content_ok: false, note: 'Falta el anexo de proveedores.' }).expect(200);
-    const visto = (await requirementsOf(funcional, controlY)).find((r) => r.test?.id === t2.id).submissions.find((s: any) => s.id === submission);
+    const visto = (await requirementsOf(responsable, controlY)).find((r) => r.test?.id === t2.id).submissions.find((s: any) => s.id === submission);
     expect(visto).toMatchObject({ evidence_state: 'non_compliant', review_note: 'Falta el anexo de proveedores.' });
     expect(visto.technical).toBeUndefined();
-    await funcional.get(`/v1/controls/${controlY}/evidence?view=technical`).expect(403);
+    await responsable.get(`/v1/controls/${controlY}/evidence?view=technical`).expect(403);
   });
 
   it('el auditor ve la misma revisión que el administrador, y no puede revisar (403)', async () => {
@@ -257,8 +257,8 @@ describe('D96 · solo el admin_empresa revisa; el funcional y el auditor leen', 
     await review(auditor, v, ALL_OK).expect(403);
   });
 
-  it('funcional y admin_monkey no revisan (403); otra empresa y un id inválido, 404', async () => {
-    await review(funcional, v, ALL_OK).expect(403);
+  it('responsable y admin_monkey no revisan (403); otra empresa y un id inválido, 404', async () => {
+    await review(responsable, v, ALL_OK).expect(403);
     await review(monkey, v, ALL_OK).expect(403);
     // El administrador de OTRA empresa no encuentra la entrega: para él no existe (404), no es que no pueda (403).
     await review(b.agent, v, ALL_OK).expect(404);
@@ -287,7 +287,7 @@ describe('D88 · agregar una evidencia propia con descripción (para quien quier
     const ajena = (await owner<{ id: string }>(`select id from catalog.tests where dimension = 'policy' and id not in (select test_id from tenant.client_control_tests where client_control_id = $1) limit 1`, [controlX]))[0];
     expect((await a.agent.post(`/v1/controls/${controlX}/evidence-requirements`).send({ description: 'x', dimension: 'policy', test_id: ajena.id }).expect(422)).body.error.fields[0]).toMatchObject({ code: 'test.not_in_control' });
     expect((await a.agent.post(`/v1/controls/${controlX}/evidence-requirements`).send({ description: 'x', dimension: 'app' }).expect(422)).body.error.fields[0]).toMatchObject({ code: 'dimension.not_in_control' });
-    await funcional.post(`/v1/controls/${controlX}/evidence-requirements`).send({ description: 'x', dimension: 'policy' }).expect(403);
+    await responsable.post(`/v1/controls/${controlX}/evidence-requirements`).send({ description: 'x', dimension: 'policy' }).expect(403);
   });
 });
 

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { Page, PageRequest } from '../../../../common/pagination/page';
+import { isScopedRole } from '../../../../common/enums/user-role.enum';
 import {
   ExpectedAvailability,
   TRUST_CRITERION_MANDATORY,
@@ -135,8 +136,8 @@ export class ServicePrismaRepository extends ServiceRepository {
 
   list(scope: TenantScope, request: PageRequest): Promise<Page<ServiceDetail>> {
     return this.prisma.withScope(scope, async (tx) => {
-      // D96 · Un `funcional` lee solo los servicios en los que es responsable de alguna dimensión; el administrador y el auditor, todos.
-      const where = { organization: { companyId: scope.companyId }, ...(scope.role === 'funcional' ? await this.specialtyOf(tx, scope.userId as string) : {}) };
+      // D102 · Un `responsable` o `delegado` lee solo los servicios donde es dueño o ejecutor de algún control; el administrador y el auditor, todos.
+      const where = { organization: { companyId: scope.companyId }, ...(!!scope.role && isScopedRole(scope.role) ? this.assignedTo(scope.userId as string) : {}) };
       const total = await tx.service.count({ where });
       const rows = await tx.service.findMany({
         where,
@@ -152,14 +153,12 @@ export class ServicePrismaRepository extends ServiceRepository {
   }
 
   isResponsible(scope: TenantScope, serviceId: string): Promise<boolean> {
-    return this.prisma.withScope(scope, async (tx) => !!(await tx.service.findFirst({ where: { id: serviceId, ...(await this.specialtyOf(tx, scope.userId as string)) }, select: { id: true } })));
+    return this.prisma.withScope(scope, async (tx) => !!(await tx.service.findFirst({ where: { id: serviceId, ...this.assignedTo(scope.userId as string) }, select: { id: true } })));
   }
 
-  // D98 · Un funcional lee los servicios que tienen pruebas de alguna de sus especialidades (los controles de todo servicio llevan pruebas documentales, así que quien tiene la
-  // documental los ve todos). Sin especialidad, ninguno.
-  private async specialtyOf(tx: TransactionClient, userId: string) {
-    const dimensions = (await tx.userDimension.findMany({ where: { userId }, select: { dimension: true } })).map((d) => d.dimension);
-    return { clientControls: { some: { isActive: true, tests: { some: { test: { dimension: { in: dimensions } } } } } } };
+  // DT-87: transitorio hasta MD-193 (visibilidad por dueño/ejecutor). Los servicios con algún control activo del que la persona es dueña o ejecutora; sin ninguno, ninguno.
+  private assignedTo(userId: string) {
+    return { clientControls: { some: { isActive: true, assignment: { OR: [{ ownerId: userId }, { executorId: userId }] } } } };
   }
   findById(scope: TenantScope, id: string): Promise<ServiceDetail | null> {
     return this.prisma.withScope(scope, (tx) => this.readOrNull(tx, id), READ_TRANSACTION);
@@ -260,7 +259,7 @@ export class ServicePrismaRepository extends ServiceRepository {
       await tx.evidenceRequirement.deleteMany({ where: clientControls });
       await tx.clientControlTest.deleteMany({ where: clientControls });
       await tx.clientControlDimension.deleteMany({ where: clientControls });
-      await tx.userControlAssignment.deleteMany({ where: clientControls });
+      await tx.clientControlAssignment.deleteMany({ where: clientControls });
       await tx.clientControl.deleteMany({ where: { serviceId: id } });
       await tx.clientCause.deleteMany({ where: { serviceId: id } });
       await tx.clientRisk.deleteMany({ where: { serviceId: id } });

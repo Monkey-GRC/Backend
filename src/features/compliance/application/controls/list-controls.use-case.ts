@@ -6,6 +6,7 @@ import { compareOwnCode, ControlReadout, readControl } from '../../domain/contro
 import { ControlRepository } from '../../domain/controls/control.repository';
 import { ControlSort } from './list-controls.query';
 import { ViewMode, viewModeOf } from '../shared/view-access';
+import { isScopedRole } from '../../../../common/enums/user-role.enum';
 
 export type ControlFilters = {
   page: number;
@@ -28,8 +29,8 @@ export class ListControlsUseCase {
     if (!data) throw new DomainError('NOT_FOUND');
 
     let items = data.controls.map((c) => readControl(c, data.assets, data.results));
-    // Un `funcional` ve solo lo que tiene asignado; si no tiene nada, la lista es vacía (no es un error).
-    if (principal.role === 'funcional') items = items.filter((i) => i.control.assignedUserIds.includes(principal.userId));
+    // Un `responsable` ve solo lo que tiene asignado; si no tiene nada, la lista es vacía (no es un error).
+    if (isScopedRole(principal.role)) items = items.filter((i) => i.control.assignedUserIds.includes(principal.userId));
 
     items = items.filter(
       (i) =>

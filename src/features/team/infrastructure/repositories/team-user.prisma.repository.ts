@@ -1,23 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../../generated/prisma/client';
 import { DomainError } from '../../../../common/errors/domain-error';
-import { ValidationException } from '../../../../common/errors/validation.exception';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
-import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
+import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { MemberChange, MemberFilters, MemberUpdated, NewMember, TeamUserRepository } from '../../domain/repositories/team-user.repository';
-import { Dimension, TEAM_ROLES, TeamMember } from '../../domain/team.types';
+import { TEAM_ROLES, TeamMember } from '../../domain/team.types';
 
 const SELECT = {
   id: true, email: true, name: true, lastName: true, role: true, status: true, isMfaEnabled: true, lastLoginAt: true, createdAt: true,
-  dimensions: { select: { dimension: true } },
 } as const;
 type Row = Prisma.UserGetPayload<{ select: typeof SELECT }>;
 
 const toMember = (r: Row): TeamMember => ({
   id: r.id, email: r.email, name: r.name, lastName: r.lastName, role: r.role, status: r.status, isMfaEnabled: r.isMfaEnabled, lastLoginAt: r.lastLoginAt, createdAt: r.createdAt,
-  dimensions: r.dimensions.map((d) => d.dimension as Dimension).sort(),
 });
 const isUniqueViolation = (e: unknown) => (e as { code?: string })?.code === 'P2002';
 const isTeamRole = (role: string) => (TEAM_ROLES as readonly string[]).includes(role);
@@ -32,12 +29,12 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
     try {
       return await this.prisma.withScope(scope, async (tx) => {
         const user = await tx.user.create({
-          data: { companyId: scope.companyId, email: input.email, name: input.name, lastName: input.lastName, passwordHash: input.passwordHash, role: input.role, status: 'pending' },
+          data: { companyId: scope.companyId, email: input.email, name: input.name, lastName: input.lastName, passwordHash: input.passwordHash, role: input.role, status: 'pending',
+            // DT-86: provisional hasta MD-188 (is_internal obligatorio y grupo en el alta del delegado)
+            ...(input.role === 'delegado' ? { isInternal: true } : {}),
+          },
           select: { id: true },
         });
-        if (input.dimensions.length) {
-          await tx.userDimension.createMany({ data: input.dimensions.map((dimension) => ({ companyId: scope.companyId, userId: user.id, dimension })) });
-        }
         await tx.userActivationCode.create({
           data: { companyId: scope.companyId, userId: user.id, createdBy: input.createdBy, codeHash: input.codeHash, expiresAt: input.codeExpiresAt },
         });
@@ -67,18 +64,16 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
     return this.prisma.withScope(scope, async (tx) => {
       const found = await tx.user.findFirst({ where: { id }, select: SELECT });
       if (!found) return null;
-      // Nadie se desactiva a sí mismo ni se quita sus especialidades: la empresa se quedaría sin quien la administre. El nombre sí se puede corregir.
-      if (found.id === scope.userId && (change.status || change.dimensions)) throw new DomainError('LAST_ADMIN');
+      // Nadie se desactiva a sí mismo: la empresa se quedaría sin quien la administre. El nombre sí se puede corregir.
+      if (found.id === scope.userId && change.status) throw new DomainError('LAST_ADMIN');
       // admin_monkey no se toca desde aquí: para quien llama, no existe. Otro administrador de la empresa sí (D98).
       if (!isTeamRole(found.role)) return null;
       const before = toMember(found);
 
-      if (change.dimensions && found.role !== 'funcional') throw new ValidationException([{ field: 'dimensions', code: 'dimensions.not_allowed' }]);
       if (change.status && found.status === 'pending') throw new DomainError('USER_NOT_ACTIVATED');
 
       let sessionsClosed = 0;
       if (change.name !== undefined || change.lastName !== undefined) await tx.user.update({ where: { id }, data: { ...(change.name !== undefined ? { name: change.name } : {}), ...(change.lastName !== undefined ? { lastName: change.lastName } : {}) } });
-      if (change.dimensions) await this.replaceDimensions(tx, scope, id, before.dimensions, change.dimensions);
       if (change.status && change.status !== found.status) {
         await tx.user.update({ where: { id }, data: { status: change.status } });
         // Desactivar es el deprovisioning de CC6.3: la sesión abierta no sobrevive.
@@ -101,18 +96,5 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
       await insertAuditLog(tx, audit(member));
       return member;
     });
-  }
-
-  /** Cambia las especialidades. Quitar una que el funcional aún atiende (en un servicio o en un control) no se deja: primero se reasigna. */
-  private async replaceDimensions(tx: TransactionClient, scope: TenantScope, userId: string, current: Dimension[], next: Dimension[]): Promise<void> {
-    const removed = current.filter((d) => !next.includes(d));
-    const added = next.filter((d) => !current.includes(d));
-    if (removed.length) {
-      const count =
-        (await tx.serviceDimensionOwner.count({ where: { userId, dimension: { in: removed } } })) + (await tx.userControlAssignment.count({ where: { userId, dimension: { in: removed } } }));
-      if (count > 0) throw new DomainError('DIMENSION_IN_USE', { responsibilities_count: count });
-      await tx.userDimension.deleteMany({ where: { userId, dimension: { in: removed } } });
-    }
-    if (added.length) await tx.userDimension.createMany({ data: added.map((dimension) => ({ companyId: scope.companyId, userId, dimension })) });
   }
 }

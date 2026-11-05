@@ -10,9 +10,9 @@ let a: Tenant;
 let b: Tenant;
 let monkey: Agent;
 let auditor: Agent;
-let funcional: Agent;
+let responsable: Agent;
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional') {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable') {
   await owner(
     `insert into platform.users (id, company_id, email, name, last_name, password_hash, role) values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role)`,
     [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
@@ -25,9 +25,9 @@ beforeAll(async () => {
   app = await bootApp();
   ({ a, b, monkey } = await dosEmpresas(app));
   await cuenta(a.companyId, `auditor-res-${RUN}@cumplimiento.test`, 'auditor');
-  await cuenta(a.companyId, `funcional-res-${RUN}@cumplimiento.test`, 'funcional');
+  await cuenta(a.companyId, `responsable-res-${RUN}@cumplimiento.test`, 'responsable');
   auditor = await login(app, `auditor-res-${RUN}@cumplimiento.test`);
-  funcional = await login(app, `funcional-res-${RUN}@cumplimiento.test`);
+  responsable = await login(app, `responsable-res-${RUN}@cumplimiento.test`);
 });
 afterAll(async () => {
   await app?.close();
@@ -55,7 +55,7 @@ describe('Crear un cargo', () => {
   });
 
   it('solo el administrador de la empresa gestiona cargos', async () => {
-    await create(funcional, { type: 'coo', person_name: 'X' }).expect(403);
+    await create(responsable, { type: 'coo', person_name: 'X' }).expect(403);
     await create(auditor, { type: 'coo', person_name: 'X' }).expect(403);
     await create(monkey, { type: 'coo', person_name: 'X' }).expect(403);
   });
@@ -68,7 +68,7 @@ describe('Crear un cargo', () => {
 
 describe('Ver los cargos', () => {
   it('lo ven todos los roles de la empresa, paginados y filtrados por tipo; admin_monkey no', async () => {
-    for (const agent of [a.agent, funcional, auditor]) {
+    for (const agent of [a.agent, responsable, auditor]) {
       const res = await agent.get('/v1/responsibles').expect(200);
       expect(res.body.data.total).toBeGreaterThanOrEqual(4);
       expect(res.body.data.items[0]).toEqual({ id: expect.any(String), type: expect.any(String), person_name: expect.any(String), is_in_use: expect.any(Boolean) });
@@ -127,7 +127,7 @@ describe('Cambiar la persona y quitar un cargo', () => {
 
   it('solo el administrador cambia o quita; el cargo de otra empresa no existe (404)', async () => {
     const id = await aCargo('it', 'Otro TI');
-    await funcional.patch(`/v1/responsibles/${id}`).send({ person_name: 'Z' }).expect(403);
+    await responsable.patch(`/v1/responsibles/${id}`).send({ person_name: 'Z' }).expect(403);
     await auditor.delete(`/v1/responsibles/${id}`).expect(403);
     await b.agent.patch(`/v1/responsibles/${id}`).send({ person_name: 'Z' }).expect(404);
     await b.agent.delete(`/v1/responsibles/${id}`).expect(404);

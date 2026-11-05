@@ -22,7 +22,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
 
 // Observaciones del auditor (contracts/modules/compliance-audit.md, MD-154, D96). Las escribe, edita y cierra solo el `auditor` y solo las suyas; las responde el `admin_empresa` o el
-// `funcional` responsable del control; las leen los tres (el `funcional`, solo las de sus controles). `admin_monkey` no entra. No mueven el porcentaje.
+// `responsable` responsable del control; las leen los tres (el `responsable`, solo las de sus controles). `admin_monkey` no entra. No mueven el porcentaje.
 @ApiTags(API_TAGS.observations)
 @Controller()
 export class ObservationsController {
@@ -45,19 +45,19 @@ export class ObservationsController {
     return new ResponseDto(HttpStatus.CREATED, t('observation.created'), toObservation(created));
   }
 
-  @ApiOperation({ summary: 'Listar las observaciones de un servicio', description: 'De la más reciente a la más antigua, con filtros por estado, tipo y control. `admin_empresa` y `auditor` las ven todas; el `funcional`, solo las de los controles de los que es responsable (las de un servicio completo, no).' })
+  @ApiOperation({ summary: 'Listar las observaciones de un servicio', description: 'De la más reciente a la más antigua, con filtros por estado, tipo y control. `admin_empresa` y `auditor` las ven todas; el `responsable`, solo las de los controles de los que es responsable (las de un servicio completo, no).' })
   @ApiPaged(ObservationResponse, 'Página de observaciones.')
   @Get('services/:serviceId/observations')
-  @Roles('admin_empresa', 'funcional', 'auditor')
+  @Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
   async observations(@CurrentUser() p: Principal, @Param('serviceId', idPipe) serviceId: string, @Query() q: ListObservationsQuery) {
     const page = await this.list.execute(p, serviceId, { status: q.status, type: q.type, clientControlId: q.client_control_id, page: q.page, pageSize: q.page_size });
     return new ResponseDto(HttpStatus.OK, t('observation.list'), toPageResponse(page, toObservation));
   }
 
-  @ApiOperation({ summary: 'Ver una observación', description: '`403` para el `funcional` si no es responsable de su control, o si es de un servicio completo.' })
+  @ApiOperation({ summary: 'Ver una observación', description: '`403` para el `responsable` si no es responsable de su control, o si es de un servicio completo.' })
   @ApiData(ObservationResponse, 'La observación.')
   @Get('observations/:id')
-  @Roles('admin_empresa', 'funcional', 'auditor')
+  @Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
   async detail(@CurrentUser() p: Principal, @Param('id', idPipe) id: string) {
     return new ResponseDto(HttpStatus.OK, t('observation.detail'), toObservation(await this.get.execute(p, id)));
   }
@@ -76,11 +76,11 @@ export class ObservationsController {
     return new ResponseDto(HttpStatus.OK, t(key), toObservation(changed));
   }
 
-  @ApiOperation({ summary: 'Responder una observación', description: '`admin_empresa`, o el `funcional` responsable del control. Exige `answer_note`; `answer_evidence_id` es opcional y debe ser una entrega de un control del mismo servicio. Pasa a `answered`. No cambia el porcentaje: si la respuesta es un documento, entra como evidencia y se valida por el camino de siempre.' })
+  @ApiOperation({ summary: 'Responder una observación', description: '`admin_empresa`, o el `responsable` responsable del control. Exige `answer_note`; `answer_evidence_id` es opcional y debe ser una entrega de un control del mismo servicio. Pasa a `answered`. No cambia el porcentaje: si la respuesta es un documento, entra como evidencia y se valida por el camino de siempre.' })
   @ApiData(ObservationResponse, 'Observación respondida.')
   @ApiDomainErrors('OBSERVATION_CLOSED', 'OBSERVATION_NOT_OPEN')
   @Post('observations/:id/answer')
-  @Roles('admin_empresa', 'funcional')
+  @Roles('admin_empresa', 'responsable', 'delegado')
   @HttpCode(HttpStatus.OK)
   async reply(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Body() dto: AnswerObservationDto, @Req() req: Request) {
     const answered = await this.answer.execute(p, id, dto, metaOf(req));

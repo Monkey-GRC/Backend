@@ -18,7 +18,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 export class MfaAdminController {
   constructor(private readonly reset: ResetMfaUseCase) {}
 
-  @ApiOperation({ summary: 'Quitar el segundo factor a un integrante del equipo', description: 'Solo `admin_empresa`, y solo sobre un `funcional` o `auditor` de su empresa. Borra el secreto y los códigos de recuperación y **cierra todas sus sesiones**; en su próximo ingreso la persona configura el segundo factor de nuevo. No se puede aplicar a uno mismo ni a otro administrador (el administrador de la empresa lo restablece Monkey). Queda registro de auditoría.' })
+  @ApiOperation({ summary: 'Quitar el segundo factor a un integrante del equipo', description: 'Solo `admin_empresa`, y solo sobre un `responsable`, `delegado` o `auditor` de su empresa. Borra el secreto y los códigos de recuperación y **cierra todas sus sesiones**; en su próximo ingreso la persona configura el segundo factor de nuevo. No se puede aplicar a uno mismo ni a otro administrador (el administrador de la empresa lo restablece Monkey). Queda registro de auditoría.' })
   @ApiNoBody('Segundo factor quitado. No hay cuerpo.')
   @ApiDomainErrors('FORBIDDEN', 'NOT_FOUND')
   @Delete(':id/mfa')

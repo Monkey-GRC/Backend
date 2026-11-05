@@ -18,7 +18,8 @@ const API_EXCLUDE_CONTROLLER = 'swagger/apiExcludeController';
 const ROLE_LABELS: Record<UserRole, string> = {
   admin_monkey: 'Administrador de Monkey',
   admin_empresa: 'Administrador de la empresa',
-  funcional: 'Funcional',
+  responsable: 'Responsable',
+  delegado: 'Delegado',
   auditor: 'Auditor',
 };
 

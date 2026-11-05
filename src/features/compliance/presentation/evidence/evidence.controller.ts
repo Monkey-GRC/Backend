@@ -23,10 +23,10 @@ const t = (key: string): string => (I18nContext.current()?.t(key) as string | un
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
 
-// Evidencias de un control (contracts/modules/compliance-evidence.md, MD-126). Los cuatro roles de la empresa leen y descargan (el `funcional`, solo lo de sus controles);
-// suben el `funcional` responsable y, si hace falta, `admin_empresa`. Subir no valida: la validación es del admin_empresa (MD-127, D96).
+// Evidencias de un control (contracts/modules/compliance-evidence.md, MD-126). Los cuatro roles de la empresa leen y descargan (el `responsable`, solo lo de sus controles);
+// suben el `responsable` responsable y, si hace falta, `admin_empresa`. Subir no valida: la validación es del admin_empresa (MD-127, D96).
 @ApiTags(API_TAGS.evidence)
-@Roles('admin_empresa', 'funcional', 'auditor')
+@Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
 @Controller()
 export class EvidenceController {
   constructor(
@@ -40,7 +40,7 @@ export class EvidenceController {
     private readonly listTestEvidence: ListTestEvidenceUseCase,
   ) {}
 
-  @ApiOperation({ summary: 'Evidencias de un control', description: 'Los requerimientos de evidencia del control, cada uno con su responsable y todas sus entregas (la más reciente primero). Un `funcional` solo ve los controles que tiene asignados. Con `view=technical` (solo `auditor` y, por ahora, `admin_empresa`) agrega el bloque `technical`.' })
+  @ApiOperation({ summary: 'Evidencias de un control', description: 'Los requerimientos de evidencia del control, cada uno con su responsable y todas sus entregas (la más reciente primero). Un `responsable` solo ve los controles que tiene asignados. Con `view=technical` (solo `auditor` y, por ahora, `admin_empresa`) agrega el bloque `technical`.' })
   @ApiItems(EvidenceRequirementResponse, 'Requerimientos con sus entregas.')
   @Get('controls/:controlId/evidence')
   async evidence(@CurrentUser() p: Principal, @Param('controlId', idPipe) controlId: string, @Query() q: ListEvidenceQuery) {
@@ -48,7 +48,7 @@ export class EvidenceController {
     return new ResponseDto(HttpStatus.OK, t('evidence.list'), { items: requirements.map((r) => toRequirement(r, view)) });
   }
 
-  @ApiOperation({ summary: 'Evidencia de un test manual', description: 'Lo que se subió para un test **manual o documental** de un control, para mostrarlo en el test. Una prueba documental (D88) devuelve solo el requerimiento de esa prueba en este control; otro test manual (D85) devuelve los de **todos los controles vigentes del servicio que lo llevan**, cada uno con su control, y `shared_with` dice dónde más aplica. Un `funcional` recibe solo lo de las dimensiones de las que es responsable. `404` si el control no lleva el test o no es manual ni documental.' })
+  @ApiOperation({ summary: 'Evidencia de un test manual', description: 'Lo que se subió para un test **manual o documental** de un control, para mostrarlo en el test. Una prueba documental (D88) devuelve solo el requerimiento de esa prueba en este control; otro test manual (D85) devuelve los de **todos los controles vigentes del servicio que lo llevan**, cada uno con su control, y `shared_with` dice dónde más aplica. Un `responsable` recibe solo lo de las dimensiones de las que es responsable. `404` si el control no lleva el test o no es manual ni documental.' })
   @ApiData(TestEvidenceResponse, 'Requerimientos del test con sus entregas.')
   @Get('controls/:controlId/tests/:testId/evidence')
   async testEvidence(@CurrentUser() p: Principal, @Param('controlId', idPipe) controlId: string, @Param('testId', idPipe) testId: string, @Query() q: ListEvidenceQuery) {
@@ -57,12 +57,12 @@ export class EvidenceController {
   }
 
   // Multipart, campo `file`. PDF, DOCX, XLSX, PNG o JPG, hasta 25 MB (SEG-60); se valida el contenido, no solo el tipo que declara el navegador.
-  @ApiOperation({ summary: 'Subir una evidencia', description: 'Multipart, campo `file`. PDF, DOCX, XLSX, PNG o JPG, hasta 25 MB. Se valida el **contenido** del archivo, no solo el tipo que declara el navegador. Se calcula la huella SHA-256 y se guarda con la versión (crece de uno en uno; una nueva nunca pisa la anterior), la fecha y quién la subió. La empresa solo **aporta**: subir no valida: la validación es del `admin_empresa` (D96). Suben el `funcional` responsable y, si hace falta, `admin_empresa`. Queda registro de auditoría.' })
+  @ApiOperation({ summary: 'Subir una evidencia', description: 'Multipart, campo `file`. PDF, DOCX, XLSX, PNG o JPG, hasta 25 MB. Se valida el **contenido** del archivo, no solo el tipo que declara el navegador. Se calcula la huella SHA-256 y se guarda con la versión (crece de uno en uno; una nueva nunca pisa la anterior), la fecha y quién la subió. La empresa solo **aporta**: subir no valida: la validación es del `admin_empresa` (D96). Suben el `responsable` responsable y, si hace falta, `admin_empresa`. Queda registro de auditoría.' })
   @ApiBody({ schema: { type: 'object', required: ['file'], properties: { file: { type: 'string', format: 'binary', description: 'PDF, DOCX, XLSX, PNG o JPG; máx. 25 MB.' } } } })
   @ApiData(EvidenceSubmissionResponse, 'Entrega registrada, con su huella y versión.', { status: 201 })
   @ApiDomainErrors('FILE_REQUIRED', 'FILE_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'CONTROL_RETIRED', 'EVIDENCE_VERSION_CONFLICT', 'STORAGE_UNAVAILABLE')
   @Post('evidence-requirements/:requirementId/submissions')
-  @Roles('admin_empresa', 'funcional')
+  @Roles('admin_empresa', 'responsable', 'delegado')
   @HttpCode(HttpStatus.CREATED)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: EVIDENCE_UPLOAD_LIMIT_BYTES, files: 1 } }))
@@ -85,13 +85,13 @@ export class EvidenceController {
   }
 
   // D88 · La persona lee lo que pide la prueba y sube su documento, en un solo paso. El admin_empresa la valida después.
-  @ApiOperation({ summary: 'Subir la evidencia de una prueba documental', description: 'Multipart, campo `file` (PDF, DOCX, XLSX, PNG o JPG, hasta 25 MB). La evidencia es **de esa prueba en este control** (D88): en la primera entrega se crea el lugar donde queda y las siguientes son versiones nuevas. Suben `admin_empresa` y el `funcional` dueño del control. La prueba debe ser documental (`policy`) y del control; si no, 404 o `422 test.not_documentary`. Subir **no cumple** la prueba: la deja en revisión hasta que el `admin_empresa` valide la evidencia (D96). Queda registro de auditoría.' })
+  @ApiOperation({ summary: 'Subir la evidencia de una prueba documental', description: 'Multipart, campo `file` (PDF, DOCX, XLSX, PNG o JPG, hasta 25 MB). La evidencia es **de esa prueba en este control** (D88): en la primera entrega se crea el lugar donde queda y las siguientes son versiones nuevas. Suben `admin_empresa` y el `responsable` dueño del control. La prueba debe ser documental (`policy`) y del control; si no, 404 o `422 test.not_documentary`. Subir **no cumple** la prueba: la deja en revisión hasta que el `admin_empresa` valide la evidencia (D96). Queda registro de auditoría.' })
   @ApiBody({ schema: { type: 'object', required: ['file'], properties: { file: { type: 'string', format: 'binary', description: 'PDF, DOCX, XLSX, PNG o JPG; máx. 25 MB.' } } } })
   @ApiConsumes('multipart/form-data')
   @ApiData(EvidenceSubmissionResponse, 'Entrega registrada para esa prueba.', { status: 201 })
   @ApiDomainErrors('FILE_REQUIRED', 'FILE_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'CONTROL_RETIRED', 'STORAGE_UNAVAILABLE')
   @Post('controls/:controlId/tests/:testId/evidence')
-  @Roles('admin_empresa', 'funcional')
+  @Roles('admin_empresa', 'responsable', 'delegado')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: EVIDENCE_UPLOAD_LIMIT_BYTES, files: 1 } }))
   async submitForTest(
@@ -105,8 +105,8 @@ export class EvidenceController {
     return new ResponseDto(HttpStatus.CREATED, t('evidence.submitted'), toSubmission(created, 'business', true));
   }
 
-  // D96 · El funcional sube y el admin_empresa valida o rechaza, en una sola revisión. El rol sale de la sesión; el cuerpo no lo lleva.
-  @ApiOperation({ summary: 'Revisar una evidencia', description: 'Solo `admin_empresa` (D96): valida o rechaza la evidencia en **una sola revisión**; crea o reemplaza la suya. **Rechazar** es dejar algún atributo en `false` y exige `note` (el motivo que el funcional lee para corregir). Marca los seis atributos (`true`, `false` o sin valorar) y la validación humana (`review`). Solo una evidencia **validada por una persona** puede cumplir (RN-03); `ai_prevalidated` lo deriva el sistema y no se acepta. De esta revisión sale el estado de las pruebas documentales del control (D88). Responde con la entrega y su `evidence_state`. Queda registro de auditoría.' })
+  // D96 · El responsable sube y el admin_empresa valida o rechaza, en una sola revisión. El rol sale de la sesión; el cuerpo no lo lleva.
+  @ApiOperation({ summary: 'Revisar una evidencia', description: 'Solo `admin_empresa` (D96): valida o rechaza la evidencia en **una sola revisión**; crea o reemplaza la suya. **Rechazar** es dejar algún atributo en `false` y exige `note` (el motivo que el responsable lee para corregir). Marca los seis atributos (`true`, `false` o sin valorar) y la validación humana (`review`). Solo una evidencia **validada por una persona** puede cumplir (RN-03); `ai_prevalidated` lo deriva el sistema y no se acepta. De esta revisión sale el estado de las pruebas documentales del control (D88). Responde con la entrega y su `evidence_state`. Queda registro de auditoría.' })
   @ApiData(EvidenceSubmissionResponse, 'La entrega, con la revisión de quien la hizo en el bloque `technical`.')
   @Put('evidence-submissions/:submissionId/review')
   @Roles('admin_empresa')

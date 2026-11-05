@@ -6,7 +6,7 @@ import { unusablePasswordHash } from '../../src/common/security/unusable-passwor
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
 
-// D95, D96 · Una cuenta que crea el administrador de la empresa (funcional o auditor) nace `pending` y se activa con un código de un solo uso. Todo por HTTP real contra el
+// D95, D96 · Una cuenta que crea el administrador de la empresa (responsable o auditor) nace `pending` y se activa con un código de un solo uso. Todo por HTTP real contra el
 // Postgres desechable, con el rol de la app (sujeto a RLS). Quien crea la cuenta y emite el código es el módulo de equipo (`users-team.md`, sin construir): aquí se deja
 // la cuenta y el código directamente en la base, que es justo lo que ese módulo hará. Contrato: contracts/modules/users-team.md y auth.md.
 const PEPPER = 'pepper-de-la-prueba-0123456789abcdef0123456789';
@@ -19,7 +19,7 @@ describe('Activar una cuenta con el código que entrega el administrador', () =>
   async function pendiente(email: string, opts: { expiraEn?: string; estadoCodigo?: string } = {}): Promise<{ userId: string; code: string }> {
     const [admin] = await owner<{ id: string }>(`select id from platform.users where email = $1`, [a.email]);
     const [user] = await owner<{ id: string }>(
-      `insert into platform.users (id, company_id, email, password_hash, role, status) values (gen_random_uuid(), $1, $2, $3, 'funcional', 'pending') returning id`,
+      `insert into platform.users (id, company_id, email, password_hash, role, status) values (gen_random_uuid(), $1, $2, $3, 'responsable', 'pending') returning id`,
       [a.companyId, email, await unusablePasswordHash()],
     );
     const code = generateAccessKeyCode();
@@ -80,7 +80,7 @@ describe('Activar una cuenta con el código que entrega el administrador', () =>
       const agent = request.agent(app.getHttpServer());
       // MFA_REQUIRED=false en estas pruebas: entra directo. Con el segundo factor obligatorio se prueba más abajo.
       const res = await agent.post('/v1/auth/activate').send({ code, email, password: PASSWORD }).expect(201);
-      expect(res.body.data.user).toMatchObject({ email, role: 'funcional', status: 'active' });
+      expect(res.body.data.user).toMatchObject({ email, role: 'responsable', status: 'active' });
       expect(res.body.data.company).toEqual({ id: a.companyId, name: a.companyName });
       const [row] = await owner<{ status: string; used_at: Date | null }>(`select status::text, used_at from platform.user_activation_codes where user_id = $1`, [userId]);
       expect(row.status).toBe('used');

@@ -5,9 +5,10 @@ import { readControl } from '../../domain/controls/control-readout';
 import { buildOverview, OverviewFramework } from '../../domain/overview/compliance-overview';
 import { ControlRepository } from '../../domain/controls/control.repository';
 import { ViewMode, viewModeOf } from '../shared/view-access';
+import { isScopedRole } from '../../../../common/enums/user-role.enum';
 
 // MD-137 · El resumen de un servicio: un bloque por marco contratado, con sus categorías en alcance y las acciones que fallan. Lo leen todos los roles de la empresa;
-// la vista técnica, `auditor` y `admin_empresa` (D81, D96). Un `funcional` ve el marco y las categorías completos, pero solo las acciones que falla entre las suyas.
+// la vista técnica, `auditor` y `admin_empresa` (D81, D96). Un `responsable` ve el marco y las categorías completos, pero solo las acciones que falla entre las suyas.
 @Injectable()
 export class GetOverviewUseCase {
   constructor(private readonly controls: ControlRepository) {}
@@ -22,7 +23,7 @@ export class GetOverviewUseCase {
       frameworks: data.frameworks,
       criteria: data.criteria,
       placements: data.placements,
-      onlyFailingOf: principal.role === 'funcional' ? principal.userId : null,
+      onlyFailingOf: isScopedRole(principal.role) ? principal.userId : null,
     });
     return { view, frameworks };
   }

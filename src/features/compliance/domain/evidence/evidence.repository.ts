@@ -47,7 +47,7 @@ export type EvidenceAccess = {
   controlId: string;
   serviceId: string;
   controlActive: boolean;
-  /** Quiénes atienden la DIMENSIÓN del requerimiento (D98): un `funcional` solo actúa sobre lo de sus especialidades. */
+  /** Quiénes atienden la DIMENSIÓN del requerimiento (D102): un `responsable` o `delegado` solo actúa sobre lo de sus controles. */
   assignedUserIds: string[];
 };
 
@@ -91,7 +91,7 @@ export type ControlEvidenceFacts = {
 /** El código (`EV-<control>-NN`) y la posición los pone el repositorio, dentro de la transacción y con el control bloqueado. */
 export type NewRequirement = { description: string; dimension: string; testId: string | null; validityWithinPeriod: string };
 
-/** Un control que lleva un test, con quién es responsable de cada una de sus dimensiones (D96): para decidir qué ve un `funcional`. */
+/** Un control que lleva un test, con quién es responsable de cada una de sus dimensiones (D96): para decidir qué ve un `responsable`. */
 export type TestEvidenceControl = { id: string; code: string; responsibleByDimension: Record<string, string[]> };
 
 /** Lo que se subió para un test manual o documental, visto desde un control que lo lleva (D85, D88). */

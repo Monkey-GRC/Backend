@@ -392,7 +392,6 @@ model Service {
   clientControls ClientControl[]
   clientControlChanges ClientControlChange[]
   evaluations    Evaluation[]
-  dimensionOwners ServiceDimensionOwner[]
 
   @@index([tenantId])
   @@index([organizationId])

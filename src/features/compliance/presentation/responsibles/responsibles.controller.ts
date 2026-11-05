@@ -35,7 +35,7 @@ export class ResponsiblesController {
   @ApiOperation({ summary: 'Listar los responsables', description: 'Los cargos responsables de la organización (CISO, TI, cumplimiento…). Los ven los roles de la empresa; los gestiona solo `admin_empresa`.' })
   @ApiPaged(ResponsibleResponse, 'Página de responsables.')
   @Get()
-  @Roles('admin_empresa', 'funcional', 'auditor')
+  @Roles('admin_empresa', 'responsable', 'auditor')
   async list(@CurrentUser() principal: Principal, @Query() q: ListResponsiblesQuery) {
     const page = await this.listResponsibles.execute(principal, { type: q.type, page: q.page, pageSize: q.page_size });
     return new ResponseDto(HttpStatus.OK, t('responsible.list'), toPageResponse(page, toResponse));

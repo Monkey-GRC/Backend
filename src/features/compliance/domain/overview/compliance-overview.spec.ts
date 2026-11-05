@@ -114,7 +114,7 @@ describe('buildOverview — qué falla', () => {
     expect(o.categories[0].failingControls[0]).toMatchObject({ code: 'C09', ownCode: 'C09' });
   });
 
-  it('un funcional ve el marco completo pero solo los fallos de lo que tiene asignado', () => {
+  it('un responsable ve el marco completo pero solo los fallos de lo que tiene asignado', () => {
     const mine = control('1', { assignedUserIds: ['u1'] });
     const entries = [{ c: mine, result: 'non_compliant' as AssetResult, places: ['security'] }, { c: control('2'), result: 'non_compliant' as AssetResult, places: ['security'] }];
     const o = overview(entries, framework(), 'u1');

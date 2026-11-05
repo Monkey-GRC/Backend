@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import * as auditInsert from '../../src/infrastructure/audit/audit-log.insert';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
+import { asignarControl } from '../support/asignaciones';
 
 // MD-150 (control propio) y D96 (editar y dar de baja un control, directo) · contracts/modules/compliance-controls.md. Cada prueba sale por HTTP con la sesión real de cada rol.
 type Agent = Awaited<ReturnType<typeof login>>;
@@ -11,14 +12,13 @@ let a: Tenant;
 let b: Tenant;
 let monkey: Agent;
 let auditor: Agent;
-let funcional: Agent;
-let funcionalId: string;
-let adminId: string;
+let responsable: Agent;
+let responsableId: string;
 let controls: Array<Record<string, any>>;
 const realInsert = auditInsert.insertAuditLog;
 const list = (t: Tenant, q = '') => `/v1/services/${t.serviceId}/controls${q}`;
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional'): Promise<string> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<string> {
   const rows = await owner<{ id: string }>(
     `insert into platform.users (id, company_id, email, name, last_name, password_hash, role)
      values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role) returning id`,
@@ -37,15 +37,12 @@ beforeAll(async () => {
   app = await bootApp();
   ({ a, b, monkey } = await dosEmpresas(app));
   await cuenta(a.companyId, `auditor-cmb-${RUN}@cumplimiento.test`, 'auditor');
-  funcionalId = await cuenta(a.companyId, `funcional-cmb-${RUN}@cumplimiento.test`, 'funcional');
+  responsableId = await cuenta(a.companyId, `responsable-cmb-${RUN}@cumplimiento.test`, 'responsable');
   auditor = await login(app, `auditor-cmb-${RUN}@cumplimiento.test`);
-  funcional = await login(app, `funcional-cmb-${RUN}@cumplimiento.test`);
+  responsable = await login(app, `responsable-cmb-${RUN}@cumplimiento.test`);
   controls = (await a.agent.get(list(a, '?page_size=100')).expect(200)).body.data.items;
-  adminId = (await owner<{ id: string }>(`select id from platform.users where email = $1`, [a.email]))[0].id;
-  // El funcional tiene asignada UNA acción.
-  await owner(`insert into platform.user_control_assignments (id, company_id, user_id, client_control_id, dimension, assigned_by) select gen_random_uuid(), $1, $2, $3::uuid, d.dimension, $4 from (select distinct t.dimension from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $3::uuid) d`, [
-    a.companyId, funcionalId, controls[0].id, adminId,
-  ]);
+  // El responsable es dueño de UN control.
+  await asignarControl(a.companyId, controls[0].id, responsableId);
 });
 afterAll(async () => {
   await app?.close();
@@ -130,7 +127,7 @@ describe('MD-150 · crear un control propio', () => {
   });
 
   it('solo el administrador de la empresa lo crea', async () => {
-    await funcional.post(list(a)).send(OWN).expect(403);
+    await responsable.post(list(a)).send(OWN).expect(403);
     await auditor.post(list(a)).send(OWN).expect(403);
     await monkey.post(list(a)).send(OWN).expect(403);
   });
@@ -215,7 +212,7 @@ describe('D96 · editar un control: directo, sin propuesta', () => {
   });
 
   it('solo el administrador de la empresa; otra empresa y un id inválido, 404', async () => {
-    await patch(funcional, catalogId, { interpretation: { text: 'x' } }).expect(403);
+    await patch(responsable, catalogId, { interpretation: { text: 'x' } }).expect(403);
     await patch(auditor, catalogId, { interpretation: { text: 'x' } }).expect(403);
     await patch(monkey, catalogId, { interpretation: { text: 'x' } }).expect(403);
     await patch(b.agent, catalogId, { interpretation: { text: 'x' } }).expect(404);
@@ -230,7 +227,7 @@ describe('D96 · dar de baja un control: baja, no borrado', () => {
   });
 
   it('solo el administrador de la empresa; otra empresa y un id inválido, 404', async () => {
-    await funcional.delete(`/v1/controls/${id}`).expect(403);
+    await responsable.delete(`/v1/controls/${id}`).expect(403);
     await auditor.delete(`/v1/controls/${id}`).expect(403);
     await monkey.delete(`/v1/controls/${id}`).expect(403);
     await b.agent.delete(`/v1/controls/${id}`).expect(404);

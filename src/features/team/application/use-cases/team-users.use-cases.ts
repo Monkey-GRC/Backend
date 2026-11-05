@@ -13,14 +13,14 @@ import { IssuedActivationCode, TeamMember } from '../../domain/team.types';
 import { CreateTeamMemberDto, UpdateTeamMemberDto } from '../dtos/team.dto';
 import { ACTIVATION_CODE_TTL_HOURS } from '../activation-policy.token';
 
-// contracts/modules/users-team.md · Solo `admin_empresa` (lo impone @Roles en la ruta). El código de activación viaja en claro SOLO en la respuesta que lo emite; en la base
+// contracts/gestion-usuarios.md · Solo `admin_empresa` (lo impone @Roles en la ruta). El código de activación viaja en claro SOLO en la respuesta que lo emite; en la base
 // y en la auditoría no queda ni el código ni su huella (conventions.md).
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 const entry = (p: Principal, meta: RequestMeta, action: string, before: unknown, after: unknown): AuditEntry => ({
   tenantId: p.companyId, userId: p.userId, action, resource: 'user', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
   beforeState: (before as Record<string, unknown>) ?? null, afterState: (after as Record<string, unknown>) ?? null,
 });
-const snapshot = (m: TeamMember) => ({ id: m.id, email: m.email, name: m.name, last_name: m.lastName, role: m.role, status: m.status, dimensions: m.dimensions });
+const snapshot = (m: TeamMember) => ({ id: m.id, email: m.email, name: m.name, last_name: m.lastName, role: m.role, status: m.status });
 
 export type MemberWithCode = { member: TeamMember; activationCode: IssuedActivationCode };
 
@@ -39,14 +39,10 @@ export class CreateTeamMemberUseCase {
   constructor(private readonly repo: TeamUserRepository, private readonly codes: IssueActivationCode) {}
 
   async execute(p: Principal, dto: CreateTeamMemberDto, meta: RequestMeta): Promise<MemberWithCode> {
-    // Un funcional sin especialidad no recibiría nada que hacer; un administrador y un auditor lo ven todo, así que no llevan especialidades.
-    if (dto.role === 'funcional' && !dto.dimensions?.length) throw new ValidationException([{ field: 'dimensions', code: 'array.min' }]);
-    if (dto.role !== 'funcional' && dto.dimensions) throw new ValidationException([{ field: 'dimensions', code: 'dimensions.not_allowed' }]);
-
     const issued = this.codes.issue();
     const member = await this.repo.create(
       scopeOf(p),
-      { email: dto.email, name: dto.name, lastName: dto.last_name, role: dto.role, dimensions: dto.dimensions ?? [], passwordHash: await unusablePasswordHash(), codeHash: issued.codeHash, codeExpiresAt: issued.codeExpiresAt, createdBy: p.userId },
+      { email: dto.email, name: dto.name, lastName: dto.last_name, role: dto.role, passwordHash: await unusablePasswordHash(), codeHash: issued.codeHash, codeExpiresAt: issued.codeExpiresAt, createdBy: p.userId },
       (done) => entry(p, meta, 'user.create', null, snapshot(done)),
     );
     return { member, activationCode: { code: issued.code, status: 'pending', expiresAt: issued.codeExpiresAt } };
@@ -67,8 +63,8 @@ export class UpdateTeamMemberUseCase {
   constructor(private readonly repo: TeamUserRepository) {}
 
   async execute(p: Principal, id: string, dto: UpdateTeamMemberDto, meta: RequestMeta): Promise<TeamMember> {
-    if (dto.status === undefined && dto.dimensions === undefined && dto.name === undefined && dto.last_name === undefined) throw new ValidationException([{ field: 'status', code: 'required' }]);
-    const done = await this.repo.update(scopeOf(p), id, { status: dto.status, dimensions: dto.dimensions, name: dto.name, lastName: dto.last_name }, new Date(), ({ before, after, sessionsClosed }) => ({
+    if (dto.status === undefined && dto.name === undefined && dto.last_name === undefined) throw new ValidationException([{ field: 'status', code: 'required' }]);
+    const done = await this.repo.update(scopeOf(p), id, { status: dto.status, name: dto.name, lastName: dto.last_name }, new Date(), ({ before, after, sessionsClosed }) => ({
       ...entry(p, meta, 'user.update', snapshot(before), { ...snapshot(after), ...(sessionsClosed ? { sessions_closed: sessionsClosed } : {}) }),
     }));
     if (!done) throw new DomainError('NOT_FOUND');

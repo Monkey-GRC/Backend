@@ -72,7 +72,7 @@ export class CreateTreatmentUseCase {
   }
 }
 
-// Quien puede leer el riesgo puede leer su historial de tratamientos (el `funcional`, solo si el riesgo llega a una acción suya).
+// Quien puede leer el riesgo puede leer su historial de tratamientos (el `responsable`, solo si el riesgo llega a una acción suya).
 @Injectable()
 export class ListTreatmentsUseCase {
   constructor(private readonly repo: RiskRepository, private readonly getRisk: GetRiskUseCase) {}

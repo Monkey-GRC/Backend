@@ -4,6 +4,7 @@ import { DomainError } from '../../../../common/errors/domain-error';
 import { Page, PageRequest } from '../../../../common/pagination/page';
 import { ScanRepository } from '../../domain/repositories/scan.repository';
 import { buildFindings, Finding, FindingLanguage } from '../../domain/scan/findings';
+import { isScopedRole } from '../../../../common/enums/user-role.enum';
 
 // D90 · Qué falló y cómo corregirlo, para una prueba de nube de un control. Lo calcula de la última evaluación completada (nunca se guarda) y deja fuera lo que no es
 // del cliente: ni el nombre del proveedor de la sonda ni el texto crudo de cada recurso.
@@ -21,8 +22,8 @@ export class ListFindingsUseCase {
     const test = await this.repo.findCloudTestOfControl(scope, input.controlId, input.testId);
     // Un control o una prueba de otra empresa no existen para quien pregunta: 404, no una lista vacía (conventions.md).
     if (!test) throw new DomainError('NOT_FOUND');
-    // D96, SEG-66 · Lo automático que falla en la nube le llega a quien es responsable del control en esa dimensión; a otro funcional, no (existe y es de su empresa: 403).
-    if (principal.role === 'funcional' && !test.responsibleUserIds.includes(principal.userId)) throw new DomainError('FORBIDDEN');
+    // D96, SEG-66 · Lo automático que falla en la nube le llega a quien es responsable del control en esa dimensión; a otro responsable, no (existe y es de su empresa: 403).
+    if (isScopedRole(principal.role) && !test.responsibleUserIds.includes(principal.userId)) throw new DomainError('FORBIDDEN');
     const { measuredAt, rows } = await this.repo.loadFailedRows(scope, { serviceId: test.serviceId, testId: input.testId, includeProposed: input.includeProposed });
     const all = buildFindings(rows, input.language, input.fallbackTitle);
     const start = (page.page - 1) * page.pageSize;

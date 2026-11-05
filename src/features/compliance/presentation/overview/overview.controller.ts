@@ -20,7 +20,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 // El resumen de cumplimiento de un servicio (contracts/modules/compliance-overview.md, MD-137). `admin_monkey` no entra al cumplimiento de una empresa por aquí. La vista
 // técnica la restringe el caso de uso: `auditor` y `admin_empresa` (D81, D96).
 @ApiTags(API_TAGS.overview)
-@Roles('admin_empresa', 'funcional', 'auditor')
+@Roles('admin_empresa', 'responsable', 'auditor')
 @Controller()
 export class OverviewController {
   constructor(private readonly getOverview: GetOverviewUseCase) {}

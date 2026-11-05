@@ -12,7 +12,7 @@ let a: Tenant;
 let b: Tenant;
 let monkey: Agent;
 let auditor: Agent;
-let funcional: Agent;
+let responsable: Agent;
 let adminId: string;
 let testId: string; // una prueba de nube que mide la empresa A
 let serverTestId: string; // una prueba de servidores: no le aplica a una cuenta de nube
@@ -33,7 +33,7 @@ const auditRows = (tenantId: string, action: string) => owner<{ n: number }>('se
 const approvalEvents = (tenantId: string) => owner<{ n: number }>(`select count(*)::int n from audit.compliance_events where tenant_id = $1 and changed_field = 'exclusion.approve'`, [tenantId]).then((r) => r[0].n);
 const reset = () => owner(`delete from tenant.exclusions where tenant_id = $1`, [a.companyId]).catch(() => undefined);
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional'): Promise<string> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<string> {
   return (await owner<{ id: string }>(
     `insert into platform.users (id, company_id, email, name, last_name, password_hash, role) values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role) returning id`,
     [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
@@ -57,10 +57,10 @@ beforeAll(async () => {
   app = await bootApp();
   ({ a, b, monkey } = await dosEmpresas(app));
   await cuenta(a.companyId, `auditor-exc-${RUN}@cumplimiento.test`, 'auditor');
-  await cuenta(a.companyId, `funcional-exc-${RUN}@cumplimiento.test`, 'funcional');
+  await cuenta(a.companyId, `responsable-exc-${RUN}@cumplimiento.test`, 'responsable');
   adminId = (await owner<{ id: string }>(`select id from platform.users where email = $1`, [a.email]))[0].id;
   auditor = await login(app, `auditor-exc-${RUN}@cumplimiento.test`);
-  funcional = await login(app, `funcional-exc-${RUN}@cumplimiento.test`);
+  responsable = await login(app, `responsable-exc-${RUN}@cumplimiento.test`);
 
   // La cuenta de nube de A mide la dimensión «cloud» una vez activa. Se elige una prueba de nube que lleve una acción del servicio.
   await owner(`update tenant.assets set status = 'active' where id = $1`, [a.assetId]);
@@ -184,7 +184,7 @@ describe('Crear una exclusión (el admin_empresa la crea y la decide en un solo 
 
   it('solo el administrador de la empresa la crea; no existe un paso aparte para decidirla', async () => {
     await create(auditor).expect(403);
-    await create(funcional).expect(403);
+    await create(responsable).expect(403);
     await create(monkey).expect(403);
     const id = (await create(a.agent).expect(201)).body.data.id;
     await a.agent.patch(`/v1/exclusions/${id}`).send({ status: 'rejected', decision_note: 'x' }).expect(404);
@@ -234,9 +234,9 @@ describe('Listar', () => {
     expect(fields(await a.agent.get(list(a, '?status=otra')).expect(422))).toEqual([{ field: 'status', code: 'enum.invalid' }]);
   });
 
-  it('las leen el administrador y el auditor; el funcional y admin_monkey, no; otra empresa no ve nada', async () => {
+  it('las leen el administrador y el auditor; el responsable y admin_monkey, no; otra empresa no ve nada', async () => {
     await auditor.get(list(a)).expect(200);
-    await funcional.get(list(a)).expect(403);
+    await responsable.get(list(a)).expect(403);
     await monkey.get(list(a)).expect(403);
     await b.agent.get(list(a)).expect(404);
   });

@@ -9,17 +9,17 @@ type Agent = Awaited<ReturnType<typeof login>>;
 let app: INestApplication;
 let a: Tenant;
 let monkey: Agent;
-let funcional: Agent;
+let responsable: Agent;
 
 beforeAll(async () => {
   app = await bootApp();
   ({ a, monkey } = await dosEmpresas(app));
   await owner(
     `insert into platform.users (id, company_id, email, name, last_name, password_hash, role)
-     values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, 'funcional'::platform.user_role)`,
-    [a.companyId, `funcional-mtz-${RUN}@cumplimiento.test`, await bcrypt.hash(PASSWORD, 4)],
+     values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, 'responsable'::platform.user_role)`,
+    [a.companyId, `responsable-mtz-${RUN}@cumplimiento.test`, await bcrypt.hash(PASSWORD, 4)],
   );
-  funcional = await login(app, `funcional-mtz-${RUN}@cumplimiento.test`);
+  responsable = await login(app, `responsable-mtz-${RUN}@cumplimiento.test`);
 });
 afterAll(async () => {
   await app?.close();
@@ -28,14 +28,14 @@ afterAll(async () => {
 const matrix = async (agent: Agent) => (await agent.get('/v1/risk-matrix').expect(200)).body.data as { min: number; max: number; cells: Array<{ likelihood: number; impact: number; value: number; level: string }> };
 
 describe('Matriz de riesgo con niveles', () => {
-  it('el administrador de la empresa y el funcional reciben las 25 casillas con su valor y su nivel', async () => {
+  it('el administrador de la empresa y el responsable reciben las 25 casillas con su valor y su nivel', async () => {
     const admin = await matrix(a.agent);
     expect(admin.min).toBe(1);
     expect(admin.max).toBe(5);
     expect(admin.cells).toHaveLength(25);
     expect(admin.cells[0]).toEqual({ likelihood: 1, impact: 1, value: 1, level: 'low' });
     expect(admin.cells.find((c) => c.likelihood === 5 && c.impact === 5)).toEqual({ likelihood: 5, impact: 5, value: 25, level: 'critical' });
-    expect(await matrix(funcional)).toEqual(admin);
+    expect(await matrix(responsable)).toEqual(admin);
   });
 
   it('el nivel de una casilla es el que el servidor da a un riesgo evaluado en ella', async () => {

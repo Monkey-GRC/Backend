@@ -42,7 +42,6 @@
   "disposition_not_supported": "That file type cannot be shown on screen: only PDF, PNG and JPG. Download it to view it.",
   "test_not_documentary": "Only a documentary test is backed by a document.",
   "cutoff_in_future": "The cutoff date cannot be in the future.",
-  "dimensions_not_allowed": "This account does not carry specialties.",
   "closure_reason_required": "There are open auditor observations on this control: say why you are giving the verdict anyway.",
   "control_mismatch": "That evidence does not belong to that control.",
   "body_or_status_required": "Send the new text (body) or the status.",

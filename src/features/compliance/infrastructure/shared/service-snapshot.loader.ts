@@ -35,7 +35,7 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
     },
   });
 
-  // D98 · Quiénes atienden cada dimensión: los funcionales con esa especialidad. De ahí sale lo que un funcional ve.
+  // D102 · Dueño y ejecutor de cada control: de ahí sale lo que ven el responsable y el delegado.
   const responsibles = await loadControlResponsibles(tx, rows.map((r) => r.id));
 
   // D88 · Las evidencias requeridas de estas acciones, con el estado de su última entrega según la revisión del admin_empresa (la que consume el motor, D96): de ellas sale el estado
@@ -77,7 +77,7 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
       tests: c.tests.map((t) => ({ testId: t.testId, code: t.test.code, displayName: t.test.displayName, displayDescription: t.test.displayDescription, dimension: t.test.dimension as Dimension, mandatory: true, active: true })),
       // Un control propio no llega a ningún requisito: su categoría es la que eligió la empresa.
       trustCriteria: c.control ? [...criteria].sort((a, b) => CRITERIA_ORDER.indexOf(a) - CRITERIA_ORDER.indexOf(b)) : c.trustCriterion ? [c.trustCriterion] : [],
-      // Con varias personas por dimensión (D98) no hay «una» persona a cargo que mostrar.
+      // Con varias personas por control (D102) no hay «una» persona a cargo que mostrar.
       assignee: null,
       assignedUserIds: assignedIds,
       responsibleByDimension: Object.fromEntries(DIMENSION_ORDER.flatMap((d) => (byDimension?.has(d) ? [[d, byDimension.get(d)]] : []))),

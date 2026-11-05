@@ -22,9 +22,9 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
 
 // Evaluación 5×5 y tratamiento de un riesgo (contracts/modules/compliance-risks.md, MD-123). Evalúa y trata solo el administrador de la empresa; el
-// auditor lee. El `funcional` lee los tratamientos de un riesgo suyo, pero no el historial de evaluaciones. `admin_monkey` no entra al cumplimiento de una empresa por aquí.
+// auditor lee. El `responsable` lee los tratamientos de un riesgo suyo, pero no el historial de evaluaciones. `admin_monkey` no entra al cumplimiento de una empresa por aquí.
 @ApiTags(API_TAGS.riskAssessment)
-@Roles('admin_empresa', 'funcional', 'auditor')
+@Roles('admin_empresa', 'responsable', 'auditor')
 @Controller('risks/:id')
 export class RiskAssessmentController {
   constructor(
@@ -43,7 +43,7 @@ export class RiskAssessmentController {
     return new ResponseDto(HttpStatus.CREATED, t('risk.evaluated'), toEvaluationEntry(done));
   }
 
-  @ApiOperation({ summary: 'Historial de evaluaciones de un riesgo', description: 'De la más reciente a la más antigua, cada una con la evaluación anterior. Lo leen `admin_empresa` y `auditor`; el `funcional` no.' })
+  @ApiOperation({ summary: 'Historial de evaluaciones de un riesgo', description: 'De la más reciente a la más antigua, cada una con la evaluación anterior. Lo leen `admin_empresa` y `auditor`; el `responsable` no.' })
   @ApiPaged(RiskEvaluationEntryResponse, 'Página del historial.')
   @Get('evaluation-history')
   @Roles('admin_empresa', 'auditor')
@@ -63,7 +63,7 @@ export class RiskAssessmentController {
     return new ResponseDto(HttpStatus.CREATED, t('risk_treatment.created'), toRiskTreatment(created));
   }
 
-  @ApiOperation({ summary: 'Historial de tratamientos de un riesgo', description: 'Todas las decisiones tomadas sobre el riesgo, de la más reciente a la más antigua. El `funcional` lee las de un riesgo suyo.' })
+  @ApiOperation({ summary: 'Historial de tratamientos de un riesgo', description: 'Todas las decisiones tomadas sobre el riesgo, de la más reciente a la más antigua. El `responsable` lee las de un riesgo suyo.' })
   @ApiPaged(RiskTreatmentResponse, 'Página de tratamientos.')
   @Get('treatments')
   async treatments(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Query() q: HistoryQuery) {
