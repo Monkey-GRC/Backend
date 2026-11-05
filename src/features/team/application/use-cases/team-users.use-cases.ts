@@ -76,9 +76,13 @@ export class UpdateTeamMemberUseCase {
   constructor(private readonly repo: TeamUserRepository) {}
 
   async execute(p: Principal, id: string, dto: UpdateTeamMemberDto, meta: RequestMeta): Promise<TeamMember> {
-    if (dto.status === undefined && dto.name === undefined && dto.last_name === undefined) throw new ValidationException([{ field: 'status', code: 'required' }]);
-    const done = await this.repo.update(scopeOf(p), id, { status: dto.status, name: dto.name, lastName: dto.last_name }, new Date(), ({ before, after, sessionsClosed }) => ({
-      ...entry(p, meta, 'user.update', snapshot(before), { ...snapshot(after), ...(sessionsClosed ? { sessions_closed: sessionsClosed } : {}) }),
+    if (dto.status === undefined && dto.name === undefined && dto.last_name === undefined && dto.group_id === undefined) throw new ValidationException([{ field: 'status', code: 'required' }]);
+    const done = await this.repo.update(scopeOf(p), id, { status: dto.status, name: dto.name, lastName: dto.last_name, groupId: dto.group_id, confirmUnassign: dto.confirm_unassign }, new Date(), ({ before, after, sessionsClosed, controlsUnassigned }) => ({
+      ...entry(p, meta, 'user.update', snapshot(before), {
+        ...snapshot(after),
+        ...(sessionsClosed ? { sessions_closed: sessionsClosed } : {}),
+        ...(controlsUnassigned ? { controls_unassigned: controlsUnassigned } : {}),
+      }),
     }));
     if (!done) throw new DomainError('NOT_FOUND');
     return done;

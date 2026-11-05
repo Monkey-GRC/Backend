@@ -52,9 +52,9 @@ export class UsersController {
     return new ResponseDto(HttpStatus.OK, t('user.list'), toPageResponse(page, toMember));
   }
 
-  @ApiOperation({ summary: 'Editar, desactivar o reactivar a una persona', description: 'Cambia el estado (`inactive`/`active`) o el nombre. **Desactivar cierra todas sus sesiones al instante** (CC6.3). No se desactiva a uno mismo, ni una cuenta `pending`. Sobre un administrador o alguien de otra empresa: `404`. Queda registro de auditoría.' })
+  @ApiOperation({ summary: 'Editar, mover, desactivar o reactivar a una persona', description: 'Cambia el estado (`inactive`/`active`) o el nombre, o **mueve a un delegado** a otro equipo (`group_id`): si ejecuta controles hace falta `confirm_unassign` y esos controles quedan sin ejecutor (siguen con su dueño). **Desactivar cierra todas sus sesiones al instante** (CC6.3). No se desactiva a uno mismo, ni una cuenta `pending`. Sobre un administrador o alguien de otra empresa: `404`. Queda registro de auditoría.' })
   @ApiData(TeamMemberResponse, 'Cuenta ya cambiada.')
-  @ApiDomainErrors('LAST_ADMIN', 'USER_NOT_ACTIVATED', 'USER_LIMIT_REACHED')
+  @ApiDomainErrors('NOT_FOUND', 'LAST_ADMIN', 'USER_NOT_ACTIVATED', 'USER_LIMIT_REACHED', 'USER_HAS_ASSIGNMENTS')
   @Patch(':id')
   async change(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Body() dto: UpdateTeamMemberDto, @Req() req: Request) {
     return new ResponseDto(HttpStatus.OK, t('user.updated'), toMember(await this.update.execute(p, id, dto, metaOf(req))));

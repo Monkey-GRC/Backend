@@ -23,6 +23,14 @@ enum UserStatus {
   @@schema("platform")
 }
 
+enum GroupKind {
+  responsables
+  team
+
+  @@map("group_kind")
+  @@schema("platform")
+}
+
 enum ApiKeyStatus {
   active
   revoked
@@ -117,6 +125,8 @@ model UserGroup {
   companyId String   @map("company_id") @db.Uuid
   name      String
   leaderId  String   @map("leader_id") @db.Uuid
+  // D104 · `responsables` lo lidera el admin_empresa; `team` es el equipo de delegados de un responsable (a lo sumo uno por líder: índice único parcial en la migración).
+  kind      GroupKind
   createdAt DateTime @default(now()) @map("created_at")
 
   company Company @relation(fields: [companyId], references: [id])

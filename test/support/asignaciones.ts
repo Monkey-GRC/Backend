@@ -3,7 +3,7 @@ import { owner } from './app';
 // D102 · El dueño (y el ejecutor) de un control salen de platform.client_control_assignments. Las pruebas asignan directamente en la base (lo que harán los endpoints de MD-192).
 
 async function adminDe(companyId: string): Promise<string> {
-  return (await owner<{ id: string }>(`select id from platform.users where company_id = $1 and role = 'admin_empresa' order by created_at limit 1`, [companyId]))[0].id;
+  return (await owner<{ id: string }>(`select id from platform.users where company_id = $1 and role = 'admin_empresa' order by created_at, id limit 1`, [companyId]))[0].id;
 }
 
 /** Deja a `ownerId` como dueño de un control (y a `executorId` como su ejecutor, si se manda). */

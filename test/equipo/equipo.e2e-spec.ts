@@ -136,7 +136,7 @@ describe('Invitar a una persona del equipo', () => {
     it('si el nombre «Responsables» lo tiene un grupo que no lidera un administrador no se reutiliza: 409 RESPONSIBLES_GROUP_INVALID y no se crea nada; eligiendo otro grupo de responsables sí', async () => {
       const e = await empresaConCupo(app, monkey, 'Reservado', 10);
       const [admin] = await owner<{ id: string }>('select id from platform.users where email = $1', [e.email]);
-      const [otro] = await owner<{ id: string }>(`insert into platform.user_groups (id, company_id, name, leader_id) values (gen_random_uuid(), $1, 'Responsables - IA', $2) returning id`, [e.companyId, admin.id]);
+      const [otro] = await owner<{ id: string }>(`insert into platform.user_groups (id, company_id, name, kind, leader_id) values (gen_random_uuid(), $1, 'Responsables - IA', 'responsables', $2) returning id`, [e.companyId, admin.id]);
       const lider = await invitarYActivar(app, e.agent, { email: email('res-lider'), name: 'L', last_name: 'L', role: 'responsable', group_id: otro.id });
       await sembrarEquipo(e.companyId, lider.id, 'Responsables'); // lo lidera un responsable
       const grupos = await gruposDe(e.companyId);
@@ -176,10 +176,10 @@ describe('Invitar a una persona del equipo', () => {
     });
 
     it('con group_id va a ese grupo de responsables del administrador; uno que no existe, de otra empresa o que no es de responsables es 404', async () => {
-      const [g] = await owner<{ id: string }>(`insert into platform.user_groups (id, company_id, name, leader_id) values (gen_random_uuid(), $1, 'Responsables - IA', $2) returning id`, [a.companyId, adminId]);
+      const [g] = await owner<{ id: string }>(`insert into platform.user_groups (id, company_id, name, kind, leader_id) values (gen_random_uuid(), $1, 'Responsables - IA', 'responsables', $2) returning id`, [a.companyId, adminId]);
       const res = (await invite(a.agent, { email: email('resp-ia'), role: 'responsable', group_id: g.id }).expect(201)).body.data;
       expect(res.group).toEqual({ id: g.id, name: 'Responsables - IA' });
-      const ajeno = (await owner<{ id: string }>('select id from platform.user_groups where company_id = $1 limit 1', [b.companyId]))[0]?.id;
+      const ajeno = (await owner<{ id: string }>(`select id from platform.user_groups where company_id = $1 order by created_at, id limit 1`, [b.companyId]))[0]?.id;
       const candidatos = ['00000000-0000-4000-8000-000000000000', t1, ...(ajeno ? [ajeno] : [])]; // t1 es el equipo de un responsable, no un grupo de responsables
       for (const group_id of candidatos) await invite(a.agent, { email: email('resp-mal'), role: 'responsable', group_id }).expect(404);
       expect(await owner('select 1 from platform.users where email = $1', [email('resp-mal')])).toHaveLength(0);
@@ -204,7 +204,7 @@ describe('Invitar a una persona del equipo', () => {
     });
 
     it('el grupo debe ser el equipo de un responsable activo o pendiente de la empresa: inexistente, de otra empresa, de responsables o de un responsable inactivo es 404', async () => {
-      const [gAdmin] = await owner<{ id: string }>(`insert into platform.user_groups (id, company_id, name, leader_id) values (gen_random_uuid(), $1, 'Responsables - Otro', $2) returning id`, [a.companyId, adminId]);
+      const [gAdmin] = await owner<{ id: string }>(`insert into platform.user_groups (id, company_id, name, kind, leader_id) values (gen_random_uuid(), $1, 'Responsables - Otro', 'responsables', $2) returning id`, [a.companyId, adminId]);
       const baja = await activo(a.agent, 'r-baja', 'responsable');
       const tBaja = await sembrarEquipo(a.companyId, baja.id);
       await a.agent.patch(`/v1/users/${baja.id}`).send({ status: 'inactive' }).expect(200);

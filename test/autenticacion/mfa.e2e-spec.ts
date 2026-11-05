@@ -248,7 +248,7 @@ describe('D104 · el perfil del delegado en el segundo factor', () => {
     const delEmail = `mfa-del-${RUN}@mfa.test`;
     const hash = await bcrypt.hash(PASSWORD, 4);
     await owner(`insert into platform.users (id, company_id, email, name, last_name, password_hash, role, status) values ($1, $2, $3, 'Rita', 'Lider', $4, 'responsable', 'active')`, [respId, a.companyId, `mfa-resp-${RUN}@mfa.test`, hash]);
-    await owner(`insert into platform.user_groups (id, company_id, name, leader_id) values ($1, $2, $3, $4)`, [teamId, a.companyId, `Equipo mfa ${RUN}`, respId]);
+    await owner(`insert into platform.user_groups (id, company_id, name, kind, leader_id) values ($1, $2, $3, 'team', $4)`, [teamId, a.companyId, `Equipo mfa ${RUN}`, respId]);
     await owner(`insert into platform.users (id, company_id, email, password_hash, role, status, group_id, is_internal) values ($1, $2, $3, $4, 'delegado', 'active', $5, true)`, [delId, a.companyId, delEmail, hash, teamId]);
 
     const agent = request.agent(app.getHttpServer());

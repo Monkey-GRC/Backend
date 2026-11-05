@@ -1,5 +1,5 @@
 import { InvitedMember, MemberWithCode } from '../application/use-cases/team-users.use-cases';
-import { TeamMember } from '../domain/team.types';
+import { TeamGroup, TeamMember } from '../domain/team.types';
 
 // Forma de contracts/gestion-usuarios.md. Nunca sale el hash de la contraseña, el secreto del segundo factor ni la huella del código.
 
@@ -27,4 +27,12 @@ export const toInvitedMember = (v: InvitedMember) => ({
 export const toMemberWithCode = (v: MemberWithCode) => ({
   ...toMember(v.member),
   activation_code: { code: v.activationCode.code, status: v.activationCode.status, expires_at: v.activationCode.expiresAt.toISOString() },
+});
+
+export const toGroup = (g: TeamGroup) => ({
+  id: g.id,
+  name: g.name,
+  kind: g.kind,
+  leader: { id: g.leader.id, name: g.leader.name, last_name: g.leader.lastName, role: g.leader.role },
+  members_count: g.membersCount,
 });

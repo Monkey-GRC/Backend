@@ -6,6 +6,8 @@ import { connect } from '../support/db';
 
 // D104 · La migración 20261105000300_responsables_group: los responsables sin grupo pasan a «Responsables» y el nombre de un grupo es único por empresa.
 // Se ejecuta el SQL real de la migración sobre datos sembrados (con el índice único retirado antes, para poder sembrar nombres repetidos).
+// Esa migración es anterior a `user_groups.kind` (20261105000400_group_kind): su INSERT no la trae, así que mientras corre se le da a la columna un valor por omisión
+// que se quita al terminar (la columna es NOT NULL sin valor por omisión en el esquema real).
 const SQL = readFileSync(join(__dirname, '../../prisma/migrations/20261105000300_responsables_group/migration.sql'), 'utf8');
 
 type Db = Awaited<ReturnType<typeof connect>>;
@@ -26,7 +28,11 @@ const usuario = async (companyId: string, k: string, role: string, createdAt: st
 };
 const grupo = async (companyId: string, name: string, leaderId: string, createdAt = '2026-01-01'): Promise<string> => {
   const id = randomUUID();
-  await db.query('insert into platform.user_groups (id, company_id, name, leader_id, created_at) values ($1, $2, $3, $4, $5)', [id, companyId, name, leaderId, createdAt]);
+  await db.query(
+    `insert into platform.user_groups (id, company_id, name, kind, leader_id, created_at)
+     values ($1, $2, $3, (select case when role = 'responsable' then 'team' else 'responsables' end::platform.group_kind from platform.users where id = $4), $4, $5)`,
+    [id, companyId, name, leaderId, createdAt],
+  );
   return id;
 };
 const rows = async <T>(sql: string, params: unknown[] = []): Promise<T[]> => (await db.query(sql, params)).rows as T[];
@@ -35,11 +41,13 @@ beforeAll(async () => {
   db = await connect();
 });
 afterAll(async () => {
+  await db.query('alter table platform.user_groups alter column kind drop default').catch(() => undefined);
   await db.end();
 });
 
 it('mete a los responsables sin grupo en «Responsables» (lo crea con el admin más antiguo), respeta lo que ya tienen, omite la empresa sin admin y deja único el nombre', async () => {
   await db.query('drop index platform.user_groups_company_id_name_key');
+  await db.query(`alter table platform.user_groups alter column kind set default 'responsables'`);
 
   // Empresa 1: sin «Responsables»; dos admins (manda el más antiguo) y dos responsables sin grupo.
   const e1 = await empresa('1');
@@ -104,6 +112,8 @@ it('mete a los responsables sin grupo en «Responsables» (lo crea con el admin 
 
   // Repetir la migración a mano no falla ni deja FORCE apagado.
   await db.query(SQL);
+
+  await db.query('alter table platform.user_groups alter column kind drop default');
 
   // El índice único volvió, y RLS sigue habilitado y forzado.
   await expect(grupo(e4, 'Repetido', admin4)).rejects.toThrow(/user_groups_company_id_name_key/);

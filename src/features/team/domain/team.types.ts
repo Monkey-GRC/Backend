@@ -7,6 +7,14 @@ export type TeamRole = (typeof TEAM_ROLES)[number];
 /** Nombre del grupo de responsables por omisión de una empresa; se crea al hacer falta (contracts/gestion-usuarios.md). */
 export const RESPONSIBLES_GROUP_NAME = 'Responsables';
 
+/** Las dos clases de grupo (D104, enum `group_kind`): el de responsables lo lidera el admin_empresa; el equipo de delegados, un responsable. */
+export const GROUP_KINDS = ['responsables', 'team'] as const;
+export type GroupKind = (typeof GROUP_KINDS)[number];
+
+export type GroupLeader = { id: string; name: string | null; lastName: string | null; role: string };
+
+export type TeamGroup = { id: string; name: string; kind: GroupKind; leader: GroupLeader; membersCount: number };
+
 export type TeamPerson = { id: string; name: string | null; lastName: string | null };
 
 export type TeamMember = {
