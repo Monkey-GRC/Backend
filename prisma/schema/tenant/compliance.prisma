@@ -115,7 +115,7 @@ model ClientControl {
   tenant  Company @relation(fields: [tenantId], references: [id])
 
   actionPlans           ActionPlan[]
-  userControlAssignments UserControlAssignment[]
+  assignment ClientControlAssignment?
   clientCauseControls   ClientCauseControl[]
   evaluations           Evaluation[]
   auditObservations     AuditObservation[]
@@ -308,7 +308,7 @@ model EvidenceSubmission {
   id                     String   @id @default(uuid()) @db.Uuid
   tenantId               String   @map("tenant_id") @db.Uuid
   evidenceRequirementId  String   @map("evidence_requirement_id") @db.Uuid
-  submittedBy            String   @map("submitted_by") @db.Uuid // admin_empresa o funcional: la empresa solo aporta, no aprueba (D84)
+  submittedBy            String   @map("submitted_by") @db.Uuid // admin_empresa, responsable o delegado: la empresa solo aporta, no aprueba (D84)
   submittedAt            DateTime @default(now()) @map("submitted_at")
   filePath               String   @map("file_path") // la llave del objeto en el almacenamiento privado
   fileType               String   @map("file_type")
@@ -334,10 +334,11 @@ model EvidenceSubmission {
   @@schema("tenant")
 }
 
-// Quién revisó una entrega (D96): una sola revisión, la del admin_empresa; `PUT` la crea o la reemplaza (queda en el rastro).
+// Quién revisó una entrega (D102, §7.3): dos niveles, el `responsable` dueño y el `admin_empresa`, una fila por rol; un rechazo gana. `PUT` crea o reemplaza la de su rol (queda en el rastro).
 // `ai_prevalidated` no se guarda: se deriva (la entrega tiene `ai_verdict` y ninguna revisión humana).
 enum EvidenceReviewerRole {
   admin_empresa
+  responsable
 
   @@map("evidence_reviewer_role")
   @@schema("tenant")
@@ -442,7 +443,7 @@ enum AuditObservationStatus {
 }
 
 // §7.6, MD-154 · Lo que redacta el `auditor` y debe atender la empresa. NO es un hallazgo (lo detecta el sistema) y NO mueve el porcentaje. `open` → `answered` → `closed`:
-// responde el `admin_empresa` (o el `funcional` responsable del control); solo cierra, o devuelve a `open`, quien la escribió. Una cerrada no se toca y ninguna se borra: la base lo impone
+// responde el `admin_empresa` (o el `responsable` dueño del control); solo cierra, o devuelve a `open`, quien la escribió. Una cerrada no se toca y ninguna se borra: la base lo impone
 // con un trigger (ver la migración de RLS). `client_control_id` se completa solo cuando solo se manda la evidencia (la entrega pertenece a un único control). Al devolverla a `open`
 // la última respuesta se conserva; la anterior queda en `audit_logs`.
 model AuditObservation {

@@ -1,7 +1,9 @@
+// D102 · `responsable` es el dueño de controles y lidera un equipo; `delegado` es el ejecutor que el responsable elige entre los de su equipo. Reemplazan a `funcional`.
 enum UserRole {
   admin_monkey
   admin_empresa
-  funcional
+  responsable
+  delegado
   auditor
 
   @@map("user_role")
@@ -61,15 +63,19 @@ model User {
   mfaSecretEncrypted  String?   @map("mfa_secret_encrypted") @db.Text
   // D94 · El último paso de 30 s aceptado: un código ya usado no se acepta dos veces.
   mfaLastUsedStep     Int?      @map("mfa_last_used_step")
+  // D102 · Un solo grupo por persona (responsable y delegado); nulo para admin_empresa, auditor y admin_monkey.
+  groupId             String?   @map("group_id") @db.Uuid
+  // D102 · Solo `delegado`: true si es de la empresa, false si es externo. Nulo en los demás roles (lo impone un CHECK en la migración).
+  isInternal          Boolean?  @map("is_internal")
   createdAt      DateTime    @default(now()) @map("created_at")
 
   company    Company     @relation(fields: [companyId], references: [id])
+  group      UserGroup?  @relation("GroupMembers", fields: [groupId], references: [id])
 
-  dimensions                UserDimension[]
-  dimensionOwnerships       ServiceDimensionOwner[] @relation("DimensionOwner")
-  dimensionOwnershipsGranted ServiceDimensionOwner[] @relation("DimensionOwnerAssignedBy")
-  controlAssignments        UserControlAssignment[] @relation("AssignedUser")
-  controlAssignmentsGranted UserControlAssignment[] @relation("AssignedByUser")
+  groupsLed                 UserGroup[]                @relation("GroupLeader")
+  controlsOwned             ClientControlAssignment[]  @relation("ControlOwner")
+  controlsExecuted          ClientControlAssignment[]  @relation("ControlExecutor")
+  controlAssignmentsGranted ClientControlAssignment[]  @relation("ControlAssignedBy")
   sessions                  Session[]
   activationCodes           UserActivationCode[]    @relation("ActivationCodeUser")
   activationCodesCreated    UserActivationCode[]    @relation("ActivationCodeCreatedBy")
@@ -100,70 +106,51 @@ model User {
   complianceEvents ComplianceEvent[]
 
   @@index([companyId])
+  @@index([groupId])
   @@map("users")
   @@schema("platform")
 }
 
-model UserControlAssignment {
-  id       String   @id @default(uuid()) @db.Uuid
-  companyId       String @map("company_id") @db.Uuid
-  userId   String   @map("user_id") @db.Uuid
-  clientControlId String @map("client_control_id") @db.Uuid
-  // D96 · La excepción es por control Y dimensión: una fila por par, que manda sobre el responsable del servicio en esa dimensión.
-  dimension Dimension
-  assignedBy String   @map("assigned_by") @db.Uuid
-  assignedAt DateTime @default(now()) @map("assigned_at")
+// D102 · Un grupo es un equipo: su líder (admin_empresa o responsable) y las personas que agrupa. company_id lo pide el RLS.
+model UserGroup {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  name      String
+  leaderId  String   @map("leader_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
 
-  user          User @relation("AssignedUser", fields: [userId], references: [id])
-  assignedByUser User @relation("AssignedByUser", fields: [assignedBy], references: [id])
-  clientControl ClientControl @relation(fields: [clientControlId], references: [id])
-  company        Company       @relation(fields: [companyId], references: [id])
-
-  @@unique([clientControlId, dimension])
-  @@index([companyId])
-  @@index([userId])
-  @@index([clientControlId])
-  @@map("user_control_assignments")
-  @@schema("platform")
-}
-
-// D96 · La especialidad de un funcional: una o más de las cinco dimensiones. Es un atributo de la persona, no un rol. Que el usuario sea `funcional` lo impone la aplicación.
-model UserDimension {
-  id        String    @id @default(uuid()) @db.Uuid
-  companyId String    @map("company_id") @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
-  dimension Dimension
-  createdAt DateTime  @default(now()) @map("created_at")
-
-  user    User    @relation(fields: [userId], references: [id])
   company Company @relation(fields: [companyId], references: [id])
+  leader  User    @relation("GroupLeader", fields: [leaderId], references: [id])
+  members User[]  @relation("GroupMembers")
 
-  @@unique([userId, dimension])
   @@index([companyId])
-  @@map("user_dimensions")
+  @@index([leaderId])
+  @@map("user_groups")
   @@schema("platform")
 }
 
-// D96 · El responsable principal de un servicio en una dimensión: un funcional con esa especialidad. Una fila por servicio y dimensión. El responsable efectivo de un
-// control en una dimensión es su excepción (`user_control_assignments`) o, si no hay, esta fila; no se guarda una fila por control.
-model ServiceDimensionOwner {
-  id         String    @id @default(uuid()) @db.Uuid
-  companyId  String    @map("company_id") @db.Uuid
-  serviceId  String    @map("service_id") @db.Uuid
-  dimension  Dimension
-  userId     String    @map("user_id") @db.Uuid
-  assignedBy String    @map("assigned_by") @db.Uuid
-  assignedAt DateTime  @default(now()) @map("assigned_at")
+// D102 · Una fila por control del cliente: quién es su dueño (responsable o admin_empresa) y, si lo hay, su ejecutor (un delegado del equipo del dueño).
+// Sin fila el control está «Sin asignar»; sin ejecutor lo ejecuta el dueño. No guarda dimensión (se eliminaron `user_dimensions` y `service_dimension_owners`).
+model ClientControlAssignment {
+  id              String    @id @default(uuid()) @db.Uuid
+  companyId       String    @map("company_id") @db.Uuid
+  clientControlId String    @unique @map("client_control_id") @db.Uuid
+  ownerId         String    @map("owner_id") @db.Uuid
+  executorId      String?   @map("executor_id") @db.Uuid
+  assignedBy      String    @map("assigned_by") @db.Uuid
+  assignedAt      DateTime  @default(now()) @map("assigned_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  user           User    @relation("DimensionOwner", fields: [userId], references: [id])
-  assignedByUser User    @relation("DimensionOwnerAssignedBy", fields: [assignedBy], references: [id])
-  service        Service @relation(fields: [serviceId], references: [id])
-  company        Company @relation(fields: [companyId], references: [id])
+  company       Company       @relation(fields: [companyId], references: [id])
+  clientControl ClientControl @relation(fields: [clientControlId], references: [id])
+  owner         User          @relation("ControlOwner", fields: [ownerId], references: [id])
+  executor      User?         @relation("ControlExecutor", fields: [executorId], references: [id])
+  assignedByUser User         @relation("ControlAssignedBy", fields: [assignedBy], references: [id])
 
-  @@unique([serviceId, dimension])
   @@index([companyId])
-  @@index([userId])
-  @@map("service_dimension_owners")
+  @@index([ownerId])
+  @@index([executorId])
+  @@map("client_control_assignments")
   @@schema("platform")
 }
 
@@ -230,7 +217,7 @@ model MfaChallenge {
   @@schema("platform")
 }
 
-// D95 · Código de activación de un solo uso: lo emite quien crea la cuenta (el admin_empresa, para funcional y auditor; D96) y la persona lo canjea para poner su
+// D95 · Código de activación de un solo uso: lo emite quien crea la cuenta (el admin_empresa o el responsable, según el rol; D96, D102) y la persona lo canjea para poner su
 // contraseña y pasar de `pending` a `active`. Como la clave de acceso de una empresa: solo queda su huella (HMAC), vence y no se reutiliza.
 // company_id es el de la cuenta a activar (el de su RLS), no el de quien la crea.
 model UserActivationCode {
