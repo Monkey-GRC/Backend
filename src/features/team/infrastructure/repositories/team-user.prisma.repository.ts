@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../../generated/prisma/client';
 import { DomainError } from '../../../../common/errors/domain-error';
+import { assertRoomIn, assertUserRoom, lockUserQuota } from '../../../../common/quota/user-quota';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
@@ -28,6 +29,7 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
   async create(scope: TenantScope, input: NewMember, audit: Parameters<TeamUserRepository['create']>[2]): Promise<TeamMember> {
     try {
       return await this.prisma.withScope(scope, async (tx) => {
+        await assertUserRoom(tx, scope.companyId);
         const user = await tx.user.create({
           data: { companyId: scope.companyId, email: input.email, name: input.name, lastName: input.lastName, passwordHash: input.passwordHash, role: input.role, status: 'pending',
             // DT-86: provisional hasta MD-188 (is_internal obligatorio y grupo en el alta del delegado)
@@ -62,6 +64,9 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
 
   update(scope: TenantScope, id: string, change: MemberChange, at: Date, audit: Parameters<TeamUserRepository['update']>[4]): Promise<TeamMember | null> {
     return this.prisma.withScope(scope, async (tx) => {
+      // Reactivar compite por el cupo con las altas y con otras reactivaciones. Se toma el turno (fila de la empresa) ANTES de leer el estado de la cuenta: así el
+      // estado que se evalúa es el de ese turno, y dos peticiones sobre la misma persona no deciden con un estado ya viejo.
+      const quota = change.status === 'active' ? await lockUserQuota(tx, scope.companyId) : null;
       const found = await tx.user.findFirst({ where: { id }, select: SELECT });
       if (!found) return null;
       // Nadie se desactiva a sí mismo: la empresa se quedaría sin quien la administre. El nombre sí se puede corregir.
@@ -75,6 +80,8 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
       let sessionsClosed = 0;
       if (change.name !== undefined || change.lastName !== undefined) await tx.user.update({ where: { id }, data: { ...(change.name !== undefined ? { name: change.name } : {}), ...(change.lastName !== undefined ? { lastName: change.lastName } : {}) } });
       if (change.status && change.status !== found.status) {
+        // Solo `inactive` -> `active` suma una cuenta al conteo (D103); `suspended` ya cuenta.
+        if (quota && found.status === 'inactive') assertRoomIn(quota);
         await tx.user.update({ where: { id }, data: { status: change.status } });
         // Desactivar es el deprovisioning de CC6.3: la sesión abierta no sobrevive.
         if (change.status === 'inactive') sessionsClosed = (await tx.session.updateMany({ where: { userId: id, revokedAt: null }, data: { revokedAt: at } })).count;

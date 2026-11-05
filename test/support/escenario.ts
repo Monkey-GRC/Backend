@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { Agent, login, PASSWORD, RUN, seedAdminMonkey } from './app';
+import { Agent, login, owner, PASSWORD, RUN, seedAdminMonkey } from './app';
 import { claveEnviadaA } from './correo-en-memoria';
 
 export type Tenant = {
@@ -53,7 +53,7 @@ async function crearTenant(app: INestApplication, admin: Agent, k: string): Prom
   const companyName = `Empresa ${k} ${RUN}`;
   const email = `admin-${k.toLowerCase()}-${RUN}@aislamiento.test`;
   const company = must(
-    await admin.post('/v1/companies').send({ name: companyName, requires_dedicated_database: false, admin_email: email, framework_codes: ['soc2'] }),
+    await admin.post('/v1/companies').send({ name: companyName, requires_dedicated_database: false, max_users: 1000, admin_email: email, framework_codes: ['soc2'] }),
     201,
     `registrar ${k}`,
   );
@@ -98,4 +98,21 @@ export async function dosEmpresas(app: INestApplication): Promise<{ a: Tenant; b
   const a = await crearTenant(app, monkey, 'A');
   const b = await crearTenant(app, monkey, 'B');
   return { a, b, monkey };
+}
+
+/**
+ * Una empresa recién registrada, con su administrador ya dentro, sin servicio ni activos y con el cupo de usuarios que se pida (D103).
+ * `null` = sin tope: es como quedaron las empresas anteriores al cupo (la API no deja registrar una así, por eso se deja en la base).
+ */
+export async function empresaConCupo(app: INestApplication, monkey: Agent, k: string, maxUsers: number | null): Promise<{ agent: Agent; companyId: string; email: string }> {
+  const email = `admin-${k.toLowerCase()}-${RUN}@cupo.test`;
+  const company = must(
+    await monkey.post('/v1/companies').send({ name: `Empresa ${k} ${RUN}`, requires_dedicated_database: false, max_users: maxUsers ?? 1000, admin_email: email, framework_codes: ['soc2'] }),
+    201,
+    `registrar ${k}`,
+  );
+  const agent = request.agent(app.getHttpServer());
+  must(await agent.post('/v1/auth/redeem').send({ code: claveEnviadaA(email), email, password: PASSWORD }), 201, `canjear clave ${k}`);
+  if (maxUsers === null) await owner('update platform.companies set max_users = null where id = $1', [company.id]);
+  return { agent, companyId: company.id as string, email };
 }

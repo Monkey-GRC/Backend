@@ -30,7 +30,7 @@ const lastSession = async (email: string) =>
 describe('SEG-13 · política de contraseña (12+, mayúscula, minúscula, número y símbolo)', () => {
   it('rechaza contraseñas débiles con el error por campo, sin gastar la clave; acepta una buena', async () => {
     const email = `politica-${RUN}@aislamiento.test`;
-    await monkey.post('/v1/companies').send({ name: `Empresa política ${RUN}`, requires_dedicated_database: false, admin_email: email, framework_codes: ['soc2'] });
+    await monkey.post('/v1/companies').send({ name: `Empresa política ${RUN}`, requires_dedicated_database: false, max_users: 1000, admin_email: email, framework_codes: ['soc2'] });
     const weak = ['Corta1!', 'sinmayuscula123!', 'SINMINUSCULA123!', 'SinNumeroAquiii!', 'SinSimbolo12345'];
     for (const password of weak) {
       const res = await http().post('/v1/auth/redeem').send({ code: claveEnviadaA(email), email, password });
@@ -177,7 +177,7 @@ describe('SEG-17 y SEG-18 · tokens guardados con HMAC y cookies seguras', () =>
     expect(session.refresh_token_hash.length).toBeGreaterThanOrEqual(43);
 
     const email = `hash-${RUN}@aislamiento.test`;
-    const company = (await monkey.post('/v1/companies').send({ name: `Empresa hash ${RUN}`, requires_dedicated_database: false, admin_email: email, framework_codes: ['soc2'] })).body.data;
+    const company = (await monkey.post('/v1/companies').send({ name: `Empresa hash ${RUN}`, requires_dedicated_database: false, max_users: 1000, admin_email: email, framework_codes: ['soc2'] })).body.data;
     const code: string = claveEnviadaA(email);
     const [key] = await owner<{ code_hash: string }>('select code_hash from platform.access_keys where company_id = $1', [company.id]);
     expect(key.code_hash).not.toBe(code);

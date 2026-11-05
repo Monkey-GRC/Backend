@@ -11,6 +11,7 @@ import { ListPendingPurgeUseCase } from './application/use-cases/list-pending-pu
 import { PurgeExpiredCompaniesUseCase } from './application/use-cases/purge-expired-companies.use-case';
 import { ReactivateCompanyUseCase } from './application/use-cases/reactivate-company.use-case';
 import { RegenerateAccessKeyUseCase } from './application/use-cases/regenerate-access-key.use-case';
+import { UpdateMaxUsersUseCase } from './application/use-cases/update-max-users.use-case';
 import { RegisterCompanyUseCase } from './application/use-cases/register-company.use-case';
 import { CompanyPurgeScheduler } from './infrastructure/company-purge.scheduler';
 import { CompanyPrismaRepository } from './infrastructure/repositories/company.prisma.repository';
@@ -40,6 +41,7 @@ import { CompaniesController } from './presentation/companies.controller';
     ArchiveCompanyUseCase,
     ReactivateCompanyUseCase,
     ListPendingPurgeUseCase,
+    UpdateMaxUsersUseCase,
     PurgeExpiredCompaniesUseCase,
     CompanyPurgeScheduler,
   ],

@@ -26,6 +26,8 @@ export class CompanyResponse {
   @ApiProperty({ example: 'contacto@ejemplo.com', description: 'Correo del administrador de la empresa; con él se canjea la clave de acceso.' }) admin_email!: string;
   @ApiProperty({ enum: ISOLATION, enumName: 'IsolationStrategy', description: '`shared` base compartida con aislamiento por empresa · `dedicated` base propia.' }) isolation_strategy!: string;
   @ApiProperty({ enum: COMPANY_STATUS, enumName: 'CompanyStatus', description: '`deactivated`: archivada (D97), sin acceso ni motores hasta `archive_until`.' }) status!: string;
+  @ApiProperty({ example: 10, nullable: true, description: 'D103 · Cupo de usuarios contratado. `null`: empresa anterior al cupo, sin tope hasta que se le fije uno.' }) max_users!: number | null;
+  @ApiProperty({ example: 3, description: 'D103 · Cuentas que cuentan para el cupo (`active`, `pending` y `suspended`, de cualquier rol).' }) users_count!: number;
   @ApiProperty({ format: 'date-time' }) created_at!: string;
   @ApiProperty({ format: 'date-time', nullable: true, description: 'Cuándo se archivó; `null` si no está archivada.' }) deactivated_at!: string | null;
   @ApiProperty({ format: 'date-time', nullable: true, description: 'Cuándo se borra definitivamente con todos sus datos; `null` si no está archivada.' }) archive_until!: string | null;

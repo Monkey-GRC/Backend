@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   ParseUUIDPipe,
   Post,
   Query,
@@ -21,6 +22,7 @@ import { ResponseDto } from '../../../common/dtos/response.dto';
 import { toPageResponse } from '../../../common/pagination/page';
 import { ArchiveCompanyDto, ReactivateCompanyDto } from '../application/dtos/archive-company.dto';
 import { CreateCompanyDto } from '../application/dtos/create-company.dto';
+import { UpdateMaxUsersDto } from '../application/dtos/update-max-users.dto';
 import { ListCompaniesQuery } from '../application/dtos/list-companies.query';
 import { ArchiveCompanyUseCase } from '../application/use-cases/archive-company.use-case';
 import { GetCompanyUseCase } from '../application/use-cases/get-company.use-case';
@@ -28,6 +30,7 @@ import { ListCompaniesUseCase } from '../application/use-cases/list-companies.us
 import { ListPendingPurgeUseCase } from '../application/use-cases/list-pending-purge.use-case';
 import { ReactivateCompanyUseCase } from '../application/use-cases/reactivate-company.use-case';
 import { RegenerateAccessKeyUseCase } from '../application/use-cases/regenerate-access-key.use-case';
+import { UpdateMaxUsersUseCase } from '../application/use-cases/update-max-users.use-case';
 import { RegisterCompanyUseCase } from '../application/use-cases/register-company.use-case';
 import {
   toCompanyDetail,
@@ -55,6 +58,7 @@ export class CompaniesController {
     private readonly archiveCompany: ArchiveCompanyUseCase,
     private readonly reactivateCompany: ReactivateCompanyUseCase,
     private readonly listPendingPurge: ListPendingPurgeUseCase,
+    private readonly updateMaxUsers: UpdateMaxUsersUseCase,
   ) {}
 
   @ApiOperation({ summary: 'Registrar una empresa cliente', description: 'Crea la empresa con su estrategia de aislamiento, le contrata los marcos indicados (por defecto SOC 2) y genera la clave de acceso de su primer administrador, que **se envía por correo a `admin_email`** (D99): no viaja en la respuesta ni se muestra en ninguna pantalla. Si el correo no sale, la empresa se crea igual y `access_key.delivery_status` es `failed`: se reenvía con `access-key/regenerate`. Queda registro de auditoría.' })
@@ -73,6 +77,7 @@ export class CompaniesController {
         name: dto.name,
         requiresDedicatedDatabase: dto.requires_dedicated_database,
         adminEmail: dto.admin_email,
+        maxUsers: dto.max_users,
         frameworkCodes: dto.framework_codes ?? [...DEFAULT_CONTRACTED_FRAMEWORKS],
       },
       { ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' },
@@ -139,6 +144,21 @@ export class CompaniesController {
   ) {
     const detail = await this.getCompany.execute(principal, id);
     return new ResponseDto(HttpStatus.OK, t('company.detail'), toCompanyDetail(detail));
+  }
+
+  @ApiOperation({ summary: 'Cambiar el cupo de usuarios de una empresa', description: 'D103. En cualquier momento (también tras el canje de la clave). No puede ser menor que las cuentas que ya cuentan (`users_count`: `active`, `pending` y `suspended`); para bajarlo hay que desactivar cuentas primero. Queda registro de auditoría con el valor anterior y el nuevo.' })
+  @ApiData(CompanyDetailResponse, 'Empresa con el cupo actualizado.')
+  @ApiDomainErrors('MAX_USERS_BELOW_CURRENT')
+  @Patch(':id/max-users')
+  @HttpCode(HttpStatus.OK)
+  async setMaxUsers(
+    @CurrentUser() principal: Principal,
+    @Param('id', new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND })) id: string,
+    @Body() dto: UpdateMaxUsersDto,
+    @Req() req: Request,
+  ) {
+    const detail = await this.updateMaxUsers.execute(principal, id, dto.max_users, { ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+    return new ResponseDto(HttpStatus.OK, t('company.max_users_updated'), toCompanyDetail(detail));
   }
 
   @ApiOperation({

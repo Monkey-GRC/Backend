@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { DomainError } from '../../../../common/errors/domain-error';
+import { lockUserQuota } from '../../../../common/quota/user-quota';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
@@ -35,6 +36,7 @@ type CompanyRow = {
   archiveUntil: Date | null;
   deactivationReasonCode: 'non_payment' | 'client_request' | 'other' | null;
   deactivationReason: string | null;
+  maxUsers: number | null;
 };
 
 type AccessKeyRow = {
@@ -57,6 +59,7 @@ const toCompany = (r: CompanyRow) =>
     r.status === 'deactivated' && r.deactivatedAt && r.archiveUntil
       ? { deactivatedAt: r.deactivatedAt, archiveUntil: r.archiveUntil, reasonCode: r.deactivationReasonCode, reason: r.deactivationReason }
       : null,
+    r.maxUsers,
   );
 
 const toAccessKey = (r: AccessKeyRow) =>
@@ -144,6 +147,7 @@ export class CompanyPrismaRepository extends CompanyRepository {
           name: data.name,
           adminEmail: data.adminEmail,
           isolationStrategy: data.isolationStrategy,
+          maxUsers: data.maxUsers,
         },
       });
       const accessKey = await tx.accessKey.create({
@@ -236,13 +240,16 @@ export class CompanyPrismaRepository extends CompanyRepository {
         tx.company.count({ where }),
       ]);
 
-      const onboarded = await this.onboardedCompanyIds(tx, scope, rows.map((r) => r.id));
+      const ids = rows.map((r) => r.id);
+      const onboarded = await this.onboardedCompanyIds(tx, scope, ids);
+      const counts = await this.usersCounts(tx, ids);
       return {
         items: rows.map((row) => ({
           company: toCompany(row),
           currentAccessKey: row.accessKeys[0] ? toAccessKey(row.accessKeys[0]) : null,
           frameworks: toContracted(row.frameworks),
           onboardingCompleted: onboarded.has(row.id),
+          usersCount: counts.get(row.id) ?? 0,
         })),
         total,
         page: query.page,
@@ -265,14 +272,34 @@ export class CompanyPrismaRepository extends CompanyRepository {
       if (!row) return null;
 
       const onboarded = await this.onboardedCompanyIds(tx, scope, [row.id]);
+      const counts = await this.usersCounts(tx, [row.id]);
       const accessKeys = row.accessKeys.map(toAccessKey);
       return {
         company: toCompany(row),
         currentAccessKey: accessKeys[0] ?? null,
         frameworks: toContracted(row.frameworks),
         onboardingCompleted: onboarded.has(row.id),
+        usersCount: counts.get(row.id) ?? 0,
         accessKeys,
       };
+    });
+  }
+
+  updateMaxUsers(
+    scope: TenantScope,
+    companyId: string,
+    excludeCompanyId: string,
+    maxUsers: number,
+    audit: AuditIntent<{ before: number | null; after: number }>,
+  ): Promise<void> {
+    if (companyId === excludeCompanyId) throw new DomainError('NOT_FOUND');
+    return this.prisma.withScope(scope, async (tx) => {
+      // La fila queda bloqueada hasta el final: un alta que compite por el cupo espera y ve el valor nuevo (o el viejo, si esto falla).
+      // `lockUserQuota` bloquea la fila y cuenta con la misma puerta que usan las altas (`platform.company_users_count`): una sola regla de qué cuenta, para cualquier rol.
+      const { maxUsers: before, usersCount } = await lockUserQuota(tx, companyId);
+      if (maxUsers < usersCount) throw new DomainError('MAX_USERS_BELOW_CURRENT', { max_users: maxUsers, users_count: usersCount });
+      await tx.company.update({ where: { id: companyId }, data: { maxUsers } });
+      await insertAuditLog(tx, audit({ before, after: maxUsers }));
     });
   }
 
@@ -386,6 +413,15 @@ export class CompanyPrismaRepository extends CompanyRepository {
       },
       { timeoutMs: 300_000 },
     );
+  }
+
+  // D103 · Cuentas que cuentan para el cupo, de toda la página en una consulta. `users` tiene RLS por empresa y admin_monkey no ve las de otras:
+  // la función SECURITY DEFINER devuelve solo conteos y aplica el aislamiento por dentro.
+  private async usersCounts(tx: TransactionClient, companyIds: string[]): Promise<Map<string, number>> {
+    if (companyIds.length === 0) return new Map();
+    const rows = await tx.$queryRaw<Array<{ company_id: string; users_count: number }>>`
+      SELECT company_id, users_count FROM platform.company_users_count(${companyIds}::uuid[])`;
+    return new Map(rows.map((r) => [r.company_id, r.users_count]));
   }
 
   // "¿Existe ya organizations para esta empresa?" (campo derivado del contrato). organizations es

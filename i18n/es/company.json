@@ -11,5 +11,7 @@
   "confirmation_mismatch": "La razón social escrita no coincide con la de la empresa.",
   "already_deactivated": "La empresa ya está archivada.",
   "not_deactivated": "La empresa no está archivada.",
-  "archive_expired": "El plazo de archivado venció: la empresa está por borrarse y ya no se puede reactivar."
+  "archive_expired": "El plazo de archivado venció: la empresa está por borrarse y ya no se puede reactivar.",
+  "max_users_updated": "Cupo de usuarios actualizado.",
+  "max_users_below_current": "El cupo no puede ser menor que las cuentas que ya cuentan: desactiva alguna primero."
 }

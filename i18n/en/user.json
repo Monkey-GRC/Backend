@@ -5,5 +5,6 @@
   "activation_code_regenerated": "Done, we issued a new activation code. Hand it over: you will only see it now.",
   "last_admin": "You cannot deactivate your own account: the company would be left with nobody to assign the work.",
   "not_activated": "This person has not activated their account yet. Meanwhile you can issue a new code.",
-  "already_active": "This account is already activated: it does not need a new code."
+  "already_active": "This account is already activated: it does not need a new code.",
+  "limit_reached": "Your company has reached the number of users it contracted. Deactivate an account or ask to raise the limit."
 }
