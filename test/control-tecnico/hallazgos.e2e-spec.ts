@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import { ImportScanUseCase } from '../../src/features/technical-control/application/use-cases/scan.use-cases';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { awsBody, dosEmpresas, Tenant } from '../support/escenario';
-import { darEspecialidades } from '../support/especialidades';
+import { asignarControl } from '../support/asignaciones';
 
 // D90 · Qué falló y cómo corregirlo (contracts/modules/compliance-audit.md): para una prueba de nube de un control, lo que no cumplió la última evaluación y la guía para
 // corregirlo. Sale por HTTP con la sesión real de cada rol, contra el Postgres desechable. Nada de lo que sale nombra al proveedor de la sonda.
@@ -18,12 +18,12 @@ let app: INestApplication;
 let a: Tenant;
 let b: Tenant;
 let auditor: Agent;
-let funcional: Agent;
+let responsable: Agent;
 let controlId: string;
 let testId: string;
 let path: string;
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional'): Promise<void> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<void> {
   await owner(
     `insert into platform.users (id, company_id, email, name, last_name, password_hash, role)
      values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role)`,
@@ -57,9 +57,9 @@ beforeAll(async () => {
   app = await bootApp();
   ({ a, b } = await dosEmpresas(app));
   await cuenta(a.companyId, `auditor-d90-${RUN}@cumplimiento.test`, 'auditor');
-  await cuenta(a.companyId, `funcional-d90-${RUN}@cumplimiento.test`, 'funcional');
+  await cuenta(a.companyId, `responsable-d90-${RUN}@cumplimiento.test`, 'responsable');
   auditor = await login(app, `auditor-d90-${RUN}@cumplimiento.test`);
-  funcional = await login(app, `funcional-d90-${RUN}@cumplimiento.test`);
+  responsable = await login(app, `responsable-d90-${RUN}@cumplimiento.test`);
 
   const created = await a.agent.post('/v1/assets').send(awsBody(a, `aws-d90-${RUN}`));
   if (created.status !== 201) throw new Error(`activo: ${created.status} ${JSON.stringify(created.body)}`);
@@ -154,21 +154,22 @@ describe('Qué falló y cómo corregirlo (D90)', () => {
     expect(res.body.data.items).toHaveLength(1);
   });
 
-  it('el auditor también lo ve; un funcional sin la especialidad de nube, no (403)', async () => {
+  it('el auditor también lo ve; un responsable que no es dueño ni ejecutor del control, no (403)', async () => {
     await auditor.get(path).expect(200);
-    await funcional.get(path).expect(403);
+    await responsable.get(path).expect(403);
   });
 
-  it('el funcional con la especialidad de nube sí lo ve (D98), sin que nadie se lo asigne; si la pierde, ya no', async () => {
-    const [{ id }] = await owner<{ id: string }>('select id from platform.users where email = $1', [`funcional-d90-${RUN}@cumplimiento.test`]);
-    await darEspecialidades(a.companyId, id, 'cloud');
+  it('el dueño o el ejecutor del control sí lo ven (D102); si pierde la asignación, ya no', async () => {
+    const [{ id }] = await owner<{ id: string }>('select id from platform.users where email = $1', [`responsable-d90-${RUN}@cumplimiento.test`]);
+    await asignarControl(a.companyId, controlId, id);
     try {
-      expect((await funcional.get(path).expect(200)).body.data.total).toBe(3);
+      expect((await responsable.get(path).expect(200)).body.data.total).toBe(3);
     } finally {
-      await owner('delete from platform.user_dimensions where user_id = $1', [id]);
+      await owner('delete from platform.client_control_assignments where client_control_id = $1', [controlId]);
     }
-    await funcional.get(path).expect(403);
+    await responsable.get(path).expect(403);
   });
+
   it('para otra empresa el control no existe (404), igual que un control o una prueba inventados', async () => {
     await b.agent.get(path).expect(404);
     await a.agent.get(`/v1/controls/${controlId}/tests/00000000-0000-4000-8000-000000000000/findings`).expect(404);

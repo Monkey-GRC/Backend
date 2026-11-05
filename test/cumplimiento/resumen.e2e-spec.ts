@@ -11,10 +11,10 @@ let a: Tenant;
 let b: Tenant;
 let monkey: Agent;
 let auditor: Agent;
-let funcional: Agent;
+let responsable: Agent;
 const path = () => `/v1/services/${a.serviceId}/compliance-overview`;
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional'): Promise<void> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<void> {
   await owner(
     `insert into platform.users (id, company_id, email, name, last_name, password_hash, role)
      values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role)`,
@@ -26,9 +26,9 @@ beforeAll(async () => {
   app = await bootApp();
   ({ a, b, monkey } = await dosEmpresas(app));
   await cuenta(a.companyId, `auditor-res-${RUN}@cumplimiento.test`, 'auditor');
-  await cuenta(a.companyId, `funcional-res-${RUN}@cumplimiento.test`, 'funcional');
+  await cuenta(a.companyId, `responsable-res-${RUN}@cumplimiento.test`, 'responsable');
   auditor = await login(app, `auditor-res-${RUN}@cumplimiento.test`);
-  funcional = await login(app, `funcional-res-${RUN}@cumplimiento.test`);
+  responsable = await login(app, `responsable-res-${RUN}@cumplimiento.test`);
 });
 afterAll(async () => {
   await app?.close();
@@ -115,8 +115,8 @@ describe('Resumen del servicio — con la evaluación definida y resultados', ()
     expect(text).not.toMatch(/wazuh|prowler/i);
   });
 
-  it('un funcional ve el marco y las categorías completos, pero ningún fallo de lo que no tiene asignado', async () => {
-    const own = soc2(await read(funcional));
+  it('un responsable ve el marco y las categorías completos, pero ningún fallo de lo que no tiene asignado', async () => {
+    const own = soc2(await read(responsable));
     const admin = soc2(await read(a.agent));
     expect(own.progress).toEqual(admin.progress);
     expect(own.categories.map((c: any) => c.progress)).toEqual(admin.categories.map((c: any) => c.progress));
@@ -148,8 +148,8 @@ describe('Resumen del servicio — quién puede pedir qué', () => {
     expect(fw.technical.failing).toContain(blocked.control_code);
   });
 
-  it('el funcional pide la vista técnica y recibe 403; admin_monkey no entra al cumplimiento de una empresa', async () => {
-    await funcional.get(`${path()}?view=technical`).expect(403);
+  it('el responsable pide la vista técnica y recibe 403; admin_monkey no entra al cumplimiento de una empresa', async () => {
+    await responsable.get(`${path()}?view=technical`).expect(403);
     await monkey.get(path()).expect(403);
     await monkey.get(`${path()}?view=technical`).expect(403);
   });

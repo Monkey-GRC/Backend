@@ -125,10 +125,10 @@ describe('Aislamiento por empresa (RLS) — comportamiento', () => {
         db.query('select id from platform.companies where id = any($1)', [[a.companyId, b.companyId]]),
       );
       expect(comoMonkey.rowCount).toBe(2);
-      const comoFuncional = await asApp(db, { tenantId: a.companyId, role: 'funcional' }, () =>
+      const comoResponsable = await asApp(db, { tenantId: a.companyId, role: 'responsable' }, () =>
         db.query('select id from platform.companies where id = any($1)', [[a.companyId, b.companyId]]),
       );
-      expect(comoFuncional.rows.map((r) => r.id)).toEqual([a.companyId]);
+      expect(comoResponsable.rows.map((r) => r.id)).toEqual([a.companyId]);
     }));
 
   it('el catálogo se lee libre pero una empresa no puede escribirlo', () =>

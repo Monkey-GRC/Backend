@@ -11,7 +11,7 @@ let a: Tenant;
 let b: Tenant;
 let monkey: Agent;
 let auditor: Agent;
-let funcional: Agent;
+let responsable: Agent;
 let adminId: string;
 let riskId: string; // un riesgo del catálogo de la empresa A
 let ciso: { id: string; type: string; person_name: string };
@@ -29,7 +29,7 @@ const auditFailsAfterInsert = () =>
 const auditRows = (tenantId: string, action: string) =>
   owner<{ n: number }>('select count(*)::int n from audit.audit_logs where tenant_id = $1 and action = $2', [tenantId, action]).then((r) => r[0].n);
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional'): Promise<string> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<string> {
   return (await owner<{ id: string }>(
     `insert into platform.users (id, company_id, email, name, last_name, password_hash, role) values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role) returning id`,
     [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
@@ -41,9 +41,9 @@ beforeAll(async () => {
   app = await bootApp();
   ({ a, b, monkey } = await dosEmpresas(app));
   await cuenta(a.companyId, `auditor-eva-${RUN}@cumplimiento.test`, 'auditor');
-  await cuenta(a.companyId, `funcional-eva-${RUN}@cumplimiento.test`, 'funcional');
+  await cuenta(a.companyId, `responsable-eva-${RUN}@cumplimiento.test`, 'responsable');
   auditor = await login(app, `auditor-eva-${RUN}@cumplimiento.test`);
-  funcional = await login(app, `funcional-eva-${RUN}@cumplimiento.test`);
+  responsable = await login(app, `responsable-eva-${RUN}@cumplimiento.test`);
   adminId = (await owner<{ id: string }>(`select id from platform.users where email = $1`, [a.email]))[0].id;
   riskId = (await a.agent.get(risks(a, '?page_size=100')).expect(200)).body.data.items.find((r: any) => r.origin === 'catalog').id;
   ciso = (await a.agent.post('/v1/responsibles').send({ type: 'ciso', person_name: 'Marta Ruiz' }).expect(201)).body.data;
@@ -111,9 +111,9 @@ describe('Evaluar un riesgo: el servidor calcula el valor y el nivel', () => {
 });
 
 describe('Quién puede evaluar, y el aislamiento entre empresas', () => {
-  it('solo el administrador de la empresa evalúa: el auditor, el funcional y admin_monkey reciben 403', async () => {
+  it('solo el administrador de la empresa evalúa: el auditor, el responsable y admin_monkey reciben 403', async () => {
     await evaluate(auditor, riskId, { likelihood: 1, impact: 1 }).expect(403);
-    await evaluate(funcional, riskId, { likelihood: 1, impact: 1 }).expect(403);
+    await evaluate(responsable, riskId, { likelihood: 1, impact: 1 }).expect(403);
     await evaluate(monkey, riskId, { likelihood: 1, impact: 1 }).expect(403);
   });
 
@@ -159,9 +159,9 @@ describe('Historial de evaluaciones', () => {
     expect(res.body.data.items).toHaveLength(1);
   });
 
-  it('lo leen el administrador y el auditor; el funcional y admin_monkey, no', async () => {
+  it('lo leen el administrador y el auditor; el responsable y admin_monkey, no', async () => {
     await auditor.get(`/v1/risks/${id}/evaluation-history`).expect(200);
-    await funcional.get(`/v1/risks/${id}/evaluation-history`).expect(403);
+    await responsable.get(`/v1/risks/${id}/evaluation-history`).expect(403);
     await monkey.get(`/v1/risks/${id}/evaluation-history`).expect(403);
   });
 });
@@ -225,15 +225,15 @@ describe('Tratamiento de un riesgo', () => {
     expect(detail.treatment.responsible).toEqual({ id: ciso.id, type: 'ciso', person_name: 'Marta Ruiz Peña' });
   });
 
-  it('solo el administrador trata; lo leen el auditor y el funcional de un riesgo suyo, y admin_monkey no', async () => {
+  it('solo el administrador trata; lo leen el auditor y el responsable de un riesgo suyo, y admin_monkey no', async () => {
     const body = { decision: 'accept', responsible_id: ciso.id, due_date: inDays(10) };
     await treat(auditor, riskId, body).expect(403);
-    await treat(funcional, riskId, body).expect(403);
+    await treat(responsable, riskId, body).expect(403);
     await treat(monkey, riskId, body).expect(403);
     await auditor.get(`/v1/risks/${riskId}/treatments`).expect(200);
     await monkey.get(`/v1/risks/${riskId}/treatments`).expect(403);
-    // el funcional sin acciones asignadas no ve riesgos: el historial de uno tampoco
-    await funcional.get(`/v1/risks/${riskId}/treatments`).expect(403);
+    // el responsable sin acciones asignadas no ve riesgos: el historial de uno tampoco
+    await responsable.get(`/v1/risks/${riskId}/treatments`).expect(403);
   });
 });
 

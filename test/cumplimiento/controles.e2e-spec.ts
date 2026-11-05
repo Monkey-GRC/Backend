@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
-import { controlesQueSeparan, darEspecialidades } from '../support/especialidades';
+import { asignarControl, controlesQueSeparan } from '../support/asignaciones';
 
 // MD-117 · Listar y ver las acciones de protección de un servicio (contracts/modules/compliance-controls.md). Cada prueba sale por HTTP, con la sesión
 // real de cada rol, contra el Postgres desechable.
@@ -12,12 +12,12 @@ let a: Tenant;
 let b: Tenant;
 let monkey: Agent;
 let auditor: Agent;
-let funcional: Agent;
-let funcionalId: string;
+let responsable: Agent;
+let responsableId: string;
 let listPath: string;
 const base = () => `/v1/services/${a.serviceId}/controls`;
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional'): Promise<string> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<string> {
   const rows = await owner<{ id: string }>(
     `insert into platform.users (id, company_id, email, name, last_name, password_hash, role)
      values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role) returning id`,
@@ -30,9 +30,9 @@ beforeAll(async () => {
   app = await bootApp();
   ({ a, b, monkey } = await dosEmpresas(app));
   await cuenta(a.companyId, `auditor-ctl-${RUN}@cumplimiento.test`, 'auditor');
-  funcionalId = await cuenta(a.companyId, `funcional-ctl-${RUN}@cumplimiento.test`, 'funcional');
+  responsableId = await cuenta(a.companyId, `responsable-ctl-${RUN}@cumplimiento.test`, 'responsable');
   auditor = await login(app, `auditor-ctl-${RUN}@cumplimiento.test`);
-  funcional = await login(app, `funcional-ctl-${RUN}@cumplimiento.test`);
+  responsable = await login(app, `responsable-ctl-${RUN}@cumplimiento.test`);
   listPath = base();
 });
 afterAll(async () => {
@@ -112,10 +112,10 @@ describe('Quién puede pedir qué', () => {
     await monkey.get(listPath).expect(403);
   });
 
-  it('la vista técnica la piden el administrador (D81) y el auditor; el funcional recibe 403', async () => {
-    await funcional.get(`${listPath}?view=technical`).expect(403);
+  it('la vista técnica la piden el administrador (D81) y el auditor; el responsable recibe 403', async () => {
+    await responsable.get(`${listPath}?view=technical`).expect(403);
     const id = (await items(a.agent))[0].id;
-    await funcional.get(`/v1/controls/${id}?view=technical`).expect(403);
+    await responsable.get(`/v1/controls/${id}?view=technical`).expect(403);
     await monkey.get(`${listPath}?view=technical`).expect(403);
   });
 
@@ -153,20 +153,20 @@ describe('Quién puede pedir qué', () => {
     expect(technical.some((c) => c.requirement_codes.some((r: string) => /^CC\d/.test(r)))).toBe(true);
   });
 
-  it('el funcional sin acciones asignadas recibe una lista vacía, no un error', async () => {
-    expect(await items(funcional)).toEqual([]);
+  it('el responsable sin acciones asignadas recibe una lista vacía, no un error', async () => {
+    expect(await items(responsable)).toEqual([]);
   });
 
-  it('el funcional ve los controles de su especialidad, sin que nadie se los asigne; los demás son 403 (D98)', async () => {
-    const { dimension, con, sin } = await controlesQueSeparan(a.serviceId);
-    await darEspecialidades(a.companyId, funcionalId, dimension);
-    const visible = await items(funcional, '?page_size=100');
+  it('el responsable ve solo los controles de los que es dueño; los demás son 403 (D102)', async () => {
+    const { con, sin } = await controlesQueSeparan(a.serviceId);
+    await asignarControl(a.companyId, con, responsableId);
+    const visible = await items(responsable, '?page_size=100');
     expect(visible.map((c) => c.id)).toContain(con);
     expect(visible.map((c) => c.id)).not.toContain(sin);
     expect(visible.length).toBeLessThan((await items(a.agent, '?page_size=100')).length);
-    expect(visible.every((c) => c.assigned_to === null)).toBe(true); // con varias personas por dimensión no hay una «a cargo»
-    await funcional.get(`/v1/controls/${con}`).expect(200);
-    await funcional.get(`/v1/controls/${sin}`).expect(403);
+    expect(visible.every((c) => c.assigned_to === null)).toBe(true); // DT-87: transitorio hasta MD-193 (visibilidad por dueño/ejecutor); aún no se muestra quién está a cargo
+    await responsable.get(`/v1/controls/${con}`).expect(200);
+    await responsable.get(`/v1/controls/${sin}`).expect(403);
   });});
 
 describe('Aislamiento entre empresas', () => {

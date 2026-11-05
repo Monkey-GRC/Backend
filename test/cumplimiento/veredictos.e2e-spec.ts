@@ -13,7 +13,7 @@ let a: Tenant;
 let b: Tenant;
 let adminId: string;
 let auditor: Agent;
-let funcional: Agent;
+let responsable: Agent;
 
 let manualControl: string; // un control con un test de nube que el admin_empresa resuelve a mano (`technical_manual`)
 let manualTest: string;
@@ -30,7 +30,7 @@ const stateEvents = (controlId: string) =>
   );
 const auditRows = (action: string) => owner<{ n: number }>('select count(*)::int n from audit.audit_logs where tenant_id = $1 and action = $2', [a.companyId, action]).then((r) => r[0].n);
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional'): Promise<string> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<string> {
   return (await owner<{ id: string }>(
     `insert into platform.users (id, company_id, email, name, last_name, password_hash, role) values (gen_random_uuid(), $1, $2, 'Camilo', 'Ortiz', $3, $4::platform.user_role) returning id`,
     [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
@@ -54,9 +54,9 @@ beforeAll(async () => {
   ({ a, b } = await dosEmpresas(app));
   adminId = (await owner<{ id: string }>(`update platform.users set name = 'Camilo', last_name = 'Ortiz' where email = $1 returning id`, [a.email]))[0].id;
   await cuenta(a.companyId, `auditor-ver-${RUN}@cumplimiento.test`, 'auditor');
-  await cuenta(a.companyId, `funcional-ver-${RUN}@cumplimiento.test`, 'funcional');
+  await cuenta(a.companyId, `responsable-ver-${RUN}@cumplimiento.test`, 'responsable');
   auditor = await login(app, `auditor-ver-${RUN}@cumplimiento.test`);
-  funcional = await login(app, `funcional-ver-${RUN}@cumplimiento.test`);
+  responsable = await login(app, `responsable-ver-${RUN}@cumplimiento.test`);
 
   const manual = await pick('cloud', 'technical_manual');
   expect(manual.length).toBeGreaterThan(0);
@@ -121,10 +121,10 @@ describe('Dar el veredicto de un test manual', () => {
     expect(list.items[0].applies_to_controls.length).toBeGreaterThan(0);
   });
 
-  it('el admin_empresa y el auditor leen el historial; el funcional no', async () => {
+  it('el admin_empresa y el auditor leen el historial; el responsable no', async () => {
     expect((await auditor.get(verdicts(manualControl, manualTest)).expect(200)).body.data.total).toBe(2);
     expect((await a.agent.get(verdicts(manualControl, manualTest)).expect(200)).body.data.total).toBe(2);
-    await funcional.get(verdicts(manualControl, manualTest)).expect(403);
+    await responsable.get(verdicts(manualControl, manualTest)).expect(403);
   });
 });
 
@@ -153,8 +153,8 @@ describe('Cada cambio de estado de un control deja un evento (D91)', () => {
 });
 
 describe('Quién puede dar un veredicto y sobre qué', () => {
-  it('solo el admin_empresa: el funcional, el auditor y el administrador de Monkey reciben 403', async () => {
-    await funcional.post(verdicts(manualControl, manualTest)).send({ result: 'compliant' }).expect(403);
+  it('solo el admin_empresa: el responsable, el auditor y el administrador de Monkey reciben 403', async () => {
+    await responsable.post(verdicts(manualControl, manualTest)).send({ result: 'compliant' }).expect(403);
     await auditor.post(verdicts(manualControl, manualTest)).send({ result: 'compliant' }).expect(403);
   });
 

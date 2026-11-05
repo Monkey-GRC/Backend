@@ -192,13 +192,13 @@ describe('primer ingreso: configurar el segundo factor', () => {
 });
 
 describe('quitar el segundo factor a un integrante del equipo', () => {
-  const memberEmail = `funcional-mfa-${RUN}@aislamiento.test`;
+  const memberEmail = `responsable-mfa-${RUN}@aislamiento.test`;
   let memberId = '';
 
   beforeAll(async () => {
     memberId = randomUUID();
     await owner(
-      `insert into platform.users (id, company_id, email, password_hash, role, status, is_mfa_enabled, mfa_secret_encrypted) values ($1, $2, $3, $4, 'funcional', 'active', true, 'v1.x.y.z')`,
+      `insert into platform.users (id, company_id, email, password_hash, role, status, is_mfa_enabled, mfa_secret_encrypted) values ($1, $2, $3, $4, 'responsable', 'active', true, 'v1.x.y.z')`,
       [memberId, a.companyId, memberEmail, await bcrypt.hash(PASSWORD, 4)],
     );
     await owner(`insert into platform.user_recovery_codes (id, company_id, user_id, code_hash) values ($1, $2, $3, 'abc')`, [randomUUID(), a.companyId, memberId]);

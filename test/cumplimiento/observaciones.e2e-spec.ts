@@ -8,11 +8,11 @@ import * as auditInsert from '../../src/infrastructure/audit/audit-log.insert';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { asApp, connect, failure } from '../support/db';
 import { dosEmpresas, servicePayload, Tenant } from '../support/escenario';
-import { darEspecialidades, Dimension, dimensionesDe } from '../support/especialidades';
+import { asignarControl } from '../support/asignaciones';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
 // MD-154 · Las observaciones del auditor (contracts/modules/compliance-audit.md, SEG-69 y SEG-70): las escribe y cierra solo el `auditor` y solo las suyas, las responde el `admin_empresa` o el
-// `funcional` responsable del control, no mueven el porcentaje, nunca se borran y una cerrada no se toca (lo impone la base, no solo la API). Cada prueba sale por HTTP con la
+// `responsable` responsable del control, no mueven el porcentaje, nunca se borran y una cerrada no se toca (lo impone la base, no solo la API). Cada prueba sale por HTTP con la
 // sesión real de cada rol, contra el Postgres desechable.
 type Agent = Awaited<ReturnType<typeof login>>;
 let app: INestApplication;
@@ -22,13 +22,13 @@ let monkey: Agent;
 let auditor: Agent; // quien escribe en A
 let auditor2: Agent; // otro auditor de A: ve todo, pero no toca lo del primero
 let auditorB: Agent;
-let funcional: Agent; // responsable de `control1`
-let funcionalAjeno: Agent; // de A, sin ningún control
+let responsable: Agent; // responsable de `control1`
+let responsableAjeno: Agent; // de A, sin ningún control
 let adminId: string;
 let auditorId: string;
-let funcionalId: string;
+let responsableId: string;
 let control1: string;
-let control2: string; // de un control del que el funcional NO es responsable
+let control2: string; // de un control del que el responsable NO es responsable
 let submission1: string; // entrega de evidencia del control 1
 let submission2: string; // entrega de evidencia del control 2
 let submissionB: string; // una entrega de la OTRA empresa
@@ -46,7 +46,7 @@ const pdf = (marca: string) => Buffer.from(`%PDF-1.7\n% evidencia ${marca} ${RUN
 const auditRows = (action: string, tenant = a.companyId) => owner<{ n: number }>('select count(*)::int n from audit.audit_logs where tenant_id = $1 and action = $2', [tenant, action]).then((r) => r[0].n);
 const row = (id: string) => owner<Record<string, any>>('select * from tenant.audit_observations where id = $1', [id]).then((r) => r[0]);
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'funcional'): Promise<string> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<string> {
   return (await owner<{ id: string }>(
     `insert into platform.users (id, company_id, email, name, last_name, password_hash, role) values (gen_random_uuid(), $1, $2, 'Camilo', 'Ortiz', $3, $4::platform.user_role) returning id`,
     [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
@@ -74,35 +74,25 @@ beforeAll(async () => {
   auditorId = await cuenta(a.companyId, `auditor-obs-${RUN}@cumplimiento.test`, 'auditor');
   await cuenta(a.companyId, `auditor2-obs-${RUN}@cumplimiento.test`, 'auditor');
   await cuenta(b.companyId, `auditor-obs-b-${RUN}@cumplimiento.test`, 'auditor');
-  funcionalId = await cuenta(a.companyId, `funcional-obs-${RUN}@cumplimiento.test`, 'funcional');
-  await cuenta(a.companyId, `funcional2-obs-${RUN}@cumplimiento.test`, 'funcional');
+  responsableId = await cuenta(a.companyId, `responsable-obs-${RUN}@cumplimiento.test`, 'responsable');
+  await cuenta(a.companyId, `responsable2-obs-${RUN}@cumplimiento.test`, 'responsable');
   auditor = await login(app, `auditor-obs-${RUN}@cumplimiento.test`);
   auditor2 = await login(app, `auditor2-obs-${RUN}@cumplimiento.test`);
   auditorB = await login(app, `auditor-obs-b-${RUN}@cumplimiento.test`);
-  funcional = await login(app, `funcional-obs-${RUN}@cumplimiento.test`);
-  funcionalAjeno = await login(app, `funcional2-obs-${RUN}@cumplimiento.test`);
+  responsable = await login(app, `responsable-obs-${RUN}@cumplimiento.test`);
+  responsableAjeno = await login(app, `responsable2-obs-${RUN}@cumplimiento.test`);
 
-  // Dos controles del servicio de A con evidencia requerida: el primero es del funcional; el segundo no. Cada uno con una entrega de evidencia.
-  // El funcional atiende una dimensión (D98) que lleva el primer control y no el segundo.
+  // Dos controles del servicio de A con evidencia requerida: el primero es del responsable; el segundo no. Cada uno con una entrega de evidencia.
   const all = await owner<{ id: string; client_control_id: string }>(
     `select distinct on (er.client_control_id) er.id, er.client_control_id from tenant.evidence_requirements er join tenant.client_controls cc on cc.id = er.client_control_id
-      where cc.service_id = $1 and cc.is_active order by er.client_control_id, er.sequence`,
+      where cc.service_id = $1 and cc.is_active order by er.client_control_id, er.sequence limit 2`,
     [a.serviceId],
   );
-  const dims = new Map<string, Dimension[]>(await Promise.all(all.map(async (r) => [r.client_control_id, await dimensionesDe(r.client_control_id)] as [string, Dimension[]])));
-  let dimension: Dimension | undefined;
-  let reqs: typeof all = [];
-  for (const first of all) {
-    const d = dims.get(first.client_control_id)!.find((x) => all.some((o) => o !== first && !dims.get(o.client_control_id)!.includes(x)));
-    if (d) {
-      dimension = d;
-      reqs = [first, all.find((o) => o !== first && !dims.get(o.client_control_id)!.includes(d))!];
-      break;
-    }
-  }
-  expect(dimension).toBeDefined();
+  expect(all.length).toBe(2);
+  const reqs = all;
   [control1, control2] = reqs.map((r) => r.client_control_id);
-  await darEspecialidades(a.companyId, funcionalId, dimension!);
+  // D102 · El responsable es dueño del primer control (platform.client_control_assignments); del segundo no.
+  await asignarControl(a.companyId, control1, responsableId);
   const up = async (req: string, marca: string) => (await a.agent.post(`/v1/evidence-requirements/${req}/submissions`).attach('file', pdf(marca), 'evidencia.pdf').expect(201)).body.data.id as string;
   submission1 = await up(reqs[0].id, '1');
   submission2 = await up(reqs[1].id, '2');
@@ -128,8 +118,8 @@ describe('quién puede escribir', () => {
     expect(seen).toContain(res.body.data.id);
   });
 
-  it.each([['admin_empresa'], ['funcional'], ['admin_monkey']])('un %s no registra: 403 y no queda nada', async (who) => {
-    const agent = who === 'admin_empresa' ? a.agent : who === 'funcional' ? funcional : monkey;
+  it.each([['admin_empresa'], ['responsable'], ['admin_monkey']])('un %s no registra: 403 y no queda nada', async (who) => {
+    const agent = who === 'admin_empresa' ? a.agent : who === 'responsable' ? responsable : monkey;
     const before = (await owner<{ n: number }>('select count(*)::int n from tenant.audit_observations where tenant_id = $1', [a.companyId]))[0].n;
     const res = await create(agent, a.serviceId, base);
     expect(res.status).toBe(403);
@@ -152,7 +142,7 @@ describe('sobre qué habla', () => {
   it('si solo manda la evidencia, queda también en el control de esa evidencia (así la ve su responsable)', async () => {
     const o = await make({ evidence_submission_id: submission1 });
     expect(o).toMatchObject({ client_control_id: control1, evidence_submission_id: submission1 });
-    expect((await funcional.get(`/v1/observations/${o.id}`).expect(200)).body.data.id).toBe(o.id);
+    expect((await responsable.get(`/v1/observations/${o.id}`).expect(200)).body.data.id).toBe(o.id);
   });
 
   it('con control y evidencia de otro control: 422', async () => {
@@ -212,26 +202,26 @@ describe('quién las ve', () => {
     for (const agent of [a.agent, auditor, auditor2]) expect(await ids(agent)).toEqual(expect.arrayContaining([serviceWide.id, ofControl1.id, ofControl2.id]));
   });
 
-  it('el funcional ve solo las de los controles de los que es responsable: ni las de un servicio completo ni las de otro control', async () => {
-    const mine = await ids(funcional);
+  it('el responsable ve solo las de los controles de los que es responsable: ni las de un servicio completo ni las de otro control', async () => {
+    const mine = await ids(responsable);
     expect(mine).toContain(ofControl1.id);
     expect(mine).not.toContain(serviceWide.id);
     expect(mine).not.toContain(ofControl2.id);
   });
 
-  it('un funcional sin controles recibe la lista vacía, no un error', async () => {
-    const res = await funcionalAjeno.get(`/v1/services/${a.serviceId}/observations`).expect(200);
+  it('un responsable sin controles recibe la lista vacía, no un error', async () => {
+    const res = await responsableAjeno.get(`/v1/services/${a.serviceId}/observations`).expect(200);
     expect(res.body.data).toMatchObject({ items: [], total: 0 });
   });
 
-  it('el detalle: el funcional abre las de su control; las de otro control o de un servicio completo son 403', async () => {
-    expect((await funcional.get(`/v1/observations/${ofControl1.id}`).expect(200)).body.data).toMatchObject({ id: ofControl1.id, status: 'open' });
+  it('el detalle: el responsable abre las de su control; las de otro control o de un servicio completo son 403', async () => {
+    expect((await responsable.get(`/v1/observations/${ofControl1.id}`).expect(200)).body.data).toMatchObject({ id: ofControl1.id, status: 'open' });
     for (const hidden of [ofControl2, serviceWide]) {
-      const res = await funcional.get(`/v1/observations/${hidden.id}`);
+      const res = await responsable.get(`/v1/observations/${hidden.id}`);
       expect(res.status).toBe(403);
       expect(code(res)).toBe('FORBIDDEN');
     }
-    expect((await funcionalAjeno.get(`/v1/observations/${ofControl1.id}`)).status).toBe(403);
+    expect((await responsableAjeno.get(`/v1/observations/${ofControl1.id}`)).status).toBe(403);
   });
 
   it('admin_monkey no entra: 403 en la lista y en el detalle', async () => {
@@ -247,8 +237,8 @@ describe('quién las ve', () => {
     const done = await answered({ body: 'Visibilidad: respondida.' });
     expect(await ids(auditor, '&status=answered')).toContain(done.id);
     expect(await ids(auditor, '&status=open')).not.toContain(done.id);
-    // El filtro por control no deja al funcional ver lo que no es suyo.
-    expect(await ids(funcional, `&client_control_id=${control2}`)).toEqual([]);
+    // El filtro por control no deja al responsable ver lo que no es suyo.
+    expect(await ids(responsable, `&client_control_id=${control2}`)).toEqual([]);
   });
 
   it('pagina de la más reciente a la más antigua', async () => {
@@ -294,16 +284,16 @@ describe('responder', () => {
     expect((await row(o.id)).status).toBe('open');
   });
 
-  it('el funcional responde las de su control; las de otro control o de un servicio completo, no (403)', async () => {
+  it('el responsable responde las de su control; las de otro control o de un servicio completo, no (403)', async () => {
     const mine = await make({ client_control_id: control1 });
-    expect((await answer(funcional, mine.id).expect(200)).body.data).toMatchObject({ status: 'answered', answered_by: { id: funcionalId } });
+    expect((await answer(responsable, mine.id).expect(200)).body.data).toMatchObject({ status: 'answered', answered_by: { id: responsableId } });
     for (const over of [{ client_control_id: control2 }, {}]) {
       const other = await make(over);
-      const res = await answer(funcional, other.id);
+      const res = await answer(responsable, other.id);
       expect(res.status).toBe(403);
       expect((await row(other.id)).status).toBe('open');
     }
-    expect((await answer(funcionalAjeno, (await make({ client_control_id: control1 })).id)).status).toBe(403);
+    expect((await answer(responsableAjeno, (await make({ client_control_id: control1 })).id)).status).toBe(403);
   });
 
   it('el auditor no responde (ni las suyas) y admin_monkey tampoco: 403', async () => {
@@ -351,9 +341,9 @@ describe('editar, devolver y cerrar: solo su autor', () => {
     expect((await patch(auditor, done.id, { body: 'Aun respondida se puede ajustar.' }).expect(200)).body.data.status).toBe('answered');
   });
 
-  it('otro auditor de la misma empresa, el admin_empresa y el funcional no la tocan: 403', async () => {
+  it('otro auditor de la misma empresa, el admin_empresa y el responsable no la tocan: 403', async () => {
     const o = await answered();
-    for (const agent of [auditor2, a.agent, funcional]) {
+    for (const agent of [auditor2, a.agent, responsable]) {
       for (const body of [{ body: 'Intento.' }, { status: 'closed' }, { status: 'open' }]) {
         const res = await patch(agent, o.id, body);
         expect(res.status).toBe(403);
