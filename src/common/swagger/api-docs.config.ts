@@ -38,7 +38,7 @@ export const API_TAGS = {
 
 export const API_TAG_DESCRIPTIONS: Record<(typeof API_TAGS)[keyof typeof API_TAGS], string> = {
   [API_TAGS.team]:
-    'El equipo de la empresa: invitar, activar, desactivar y repartir el trabajo por dimensión. Solo dmin_empresa (el uditor lee los responsables). Contrato: contracts/modules/users-team.md.',
+    'El equipo de la empresa: invitar, activar, desactivar y reemitir códigos. Solo admin_empresa. Contrato: contracts/gestion-usuarios.md.',
   [API_TAGS.auth]:
     'Inicio y cierre de sesión, renovación, activación de la cuenta con la clave de acceso y datos del usuario en sesión. Contrato: `contracts/modules/auth.md`.',
   [API_TAGS.companies]:
@@ -113,7 +113,7 @@ Todo está definido en \`contracts/conventions.md\` del cerebro del producto.
 * **Paginación.** Los listados reciben \`page\` (desde 1) y \`page_size\` (máx. 100) y devuelven \`{ items, page, page_size, total, total_pages }\`.
 * **Validación.** Un cuerpo o una consulta inválidos devuelven \`422\` con **todos** los errores por campo a la vez en \`error.fields\`.
 * **Aislamiento.** Todo se filtra por la empresa de la sesión: un recurso de otra empresa responde \`404\`, igual que uno que no existe.
-* **Roles.** Cada operación lista los roles que pueden llamarla (\`admin_monkey\`, \`admin_empresa\`, \`funcional\`, \`auditor\`).
+* **Roles.** Cada operación lista los roles que pueden llamarla (\`admin_monkey\`, \`admin_empresa\`, \`responsable\`, \`delegado\`, \`auditor\`).
 * **Vista técnica.** Donde se ofrece \`view=technical\`, solo la reciben \`auditor\` y \`admin_empresa\`.
 
 ## Catálogo de errores de negocio

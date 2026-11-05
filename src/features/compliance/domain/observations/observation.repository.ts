@@ -30,13 +30,13 @@ export type ObservationFilters = {
   status?: ObservationStatus;
   type?: ObservationType;
   clientControlId?: string;
-  /** Solo las de los controles de los que este usuario es responsable (el `funcional`): las de un servicio completo no cuentan. */
+  /** Solo las de los controles de los que este usuario es responsable (el `responsable`): las de un servicio completo no cuentan. */
   onlyControlsOf?: string;
   page: number;
   pageSize: number;
 };
 
-/** La observación y los usuarios responsables de su control (vacío si no habla de un control): con eso el caso de uso decide si el `funcional` la toca. */
+/** La observación y los usuarios responsables de su control (vacío si no habla de un control): con eso el caso de uso decide si el `responsable` la toca. */
 export type ObservationAccess = { record: ObservationRecord; responsibleUserIds: string[] };
 
 /** Lo que cambia una escritura. Lo que no se nombra no se toca; la respuesta anterior se conserva al devolverla a `open`. */

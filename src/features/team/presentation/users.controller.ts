@@ -19,7 +19,7 @@ const t = (key: string): string => (I18nContext.current()?.t(key) as string | un
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
 
-// El equipo de la empresa (contracts/modules/users-team.md, D96). Solo `admin_empresa`: invita, edita, desactiva y reemite códigos. `admin_monkey` no crea ni desactiva cuentas
+// El equipo de la empresa (contracts/gestion-usuarios.md, D102). Solo `admin_empresa`: invita, edita, desactiva y reemite códigos. `admin_monkey` no crea ni desactiva cuentas
 // de una empresa. El restablecimiento del segundo factor (`DELETE /users/{id}/mfa`) vive en el módulo de autenticación.
 @ApiTags(API_TAGS.team)
 @Roles('admin_empresa')
@@ -32,7 +32,7 @@ export class UsersController {
     private readonly reissue: ReissueActivationCodeUseCase,
   ) {}
 
-  @ApiOperation({ summary: 'Invitar a una persona del equipo', description: 'Crea una cuenta `funcional` (con sus especialidades, obligatorias) o `auditor` (sin ellas). Nace `pending` y **la respuesta trae su código de activación, una sola vez**: hay que entregárselo a la persona. Queda registro de auditoría, sin el código.' })
+  @ApiOperation({ summary: 'Invitar a una persona del equipo', description: 'Crea una cuenta `responsable`, `delegado`, `auditor` o `admin_empresa`. Nace `pending` y **la respuesta trae su código de activación, una sola vez**: hay que entregárselo a la persona. Queda registro de auditoría, sin el código.' })
   @ApiData(TeamMemberCreatedResponse, 'Cuenta creada, con su código de activación en claro (única vez).', { status: 201 })
   @ApiDomainErrors('EMAIL_TAKEN')
   @Post()
@@ -49,9 +49,9 @@ export class UsersController {
     return new ResponseDto(HttpStatus.OK, t('user.list'), toPageResponse(page, toMember));
   }
 
-  @ApiOperation({ summary: 'Editar, desactivar o reactivar a una persona', description: 'Cambia el estado (`inactive`/`active`) o las especialidades de un `funcional`; las dos cosas pueden ir juntas. **Desactivar cierra todas sus sesiones al instante** (CC6.3). No se desactiva a uno mismo, ni una cuenta `pending`; quitar una especialidad que aún atiende es `409 DIMENSION_IN_USE`. Sobre un administrador o alguien de otra empresa: `404`. Queda registro de auditoría.' })
+  @ApiOperation({ summary: 'Editar, desactivar o reactivar a una persona', description: 'Cambia el estado (`inactive`/`active`) o el nombre. **Desactivar cierra todas sus sesiones al instante** (CC6.3). No se desactiva a uno mismo, ni una cuenta `pending`. Sobre un administrador o alguien de otra empresa: `404`. Queda registro de auditoría.' })
   @ApiData(TeamMemberResponse, 'Cuenta ya cambiada.')
-  @ApiDomainErrors('LAST_ADMIN', 'USER_NOT_ACTIVATED', 'DIMENSION_IN_USE')
+  @ApiDomainErrors('LAST_ADMIN', 'USER_NOT_ACTIVATED')
   @Patch(':id')
   async change(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Body() dto: UpdateTeamMemberDto, @Req() req: Request) {
     return new ResponseDto(HttpStatus.OK, t('user.updated'), toMember(await this.update.execute(p, id, dto, metaOf(req))));

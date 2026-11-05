@@ -8,9 +8,10 @@ import { Page } from '../../../../common/pagination/page';
 import { assertCanAnswer, assertCanResolve, assertEditable, ObservationType } from '../../domain/observations/observation-lifecycle';
 import { ObservationAccess, ObservationFilters, ObservationRecord, ObservationRepository } from '../../domain/observations/observation.repository';
 import { AnswerObservationDto, CreateObservationDto, UpdateObservationDto } from './observation.dto';
+import { isScopedRole } from '../../../../common/enums/user-role.enum';
 
 // MD-154, D96 · Las observaciones del auditor (contracts/modules/compliance-audit.md). Las escribe, edita y cierra solo el `auditor` (lo impone @Roles en la ruta, y aquí que
-// sea SU autor); las responde el `admin_empresa` o el `funcional` responsable del control; las leen los tres. NO mueven el porcentaje: nada de aquí toca una evaluación.
+// sea SU autor); las responde el `admin_empresa` o el `responsable` responsable del control; las leen los tres. NO mueven el porcentaje: nada de aquí toca una evaluación.
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 const text = (s: string | undefined | null): string => (s ?? '').trim();
 const required = (field: string): never => {
@@ -27,9 +28,9 @@ const entry = (p: Principal, meta: RequestMeta, action: string, before: Observat
   beforeState: before ? snapshot(before) : null, afterState: snapshot(after),
 });
 
-/** El `funcional` solo toca lo de los controles de los que es responsable. Algo de la propia empresa que no le toca es `403`; de otra empresa, `404` (lo resuelve la RLS). */
-function assertFuncionalMayAct(p: Principal, current: ObservationAccess): void {
-  if (p.role === 'funcional' && !current.responsibleUserIds.includes(p.userId)) throw new DomainError('FORBIDDEN');
+/** El `responsable` solo toca lo de los controles de los que es responsable. Algo de la propia empresa que no le toca es `403`; de otra empresa, `404` (lo resuelve la RLS). */
+function assertScopedMayAct(p: Principal, current: ObservationAccess): void {
+  if (isScopedRole(p.role) && !current.responsibleUserIds.includes(p.userId)) throw new DomainError('FORBIDDEN');
 }
 
 @Injectable()
@@ -53,7 +54,7 @@ export class ListObservationsUseCase {
   constructor(private readonly repo: ObservationRepository) {}
 
   async execute(p: Principal, serviceId: string, filters: Omit<ObservationFilters, 'onlyControlsOf'>): Promise<Page<ObservationRecord>> {
-    const page = await this.repo.list(scopeOf(p), serviceId, { ...filters, onlyControlsOf: p.role === 'funcional' ? p.userId : undefined });
+    const page = await this.repo.list(scopeOf(p), serviceId, { ...filters, onlyControlsOf: isScopedRole(p.role) ? p.userId : undefined });
     if (!page) throw new DomainError('NOT_FOUND');
     return page;
   }
@@ -66,7 +67,7 @@ export class GetObservationUseCase {
   async execute(p: Principal, id: string): Promise<ObservationRecord> {
     const found = await this.repo.find(scopeOf(p), id);
     if (!found) throw new DomainError('NOT_FOUND');
-    assertFuncionalMayAct(p, found);
+    assertScopedMayAct(p, found);
     return found.record;
   }
 }
@@ -109,8 +110,8 @@ export class AnswerObservationUseCase {
     const answered = await this.repo.mutate(
       scopeOf(p), id,
       (current) => {
-        // El `funcional` solo responde las de un control suyo; las de un servicio completo, no (D96): las atiende el `admin_empresa`.
-        assertFuncionalMayAct(p, current);
+        // El `responsable` solo responde las de un control suyo; las de un servicio completo, no (D96): las atiende el `admin_empresa`.
+        assertScopedMayAct(p, current);
         assertCanAnswer(current.record.status);
         return { status: 'answered', answer: { note, evidenceId: dto.answer_evidence_id ?? null, by: p.userId, at: new Date() } };
       },

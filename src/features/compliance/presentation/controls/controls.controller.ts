@@ -31,7 +31,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 // Acciones de protección de un servicio (contracts/modules/compliance-controls.md, MD-117). `admin_monkey` no entra al cumplimiento de una empresa por
 // aquí (MD-146 le dará su propio acceso). La vista técnica la restringe el caso de uso: `auditor` y `admin_empresa`.
 @ApiTags(API_TAGS.controls)
-@Roles('admin_empresa', 'funcional', 'auditor')
+@Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
 @Controller()
 export class ControlsController {
   constructor(
@@ -43,7 +43,7 @@ export class ControlsController {
     private readonly listControlTests: ListControlTestsUseCase,
   ) {}
 
-  @ApiOperation({ summary: 'Listar los controles de un servicio', description: 'Los controles del servicio con su estado, **avance y cobertura juntos**, quién los tiene a cargo. Filtros por criterio, tipo, estado y origen. El `funcional` solo ve los que tiene asignados. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
+  @ApiOperation({ summary: 'Listar los controles de un servicio', description: 'Los controles del servicio con su estado, **avance y cobertura juntos**, quién los tiene a cargo. Filtros por criterio, tipo, estado y origen. El `responsable` solo ve los que tiene asignados. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
   @ApiPaged(ControlListItemResponse, 'Página de controles.')
   @Get('services/:serviceId/controls')
   async list(@CurrentUser() principal: Principal, @Param('serviceId', idPipe) serviceId: string, @Query() q: ListControlsQuery) {
@@ -61,7 +61,7 @@ export class ControlsController {
   }
 
   // MD-177 · La vista técnica de un control: todas sus pruebas con su estado (compliance-audit.md). Solo `admin_empresa` y `auditor` (D81); el caso de uso responde 403 a otro rol.
-  @ApiOperation({ summary: 'Pruebas de un control', description: 'Las pruebas que verifican el control, **todas con su estado**, también las que aún no tienen activos conectados («Sin activos»). Es la vista técnica (D81): solo `admin_empresa` y `auditor`; el `funcional` y `admin_monkey` reciben `403`. `shared_with` son los otros controles del servicio que llevan la prueba, cuyo veredicto vale en todos (D85); en una prueba documental va vacío (D88). `last_verdict` es el último veredicto del `admin_empresa` sobre una prueba manual no documental. `ai_suggestion` hoy es siempre `null`. Paginada.' })
+  @ApiOperation({ summary: 'Pruebas de un control', description: 'Las pruebas que verifican el control, **todas con su estado**, también las que aún no tienen activos conectados («Sin activos»). Es la vista técnica (D81): solo `admin_empresa` y `auditor`; el `responsable`, el `delegado` y `admin_monkey` reciben `403`. `shared_with` son los otros controles del servicio que llevan la prueba, cuyo veredicto vale en todos (D85); en una prueba documental va vacío (D88). `last_verdict` es el último veredicto del `admin_empresa` sobre una prueba manual no documental. `ai_suggestion` hoy es siempre `null`. Paginada.' })
   @ApiPaged(ControlTestItemResponse, 'Página de pruebas del control.')
   @Get('controls/:id/tests')
   async tests(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Query() q: ListControlTestsQuery) {
@@ -81,7 +81,7 @@ export class ControlsController {
     return new ResponseDto(HttpStatus.CREATED, t('control.created'), toControlDetail(detail, t));
   }
 
-  @ApiOperation({ summary: 'Detalle de un control', description: 'Estado, avance y cobertura; interpretación, dimensiones, evidencias requeridas con su última entrega, causas que trata y en qué falla. Un `funcional` que no tiene el control asignado recibe 403. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
+  @ApiOperation({ summary: 'Detalle de un control', description: 'Estado, avance y cobertura; interpretación, dimensiones, evidencias requeridas con su última entrega, causas que trata y en qué falla. Un `responsable` que no tiene el control asignado recibe 403. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
   @ApiData(ControlDetailResponse, 'Detalle del control.')
   @Get('controls/:id')
   async detail(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Query() q: GetControlQuery) {

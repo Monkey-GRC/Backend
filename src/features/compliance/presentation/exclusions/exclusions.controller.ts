@@ -20,7 +20,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
 
 // Exclusiones de un servicio (contracts/modules/compliance-audit.md, MD-144, D78). Las ven el administrador y el auditor; la crea y la decide solo el administrador
-// en un solo acto (D96): nace aprobada. El `funcional` y `admin_monkey` no entran.
+// en un solo acto (D96): nace aprobada. El `responsable` y `admin_monkey` no entran.
 @ApiTags(API_TAGS.exclusions)
 @Roles('admin_empresa', 'auditor')
 @Controller()

@@ -1,13 +1,13 @@
 import { TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { Dimension } from '../../domain/controls/control-readout';
 
-// D98 · Quién hace el trabajo de un control en una dimensión: por ahora, TODOS los `funcional` activos de la empresa que tienen esa especialidad. No hace falta asignarles nada:
-// quien entra con la dimensión «servidores» ve y atiende todo lo de servidores. El reparto a personas concretas (responsable de un servicio, excepción de un control) existe en
-// la base y en la API, pero queda aparte hasta que se decida cómo usarlo; hoy no cambia lo que nadie ve. Solo cuentan las dimensiones en que el control tiene pruebas.
+// D102 · Quién hace el trabajo de un control: su dueño y su ejecutor (platform.client_control_assignments), activos. Se expone por dimensión para no cambiar la forma que consumen
+// los lectores; todas las dimensiones en que el control tiene pruebas llevan a las mismas personas.
+// DT-87: transitorio hasta MD-193 (visibilidad por dueño/ejecutor)
 export const DIMENSION_ORDER: readonly Dimension[] = ['policy', 'server', 'database', 'app', 'cloud'];
 
 export type ControlResponsibles = {
-  /** control → dimensión → los `funcional` que la atienden. */
+  /** control → dimensión → el dueño y el ejecutor del control. */
   byControl: Map<string, Map<Dimension, string[]>>;
 };
 
@@ -16,13 +16,19 @@ export async function loadControlResponsibles(tx: TransactionClient, controlIds:
   if (!controlIds.length) return { byControl };
 
   const links = await tx.clientControlTest.findMany({ where: { clientControlId: { in: controlIds } }, select: { clientControlId: true, test: { select: { dimension: true } } } });
-  const specialists = await tx.userDimension.findMany({ where: { user: { role: 'funcional', status: 'active' } }, select: { userId: true, dimension: true } });
-  const byDimension = new Map<string, string[]>();
-  for (const s of specialists) byDimension.set(s.dimension, [...(byDimension.get(s.dimension) ?? []), s.userId]);
+  const assignments = await tx.clientControlAssignment.findMany({
+    where: { clientControlId: { in: controlIds } },
+    select: { clientControlId: true, ownerId: true, executorId: true, owner: { select: { status: true } }, executor: { select: { status: true } } },
+  });
+  const peopleOf = new Map<string, string[]>();
+  for (const a of assignments) {
+    const people = [a.owner.status === 'active' ? a.ownerId : null, a.executorId && a.executor?.status === 'active' ? a.executorId : null].filter((u): u is string => !!u);
+    peopleOf.set(a.clientControlId, people);
+  }
 
   for (const l of links) {
     const dimension = l.test.dimension as Dimension;
-    const users = byDimension.get(dimension);
+    const users = peopleOf.get(l.clientControlId);
     if (!users?.length) continue;
     const dims = byControl.get(l.clientControlId) ?? new Map<Dimension, string[]>();
     dims.set(dimension, users);

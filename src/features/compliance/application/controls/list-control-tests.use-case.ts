@@ -18,7 +18,7 @@ export type ControlTestItem = {
 };
 
 // Los tests de un control con su estado, todos, también los que aún no tienen activos conectados (contracts/modules/compliance-audit.md). Es la vista técnica (D81): solo `admin_empresa` y
-// `auditor`; el `funcional` y `admin_monkey` reciben 403. Ver no es hacer: el veredicto es del `admin_empresa`.
+// `auditor`; el `responsable` y `admin_monkey` reciben 403. Ver no es hacer: el veredicto es del `admin_empresa`.
 @Injectable()
 export class ListControlTestsUseCase {
   constructor(private readonly controls: ControlRepository, private readonly verdicts: TestVerdictRepository) {}

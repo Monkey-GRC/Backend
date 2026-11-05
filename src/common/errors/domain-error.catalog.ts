@@ -88,8 +88,6 @@ export const DOMAIN_ERROR_CATALOG: Record<
   LAST_ADMIN: { status: HttpStatus.CONFLICT, messageKey: 'user.last_admin' },
   USER_NOT_ACTIVATED: { status: HttpStatus.CONFLICT, messageKey: 'user.not_activated' },
   USER_ALREADY_ACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'user.already_active' },
-  USER_LACKS_DIMENSION: { status: HttpStatus.CONFLICT, messageKey: 'user.lacks_dimension' },
-  DIMENSION_IN_USE: { status: HttpStatus.CONFLICT, messageKey: 'user.dimension_in_use' },
   // Componente 3 (contracts/modules/onboarding-technical-control.md).
   ASSET_NOT_VALIDATED: { status: HttpStatus.CONFLICT, messageKey: 'asset.not_validated' },
   ASSET_ALREADY_ACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'asset.already_active' },

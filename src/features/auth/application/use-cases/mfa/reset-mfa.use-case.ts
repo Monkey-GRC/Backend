@@ -6,9 +6,9 @@ import { AuthUserRepository } from '../../../domain/repositories/auth-user.repos
 import { MfaRepository } from '../../../domain/repositories/mfa.repository';
 
 // D94 · La persona perdió el celular y los códigos de recuperación. El administrador de la empresa le quita el segundo factor a un integrante de su equipo
-// (funcional o auditor de su empresa); en su próximo ingreso lo configura de nuevo. Se cierran todas sus sesiones y queda el rastro. Nadie se lo quita
+// (responsable, delegado o auditor de su empresa); en su próximo ingreso lo configura de nuevo. Se cierran todas sus sesiones y queda el rastro. Nadie se lo quita
 // a sí mismo por aquí (para eso están los códigos de recuperación), ni a otro administrador: el administrador de la empresa lo restablece Monkey (`npm run mfa:reset`).
-const RESETTABLE_ROLES = new Set(['funcional', 'auditor']);
+const RESETTABLE_ROLES = new Set(['responsable', 'delegado', 'auditor']);
 
 @Injectable()
 export class ResetMfaUseCase {

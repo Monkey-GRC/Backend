@@ -33,6 +33,6 @@ describe('evidenceStateOf (D84, RN-01 a RN-03)', () => {
 
 describe('reviewerRoleFor (D96)', () => {
   it('todos ven la misma y única revisión, la del admin_empresa', () => {
-    for (const role of ['admin_empresa', 'funcional', 'auditor']) expect(reviewerRoleFor(role)).toBe('admin_empresa');
+    for (const role of ['admin_empresa', 'responsable', 'delegado', 'auditor']) expect(reviewerRoleFor(role)).toBe('admin_empresa');
   });
 });

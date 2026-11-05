@@ -4,7 +4,7 @@ import type { EvidenceAttribute } from '../engine/documentary-test';
 // Estado calculado de una entrega de evidencia (enums.md `evidence_state`, RN-01 a RN-03). Se DERIVA, nadie lo escribe.
 export type EvidenceState = 'compliant' | 'non_compliant' | 'pending' | 'in_review' | 'expired' | 'not_applicable';
 
-/** Quién revisa (D96): solo el admin_empresa, en una sola revisión. El funcional sube; el auditor lee. */
+/** Quién revisa (D96): solo el admin_empresa, en una sola revisión. El responsable o delegado sube; el auditor lee. */
 export type ReviewerRole = 'admin_empresa';
 
 /** Lo que se guarda de una revisión (`evidence_reviews`). `ai_prevalidated` no se guarda: se deriva de que la entrega tenga `ai_verdict` y ninguna revisión humana. */
@@ -28,7 +28,7 @@ export type EvidenceReviewRecord = {
 export const reviewerRoleFor = (_role: string): ReviewerRole => 'admin_empresa';
 
 /**
- * D96 · El funcional aporta y el admin_empresa valida: el estado sale de la revisión humana (`PUT /v1/evidence-submissions/{id}/review`).
+ * D96 · El responsable aporta y el admin_empresa valida: el estado sale de la revisión humana (`PUT /v1/evidence-submissions/{id}/review`).
  * Sin revisión una entrega espera (`pending`) y, si la IA ya dio su sugerencia, queda `in_review`: la IA nunca produce «cumple» (RN-03).
  * `review` es la única revisión de la entrega, la del admin_empresa.
  */

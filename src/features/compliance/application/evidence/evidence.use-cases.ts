@@ -14,13 +14,14 @@ import { EvidenceAccess, EvidenceRepository, RequirementRecord, SubmissionRecord
 import { CreateEvidenceRequirementDto, ReviewEvidenceDto } from './evidence.dto';
 import { assertEvidenceFile, evidenceKey, fileNameOfKey, INLINE_TYPES } from './evidence-file';
 import { ViewMode, viewModeOf } from '../shared/view-access';
+import { isScopedRole } from '../../../../common/enums/user-role.enum';
 
-// MD-126 · Evidencias de un control (contracts/modules/compliance-evidence.md, D84). La empresa solo APORTA: sube `admin_empresa` y el `funcional` dueño del control;
+// MD-126 · Evidencias de un control (contracts/modules/compliance-evidence.md, D84). La empresa solo APORTA: sube `admin_empresa` y el `responsable` dueño del control;
 // el auditor lee y descarga (lo impone @Roles en la ruta). Subir no valida: la validación es del admin_empresa (MD-127, D96).
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
-/** Algo de la propia empresa de lo que el `funcional` no es responsable: no es de otra empresa (eso sería 404), es que no le toca (403). */
+/** Algo de la propia empresa de lo que el `responsable` no es responsable: no es de otra empresa (eso sería 404), es que no le toca (403). */
 const assertCanTouch = (p: Principal, assignedUserIds: string[]): void => {
-  if (p.role === 'funcional' && !assignedUserIds.includes(p.userId)) throw new DomainError('FORBIDDEN');
+  if (isScopedRole(p.role) && !assignedUserIds.includes(p.userId)) throw new DomainError('FORBIDDEN');
 };
 /** El enlace de descarga vive 5 minutos (SEG-59). */
 export const DOWNLOAD_LINK_SECONDS = 300;
@@ -34,8 +35,8 @@ export class ListEvidenceUseCase {
     const data = await this.repo.listByControl(scopeOf(p), controlId, reviewerRoleFor(p.role));
     if (!data) throw new DomainError('NOT_FOUND');
     assertCanTouch(p, data.assignedUserIds);
-    // D96, SEG-66 · El funcional recibe solo los requerimientos de las dimensiones de las que es responsable en este control.
-    const requirements = p.role === 'funcional' ? data.requirements.filter((r) => (data.responsibleByDimension[r.dimension] ?? []).includes(p.userId)) : data.requirements;
+    // D96, SEG-66 · El responsable recibe solo los requerimientos de las dimensiones de las que es responsable en este control.
+    const requirements = isScopedRole(p.role) ? data.requirements.filter((r) => (data.responsibleByDimension[r.dimension] ?? []).includes(p.userId)) : data.requirements;
     return { view: mode, requirements };
   }
 }
@@ -43,7 +44,7 @@ export class ListEvidenceUseCase {
 /** Lo que se subió para un test manual o documental, ya filtrado para quien pregunta. */
 export type TestEvidenceView = { view: ViewMode; testId: string; sharedWith: Array<{ id: string; code: string }>; items: TestEvidence['items']; controlCodes: Map<string, string> };
 
-// D85, D88 · La evidencia de un test manual o documental, para mostrarla en el test del control. D96, SEG-66: el `funcional` recibe solo lo de las dimensiones de las que es
+// D85, D88 · La evidencia de un test manual o documental, para mostrarla en el test del control. D96, SEG-66: el `responsable` recibe solo lo de las dimensiones de las que es
 // solo ve el código de los otros controles que llevan el test si también atiende esa dimensión en ellos; lo demás se omite, no falla.
 @Injectable()
 export class ListTestEvidenceUseCase {
@@ -54,7 +55,7 @@ export class ListTestEvidenceUseCase {
     const data = await this.repo.listByTest(scopeOf(p), controlId, testId, reviewerRoleFor(p.role));
     if (!data) throw new DomainError('NOT_FOUND');
     const responsibleOf = (control: string, dimension: string) => data.controls.find((c) => c.id === control)?.responsibleByDimension[dimension] ?? [];
-    const mine = (control: string, dimension: string) => p.role !== 'funcional' || responsibleOf(control, dimension).includes(p.userId);
+    const mine = (control: string, dimension: string) => !isScopedRole(p.role) || responsibleOf(control, dimension).includes(p.userId);
     const items = data.items.filter((i) => mine(i.controlId, i.requirement.dimension));
     return {
       view: mode,
@@ -130,7 +131,7 @@ export class ReviewEvidenceUseCase {
 
   async execute(p: Principal, submissionId: string, dto: ReviewEvidenceDto, meta: RequestMeta): Promise<SubmissionRecord> {
     const reviewerRole = reviewerRoleFor(p.role);
-    // Rechazar es dejar algún atributo en `false`: el funcional necesita el motivo para saber qué corregir (compliance-audit.md).
+    // Rechazar es dejar algún atributo en `false`: el responsable necesita el motivo para saber qué corregir (compliance-audit.md).
     const rejects = [dto.type_ok, dto.period_ok, dto.valid_ok, dto.approved_ok, dto.signed_ok, dto.content_ok].some((v) => v === false);
     if (rejects && !dto.note?.trim()) throw new ValidationException([{ field: 'note', code: 'note.required' }]);
     const saved = await this.repo.saveReview(

@@ -540,9 +540,16 @@ export class ScanPrismaRepository extends ScanRepository {
       });
       if (!link) return null;
       const serviceId = link.clientControl.serviceId;
-      // D98 · Lo automático que falla en la nube le llega a quienes tienen la especialidad de nube.
-      const specialists = await tx.userDimension.findMany({ where: { dimension: 'cloud', user: { role: 'funcional', status: 'active' } }, select: { userId: true } });
-      return { serviceId, responsibleUserIds: specialists.map((s) => s.userId) };
+      // D102 · Lo automático que falla en la nube le llega al dueño y al ejecutor del control.
+      // DT-87: transitorio hasta MD-193 (visibilidad por dueño/ejecutor)
+      const assignment = await tx.clientControlAssignment.findUnique({
+        where: { clientControlId: controlId },
+        select: { ownerId: true, executorId: true, owner: { select: { status: true } }, executor: { select: { status: true } } },
+      });
+      const responsibleUserIds = assignment
+        ? [assignment.owner.status === 'active' ? assignment.ownerId : null, assignment.executorId && assignment.executor?.status === 'active' ? assignment.executorId : null].filter((u): u is string => !!u)
+        : [];
+      return { serviceId, responsibleUserIds };
     });
   }
 

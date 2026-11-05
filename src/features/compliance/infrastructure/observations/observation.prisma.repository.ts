@@ -76,7 +76,7 @@ export class ObservationPrismaRepository extends ObservationRepository {
 
       const where: Prisma.AuditObservationWhereInput = { serviceId, ...(f.status ? { status: f.status } : {}), ...(f.type ? { type: f.type } : {}) };
       if (f.onlyControlsOf) {
-        // El `funcional` ve las de los controles de los que es responsable (en cualquier dimensión); las de un servicio completo, no.
+        // El `responsable` ve las de los controles de los que es responsable (en cualquier dimensión); las de un servicio completo, no.
         const controls = (await tx.clientControl.findMany({ where: { serviceId }, select: { id: true } })).map((c) => c.id);
         const responsibles = await loadControlResponsibles(tx, controls);
         const mine = controls.filter((id) => usersOf(responsibles.byControl.get(id)).includes(f.onlyControlsOf as string));
