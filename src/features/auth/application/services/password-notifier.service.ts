@@ -1,3 +1,4 @@
+import { appUrl, platformAppUrl } from '../../../../common/mail/app-url';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { UserRole } from '../../../../common/enums/user-role.enum';
@@ -18,8 +19,8 @@ export class PasswordNotifier {
 
   async sendResetLink(email: string, role: UserRole, token: string): Promise<void> {
     // Monkey Admin y Monkey Platform son apps distintas: el enlace lleva a la de quien lo pidió.
-    const admin = role === 'admin_monkey' ? this.config.get<string>('ADMIN_APP_URL')?.trim() : undefined;
-    const base = (admin || this.config.get<string>('PLATFORM_APP_URL')?.trim())?.replace(/\/+$/, '');
+    const admin = role === 'admin_monkey' ? appUrl(this.config, 'ADMIN_APP_URL') : undefined;
+    const base = admin || platformAppUrl(this.config);
     // Sin dirección de la app no hay a dónde mandar a la persona: se avisa en el log y no se envía un enlace roto.
     if (!base) return this.logger.warn('No se envió el enlace de recuperación: falta PLATFORM_APP_URL.');
     // En Monkey Admin las pantallas de acceso cuelgan de /auth; en Platform, de la raíz.

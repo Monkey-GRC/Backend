@@ -15,6 +15,8 @@ export type MailMessage = {
   // Versión maquetada (opcional). Siempre acompaña al texto, nunca lo reemplaza.
   html?: string;
   inlineImages?: InlineImage[];
+  // El cuerpo lleva un secreto de un solo uso (p. ej. un código de activación, SEG-75). Ningún adaptador que registre mensajes debe escribir el cuerpo.
+  confidential?: boolean;
 };
 
 // Puerto del correo saliente (D99). Lo implementa la infraestructura; los casos de uso solo conocen esta
