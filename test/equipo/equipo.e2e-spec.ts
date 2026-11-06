@@ -7,6 +7,7 @@ import { invitarYActivar, sembrarEquipo } from '../support/equipo';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 import { dosEmpresas, empresaConCupo, Tenant } from '../support/escenario';
 import { asignarControl } from '../support/asignaciones';
+import { claveEnviadaA } from '../support/correo-en-memoria';
 
 // D102 · El equipo de la empresa (contracts/gestion-usuarios.md). Todo por HTTP real contra el Postgres desechable, con el rol de la app
 // (sujeto a RLS): quien tiene permiso invita, la persona activa su cuenta y entra, y el administrador desactiva.
@@ -32,7 +33,7 @@ const auditRows = (action: string) => owner<{ n: number }>('select count(*)::int
 const gruposDe = (companyId: string) => owner<{ n: number }>('select count(*)::int n from platform.user_groups where company_id = $1', [companyId]).then((r) => r[0].n);
 const fila = (id: string) => owner<{ role: string; status: string; group_id: string | null; is_internal: boolean | null }>('select role::text, status::text, group_id, is_internal from platform.users where id = $1', [id]).then((r) => r[0]);
 
-/** Invita a alguien, activa su cuenta (el código sale del reenvío: el alta ya no lo devuelve) y devuelve su sesión (MFA_REQUIRED=false en estas pruebas). */
+/** Invita a alguien, activa su cuenta (el código sale del correo de invitación) y devuelve su sesión (MFA_REQUIRED=false en estas pruebas). */
 const activo = (agent: Agent, k: string, role: Rol, group?: string) =>
   invitarYActivar(app, agent, { email: email(k), name: 'Persona', last_name: 'De Prueba', role, ...(role === 'delegado' ? { group_id: group, is_internal: true } : {}) });
 
@@ -53,18 +54,18 @@ afterAll(async () => {
 afterEach(() => jest.restoreAllMocks());
 
 describe('Invitar a una persona del equipo', () => {
-  it('nace pending, sin el código en la respuesta, con la invitación pendiente; con el código del reenvío activa su cuenta y entra', async () => {
+  it('nace pending, sin el código en la respuesta, con la invitación enviada; con el código del correo activa su cuenta y entra', async () => {
     const res = await invite(a.agent, { email: email('ana'), role: 'auditor' }).expect(201);
-    expect(res.body.message).toBe('Listo, creamos la cuenta. La invitación queda pendiente de envío.');
+    expect(res.body.message).toBe('Listo, creamos la cuenta.');
     expect(res.body.data).toMatchObject({
       email: email('ana'), name: 'Persona', last_name: 'De Prueba', role: 'auditor', status: 'pending', is_mfa_enabled: false, is_internal: null, group: null, last_login_at: null,
-      invitation: { delivery_status: 'pending', expires_at: expect.any(String) },
+      invitation: { delivery_status: 'sent', expires_at: expect.any(String) },
     });
     expect(res.body.data).not.toHaveProperty('responsible');
     expect(JSON.stringify(res.body)).not.toMatch(/activation_code|MNK-|code_hash/);
     // Una cuenta pendiente no entra: se ve igual que una contraseña mala.
     await request(app.getHttpServer()).post('/v1/auth/login').send({ email: email('ana'), password: PASSWORD }).expect(401);
-    const code = (await a.agent.post(`/v1/users/${res.body.data.id}/activation-code`).expect(201)).body.data.activation_code.code;
+    const code = claveEnviadaA(email('ana'));
     const session = request.agent(app.getHttpServer());
     const act = await session.post('/v1/auth/activate').send({ code, email: email('ana'), password: PASSWORD }).expect(201);
     expect(act.body.data.user).toMatchObject({ email: email('ana'), role: 'auditor', status: 'active' });
@@ -495,12 +496,13 @@ describe('Corregir el nombre y administrar a otros administradores (D97)', () =>
 describe('Reemitir el código de activación', () => {
   it('revoca el anterior, el nuevo sí activa, y una cuenta ya activa no lo necesita (409 USER_ALREADY_ACTIVE)', async () => {
     const first = (await invite(a.agent, { email: email('reem'), role: 'auditor' }).expect(201)).body.data;
-    const one = (await a.agent.post(`/v1/users/${first.id}/activation-code`).expect(201)).body.data;
-    const second = (await a.agent.post(`/v1/users/${first.id}/activation-code`).expect(201)).body.data;
-    expect(second.id).toBe(first.id);
-    expect(second.activation_code.code).not.toBe(one.activation_code.code);
-    expect((await request(app.getHttpServer()).post('/v1/auth/activate').send({ code: one.activation_code.code, email: email('reem'), password: PASSWORD }).expect(404)).body.error.code).toBe('ACTIVATION_CODE_INVALID');
-    await request(app.getHttpServer()).post('/v1/auth/activate').send({ code: second.activation_code.code, email: email('reem'), password: PASSWORD }).expect(201);
+    const one = claveEnviadaA(email('reem'));
+    const res = await a.agent.post(`/v1/users/${first.id}/activation-code`).expect(200);
+    expect(res.body.data).toEqual({ invitation: { delivery_status: 'sent', expires_at: expect.any(String) } });
+    const second = claveEnviadaA(email('reem'));
+    expect(second).not.toBe(one);
+    expect((await request(app.getHttpServer()).post('/v1/auth/activate').send({ code: one, email: email('reem'), password: PASSWORD }).expect(404)).body.error.code).toBe('ACTIVATION_CODE_INVALID');
+    await request(app.getHttpServer()).post('/v1/auth/activate').send({ code: second, email: email('reem'), password: PASSWORD }).expect(201);
     expect((await a.agent.post(`/v1/users/${first.id}/activation-code`).expect(409)).body.error.code).toBe('USER_ALREADY_ACTIVE');
     expect(await auditRows('user.activation_code_regenerate')).toBeGreaterThan(0);
     await a.agent.post(`/v1/users/${adminId}/activation-code`).expect(409); // un administrador ya activo tampoco necesita código

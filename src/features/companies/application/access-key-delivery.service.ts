@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuditLogWriter } from '../../../common/audit/audit-log.writer';
 import { RequestMeta } from '../../../common/http/request-meta';
+import { platformAppUrl } from '../../../common/mail/app-url';
 import { Mailer } from '../../../common/mail/mailer';
 import { buildAccessKeyEmail } from './access-key-email';
 
@@ -31,7 +32,7 @@ export class AccessKeyDelivery {
   ) {}
 
   async deliver(input: AccessKeyDeliveryInput, meta: RequestMeta): Promise<DeliveryStatus> {
-    const base = this.config.get<string>('PLATFORM_APP_URL')?.trim().replace(/\/+$/, '');
+    const base = platformAppUrl(this.config);
     const message = buildAccessKeyEmail({
       companyName: input.companyName,
       adminEmail: input.adminEmail,

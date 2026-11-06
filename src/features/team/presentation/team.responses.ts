@@ -28,22 +28,16 @@ export class TeamMemberResponse {
   @ApiProperty({ format: 'date-time' }) created_at!: string;
 }
 
-export class ActivationCodeResponse {
-  @ApiProperty({ example: 'MNK-7F3A-92KD-5QXB', description: 'El código de un solo uso. **Viaja en claro solo en esta respuesta**: no se guarda ni se puede volver a ver.' }) code!: string;
-  @ApiProperty({ enum: ['pending'], enumName: 'ActivationCodeStatus' }) status!: string;
-  @ApiProperty({ format: 'date-time' }) expires_at!: string;
-}
-
-export class TeamMemberCreatedResponse extends TeamMemberResponse {
-  @ApiProperty({ type: ActivationCodeResponse, description: 'Hay que entregárselo a la persona: el correo está aplazado.' }) activation_code!: ActivationCodeResponse;
-}
-
 export class InvitationResponse {
-  @ApiProperty({ enum: ['sent', 'failed', 'pending'], enumName: 'InvitationDeliveryStatus', description: '`pending` mientras el envío por correo no exista; el código nunca viaja en esta respuesta.' }) delivery_status!: string;
+  @ApiProperty({ enum: ['sent', 'failed', 'pending'], enumName: 'InvitationDeliveryStatus', description: '`sent` el correo salió · `failed` no salió: la cuenta existe y se reenvía con `POST /v1/users/{id}/activation-code`. El servidor hoy no produce `pending`. El código nunca viaja en esta respuesta.' }) delivery_status!: string;
   @ApiProperty({ format: 'date-time', description: 'Hasta cuándo sirve el código de activación.' }) expires_at!: string;
 }
 
 export class TeamMemberInvitedResponse extends TeamMemberResponse {
+  @ApiProperty({ type: InvitationResponse }) invitation!: InvitationResponse;
+}
+
+export class ReissuedInvitationResponse {
   @ApiProperty({ type: InvitationResponse }) invitation!: InvitationResponse;
 }
 

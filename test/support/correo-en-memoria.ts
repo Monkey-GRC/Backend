@@ -12,6 +12,12 @@ export class CorreoEnMemoria extends Mailer {
     this.enviados.push(message);
   }
 
+  /** Vacía lo enviado y restablece el fallo: cada app arrancada empieza sin estado de otra. */
+  reset(): void {
+    this.enviados.length = 0;
+    this.falla = false;
+  }
+
   paraEl(email: string): MailMessage[] {
     return this.enviados.filter((m) => m.to === email);
   }

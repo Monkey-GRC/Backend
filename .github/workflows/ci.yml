@@ -3,12 +3,15 @@ name: CI (backend)
 # Cierra DT-20: las pruebas viven en el repo y corren en cada PR. Es independiente de deploy-dev.yml (que despliega al
 # hacer push a develop): este flujo valida antes de mergear. Para que bloquee el merge hay que marcar el job `verificar`
 # como "required" en la protección de la rama (Settings → Branches), no se puede desde el workflow.
+#
+# Al fusionar en `develop` no se repite: las mismas pruebas ya corrieron en el PR y ahí solo se despliega (deploy-dev.yml).
+# En `main` sí corre en cada push.
 
 on:
   pull_request:
     branches: [develop, main]
   push:
-    branches: [develop, main]
+    branches: [main]
 
 permissions:
   contents: read

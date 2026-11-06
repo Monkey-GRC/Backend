@@ -12,8 +12,8 @@ import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiPaged } from '../../../common/swagger/api-envelope';
 import { CreateTeamMemberDto, ListTeamQuery, UpdateTeamMemberDto } from '../application/dtos/team.dto';
 import { CreateTeamMemberUseCase, ListTeamUseCase, ReissueActivationCodeUseCase, UpdateTeamMemberUseCase } from '../application/use-cases/team-users.use-cases';
-import { toInvitedMember, toMember, toMemberWithCode } from './team.mapper';
-import { TeamMemberCreatedResponse, TeamMemberInvitedResponse, TeamMemberResponse } from './team.responses';
+import { toInvitation, toInvitedMember, toMember } from './team.mapper';
+import { ReissuedInvitationResponse, TeamMemberInvitedResponse, TeamMemberResponse } from './team.responses';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
@@ -32,7 +32,7 @@ export class UsersController {
     private readonly reissue: ReissueActivationCodeUseCase,
   ) {}
 
-  @ApiOperation({ summary: 'Invitar a una persona del equipo', description: 'Crea una cuenta `responsable`, `delegado`, `auditor` o `admin_empresa` (el `responsable` solo crea delegados, en su equipo). Nace `pending`, cuenta para el cupo y deja registro de auditoría. Un `responsable` nuevo queda en el grupo «Responsables»; su equipo de delegados no nace con él. **La respuesta no trae el código de activación**: solo el estado de la invitación.' })
+  @ApiOperation({ summary: 'Invitar a una persona del equipo', description: 'Crea una cuenta `responsable`, `delegado`, `auditor` o `admin_empresa` (el `responsable` solo crea delegados, en su equipo). Nace `pending`, cuenta para el cupo y deja registro de auditoría. Un `responsable` nuevo queda en el grupo «Responsables»; su equipo de delegados no nace con él. El código de activación sale **por correo** a la persona, nunca en la respuesta: esta trae solo el estado de la invitación (`sent` o `failed`; si falló, se reenvía).' })
   @ApiData(TeamMemberInvitedResponse, 'Cuenta creada, con el estado de su invitación.', { status: 201 })
   @ApiDomainErrors('FORBIDDEN', 'NOT_FOUND', 'RESPONSIBLE_HAS_NO_TEAM', 'RESPONSIBLES_GROUP_INVALID', 'EMAIL_TAKEN', 'USER_LIMIT_REACHED')
   @Roles('admin_empresa', 'responsable')
@@ -60,12 +60,12 @@ export class UsersController {
     return new ResponseDto(HttpStatus.OK, t('user.updated'), toMember(await this.update.execute(p, id, dto, metaOf(req))));
   }
 
-  @ApiOperation({ summary: 'Emitir un código de activación nuevo', description: 'Sin cuerpo. Revoca el código vigente y emite uno nuevo, que viaja en claro solo en esta respuesta. Solo mientras la cuenta esté `pending`. Queda registro de auditoría, sin el código.' })
-  @ApiData(TeamMemberCreatedResponse, 'Código nuevo emitido (única vez).', { status: 201 })
-  @ApiDomainErrors('USER_ALREADY_ACTIVE')
+  @ApiOperation({ summary: 'Reenviar la invitación', description: 'Sin cuerpo. Revoca el código vigente y envía por correo uno nuevo; la respuesta trae solo el estado de la invitación, nunca el código. Solo mientras la cuenta esté `pending`. Queda registro de auditoría, sin el código.' })
+  @ApiData(ReissuedInvitationResponse, 'Invitación reenviada, con su estado.')
+  @ApiDomainErrors('NOT_FOUND', 'USER_ALREADY_ACTIVE')
   @Post(':id/activation-code')
-  @HttpCode(HttpStatus.CREATED)
+  @HttpCode(HttpStatus.OK)
   async reissueCode(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Req() req: Request) {
-    return new ResponseDto(HttpStatus.CREATED, t('user.activation_code_regenerated'), toMemberWithCode(await this.reissue.execute(p, id, metaOf(req))));
+    return new ResponseDto(HttpStatus.OK, t('user.activation_code_regenerated'), { invitation: toInvitation(await this.reissue.execute(p, id, metaOf(req))) });
   }
 }
