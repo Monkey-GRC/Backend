@@ -40,3 +40,7 @@ export type Invitation = { deliveryStatus: 'sent' | 'failed'; expiresAt: Date };
 /** Quién invita y a qué empresa: lo que el correo de invitación dice de ambos. */
 /** `null` si la fila ya no se encuentra: el correo usa palabras neutras. */
 export type InvitationContext = { inviterName: string | null; companyName: string | null };
+
+/** Un responsable (o administrador) vigente: lo que sirve de líder de un equipo. */
+export const LIVE_STATUSES = ['active', 'pending'] as const;
+export const isLiveStatus = (status: string | null): boolean => status !== null && (LIVE_STATUSES as readonly string[]).includes(status);

@@ -47,7 +47,7 @@ export class GroupsController {
       '`admin_empresa` sin `leader_id`: un grupo de responsables que lidera él; con `leader_id`: el equipo de delegados de ese responsable (activo o pendiente). `responsable`: su propio equipo (solo uno; `leader_id` ajeno es `403`). El nombre «Responsables» está reservado. Queda registro de auditoría.',
   })
   @ApiData(GroupResponse, 'Grupo creado.', { status: 201 })
-  @ApiDomainErrors('FORBIDDEN', 'NOT_FOUND', 'TEAM_ALREADY_EXISTS', 'GROUP_NAME_TAKEN')
+  @ApiDomainErrors('FORBIDDEN', 'NOT_FOUND', 'TEAM_ALREADY_EXISTS', 'GROUP_NAME_TAKEN', 'ACCOUNT_INACTIVE')
   @Roles('admin_empresa', 'responsable')
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -57,7 +57,7 @@ export class GroupsController {
 
   @ApiOperation({ summary: 'Renombrar un grupo', description: 'Solo `admin_empresa`. El grupo «Responsables» (el de los responsables por omisión) no se renombra, y ningún otro grupo puede llevar ese nombre. Queda registro de auditoría con el nombre antes y después.' })
   @ApiData(GroupResponse, 'Grupo ya renombrado.')
-  @ApiDomainErrors('NOT_FOUND', 'GROUP_NAME_TAKEN', 'GROUP_RESERVED')
+  @ApiDomainErrors('NOT_FOUND', 'GROUP_NAME_TAKEN', 'GROUP_RESERVED', 'ACCOUNT_INACTIVE')
   @Patch(':id')
   async renameGroup(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Body() dto: RenameGroupDto, @Req() req: Request) {
     return new ResponseDto(HttpStatus.OK, t('group.updated'), toGroup(await this.rename.execute(p, id, dto, metaOf(req))));

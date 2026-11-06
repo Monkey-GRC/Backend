@@ -23,10 +23,12 @@ export class CreateTeamMemberDto {
 export class UpdateTeamMemberDto {
   @ApiPropertyOptional({ example: 'Juan', description: 'Corrige el nombre (máx. 100).' }) @IsOptional() @Transform(trim) @IsString() @IsNotEmpty() @MaxLength(100) name?: string;
   @ApiPropertyOptional({ example: 'Pérez', description: 'Corrige el apellido (máx. 100).' }) @IsOptional() @Transform(trim) @IsString() @IsNotEmpty() @MaxLength(100) last_name?: string;
-  @ApiPropertyOptional({ enum: ['active', 'inactive'], enumName: 'TeamMemberStatus', description: '`inactive` desactiva la cuenta y cierra todas sus sesiones; `active` la reactiva.' }) @IsOptional() @IsIn(['active', 'inactive']) status?: 'active' | 'inactive';
+  @ApiPropertyOptional({ enum: ['active', 'inactive'], enumName: 'TeamMemberStatus', description: '`inactive` desactiva la cuenta, cierra todas sus sesiones y libera el cupo; `active` la reactiva (vuelve a comprobar el cupo y no devuelve sus asignaciones).' }) @IsOptional() @IsIn(['active', 'inactive']) status?: 'active' | 'inactive';
   @ApiPropertyOptional({ format: 'uuid', description: 'Mueve a un delegado al equipo (`kind = team`) de un responsable activo o pendiente de la empresa. Solo para `delegado` (`group_id.not_allowed`).' })
   @IsOptional() @IsUUID() group_id?: string;
-  @ApiPropertyOptional({ description: 'Al mover: `true` confirma que los controles que el delegado ejecuta quedan sin ejecutor (siguen con su dueño). Sin él, `USER_HAS_ASSIGNMENTS`.' })
+  @ApiPropertyOptional({ description: 'Solo `delegado`: corrige si es de la compañía (`true`) o externo (`false`). Para los demás roles, `422 is_internal.not_allowed`.' })
+  @IsOptional() @IsBoolean() is_internal?: boolean;
+  @ApiPropertyOptional({ description: 'Solo se evalúa al desactivar o mover: `true` confirma que los controles de la persona quedan sin ejecutor (delegado) o sin asignar (dueño). Sin él, `USER_HAS_ASSIGNMENTS` con `controls_count`.' })
   @IsOptional() @IsBoolean() confirm_unassign?: boolean;
 }
 

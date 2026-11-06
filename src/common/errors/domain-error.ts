@@ -90,6 +90,9 @@ export type DomainErrorCode =
   | 'GROUP_RESERVED'
   // Se mueve a quien ejecuta controles sin confirmar (`controls_count`).
   | 'USER_HAS_ASSIGNMENTS'
+  // MD-191 · Se desactiva a un responsable con delegados activos o pendientes (`delegates_count`); se reactiva a un delegado cuyo responsable ya no está vigente.
+  | 'RESPONSIBLE_HAS_DELEGATES'
+  | 'TEAM_LEADER_INACTIVE'
   // D103 · El cupo de usuarios de la empresa (companies.max_users): SEG-72.
   | 'USER_LIMIT_REACHED'
   | 'MAX_USERS_BELOW_CURRENT'
