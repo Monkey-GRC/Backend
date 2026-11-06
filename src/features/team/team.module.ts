@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ACTIVATION_CODE_TTL_HOURS } from './application/activation-policy.token';
+import { InvitationDelivery } from './application/invitation/invitation-delivery.service';
 import { CreateGroupUseCase, ListGroupsUseCase, RenameGroupUseCase } from './application/use-cases/team-groups.use-cases';
 import { CreateTeamMemberUseCase, IssueActivationCode, ListTeamUseCase, ReissueActivationCodeUseCase, UpdateTeamMemberUseCase } from './application/use-cases/team-users.use-cases';
 import { TeamGroupRepository } from './domain/repositories/team-group.repository';
@@ -26,6 +27,7 @@ import { UsersController } from './presentation/users.controller';
     { provide: TeamUserRepository, useClass: TeamUserPrismaRepository },
     { provide: TeamGroupRepository, useClass: TeamGroupPrismaRepository },
     IssueActivationCode,
+    InvitationDelivery,
     CreateTeamMemberUseCase,
     ListTeamUseCase,
     UpdateTeamMemberUseCase,

@@ -1,5 +1,5 @@
-import { InvitedMember, MemberWithCode } from '../application/use-cases/team-users.use-cases';
-import { TeamGroup, TeamMember } from '../domain/team.types';
+import { InvitedMember } from '../application/use-cases/team-users.use-cases';
+import { Invitation, TeamGroup, TeamMember } from '../domain/team.types';
 
 // Forma de contracts/gestion-usuarios.md. Nunca sale el hash de la contraseña, el secreto del segundo factor ni la huella del código.
 
@@ -18,16 +18,10 @@ export const toMember = (m: TeamMember) => ({
   created_at: m.createdAt.toISOString(),
 });
 
-// El alta nunca devuelve el código: solo el estado de la invitación (SEG-75).
-export const toInvitedMember = (v: InvitedMember) => ({
-  ...toMember(v.member),
-  invitation: { delivery_status: v.invitation.deliveryStatus, expires_at: v.invitation.expiresAt.toISOString() },
-});
+// Ninguna respuesta lleva el código: solo el estado de la invitación (SEG-75).
+export const toInvitation = (i: Invitation) => ({ delivery_status: i.deliveryStatus, expires_at: i.expiresAt.toISOString() });
 
-export const toMemberWithCode = (v: MemberWithCode) => ({
-  ...toMember(v.member),
-  activation_code: { code: v.activationCode.code, status: v.activationCode.status, expires_at: v.activationCode.expiresAt.toISOString() },
-});
+export const toInvitedMember = (v: InvitedMember) => ({ ...toMember(v.member), invitation: toInvitation(v.invitation) });
 
 export const toGroup = (g: TeamGroup) => ({
   id: g.id,

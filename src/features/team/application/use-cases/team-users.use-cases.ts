@@ -9,14 +9,15 @@ import { generateAccessKeyCode, normalizeAccessKeyCode } from '../../../../commo
 import { TokenHasher } from '../../../../common/security/token-hasher';
 import { unusablePasswordHash } from '../../../../common/security/unusable-password-hash';
 import { MemberFilters, TeamUserRepository } from '../../domain/repositories/team-user.repository';
-import { Invitation, IssuedActivationCode, TeamMember } from '../../domain/team.types';
+import { Invitation, TeamMember } from '../../domain/team.types';
 import { CreateTeamMemberDto, UpdateTeamMemberDto } from '../dtos/team.dto';
 import { ACTIVATION_CODE_TTL_HOURS } from '../activation-policy.token';
+import { InvitationDelivery } from '../invitation/invitation-delivery.service';
 import { planCreation } from './team-member-placement';
 
 // contracts/gestion-usuarios.md · Crear y listar los abren `admin_empresa` y `responsable` (@Roles en la ruta y la regla de cada rol aquí); editar y reemitir, solo `admin_empresa`.
-// El código de activación nunca viaja en el alta (SEG-75): solo su huella queda en la base, y ni el código ni la huella van a la auditoría (conventions.md).
-// El reenvío (`ReissueActivationCodeUseCase`) sigue devolviéndolo hasta MD-190.
+// El código de activación nunca viaja en una respuesta (SEG-75): solo su huella queda en la base, y ni el código ni la huella van a la auditoría (conventions.md).
+// Sale por correo (`InvitationDelivery`) cuando el alta o la reemisión ya se guardaron; si el correo falla, la cuenta queda y la invitación se marca `failed`.
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 const entry = (p: Principal, meta: RequestMeta, action: string, before: unknown, after: unknown): AuditEntry => ({
   tenantId: p.companyId, userId: p.userId, action, resource: 'user', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
@@ -26,7 +27,6 @@ const snapshot = (m: TeamMember) => ({
   id: m.id, email: m.email, name: m.name, last_name: m.lastName, role: m.role, status: m.status, group_id: m.group?.id ?? null, is_internal: m.isInternal,
 });
 
-export type MemberWithCode = { member: TeamMember; activationCode: IssuedActivationCode };
 export type InvitedMember = { member: TeamMember; invitation: Invitation };
 
 @Injectable()
@@ -41,7 +41,7 @@ export class IssueActivationCode {
 
 @Injectable()
 export class CreateTeamMemberUseCase {
-  constructor(private readonly repo: TeamUserRepository, private readonly codes: IssueActivationCode) {}
+  constructor(private readonly repo: TeamUserRepository, private readonly codes: IssueActivationCode, private readonly delivery: InvitationDelivery) {}
 
   async execute(p: Principal, dto: CreateTeamMemberDto, meta: RequestMeta): Promise<InvitedMember> {
     const plan = planCreation(p, { role: dto.role, groupId: dto.group_id ?? null, isInternal: dto.is_internal ?? null });
@@ -54,8 +54,9 @@ export class CreateTeamMemberUseCase {
       },
       (done) => entry(p, meta, 'user.create', null, snapshot(done)),
     );
-    // El correo con el código sale en MD-190; mientras tanto la invitación queda pendiente y el código no se devuelve.
-    return { member, invitation: { deliveryStatus: 'pending', expiresAt: issued.codeExpiresAt } };
+    const context = await this.repo.invitationContext(scopeOf(p), p.userId);
+    const deliveryStatus = await this.delivery.deliver({ userId: member.id, to: member.email, role: member.role, code: issued.code, expiresAt: issued.codeExpiresAt, ...context });
+    return { member, invitation: { deliveryStatus, expiresAt: issued.codeExpiresAt } };
   }
 }
 
@@ -91,14 +92,16 @@ export class UpdateTeamMemberUseCase {
 
 @Injectable()
 export class ReissueActivationCodeUseCase {
-  constructor(private readonly repo: TeamUserRepository, private readonly codes: IssueActivationCode) {}
+  constructor(private readonly repo: TeamUserRepository, private readonly codes: IssueActivationCode, private readonly delivery: InvitationDelivery) {}
 
-  async execute(p: Principal, id: string, meta: RequestMeta): Promise<MemberWithCode> {
+  async execute(p: Principal, id: string, meta: RequestMeta): Promise<Invitation> {
     const issued = this.codes.issue();
     const member = await this.repo.reissueCode(scopeOf(p), id, { codeHash: issued.codeHash, codeExpiresAt: issued.codeExpiresAt, createdBy: p.userId }, (done) =>
       entry(p, meta, 'user.activation_code_regenerate', null, { id: done.id, email: done.email }),
     );
     if (!member) throw new DomainError('NOT_FOUND');
-    return { member, activationCode: { code: issued.code, status: 'pending', expiresAt: issued.codeExpiresAt } };
+    const context = await this.repo.invitationContext(scopeOf(p), p.userId);
+    const deliveryStatus = await this.delivery.deliver({ userId: member.id, to: member.email, role: member.role, code: issued.code, expiresAt: issued.codeExpiresAt, ...context });
+    return { deliveryStatus, expiresAt: issued.codeExpiresAt };
   }
 }

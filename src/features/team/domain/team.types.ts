@@ -34,7 +34,9 @@ export type TeamMember = {
   createdAt: Date;
 };
 
-/** La invitación de una cuenta recién creada. `pending` hasta que el envío por correo exista (MD-190). El código nunca sale. */
-export type Invitation = { deliveryStatus: 'sent' | 'failed' | 'pending'; expiresAt: Date };
+/** El resultado de enviar el código de activación por correo. `failed`: la cuenta existe y se reenvía con la reemisión. El código nunca sale del correo (SEG-75). */
+export type Invitation = { deliveryStatus: 'sent' | 'failed'; expiresAt: Date };
 
-export type IssuedActivationCode = { code: string; status: 'pending'; expiresAt: Date };
+/** Quién invita y a qué empresa: lo que el correo de invitación dice de ambos. */
+/** `null` si la fila ya no se encuentra: el correo usa palabras neutras. */
+export type InvitationContext = { inviterName: string | null; companyName: string | null };

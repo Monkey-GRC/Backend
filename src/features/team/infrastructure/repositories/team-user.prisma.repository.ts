@@ -9,7 +9,7 @@ import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.inser
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { isEmailTaken } from './unique-violation';
 import { MemberChange, MemberFilters, MemberUpdated, NewMember, Placement, TeamUserRepository } from '../../domain/repositories/team-user.repository';
-import { RESPONSIBLES_GROUP_NAME, TEAM_ROLES, TeamMember } from '../../domain/team.types';
+import { InvitationContext, RESPONSIBLES_GROUP_NAME, TEAM_ROLES, TeamMember } from '../../domain/team.types';
 
 const SELECT = {
   id: true, email: true, name: true, lastName: true, role: true, status: true, isMfaEnabled: true, isInternal: true, lastLoginAt: true, createdAt: true,
@@ -53,6 +53,15 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
       if (isEmailTaken(e)) throw new DomainError('EMAIL_TAKEN');
       throw e;
     }
+  }
+
+  invitationContext(scope: TenantScope, inviterId: string): Promise<InvitationContext> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const inviter = await tx.user.findFirst({ where: { id: inviterId }, select: { name: true, lastName: true, email: true } });
+      const company = await tx.company.findFirst({ where: { id: scope.companyId }, select: { name: true } });
+      const fullName = inviter ? [inviter.name, inviter.lastName].filter(Boolean).join(' ') : '';
+      return { inviterName: inviter ? fullName || inviter.email : null, companyName: company?.name ?? null };
+    });
   }
 
   // El grupo donde queda la cuenta nueva, según `placement`. Corre en la transacción del alta, que ya tiene bloqueada la fila de la empresa: dos altas no crean dos veces el grupo por omisión.
@@ -178,6 +187,8 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
 
   reissueCode(scope: TenantScope, id: string, input: { codeHash: string; codeExpiresAt: Date; createdBy: string }, audit: Parameters<TeamUserRepository['reissueCode']>[3]): Promise<TeamMember | null> {
     return this.prisma.withScope(scope, async (tx) => {
+      // Serializa las reemisiones de la misma cuenta: la segunda espera, ve el código ya revocado y deja uno solo vigente.
+      await tx.$queryRaw`SELECT id FROM platform.users WHERE id = ${id}::uuid FOR UPDATE`;
       const found = await tx.user.findFirst({ where: { id }, select: SELECT });
       if (!found || !isTeamRole(found.role)) return null;
       if (found.status !== 'pending') throw new DomainError('USER_ALREADY_ACTIVE');

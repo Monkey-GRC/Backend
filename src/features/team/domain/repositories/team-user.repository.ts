@@ -1,7 +1,7 @@
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
-import { TeamMember, TeamRole } from '../team.types';
+import { InvitationContext, TeamMember, TeamRole } from '../team.types';
 
 // Las cuentas del equipo (platform.users + user_activation_codes). Toda escritura recibe su `audit`, que se escribe en la MISMA transacción (SEG-36).
 
@@ -52,6 +52,9 @@ export type MemberUpdated = { before: TeamMember; after: TeamMember; sessionsClo
 export abstract class TeamUserRepository {
   // EMAIL_TAKEN si ya hay una cuenta con ese correo (el correo es único global). Un responsable nuevo queda solo en «Responsables»: su equipo de delegados no nace con él (D104).
   abstract create(scope: TenantScope, input: NewMember, audit: AuditIntent<TeamMember>): Promise<TeamMember>;
+
+  // Quién invita (su nombre, o su correo si no tiene) y el nombre de la empresa, para el correo. Solo lectura, antes de escribir nada.
+  abstract invitationContext(scope: TenantScope, inviterId: string): Promise<InvitationContext>;
 
   abstract list(scope: TenantScope, filters: MemberFilters): Promise<Page<TeamMember>>;
 
