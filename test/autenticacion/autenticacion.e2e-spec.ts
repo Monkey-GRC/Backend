@@ -2,6 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { claveEnviadaA } from '../support/correo-en-memoria';
+import { invitarYActivar } from '../support/equipo';
 import { dosEmpresas, Tenant } from '../support/escenario';
 
 // Requisitos de autenticación (seguridad/requisitos.md, SEG-12, 13, 15, 17, 18, 23 y 24): lo que antes solo estaba
@@ -147,6 +148,19 @@ describe('SEG-23 · un usuario desactivado pierde el acceso (CC6.3)', () => {
     } finally {
       await owner(`update platform.users set status = 'active' where email = $1`, [a.email]);
     }
+  });
+});
+
+describe('SEG-23 / SEG-74 · desactivar desde el API corta la sesión al instante', () => {
+  it('PATCH /v1/users/{id} con status inactive: su sesión abierta responde 401 en la siguiente petición, y las sesiones quedan revocadas', async () => {
+    const correo = `baja-sesion-${RUN}@aislamiento.test`;
+    const p = await invitarYActivar(app, a.agent, { email: correo, name: 'Persona', last_name: 'De Prueba', role: 'auditor' });
+    await p.session.get('/v1/auth/me').expect(200);
+    await a.agent.patch(`/v1/users/${p.id}`).send({ status: 'inactive' }).expect(200);
+    await p.session.get('/v1/auth/me').expect(401);
+    await p.session.get('/v1/services').expect(401);
+    expect(await owner('select 1 from platform.sessions where user_id = $1 and revoked_at is null', [p.id])).toHaveLength(0);
+    expect((await http().post('/v1/auth/login').send({ email: correo, password: PASSWORD })).status).toBe(403);
   });
 });
 
