@@ -1,16 +1,16 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { Agent, owner, PASSWORD } from './app';
+import { claveEnviadaA } from './correo-en-memoria';
 
-// MD-188 · El alta ya no devuelve el código de activación (SEG-75). Mientras el correo de invitación no exista (MD-190), la prueba obtiene un código con el reenvío
-// (`POST /v1/users/{id}/activation-code`), que sí lo devuelve.
+// MD-190 · Ninguna respuesta lleva el código de activación (SEG-75): sale solo por el correo de invitación. La prueba lo lee del correo capturado, como lo haría la persona.
 
 export type Invitada = { id: string; session: Agent; data: any };
 
-/** Crea la cuenta con `body`, pide un código con el reenvío, la activa y devuelve su sesión. */
+/** Crea la cuenta con `body`, toma el código del correo de invitación, la activa y devuelve su sesión. */
 export async function invitarYActivar(app: INestApplication, admin: Agent, body: { email: string } & Record<string, unknown>): Promise<Invitada> {
   const data = (await admin.post('/v1/users').send(body).expect(201)).body.data;
-  const code = (await admin.post(`/v1/users/${data.id}/activation-code`).expect(201)).body.data.activation_code.code;
+  const code = claveEnviadaA(body.email);
   const session = request.agent(app.getHttpServer());
   await session.post('/v1/auth/activate').send({ code, email: body.email, password: PASSWORD }).expect(201);
   return { id: data.id, session, data };
