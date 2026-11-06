@@ -3,6 +3,7 @@ import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
+import { lockUserRow } from '../../../../infrastructure/database/row-locks';
 import { ActivatingAccount, RedeemableActivationCode } from '../../domain/entities/redeemable-activation-code.entity';
 import { ActivateOutcome, ActivationRepository } from '../../domain/repositories/activation.repository';
 
@@ -45,6 +46,8 @@ export class ActivationPrismaRepository extends ActivationRepository {
   ): Promise<ActivateOutcome> {
     try {
       await this.prisma.withScope(scope, async (tx) => {
+        // Orden global (row-locks.ts): la fila del usuario antes que su código, como en la reemisión (que bloquea al usuario y luego revoca el código vigente).
+        await lockUserRow(tx, userId, 'UPDATE');
         // Condicional: solo si sigue pendiente y vigente. Si otra activación llegó primero, count = 0.
         const marked = await tx.userActivationCode.updateMany({
           where: { id: codeId, status: 'pending', usedAt: null, expiresAt: { gt: at } },
