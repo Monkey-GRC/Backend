@@ -13,7 +13,11 @@ import { loadControlResponsibles, usersOf } from '../shared/control-responsibles
 import { captureControlStates, recordControlStateChanges } from '../shared/control-state-events';
 import { reviewsOf, toReviewRecord, versionOf } from './evidence-review.mapper';
 
-const PERSON = { select: { id: true, name: true, lastName: true } } as const;
+// Subir o revisar una evidencia relee el servicio entero (captura el estado de sus controles antes y después, D91) dentro de la misma transacción: con la base lejos
+// (desarrollo contra una base remota) los 5 s por defecto de Prisma no alcanzan y la subida responde 500 (P2028).
+const STATE_TRANSACTION = { timeoutMs: 30_000 };
+
+const PERSON ={ select: { id: true, name: true, lastName: true } } as const;
 // Una dimensión que el control resuelve a mano; la documental (`policy`) también es manual (D88). Lo mismo que decide si cabe un veredicto (`test-verdict.prisma.repository.ts`).
 const MANUAL_DIMENSION_TYPES = new Set(['manual', 'technical_manual']);
 // La revisión que se lee es la del rol que pregunta, nunca la del otro (D84, SEG-61): por eso la entrega se pide con el rol.
@@ -156,7 +160,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
           actor: { userId: input.submittedBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent },
         });
         return created;
-      });
+      }, STATE_TRANSACTION);
     } catch (e) {
       // Nunca debería pasar con el bloqueo de arriba; si pasa, es una carrera real y se pide reintentar en vez de pisar.
       if ((e as { code?: string })?.code === 'P2002') throw new DomainError('EVIDENCE_VERSION_CONFLICT');
@@ -203,7 +207,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         });
       }
       return saved;
-    });
+    }, STATE_TRANSACTION);
   }
 
   controlEvidenceFacts(scope: TenantScope, controlId: string): Promise<ControlEvidenceFacts | null> {
