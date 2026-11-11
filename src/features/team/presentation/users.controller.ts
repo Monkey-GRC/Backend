@@ -34,7 +34,7 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Invitar a una persona del equipo', description: 'Crea una cuenta `responsable`, `delegado`, `auditor` o `admin_empresa` (el `responsable` solo crea delegados, en su equipo). Nace `pending`, cuenta para el cupo y deja registro de auditoría. Un `responsable` nuevo queda en el grupo «Responsables»; su equipo de delegados no nace con él. El código de activación sale **por correo** a la persona, nunca en la respuesta: esta trae solo el estado de la invitación (`sent` o `failed`; si falló, se reenvía).' })
   @ApiData(TeamMemberInvitedResponse, 'Cuenta creada, con el estado de su invitación.', { status: 201 })
-  @ApiDomainErrors('FORBIDDEN', 'NOT_FOUND', 'RESPONSIBLE_HAS_NO_TEAM', 'RESPONSIBLES_GROUP_INVALID', 'EMAIL_TAKEN', 'USER_LIMIT_REACHED')
+  @ApiDomainErrors('FORBIDDEN', 'NOT_FOUND', 'RESPONSIBLE_HAS_NO_TEAM', 'RESPONSIBLES_GROUP_INVALID', 'EMAIL_TAKEN', 'USER_LIMIT_REACHED', 'ACCOUNT_INACTIVE')
   @Roles('admin_empresa', 'responsable')
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -52,9 +52,9 @@ export class UsersController {
     return new ResponseDto(HttpStatus.OK, t('user.list'), toPageResponse(page, toMember));
   }
 
-  @ApiOperation({ summary: 'Editar, mover, desactivar o reactivar a una persona', description: 'Cambia el estado (`inactive`/`active`) o el nombre, o **mueve a un delegado** a otro equipo (`group_id`): si ejecuta controles hace falta `confirm_unassign` y esos controles quedan sin ejecutor (siguen con su dueño). **Desactivar cierra todas sus sesiones al instante** (CC6.3). No se desactiva a uno mismo, ni una cuenta `pending`. Sobre un administrador o alguien de otra empresa: `404`. Queda registro de auditoría.' })
+  @ApiOperation({ summary: 'Editar, mover, desactivar o reactivar a una persona', description: 'Cambia el estado (`inactive`/`active`), el nombre o `is_internal` (solo `delegado`), o **mueve a un delegado** a otro equipo (`group_id`). **Desactivar cierra todas sus sesiones al instante** (CC6.3) y libera el cupo. Quien tiene controles asignados necesita `confirm_unassign` al desactivar o mover: el delegado deja sin ejecutor sus controles (siguen con su dueño) y un responsable o administrador los deja «Sin asignar». Un responsable con delegados activos o pendientes no se desactiva (`RESPONSIBLE_HAS_DELEGATES`, ni con confirmación). Reactivar vuelve a comprobar el cupo, no devuelve las asignaciones y, para un delegado, exige que su responsable siga activo o pendiente (`TEAM_LEADER_INACTIVE`). No se desactiva a uno mismo ni una cuenta `pending`. Sobre `admin_monkey` o alguien de otra empresa: `404`. Queda registro de auditoría, con una entrada por cada control cuyo dueño o ejecutor cambia.' })
   @ApiData(TeamMemberResponse, 'Cuenta ya cambiada.')
-  @ApiDomainErrors('NOT_FOUND', 'LAST_ADMIN', 'USER_NOT_ACTIVATED', 'USER_LIMIT_REACHED', 'USER_HAS_ASSIGNMENTS')
+  @ApiDomainErrors('NOT_FOUND', 'LAST_ADMIN', 'USER_NOT_ACTIVATED', 'USER_LIMIT_REACHED', 'USER_HAS_ASSIGNMENTS', 'RESPONSIBLE_HAS_DELEGATES', 'TEAM_LEADER_INACTIVE', 'ACCOUNT_INACTIVE')
   @Patch(':id')
   async change(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Body() dto: UpdateTeamMemberDto, @Req() req: Request) {
     return new ResponseDto(HttpStatus.OK, t('user.updated'), toMember(await this.update.execute(p, id, dto, metaOf(req))));
@@ -62,7 +62,7 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Reenviar la invitación', description: 'Sin cuerpo. Revoca el código vigente y envía por correo uno nuevo; la respuesta trae solo el estado de la invitación, nunca el código. Solo mientras la cuenta esté `pending`. Queda registro de auditoría, sin el código.' })
   @ApiData(ReissuedInvitationResponse, 'Invitación reenviada, con su estado.')
-  @ApiDomainErrors('NOT_FOUND', 'USER_ALREADY_ACTIVE')
+  @ApiDomainErrors('NOT_FOUND', 'USER_ALREADY_ACTIVE', 'ACCOUNT_INACTIVE')
   @Post(':id/activation-code')
   @HttpCode(HttpStatus.OK)
   async reissueCode(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Req() req: Request) {

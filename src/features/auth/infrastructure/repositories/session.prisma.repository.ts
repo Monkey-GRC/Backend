@@ -3,6 +3,7 @@ import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
+import { lockUserRow } from '../../../../infrastructure/database/row-locks';
 import { Session } from '../../domain/entities/session.entity';
 import { NewSession, SessionRepository } from '../../domain/repositories/session.repository';
 
@@ -88,6 +89,9 @@ export class SessionPrismaRepository extends SessionRepository {
 
   async revoke(scope: TenantScope, sessionId: string, at: Date, audit: AuditIntent<Session> | null): Promise<void> {
     await this.prisma.withScope(scope, async (tx) => {
+      // Orden global (row-locks.ts): la fila del usuario antes que la de la sesión. El insert de auditoría la pide (FK `user_id`) y la baja del usuario la tiene FOR UPDATE
+      // mientras cierra sus sesiones: tocar la sesión primero formaría un ciclo. Sin auditoría no hay FK que esperar.
+      if (audit && scope.userId) await lockUserRow(tx, scope.userId, 'KEY SHARE');
       const closed = await tx.session.updateMany({
         where: { id: sessionId, revokedAt: null },
         data: { revokedAt: at },

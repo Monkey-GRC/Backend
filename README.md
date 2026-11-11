@@ -1,487 +1,87 @@
 # Monkey Backend
 
-API REST construida con NestJS + Prisma + PostgreSQL, organizada con **Clean Architecture** y **Feature-Based** structure.
+API REST de Monkey (cumplimiento GRC): **NestJS + Prisma + PostgreSQL 17** con RLS por empresa, organizada en Clean Architecture
+por features. Este README es para **levantarlo y moverte en el repo**. Las reglas de diseño, los contratos y cómo construir una
+feature viven en el cerebro, [`Monkey-Brain-IA`](../Monkey-Brain-IA) (carpeta hermana de este repo): ver [Dónde está cada cosa](#dónde-está-cada-cosa).
 
-## Tabla de contenidos
+## Requisitos
 
-- [Setup](#setup)
-- [Scripts](#scripts)
-- [Arquitectura](#arquitectura)
-- [Estructura de directorios](#estructura-de-directorios)
-- [Cómo crear una nueva feature](#cómo-crear-una-nueva-feature)
+- **Node 20** (`nvm use`; lo dice `.nvmrc`). El `package-lock.json` debe generarse con Node 20: npm 11 descarta del lock paquetes que npm 10 sí instala y `npm ci` falla en el CI.
+  Si cambias dependencias con otra versión: `docker run --rm -v "$PWD":/w -w /w node:20-alpine npm install --package-lock-only`.
+- **Docker**, para el Postgres local y para las pruebas.
 
----
-
-## Setup
+## Levantarlo en local
 
 ```bash
-npm install
+nvm use && npm ci
+npx prisma generate        # genera el cliente en ./generated/prisma; sin él ni el catálogo ni la app compilan
+cp .env.example .env       # luego edita .env (ver «Variables de entorno»)
 ```
 
-**Versión de Node:** usa Node 20 (`.nvmrc`; `nvm use`). Es la que usan el CI y el `Dockerfile`, y **el `package-lock.json` debe generarse con ella**:
-npm 11 (Node 24) descarta del lock paquetes que npm 10 sí instala (por ejemplo los *peers* de React de Prisma Studio) y entonces `npm ci` falla en el CI.
-Si cambias dependencias con otra versión: `docker run --rm -v "$PWD":/w -w /w node:20-alpine npm install --package-lock-only`.
-
-Copia el archivo de entorno y configura las variables:
+**1. Secretos** (cada uno distinto; no los reutilices entre ambientes):
 
 ```bash
-cp .env.example .env
+node -e "console.log(require('crypto').randomBytes(64).toString('base64url'))"   # JWT_SECRET y TOKEN_HASH_PEPPER
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"      # CREDENTIALS_ENCRYPTION_KEY
 ```
 
-Variables requeridas (la lista completa, con su explicación, está en `.env.example`; solo se documenta aquí lo que la app lee de verdad):
-
-```env
-# Migraciones (rol dueño; solo Prisma CLI y deploy) y runtime (rol monkey_app, sujeto a RLS).
-# La app nunca se conecta como el rol dueño.
-DATABASE_URL="postgresql://postgres:password@localhost:5432/monkey"
-SHADOW_DATABASE_URL="postgresql://postgres:password@localhost:5432/monkey_shadow"
-APP_DATABASE_URL="postgresql://monkey_app:password@localhost:5432/monkey"
-JWT_SECRET="…"            # firma del access token
-JWT_ACCESS_EXPIRES_IN=900 # y SESSION_IDLE_TIMEOUT, SESSION_MAX_DURATION
-TOKEN_HASH_PEPPER="…"
-CREDENTIALS_ENCRYPTION_KEY="…"
-PORT=3000
-```
-
-Ejecuta las migraciones y el seed inicial:
+**2. Postgres** (rol dueño `postgres` para migrar; la app se conecta como `monkey_app`, sujeto a RLS):
 
 ```bash
-npx prisma migrate deploy
-npm run db:seed
+docker run -d --name monkey-pg -e POSTGRES_PASSWORD=password -e POSTGRES_DB=monkey -p 5432:5432 postgres:17
+docker exec monkey-pg psql -U postgres -c "CREATE DATABASE monkey_shadow"      # solo la usa `prisma migrate dev`
 ```
 
----
-
-## Scripts
+**3. Esquema, rol y datos base:**
 
 ```bash
-npm run start:dev     # modo desarrollo con hot reload
-npm run start:prod    # modo producción
-npm run build         # compilar TypeScript
-npm run lint          # lint con auto-fix
-npm run test          # unit tests
+npx prisma migrate deploy                                                       # usa DATABASE_URL (rol dueño)
+docker exec monkey-pg psql -U postgres -d monkey -c "ALTER ROLE monkey_app PASSWORD 'password'"   # las migraciones lo crean sin clave
+npm run catalog:load -- --apply && npm run reference:load -- --apply            # catálogo SOC 2 y datos de referencia (idempotentes)
 ```
 
----
+**4. Primer `admin_monkey`** (la contraseña solo por variable de entorno: 12+ caracteres con mayúscula, minúscula, número y símbolo):
 
-## Arquitectura
-
-El proyecto combina dos patrones:
-
-### Clean Architecture
-
-Cada feature está dividida en cuatro capas con responsabilidades estrictas:
-
-| Capa | Carpeta | Responsabilidad |
-|------|---------|-----------------|
-| **Domain** | `domain/` | Entidades del negocio e interfaces de repositorios. Sin dependencias externas. |
-| **Application** | `application/` | Casos de uso y DTOs. Orquesta el dominio sin saber nada de HTTP ni Prisma. |
-| **Infrastructure** | `infrastructure/` | Implementaciones concretas: repositorios Prisma, estrategias de autenticación, etc. |
-| **Presentation** | `presentation/` | Controladores HTTP. Solo transforma request/response y delega a los casos de uso. |
-
-**Regla de dependencias:** las capas internas nunca importan de las capas externas.
-
-```
-Presentation → Application → Domain
-Infrastructure → Domain
+```bash
+BOOTSTRAP_ADMIN_EMAIL=tu@correo.com BOOTSTRAP_ADMIN_NAME=Tu BOOTSTRAP_ADMIN_LAST_NAME=Apellido \
+BOOTSTRAP_ADMIN_PASSWORD='…' npm run bootstrap:admin -- --apply
 ```
 
-### Feature-Based
+**5. Arrancar:** `npm run start:dev` → API en `http://localhost:3000/v1`. Los frontends esperan CORS desde `localhost:4200` (Admin) y `localhost:4201` (Platform).
 
-Cada dominio de negocio vive en `src/features/<nombre>/` con todas sus capas encapsuladas. Esto hace que agregar, modificar o eliminar una feature sea una operación localizada.
+## Variables de entorno
 
----
+`.env.example` es la lista **completa y comentada**; con `cp .env.example .env` ya vienen con valor las que no están en esta tabla (**no las borres**: sin `JWT_ACCESS_EXPIRES_IN`, `SESSION_IDLE_TIMEOUT` y `SESSION_MAX_DURATION` la app no arranca). Esto es lo que debes completar para empezar:
 
-## Documentación de la API (solo local)
-
-La API se documenta con OpenAPI (Swagger) y **solo existe en tu máquina**: no se publica en el dominio de la API.
-
-- **Encender:** pon `API_DOCS_ENABLED=true` en tu `.env` (viene así en `.env.example`) y arranca con `npm run start:dev`. Abre <http://localhost:3000/v1/docs>; el JSON está en `/v1/docs-json`.
-- **Apagada por defecto:** sin la variable, `/v1/docs` y `/v1/docs-json` responden 404 como cualquier ruta que no existe. Con `NODE_ENV=production` tampoco se sirven, aunque la variable esté puesta. Nunca la agregues al `.env` del servidor.
-- **Probar desde la página:** inicia sesión en *Autenticación → login*; el navegador guarda las cookies y las demás pruebas ya van con sesión.
-- **Qué muestra:** cada endpoint con resumen, descripción, roles que pueden llamarlo (salen de `@Roles`/`@Public`, así que no se desfasan), el sobre de respuesta con su `data` tipada, y los errores de negocio posibles. La descripción general trae las convenciones y el catálogo de errores.
-
-### Cómo documentar un endpoint nuevo
-
-1. **Grupo:** `@ApiTags(API_TAGS.<grupo>)` en el controlador (o en el método, si el controlador mezcla grupos). Un grupo nuevo se declara con título y descripción en `src/common/swagger/api-docs.config.ts`.
-2. **Operación:** `@ApiOperation({ summary, description })` en español, qué hace y cualquier regla que el frontend deba saber.
-3. **Respuesta:** `@ApiData(Modelo, 'descripción')`, `@ApiPaged(Modelo, …)`, `@ApiItems(Modelo, …)`, `@ApiEmpty(…)` o `@ApiNoBody(…)` (`src/common/swagger/api-envelope.ts`). `Modelo` es una clase solo de documentación junto al mapper (`*.responses.ts`) con `@ApiProperty({ description })` en cada campo.
-4. **Errores de negocio:** `@ApiDomainErrors('CODIGO', …)` con los `DomainError` que la operación puede lanzar. Los comunes (401, 403, 404 por id, 422) se agregan solos.
-5. **DTO de entrada:** `@ApiProperty({ description, example, enum, enumName })` en cada campo; los enums llevan `enumName` para que se muestren una sola vez.
-
-`npm test` falla si una operación queda sin resumen, sin respuesta de éxito, sin grupo con título, o si un campo o parámetro queda sin descripción (`src/common/swagger/api-docs.spec.ts`).
-
----
-
-## Estructura de directorios
-
-```
-src/
-├── main.ts
-├── app.module.ts
-├── swagger.config.ts
-│
-├── common/                          # Utilidades transversales (sin lógica de negocio)
-│   ├── dtos/
-│   │   └── response.dto.ts          # Wrapper genérico de respuestas API
-│   ├── filters/
-│   │   └── http-exception.filter.ts # Manejo global de excepciones con i18n
-│   ├── interceptors/
-│   │   └── user-context.interceptor.ts
-│   └── utils/
-│       ├── obfuscate-code.ts
-│       └── request-context.ts
-│
-├── infrastructure/                  # Infraestructura compartida
-│   └── database/
-│       ├── prisma.module.ts
-│       ├── prisma.service.ts
-│       └── seeds/
-│
-└── features/                        # Una carpeta por dominio de negocio
-    ├── auth/
-    │   ├── auth.module.ts
-    │   ├── application/
-    │   │   ├── auth.service.ts
-    │   │   └── dtos/
-    │   ├── infrastructure/
-    │   │   └── strategies/
-    │   │       └── jwt.strategy.ts
-    │   └── presentation/
-    │       └── auth.controller.ts
-    │
-    ├── risk/
-    │   ├── risk.module.ts
-    │   ├── domain/
-    │   │   ├── entities/
-    │   │   │   └── risk.entity.ts       # Lógica pura del negocio
-    │   │   └── repositories/
-    │   │       └── risk.repository.ts   # Interfaz abstracta
-    │   ├── application/
-    │   │   ├── dtos/
-    │   │   └── use-cases/
-    │   │       ├── create-risk.use-case.ts
-    │   │       ├── get-all-risks.use-case.ts
-    │   │       ├── update-risk.use-case.ts
-    │   │       └── delete-risk.use-case.ts
-    │   ├── infrastructure/
-    │   │   └── repositories/
-    │   │       └── risk.prisma.repository.ts  # Implementación con Prisma
-    │   └── presentation/
-    │       └── risk.controller.ts
-    │
-    └── reason/
-        ├── reason.module.ts
-        ├── application/
-        │   └── reason.service.ts
-        └── presentation/
-            └── reason.controller.ts
-```
-
----
-
-## Cómo crear una nueva feature
-
-A continuación se documenta el proceso completo para agregar una nueva feature, usando `control` como ejemplo.
-
-### Paso 1: Crear la entidad de dominio
-
-Define la entidad con su lógica de negocio pura. Sin Prisma, sin NestJS, solo TypeScript.
-
-**`src/features/control/domain/entities/control.entity.ts`**
-
-```typescript
-export class ControlEntity {
-  static generateCode(seq: number): string {
-    // lógica de negocio pura
-    return `CTR-${seq.toString().padStart(6, '0')}`;
-  }
-}
-```
-
-### Paso 2: Definir la interfaz del repositorio
-
-Declara qué operaciones necesita el dominio, usando tipos propios (sin Prisma).
-
-**`src/features/control/domain/repositories/control.repository.ts`**
-
-```typescript
-export type CreateControlInput = {
-  name: string;
-  description?: string;
-  userId: string;
-};
-
-export type UpdateControlInput = {
-  name?: string;
-  description?: string;
-  userId: string;
-};
-
-export abstract class ControlRepository {
-  abstract findAll(): Promise<any[]>;
-  abstract create(input: CreateControlInput): Promise<any>;
-  abstract update(id: string, input: UpdateControlInput): Promise<any>;
-  abstract delete(id: string): Promise<any>;
-}
-```
-
-### Paso 3: Crear los DTOs
-
-Definen la forma de los datos que entran por HTTP.
-
-**`src/features/control/application/dtos/create-control.dto.ts`**
-
-```typescript
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
-
-export class CreateControlDto {
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(150)
-  name: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  description?: string;
-}
-```
-
-**`src/features/control/application/dtos/update-control.dto.ts`**
-
-```typescript
-import { PartialType } from '@nestjs/swagger';
-import { CreateControlDto } from './create-control.dto';
-
-export class UpdateControlDto extends PartialType(CreateControlDto) { }
-```
-
-### Paso 4: Crear los casos de uso
-
-Cada operación es una clase con un método `execute()`. Solo conocen el repositorio abstracto.
-
-**`src/features/control/application/use-cases/create-control.use-case.ts`**
-
-```typescript
-import { Injectable } from '@nestjs/common';
-import { ControlRepository } from '../../domain/repositories/control.repository';
-import { CreateControlDto } from '../dtos/create-control.dto';
-
-@Injectable()
-export class CreateControlUseCase {
-  constructor(private readonly controlRepository: ControlRepository) { }
-
-  execute(dto: CreateControlDto, userId: string) {
-    return this.controlRepository.create({
-      name: dto.name,
-      description: dto.description,
-      userId,
-    });
-  }
-}
-```
-
-> Repite este patrón para `GetAllControlsUseCase`, `UpdateControlUseCase`, y `DeleteControlUseCase`.
-
-### Paso 5: Implementar el repositorio con Prisma
-
-Aquí vive la infraestructura: Prisma, transacciones, generación de códigos, etc.
-
-**`src/features/control/infrastructure/repositories/control.prisma.repository.ts`**
-
-```typescript
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
-import { ControlRepository, CreateControlInput, UpdateControlInput } from '../../domain/repositories/control.repository';
-
-@Injectable()
-export class ControlPrismaRepository extends ControlRepository {
-  constructor(private readonly prisma: PrismaService) {
-    super();
-  }
-
-  findAll() {
-    return this.prisma.control.findMany();
-  }
-
-  create(input: CreateControlInput) {
-    return this.prisma.control.create({
-      data: {
-        name: input.name,
-        description: input.description,
-        code: 'PENDING',
-        created_by_user: { connect: { id: input.userId } },
-      },
-    });
-  }
-
-  update(id: string, input: UpdateControlInput) {
-    return this.prisma.control.update({
-      where: { id },
-      data: {
-        name: input.name,
-        description: input.description,
-        updated_by_user: { connect: { id: input.userId } },
-      },
-    });
-  }
-
-  delete(id: string) {
-    return this.prisma.control.delete({ where: { id } });
-  }
-}
-```
-
-### Paso 6: Crear el controlador
-
-Recibe la request HTTP, extrae los datos necesarios y delega a los casos de uso.
-
-**`src/features/control/presentation/control.controller.ts`**
-
-```typescript
-import { Body, Controller, Delete, Get, HttpStatus, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { ApiCookieAuth } from '@nestjs/swagger';
-import { ResponseDto } from 'src/common/dtos/response.dto';
-import { CreateControlDto } from '../application/dtos/create-control.dto';
-import { UpdateControlDto } from '../application/dtos/update-control.dto';
-import { CreateControlUseCase } from '../application/use-cases/create-control.use-case';
-import { GetAllControlsUseCase } from '../application/use-cases/get-all-controls.use-case';
-import { UpdateControlUseCase } from '../application/use-cases/update-control.use-case';
-import { DeleteControlUseCase } from '../application/use-cases/delete-control.use-case';
-
-@ApiCookieAuth()
-@UseGuards(AuthGuard('jwt'))
-@Controller('controls')
-export class ControlController {
-  constructor(
-    private readonly createControlUseCase: CreateControlUseCase,
-    private readonly getAllControlsUseCase: GetAllControlsUseCase,
-    private readonly updateControlUseCase: UpdateControlUseCase,
-    private readonly deleteControlUseCase: DeleteControlUseCase,
-  ) { }
-
-  @Post()
-  async create(@Req() req: any, @Body() body: CreateControlDto) {
-    await this.createControlUseCase.execute(body, req.user.id);
-    return new ResponseDto({ statusCode: HttpStatus.CREATED, message: 'Control creado' });
-  }
-
-  @Get()
-  async findAll() {
-    const data = await this.getAllControlsUseCase.execute();
-    return new ResponseDto({ statusCode: HttpStatus.OK, message: 'Controles obtenidos', data });
-  }
-
-  @Patch(':id')
-  async update(@Req() req: any, @Param('id') id: string, @Body() body: UpdateControlDto) {
-    await this.updateControlUseCase.execute(id, body, req.user.id);
-    return new ResponseDto({ statusCode: HttpStatus.OK, message: 'Control actualizado' });
-  }
-
-  @Delete(':id')
-  async remove(@Param('id') id: string) {
-    await this.deleteControlUseCase.execute(id);
-    return new ResponseDto({ statusCode: HttpStatus.OK, message: 'Control eliminado' });
-  }
-}
-```
-
-### Paso 7: Crear el módulo
-
-El módulo vincula el repositorio abstracto con su implementación concreta (inversión de dependencia).
-
-**`src/features/control/control.module.ts`**
-
-```typescript
-import { Module } from '@nestjs/common';
-import { ControlController } from './presentation/control.controller';
-import { ControlRepository } from './domain/repositories/control.repository';
-import { ControlPrismaRepository } from './infrastructure/repositories/control.prisma.repository';
-import { CreateControlUseCase } from './application/use-cases/create-control.use-case';
-import { GetAllControlsUseCase } from './application/use-cases/get-all-controls.use-case';
-import { UpdateControlUseCase } from './application/use-cases/update-control.use-case';
-import { DeleteControlUseCase } from './application/use-cases/delete-control.use-case';
-
-@Module({
-  controllers: [ControlController],
-  providers: [
-    {
-      provide: ControlRepository,    // token abstracto
-      useClass: ControlPrismaRepository, // implementación concreta
-    },
-    CreateControlUseCase,
-    GetAllControlsUseCase,
-    UpdateControlUseCase,
-    DeleteControlUseCase,
-  ],
-})
-export class ControlModule { }
-```
-
-### Paso 8: Registrar en AppModule
-
-**`src/app.module.ts`**
-
-```typescript
-import { ControlModule } from './features/control/control.module';
-
-@Module({
-  imports: [
-    // ... otros módulos
-    ControlModule,
-  ],
-})
-export class AppModule { }
-```
-
----
-
-### Resumen del checklist para una nueva feature
-
-```
-src/features/<feature>/
-├── <feature>.module.ts                              ✅ Registra y vincula
-├── domain/
-│   ├── entities/<feature>.entity.ts                ✅ Lógica de negocio pura
-│   └── repositories/<feature>.repository.ts        ✅ Interfaz abstracta
-├── application/
-│   ├── dtos/
-│   │   ├── create-<feature>.dto.ts                 ✅ DTO de creación
-│   │   └── update-<feature>.dto.ts                 ✅ DTO de actualización (PartialType)
-│   └── use-cases/
-│       ├── create-<feature>.use-case.ts            ✅ Caso de uso
-│       ├── get-all-<feature>s.use-case.ts          ✅ Caso de uso
-│       ├── update-<feature>.use-case.ts            ✅ Caso de uso
-│       └── delete-<feature>.use-case.ts            ✅ Caso de uso
-├── infrastructure/
-│   └── repositories/
-│       └── <feature>.prisma.repository.ts          ✅ Implementación Prisma
-└── presentation/
-    └── <feature>.controller.ts                     ✅ Controlador HTTP
-```
-
-Luego agrega el módulo en `src/app.module.ts` y está listo.
-
-## Pruebas y CI
-
-| Qué | Comando | Necesita |
+| Variable | Para qué | En local |
 |---|---|---|
-| Unitarias | `npm test` | nada |
-| Lint (sin `--fix`, como en CI) | `npm run lint:ci` | nada |
-| Aislamiento entre empresas: base de datos (RLS) y API (HTTP) | `npm run test:e2e` | `TEST_DATABASE_URL`: un Postgres **desechable** con migraciones, catálogo y `monkey_app` con contraseña (`TEST_APP_PASSWORD`, por defecto `test`) |
-| &nbsp;&nbsp;↳ `test/aislamiento/` | RLS en la base de datos y aislamiento por HTTP entre empresas | (lo mismo) |
-| &nbsp;&nbsp;↳ `test/auditoria/` | **Auditoría atómica** (SEG-36): cada acción deja su rastro y, si el rastro falla, la acción se revierte. **Evaluaciones inmutables** (SEG-38): ni la app ni el dueño de la tabla pueden modificar lo medido, borrar ni vaciar | (lo mismo) |
-| &nbsp;&nbsp;↳ `test/autenticacion/` | Política de contraseña, bloqueo, sesión (30 min / 8 h), cookies, tokens hasheados, secretos del cliente y freno de la clave de acceso | (lo mismo) |
-| Catálogo, clonado, audit trail y evaluaciones | `npm run catalog:verify` · `clone:verify` · `audit:verify` | base con las migraciones y el catálogo cargados |
+| `DATABASE_URL`, `SHADOW_DATABASE_URL` | Migraciones (rol dueño) | `postgresql://postgres:password@localhost:5432/monkey` (y `monkey_shadow`) |
+| `APP_DATABASE_URL` | Runtime, rol `monkey_app` (RLS) | `postgresql://monkey_app:password@localhost:5432/monkey` |
+| `JWT_SECRET`, `TOKEN_HASH_PEPPER`, `CREDENTIALS_ENCRYPTION_KEY` | Firmas y cifrado | los de arriba. **No pierdas ni cambies** `CREDENTIALS_ENCRYPTION_KEY`: lo ya cifrado dejaría de poder leerse |
+| `MFA_REQUIRED` | Segundo factor (TOTP) | `false` solo sirve en local para no sacar el celular en cada ingreso; en producción el servidor no arranca así |
+| `MAIL_PROVIDER` | `log` (escribe el mensaje en la consola) o `resend` (envía de verdad, con `MAIL_API_KEY` y `MAIL_FROM`) | `log`. **El código de invitación de un usuario no se imprime** (SEG-75): para verlo usa `resend` |
+| `PLATFORM_APP_URL`, `ADMIN_APP_URL` | Enlaces de los correos (solo `http(s)`) | `http://localhost:4201` |
+| `PROBE_MODE` | Motor de nube: vacío (no disponible), `simulated` (solo dev) o `runner` (real, ver abajo) | vacío o `simulated` |
+| `S3_*` | Archivos (S3 o MinIO). Sin ellos la app arranca, pero subir un archivo responde 503 | opcional |
+| `API_DOCS_ENABLED` | Swagger local | `true` |
 
-Las pruebas de RLS escriben dentro de una transacción que se revierte. **Las de HTTP no**: crean empresas, servicios y activos reales
-por la API (con nombres únicos por corrida), así que solo sirven sobre una base desechable. Ambas se niegan a correr contra un
-servidor que no sea local: nunca las apuntes a la base compartida de dev. Para correrlas en tu máquina:
+## Comandos
+
+| Comando | Qué hace |
+|---|---|
+| `npm run start:dev` · `build` · `start:prod` | Arrancar con recarga · compilar · correr lo compilado |
+| `npm test` · `npm run lint` (con `--fix`) · `lint:ci` · `npx tsc --noEmit` | Unitarias · lint · lint como en el CI · tipos (incluye las pruebas) |
+| `npm run test:e2e` | Aislamiento entre empresas y API real (ver «Pruebas») |
+| `npm run prisma:migrate` · `prisma:migrate:deploy` · `prisma:studio` | Migración nueva en desarrollo · aplicar migraciones · explorar la base |
+| `npm run catalog:load` · `reference:load` | Cargan catálogo y referencia. Sin `-- --apply` son un ensayo que no escribe |
+| `npm run catalog:verify` · `reference:verify` · `clone:verify` · `audit:verify` | Verificadores contra la base (los corre el CI) |
+| `npm run bootstrap:admin` · `mfa:reset` | Primer `admin_monkey` · restablecer el segundo factor de un `admin_empresa` |
+| `npm run runner:local` | El trabajador del motor de nube en tu máquina (ver abajo) |
+
+## Pruebas
+
+- **Unitarias:** `npm test` (no necesita nada).
+- **e2e:** necesitan un Postgres **desechable** con migraciones y catálogo. Crean empresas reales por la API y se niegan a correr contra un servidor que no sea local: **nunca las apuntes a la base compartida de dev**.
 
 ```bash
 docker run -d --name monkey-test-pg -e POSTGRES_PASSWORD=test -e POSTGRES_DB=monkey -p 55432:5432 postgres:17
@@ -494,5 +94,43 @@ npm run catalog:load -- --apply && npm run reference:load -- --apply
 npm run test:e2e
 ```
 
-Exporta las tres URLs en la misma terminal: el `.env` del proyecto apunta a la base de dev y `dotenv` no pisa las variables ya definidas.
-`.github/workflows/ci.yml` hace exactamente esto en cada PR a `develop`/`main`.
+Exporta las tres URLs **en la misma terminal**: el `.env` apunta a la base de dev y `dotenv` no pisa lo que ya está definido. Exporta **solo esas**: si también exportas `MAIL_PROVIDER` o `PLATFORM_APP_URL`, fallan dos pruebas unitarias que leen el entorno. Al terminar: `docker rm -f monkey-test-pg`.
+El CI (`.github/workflows/ci.yml`) hace exactamente esto en cada PR a `develop` y `main`; al fusionar en `develop` solo corre el despliegue.
+
+## El trabajador (runner) en local
+
+El motor de nube no corre dentro de la API: lo ejecuta un **trabajador** que reclama las evaluaciones del backend y las entrega. Para comprobar conexiones de verdad contra AWS desde tu máquina:
+
+1. En el `.env` del backend: `PROBE_MODE=runner` y `RUNNER_TOKEN=<valor>` (reinicia el backend).
+2. Crea `deploy/runner.env` desde `deploy/runner.env.example` (`RUNNER_TOKEN` igual al del backend, `ENGINE_IMAGE` fijada por versión o digest, y las llaves AWS de pruebas). **Nunca lo commitees ni copies ahí el `.env` del backend.**
+3. `npm run runner:local` (o `-- --no-build` para no recompilar). El script busca el archivo de entorno en este orden: `RUNNER_ENV_FILE=ruta`, `deploy/runner.env` y `~/.monkey-runner.env`; si no encuentra ninguno, falla y lo dice.
+
+Cómo funciona, qué permisos usa y qué decidió el comité: `references/arquitectura/control-tecnico/motores/README.md` del cerebro.
+
+## Documentación de la API (solo local)
+
+Con `API_DOCS_ENABLED=true` y `npm run start:dev`, abre <http://localhost:3000/v1/docs> (JSON en `/v1/docs-json`). Inicia sesión en *Autenticación → login* y el navegador guarda las cookies para probar el resto.
+Con `NODE_ENV=production` no se sirve aunque la variable esté puesta: **nunca la agregues al `.env` del servidor**. Cómo documentar un endpoint nuevo (y qué hace fallar a `npm test`): `skills/backend/add-feature.md`.
+
+## Dónde está cada cosa
+
+| Qué | Dónde |
+|---|---|
+| Features (una carpeta por módulo, con `domain/`, `application/`, `infrastructure/`, `presentation/`) | `src/features/` (`auth`, `companies`, `team`, `compliance`, `onboarding`, `services`, `technical-control`, `catalogs`, `catalog-admin`) |
+| Transversal sin lógica de negocio (errores, auditoría, cupo, correo, Swagger…) | `src/common/` |
+| Prisma, bloqueos de fila, correo, almacenamiento, auditoría y seguridad (adaptadores) | `src/infrastructure/` (`database/`, `mail/`, `storage/`, `audit/`, `security/`) |
+| El trabajador del motor de nube | `src/runner/` |
+| Esquema Prisma (un archivo por módulo) · migraciones · seeds y verificadores | `prisma/schema/` · `prisma/migrations/` · `prisma/seed/` y `scripts/` |
+| Pruebas (aislamiento, auditoría, autenticación, equipo, empresas…) | `test/` |
+| Despliegue a dev: workflows, scripts y compose | `.github/workflows/` · `scripts/deploy/` · `deploy/` |
+
+**En el cerebro (`../Monkey-Brain-IA`):**
+
+| Necesito… | Leer |
+|---|---|
+| Reglas del proyecto, flujo de trabajo y qué leer según la tarea | `CLAUDE.md` y `README.md` |
+| La forma de cada endpoint (request, response, errores) | `contracts/<módulo>.md` |
+| Cómo está construido el backend hoy (capas, features, convenciones) | `context/backend.md` |
+| **Cómo crear una feature**, un modelo Prisma, un error i18n, una integración | `skills/backend/` (`add-feature.md`, `add-prisma-model.md`, `add-i18n-error.md`, `architecture-guardian.md`) |
+| Modelo de datos, decisiones, deuda técnica y requisitos de seguridad | `skills/product/monkey-compliance-council/references/` (`datos/`, `deuda-tecnica/`, `seguridad/`) |
+| Esquema, roles de base de datos, migraciones y RLS | `references/datos/schema-implementacion.md` |

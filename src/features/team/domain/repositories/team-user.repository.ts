@@ -44,10 +44,15 @@ export type MemberFilters = {
   pageSize: number;
 };
 
-// `groupId` mueve a un delegado a otro equipo; `confirmUnassign` solo se evalúa al mover (la baja con aviso es MD-191).
-export type MemberChange = { status?: 'active' | 'inactive'; name?: string; lastName?: string; groupId?: string; confirmUnassign?: boolean };
+// `groupId` mueve a un delegado a otro equipo; `confirmUnassign` solo se evalúa al desactivar o mover; `isInternal` solo vale para un delegado.
+export type MemberChange = { status?: 'active' | 'inactive'; name?: string; lastName?: string; groupId?: string; isInternal?: boolean; confirmUnassign?: boolean };
 
-export type MemberUpdated = { before: TeamMember; after: TeamMember; sessionsClosed: number; controlsUnassigned: number };
+/** Dueño y ejecutor de un control (`client_control_assignments`); `null` en ambos = «Sin asignar». */
+export type AssignmentState = { ownerId: string | null; executorId: string | null };
+/** Un control cuyo dueño o ejecutor cambió por la baja o el movimiento de una persona: de ahí sale el rastro `control_assignment.set` (uno por control). */
+export type ReleasedControl = { controlId: string; before: AssignmentState; after: AssignmentState };
+
+export type MemberUpdated = { before: TeamMember; after: TeamMember; sessionsClosed: number; controlsUnassigned: number; released: ReleasedControl[] };
 
 export abstract class TeamUserRepository {
   // EMAIL_TAKEN si ya hay una cuenta con ese correo (el correo es único global). Un responsable nuevo queda solo en «Responsables»: su equipo de delegados no nace con él (D104).
@@ -58,10 +63,14 @@ export abstract class TeamUserRepository {
 
   abstract list(scope: TenantScope, filters: MemberFilters): Promise<Page<TeamMember>>;
 
-  // null si no existe, es de otra empresa o es `admin_monkey` (404).
-  // Mover (`groupId`): 422 `group_id.not_allowed` si no es un delegado; NOT_FOUND si el destino no es el `team` de un responsable activo o pendiente de la empresa; el mismo equipo no cambia nada.
-  // Si ejecuta controles: USER_HAS_ASSIGNMENTS (con `controls_count`) sin `confirmUnassign`; con él, esos controles quedan sin ejecutor y siguen con su dueño. Todo en la misma transacción.
-  // LAST_ADMIN si uno mismo se desactiva (el nombre sí se puede corregir); USER_NOT_ACTIVATED si cambia el estado de una cuenta `pending`. Desactivar cierra todas sus sesiones en la misma transacción.
+  // null si no existe, es de otra empresa o es `admin_monkey` (404). Todo en UNA transacción, con la fila de la persona bloqueada (FOR UPDATE) antes de leerla.
+  // Orden de bloqueos (sin deadlock): la fila del sujeto, luego la del responsable líder (FOR SHARE), luego la fila de la empresa (cupo). Nunca al revés.
+  // Orden de comprobaciones: 404 · LAST_ADMIN (uno mismo) · 422 (group_id / is_internal no admitidos) · USER_NOT_ACTIVATED · RESPONSIBLE_HAS_DELEGATES · USER_HAS_ASSIGNMENTS · aplicar.
+  // Desactivar: cierra sus sesiones; un responsable con delegados activos o pendientes no se desactiva (aun con confirmación, `delegates_count`). Con controles: USER_HAS_ASSIGNMENTS
+  // (`controls_count`) sin `confirmUnassign`; con él, el delegado deja sin ejecutor sus controles y el dueño (responsable o admin_empresa) deja «Sin asignar» los suyos (se borra la asignación).
+  // Mover (`groupId`): 422 `group_id.not_allowed` si no es un delegado; NOT_FOUND si el destino no es el `team` de un responsable activo o pendiente; el mismo equipo no cambia nada; igual que desactivar con los controles que ejecuta.
+  // Reactivar: cupo (USER_LIMIT_REACHED) y, para un delegado, TEAM_LEADER_INACTIVE si su responsable no está activo ni pendiente. No devuelve asignaciones.
+  // LAST_ADMIN si uno mismo se desactiva (el nombre sí se puede corregir); USER_NOT_ACTIVATED si cambia el estado de una cuenta `pending`.
   abstract update(scope: TenantScope, id: string, change: MemberChange, at: Date, audit: AuditIntent<MemberUpdated>): Promise<TeamMember | null>;
 
   // Revoca el código vigente y emite uno nuevo. null si no existe o no es del equipo (404); USER_ALREADY_ACTIVE si la cuenta ya no está `pending`.
