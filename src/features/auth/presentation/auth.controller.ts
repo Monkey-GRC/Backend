@@ -26,7 +26,7 @@ import { LogoutUseCase } from '../application/use-cases/session/logout.use-case'
 import { LookupActivationCodeUseCase } from '../application/use-cases/activation/lookup-activation-code.use-case';
 import { LookupAccessKeyUseCase } from '../application/use-cases/access-key/lookup-access-key.use-case';
 import { RedeemAccessKeyUseCase } from '../application/use-cases/access-key/redeem-access-key.use-case';
-import { RefreshSessionUseCase } from '../application/use-cases/session/refresh-session.use-case';
+import { RefreshSessionUseCase, UnknownRefreshTokenError } from '../application/use-cases/session/refresh-session.use-case';
 import { RegenerateRecoveryCodesUseCase } from '../application/use-cases/mfa/regenerate-recovery-codes.use-case';
 import { StartMfaSetupUseCase } from '../application/use-cases/mfa/start-mfa-setup.use-case';
 import { VerifyMfaUseCase } from '../application/use-cases/mfa/verify-mfa.use-case';
@@ -278,8 +278,9 @@ export class AuthController {
       setAuthCookies(res, result, this.policy.accessTokenTtl, result.session.expiresAt);
       return new ResponseDto(HttpStatus.OK, t('auth.refreshed'), null);
     } catch (error) {
-      // Sesión muerta: se limpian las cookies para que el navegador no reintente con ellas.
-      clearAuthCookies(res);
+      // Sesión muerta: se limpian las cookies para que el navegador no reintente con ellas. Si el token no corresponde a ninguna sesión
+      // (rotado por otra pestaña a la vez) no se tocan: borrarían las cookies recién renovadas y la persona caería al login.
+      if (!(error instanceof UnknownRefreshTokenError)) clearAuthCookies(res);
       throw error;
     }
   }
