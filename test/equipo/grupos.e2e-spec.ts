@@ -435,7 +435,7 @@ describe('Mover a un delegado de equipo', () => {
     for (const body of [{ group_id: teamB }, { group_id: teamB, confirm_unassign: false }]) {
       const res = await mover(d.id, body).expect(409);
       expect(res.body.error).toMatchObject({ code: 'USER_HAS_ASSIGNMENTS', controls_count: 2 });
-      expect(res.body.message).toContain('ejecuta controles');
+      expect(res.body.message).toContain('controles asignados');
     }
     expect(await grupoDe(d.id)).toBe(teamA);
     expect((await ejecutorDe(controles[1])).executor_id).toBe(d.id);
@@ -457,7 +457,7 @@ describe('Mover a un delegado de equipo', () => {
     expect(r).toMatchObject({ before_state: { group_id: teamA }, after_state: { group_id: teamB, controls_unassigned: 2 } });
   });
 
-  it('confirm_unassign sin group_id no hace nada por sí solo: la baja con aviso no es de este corte', async () => {
+  it('confirm_unassign sin group_id ni status no hace nada por sí solo: el cuerpo sigue siendo 422', async () => {
     const d = await nuevoDelegado('mv-solo-confirma', teamA);
     await asignarControl(a.companyId, controles[6] ?? controles[0], rA.id, d.id);
     expect(fields(await mover(d.id, { confirm_unassign: true }).expect(422))).toEqual([{ field: 'status', code: 'required' }]);

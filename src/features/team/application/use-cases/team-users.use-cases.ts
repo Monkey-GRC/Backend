@@ -8,7 +8,7 @@ import { Page } from '../../../../common/pagination/page';
 import { generateAccessKeyCode, normalizeAccessKeyCode } from '../../../../common/security/access-key-code';
 import { TokenHasher } from '../../../../common/security/token-hasher';
 import { unusablePasswordHash } from '../../../../common/security/unusable-password-hash';
-import { MemberFilters, TeamUserRepository } from '../../domain/repositories/team-user.repository';
+import { AssignmentState, MemberFilters, ReleasedControl, TeamUserRepository } from '../../domain/repositories/team-user.repository';
 import { Invitation, TeamMember } from '../../domain/team.types';
 import { CreateTeamMemberDto, UpdateTeamMemberDto } from '../dtos/team.dto';
 import { ACTIVATION_CODE_TTL_HOURS } from '../activation-policy.token';
@@ -22,6 +22,12 @@ const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, r
 const entry = (p: Principal, meta: RequestMeta, action: string, before: unknown, after: unknown): AuditEntry => ({
   tenantId: p.companyId, userId: p.userId, action, resource: 'user', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
   beforeState: (before as Record<string, unknown>) ?? null, afterState: (after as Record<string, unknown>) ?? null,
+});
+// Una entrada por control cuyo dueño o ejecutor cambia (contracts/gestion-usuarios.md · Auditoría); el control va en el estado porque la entrada no tiene columna de recurso.
+const assignmentState = (controlId: string, s: AssignmentState) => ({ client_control_id: controlId, owner_id: s.ownerId, executor_id: s.executorId });
+const assignmentEntry = (p: Principal, meta: RequestMeta, r: ReleasedControl): AuditEntry => ({
+  tenantId: p.companyId, userId: p.userId, action: 'control_assignment.set', resource: 'control_assignment', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
+  beforeState: assignmentState(r.controlId, r.before), afterState: assignmentState(r.controlId, r.after),
 });
 const snapshot = (m: TeamMember) => ({
   id: m.id, email: m.email, name: m.name, last_name: m.lastName, role: m.role, status: m.status, group_id: m.group?.id ?? null, is_internal: m.isInternal,
@@ -77,14 +83,16 @@ export class UpdateTeamMemberUseCase {
   constructor(private readonly repo: TeamUserRepository) {}
 
   async execute(p: Principal, id: string, dto: UpdateTeamMemberDto, meta: RequestMeta): Promise<TeamMember> {
-    if (dto.status === undefined && dto.name === undefined && dto.last_name === undefined && dto.group_id === undefined) throw new ValidationException([{ field: 'status', code: 'required' }]);
-    const done = await this.repo.update(scopeOf(p), id, { status: dto.status, name: dto.name, lastName: dto.last_name, groupId: dto.group_id, confirmUnassign: dto.confirm_unassign }, new Date(), ({ before, after, sessionsClosed, controlsUnassigned }) => ({
-      ...entry(p, meta, 'user.update', snapshot(before), {
+    if (dto.status === undefined && dto.name === undefined && dto.last_name === undefined && dto.group_id === undefined && dto.is_internal === undefined) throw new ValidationException([{ field: 'status', code: 'required' }]);
+    const change = { status: dto.status, name: dto.name, lastName: dto.last_name, groupId: dto.group_id, isInternal: dto.is_internal, confirmUnassign: dto.confirm_unassign };
+    const done = await this.repo.update(scopeOf(p), id, change, new Date(), ({ before, after, sessionsClosed, controlsUnassigned, released }) => [
+      entry(p, meta, 'user.update', snapshot(before), {
         ...snapshot(after),
         ...(sessionsClosed ? { sessions_closed: sessionsClosed } : {}),
         ...(controlsUnassigned ? { controls_unassigned: controlsUnassigned } : {}),
       }),
-    }));
+      ...released.map((r) => assignmentEntry(p, meta, r)),
+    ]);
     if (!done) throw new DomainError('NOT_FOUND');
     return done;
   }
