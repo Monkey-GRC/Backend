@@ -3,7 +3,7 @@ import { TokenHasher } from '../../../../../common/security/token-hasher';
 import { AuthUser } from '../../../domain/entities/auth-user.entity';
 import { Session } from '../../../domain/entities/session.entity';
 import type { SessionPolicy } from '../../../domain/entities/session.entity';
-import { REFRESH_COOKIE } from '../../../presentation/auth-cookies';
+const REFRESH_COOKIE = 'mnk_refresh';
 import { AuthController } from '../../../presentation/auth.controller';
 import { RefreshSessionUseCase } from './refresh-session.use-case';
 
@@ -43,7 +43,7 @@ function setup(opts: { session?: Session; userStatus?: 'active' | 'inactive' } =
 function http(cookie?: string) {
   const set: string[] = [];
   const cleared: string[] = [];
-  const req = { cookies: cookie ? { [REFRESH_COOKIE]: cookie } : {} } as never;
+  const req = { cookies: cookie ? { [REFRESH_COOKIE]: cookie } : {}, get: () => undefined } as never;
   const res = {
     cookie: (name: string) => set.push(name),
     clearCookie: (name: string) => cleared.push(name),
