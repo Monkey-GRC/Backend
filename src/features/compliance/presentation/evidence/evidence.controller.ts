@@ -12,12 +12,12 @@ import { toPageResponse } from '../../../../common/pagination/page';
 import { CreateEvidenceRequirementDto, DownloadEvidenceQuery, ListEvidenceQuery, ListSubmissionsQuery, ReviewEvidenceDto } from '../../application/evidence/evidence.dto';
 import { EVIDENCE_UPLOAD_LIMIT_BYTES } from '../../application/evidence/evidence-file';
 import {
-  CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListSubmissionsUseCase, ListTestEvidenceUseCase, ReviewEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
+  CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListServiceEvidenceUseCase, ListSubmissionsUseCase, ListTestEvidenceUseCase, ReviewEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
 } from '../../application/evidence/evidence.use-cases';
 import { toRequirement, toSubmission, toTestEvidence } from './evidence-response.mapper';
 import { API_TAGS } from '../../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiItems, ApiPaged } from '../../../../common/swagger/api-envelope';
-import { EvidenceDownloadResponse, EvidenceRequirementResponse, EvidenceSubmissionResponse, TestEvidenceResponse } from './evidence.responses';
+import { EvidenceDownloadResponse, EvidenceRequirementResponse, EvidenceSubmissionResponse, ServiceEvidenceItemResponse, TestEvidenceResponse } from './evidence.responses';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
@@ -31,6 +31,7 @@ const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAg
 export class EvidenceController {
   constructor(
     private readonly listEvidence: ListEvidenceUseCase,
+    private readonly listServiceEvidence: ListServiceEvidenceUseCase,
     private readonly listSubmissions: ListSubmissionsUseCase,
     private readonly upload: UploadEvidenceUseCase,
     private readonly download: GetEvidenceDownloadUseCase,
@@ -46,6 +47,14 @@ export class EvidenceController {
   async evidence(@CurrentUser() p: Principal, @Param('controlId', idPipe) controlId: string, @Query() q: ListEvidenceQuery) {
     const { view, requirements } = await this.listEvidence.execute(p, controlId, q.view);
     return new ResponseDto(HttpStatus.OK, t('evidence.list'), { items: requirements.map((r) => toRequirement(r, view)) });
+  }
+
+  @ApiOperation({ summary: 'Evidencias de un servicio', description: 'Los requerimientos de evidencia de **todos** los controles vigentes del servicio, con sus entregas, en una sola petición (MD-208). Cada ítem es el mismo de `GET /controls/{id}/evidence` más `control_id`. Sin paginar, ordenado por código de control y luego `sequence`. `admin_empresa` y `auditor` ven todos los controles; `responsable` y `delegado`, solo los suyos. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`. `404` si el servicio no es de la empresa.' })
+  @ApiItems(ServiceEvidenceItemResponse, 'Requerimientos de todos los controles del servicio, cada uno con `control_id`.')
+  @Get('services/:serviceId/evidence')
+  async serviceEvidence(@CurrentUser() p: Principal, @Param('serviceId', idPipe) serviceId: string, @Query() q: ListEvidenceQuery) {
+    const { view, items } = await this.listServiceEvidence.execute(p, serviceId, q.view);
+    return new ResponseDto(HttpStatus.OK, t('evidence.service_list'), { items: items.map((i) => ({ control_id: i.controlId, ...toRequirement(i.requirement, view) })) });
   }
 
   @ApiOperation({ summary: 'Evidencia de un test manual', description: 'Lo que se subió para un test **manual o documental** de un control, para mostrarlo en el test. Una prueba documental (D88) devuelve solo el requerimiento de esa prueba en este control; otro test manual (D85) devuelve los de **todos los controles vigentes del servicio que lo llevan**, cada uno con su control, y `shared_with` dice dónde más aplica. Un `responsable` recibe solo lo de las dimensiones de las que es responsable. `404` si el control no lleva el test o no es manual ni documental.' })

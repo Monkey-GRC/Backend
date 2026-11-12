@@ -1,5 +1,6 @@
 {
   "list": "Evidence this control asks for.",
+  "service_list": "Evidence of your service.",
   "test_list": "Evidence for this test.",
   "submission_list": "Submitted versions of this evidence.",
   "submitted": "Done, we received your evidence. Your company administrator will review it.",

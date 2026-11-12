@@ -5,7 +5,7 @@ import {
   AnswerObservationUseCase, CreateObservationUseCase, GetObservationUseCase, ListObservationsUseCase, UpdateObservationUseCase,
 } from './application/observations/observation.use-cases';
 import {
-  CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListSubmissionsUseCase, ListTestEvidenceUseCase, ReviewEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
+  CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListServiceEvidenceUseCase, ListSubmissionsUseCase, ListTestEvidenceUseCase, ReviewEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
 } from './application/evidence/evidence.use-cases';
 import { CreateControlUseCase } from './application/controls/create-control.use-case';
 import { RetireControlUseCase, UpdateControlUseCase } from './application/controls/edit-control.use-cases';
@@ -79,7 +79,7 @@ import { RisksController } from './presentation/risks/risks.controller';
     { provide: TestVerdictRepository, useClass: TestVerdictPrismaRepository },
     IssueVerdictUseCase, ListVerdictsUseCase,
     { provide: EvidenceRepository, useClass: EvidencePrismaRepository },
-    ListEvidenceUseCase, ListSubmissionsUseCase, UploadEvidenceUseCase, GetEvidenceDownloadUseCase, ReviewEvidenceUseCase, CreateEvidenceRequirementUseCase, UploadTestEvidenceUseCase, ListTestEvidenceUseCase, ListControlTestsUseCase,
+    ListEvidenceUseCase, ListServiceEvidenceUseCase, ListSubmissionsUseCase, UploadEvidenceUseCase, GetEvidenceDownloadUseCase, ReviewEvidenceUseCase, CreateEvidenceRequirementUseCase, UploadTestEvidenceUseCase, ListTestEvidenceUseCase, ListControlTestsUseCase,
   ],
 })
 export class ComplianceModule {}

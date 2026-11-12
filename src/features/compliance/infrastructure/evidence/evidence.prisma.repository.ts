@@ -7,7 +7,7 @@ import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.inser
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { ReviewerRole } from '../../domain/evidence/evidence';
 import {
-  ControlEvidenceFacts, EvidenceAccess, EvidenceRepository, NewRequirement, NewReview, NewSubmission, RequirementRecord, ReviewSaved, SubmissionRecord, TestEvidence,
+  ControlEvidenceFacts, EvidenceAccess, EvidenceRepository, NewRequirement, NewReview, NewSubmission, RequirementRecord, ReviewSaved, ServiceEvidence, SubmissionRecord, TestEvidence,
 } from '../../domain/evidence/evidence.repository';
 import { loadControlResponsibles, usersOf } from '../shared/control-responsibles';
 import { captureControlStates, recordControlStateChanges } from '../shared/control-state-events';
@@ -68,6 +68,23 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       if (!control) return null;
       const dims = (await loadControlResponsibles(tx, [controlId])).byControl.get(controlId);
       return { assignedUserIds: usersOf(dims), responsibleByDimension: Object.fromEntries(dims ?? []), requirements: control.evidenceRequirements.map(toRequirement) };
+    });
+  }
+
+  listByService(scope: TenantScope, serviceId: string, viewer: ReviewerRole): Promise<ServiceEvidence | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const service = await tx.service.findFirst({ where: { id: serviceId, organization: { companyId: scope.companyId } }, select: { id: true } });
+      if (!service) return null;
+      const rows = await tx.clientControl.findMany({ where: { serviceId, isActive: true }, select: { id: true, ownCode: true } });
+      const ids = rows.map((r) => r.id);
+      const byControl = (await loadControlResponsibles(tx, ids)).byControl;
+      const requirements = ids.length
+        ? await tx.evidenceRequirement.findMany({ where: { clientControlId: { in: ids } }, orderBy: [{ sequence: 'asc' }], select: { ...requirementSelect(viewer), clientControlId: true } })
+        : [];
+      return {
+        controls: rows.map((r) => ({ id: r.id, ownCode: r.ownCode, assignedUserIds: usersOf(byControl.get(r.id)), responsibleByDimension: Object.fromEntries(byControl.get(r.id) ?? []) })),
+        items: requirements.map((r) => ({ controlId: r.clientControlId, requirement: toRequirement(r) })),
+      };
     });
   }
 

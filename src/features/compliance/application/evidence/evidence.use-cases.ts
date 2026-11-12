@@ -10,9 +10,11 @@ import { FileStorage } from '../../../../common/storage/file-storage';
 import type { UploadedFile } from '../../../../common/storage/uploaded-file';
 import { ValidationException } from '../../../../common/errors/validation.exception';
 import { evidenceStateOf, reviewerRoleFor } from '../../domain/evidence/evidence';
-import { EvidenceAccess, EvidenceRepository, RequirementRecord, SubmissionRecord, TestEvidence } from '../../domain/evidence/evidence.repository';
+import { EvidenceAccess, EvidenceRepository, RequirementRecord, ServiceEvidence, SubmissionRecord, TestEvidence } from '../../domain/evidence/evidence.repository';
 import { CreateEvidenceRequirementDto, ReviewEvidenceDto } from './evidence.dto';
 import { assertEvidenceFile, evidenceKey, fileNameOfKey, INLINE_TYPES } from './evidence-file';
+import { compareOwnCode } from '../../domain/controls/control-readout';
+import { canSeeControl } from '../shared/control-visibility';
 import { ViewMode, viewModeOf } from '../shared/view-access';
 import { isScopedRole } from '../../../../common/enums/user-role.enum';
 
@@ -21,10 +23,17 @@ import { isScopedRole } from '../../../../common/enums/user-role.enum';
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 /** Algo de la propia empresa de lo que el `responsable` no es responsable: no es de otra empresa (eso sería 404), es que no le toca (403). */
 const assertCanTouch = (p: Principal, assignedUserIds: string[]): void => {
-  if (isScopedRole(p.role) && !assignedUserIds.includes(p.userId)) throw new DomainError('FORBIDDEN');
+  if (!canSeeControl(p, assignedUserIds)) throw new DomainError('FORBIDDEN');
 };
 /** El enlace de descarga vive 5 minutos (SEG-59). */
 export const DOWNLOAD_LINK_SECONDS = 300;
+
+/**
+ * D96, SEG-66 · El responsable recibe solo los requerimientos de las dimensiones de las que es responsable en el control. Lo comparten `GET /controls/{id}/evidence` y
+ * `GET /services/{service_id}/evidence` (MD-208): deben dar lo mismo. Cuando MD-193 cambie el alcance a D102 (por control), cambian los dos juntos.
+ */
+const visibleRequirements = (p: Principal, requirements: RequirementRecord[], responsibleByDimension: Record<string, string[]>): RequirementRecord[] =>
+  isScopedRole(p.role) ? requirements.filter((r) => (responsibleByDimension[r.dimension] ?? []).includes(p.userId)) : requirements;
 
 @Injectable()
 export class ListEvidenceUseCase {
@@ -35,9 +44,28 @@ export class ListEvidenceUseCase {
     const data = await this.repo.listByControl(scopeOf(p), controlId, reviewerRoleFor(p.role));
     if (!data) throw new DomainError('NOT_FOUND');
     assertCanTouch(p, data.assignedUserIds);
-    // D96, SEG-66 · El responsable recibe solo los requerimientos de las dimensiones de las que es responsable en este control.
-    const requirements = isScopedRole(p.role) ? data.requirements.filter((r) => (data.responsibleByDimension[r.dimension] ?? []).includes(p.userId)) : data.requirements;
+    const requirements = visibleRequirements(p, data.requirements, data.responsibleByDimension);
     return { view: mode, requirements };
+  }
+}
+
+/** MD-208 · La evidencia de todos los controles visibles del servicio, en una petición: admin_empresa y auditor ven todos; responsable y delegado, los que atienden (D102). */
+@Injectable()
+export class ListServiceEvidenceUseCase {
+  constructor(private readonly repo: EvidenceRepository) {}
+
+  async execute(p: Principal, serviceId: string, view: 'technical' | undefined): Promise<{ view: ViewMode; items: ServiceEvidence['items'] }> {
+    const mode = viewModeOf(p, view);
+    const data = await this.repo.listByService(scopeOf(p), serviceId, reviewerRoleFor(p.role));
+    if (!data) throw new DomainError('NOT_FOUND');
+    const visible = data.controls.filter((c) => canSeeControl(p, c.assignedUserIds)).sort((a, b) => compareOwnCode(a.ownCode, b.ownCode));
+    // Mismo filtro por dimensión que `GET /controls/{id}/evidence` (ver `visibleRequirements`).
+    const items = visible.flatMap((c) => {
+      const own = data.items.filter((i) => i.controlId === c.id);
+      const allowed = new Set(visibleRequirements(p, own.map((i) => i.requirement), c.responsibleByDimension));
+      return own.filter((i) => allowed.has(i.requirement)).sort((a, b) => a.requirement.sequence - b.requirement.sequence);
+    });
+    return { view: mode, items };
   }
 }
 
