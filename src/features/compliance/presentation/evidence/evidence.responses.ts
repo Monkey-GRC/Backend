@@ -59,6 +59,10 @@ export class EvidenceRequirementResponse {
   @ApiProperty({ type: EvidenceSubmissionResponse, isArray: true, description: 'Entregas, de la versión más reciente a la más antigua.' }) submissions!: EvidenceSubmissionResponse[];
 }
 
+export class ServiceEvidenceItemResponse extends EvidenceRequirementResponse {
+  @ApiProperty({ format: 'uuid', description: 'El control del servicio al que pertenece el requerimiento.' }) control_id!: string;
+}
+
 export class EvidenceControlRefResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ example: 'IAC-12', description: 'Código del control (D80): el del catálogo o el propio.' }) code!: string;

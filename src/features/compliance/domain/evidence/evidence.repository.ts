@@ -104,7 +104,15 @@ export type TestEvidence = {
   items: Array<{ controlId: string; requirement: RequirementRecord }>;
 };
 
+/** Los controles vigentes de un servicio con quién los atiende (D102) y los requerimientos de todos ellos, cargados en bloque. */
+export type ServiceEvidence = {
+  controls: Array<{ id: string; ownCode: string; assignedUserIds: string[]; responsibleByDimension: Record<string, string[]> }>;
+  items: Array<{ controlId: string; requirement: RequirementRecord }>;
+};
+
 export abstract class EvidenceRepository {
+  /** `null` si el servicio no existe para esta empresa. Número fijo de consultas. */
+  abstract listByService(scope: TenantScope, serviceId: string, viewer: ReviewerRole): Promise<ServiceEvidence | null>;
   /** Los requerimientos del control con sus entregas. `null` si el control no existe para esta empresa. `viewer`: de quién es la revisión que se lee. */
   abstract listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ assignedUserIds: string[]; responsibleByDimension: Record<string, string[]>; requirements: RequirementRecord[] } | null>;
   /** `null` si el control no existe, no lleva el test, o el test no es manual ni documental. `viewer`: de quién es la revisión que se lee. */
