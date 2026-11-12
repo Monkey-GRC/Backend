@@ -1,7 +1,7 @@
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
-import { InvitationContext, TeamMember, TeamRole } from '../team.types';
+import { InvitationContext, ReleasedControl, TeamMember, TeamRole } from '../team.types';
 
 // Las cuentas del equipo (platform.users + user_activation_codes). Toda escritura recibe su `audit`, que se escribe en la MISMA transacción (SEG-36).
 
@@ -46,11 +46,6 @@ export type MemberFilters = {
 
 // `groupId` mueve a un delegado a otro equipo; `confirmUnassign` solo se evalúa al desactivar o mover; `isInternal` solo vale para un delegado.
 export type MemberChange = { status?: 'active' | 'inactive'; name?: string; lastName?: string; groupId?: string; isInternal?: boolean; confirmUnassign?: boolean };
-
-/** Dueño y ejecutor de un control (`client_control_assignments`); `null` en ambos = «Sin asignar». */
-export type AssignmentState = { ownerId: string | null; executorId: string | null };
-/** Un control cuyo dueño o ejecutor cambió por la baja o el movimiento de una persona: de ahí sale el rastro `control_assignment.set` (uno por control). */
-export type ReleasedControl = { controlId: string; before: AssignmentState; after: AssignmentState };
 
 export type MemberUpdated = { before: TeamMember; after: TeamMember; sessionsClosed: number; controlsUnassigned: number; released: ReleasedControl[] };
 

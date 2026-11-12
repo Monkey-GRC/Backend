@@ -93,6 +93,9 @@ export type DomainErrorCode =
   // MD-191 · Se desactiva a un responsable con delegados activos o pendientes (`delegates_count`); se reactiva a un delegado cuyo responsable ya no está vigente.
   | 'RESPONSIBLE_HAS_DELEGATES'
   | 'TEAM_LEADER_INACTIVE'
+  // MD-192 · Asignación de controles (SEG-73).
+  | 'OWNER_NOT_ELIGIBLE'
+  | 'EXECUTOR_NOT_IN_TEAM'
   // D103 · El cupo de usuarios de la empresa (companies.max_users): SEG-72.
   | 'USER_LIMIT_REACHED'
   | 'MAX_USERS_BELOW_CURRENT'

@@ -94,6 +94,8 @@ export const DOMAIN_ERROR_CATALOG: Record<
   USER_HAS_ASSIGNMENTS: { status: HttpStatus.CONFLICT, messageKey: 'user.has_assignments' },
   RESPONSIBLE_HAS_DELEGATES: { status: HttpStatus.CONFLICT, messageKey: 'user.responsible_has_delegates' },
   TEAM_LEADER_INACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'user.team_leader_inactive' },
+  OWNER_NOT_ELIGIBLE: { status: HttpStatus.CONFLICT, messageKey: 'assignment.owner_not_eligible' },
+  EXECUTOR_NOT_IN_TEAM: { status: HttpStatus.CONFLICT, messageKey: 'assignment.executor_not_in_team' },
   USER_NOT_ACTIVATED: { status: HttpStatus.CONFLICT, messageKey: 'user.not_activated' },
   USER_LIMIT_REACHED: { status: HttpStatus.CONFLICT, messageKey: 'user.limit_reached' },
   MAX_USERS_BELOW_CURRENT: { status: HttpStatus.CONFLICT, messageKey: 'company.max_users_below_current' },

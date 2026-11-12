@@ -7,6 +7,7 @@ import {
 import {
   CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListServiceEvidenceUseCase, ListSubmissionsUseCase, ListTestEvidenceUseCase, ReviewEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
 } from './application/evidence/evidence.use-cases';
+import { ListAssignmentsUseCase } from './application/assignments/list-assignments.use-case';
 import { CreateControlUseCase } from './application/controls/create-control.use-case';
 import { RetireControlUseCase, UpdateControlUseCase } from './application/controls/edit-control.use-cases';
 import { GetControlUseCase } from './application/controls/get-control.use-case';
@@ -20,6 +21,7 @@ import {
   CreateCauseUseCase, CreateRiskUseCase, DeactivateCauseUseCase, DeactivateRiskUseCase, GetCauseUseCase, GetRiskUseCase, LinkUseCases, ListCausesUseCase, ListRisksUseCase, ReactivateRiskUseCase,
   UpdateCauseUseCase, UpdateRiskUseCase,
 } from './application/risks/risk.use-cases';
+import { AssignmentRepository } from './domain/assignments/assignment.repository';
 import { ControlEditRepository } from './domain/controls/control-edit.repository';
 import { ControlRepository } from './domain/controls/control.repository';
 import { EvidenceRepository } from './domain/evidence/evidence.repository';
@@ -29,6 +31,7 @@ import { ObservationRepository } from './domain/observations/observation.reposit
 import { TestVerdictRepository } from './domain/verdicts/test-verdict.repository';
 import { RiskRepository } from './domain/risks/risk.repository';
 import { ResponsibleRepository } from './domain/responsibles/responsible.repository';
+import { AssignmentPrismaRepository } from './infrastructure/assignments/assignment.prisma.repository';
 import { ControlEditPrismaRepository } from './infrastructure/controls/control-edit.prisma.repository';
 import { EvidencePrismaRepository } from './infrastructure/evidence/evidence.prisma.repository';
 import { EvaluationPeriodPrismaRepository } from './infrastructure/periods/evaluation-period.prisma.repository';
@@ -38,6 +41,7 @@ import { TestVerdictPrismaRepository } from './infrastructure/verdicts/test-verd
 import { ControlPrismaRepository } from './infrastructure/controls/control.prisma.repository';
 import { RiskPrismaRepository } from './infrastructure/risks/risk.prisma.repository';
 import { ResponsiblePrismaRepository } from './infrastructure/responsibles/responsible.prisma.repository';
+import { AssignmentsListController } from './presentation/assignments/assignments.controller';
 import { VerdictsController } from './presentation/verdicts/verdicts.controller';
 import { ControlsController } from './presentation/controls/controls.controller';
 import { EvaluationPeriodController } from './presentation/periods/evaluation-period.controller';
@@ -51,10 +55,12 @@ import { RisksController } from './presentation/risks/risks.controller';
 
 // Cumplimiento (modelo-datos.md §7 y §9). El motor de evaluación vive en `domain/engine/` (funciones puras).
 @Module({
-  controllers: [ControlsController, ResponsiblesController, RisksController, RiskAssessmentController, ExclusionsController, ObservationsController, EvidenceController, OverviewController, VerdictsController, EvaluationPeriodController],
+  controllers: [AssignmentsListController, ControlsController, ResponsiblesController, RisksController, RiskAssessmentController, ExclusionsController, ObservationsController, EvidenceController, OverviewController, VerdictsController, EvaluationPeriodController],
   providers: [
     { provide: ControlRepository, useClass: ControlPrismaRepository },
     { provide: ControlEditRepository, useClass: ControlEditPrismaRepository },
+    { provide: AssignmentRepository, useClass: AssignmentPrismaRepository },
+    ListAssignmentsUseCase,
     ListControlsUseCase,
     GetControlUseCase,
     GetOverviewUseCase,

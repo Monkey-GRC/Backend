@@ -1,0 +1,7 @@
+{
+  "list": "Your company's controls with their owner and executor.",
+  "owner_updated": "Done, we saved the owner of the controls.",
+  "executor_updated": "Done, we saved the executor of the controls.",
+  "owner_not_eligible": "You can only pick as owner an active or pending responsible of your company, or yourself.",
+  "executor_not_in_team": "You can only pick as executor an active or pending delegate of your team."
+}

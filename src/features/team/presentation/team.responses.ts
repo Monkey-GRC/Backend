@@ -55,3 +55,7 @@ export class GroupResponse {
   @ApiProperty({ type: GroupLeaderResponse, description: 'El líder del grupo.' }) leader!: GroupLeaderResponse;
   @ApiProperty({ description: 'Cuántas cuentas pertenecen al grupo (de cualquier estado).' }) members_count!: number;
 }
+
+export class AssignmentUpdatedResponse {
+  @ApiProperty({ example: 2, description: 'Cuántos controles cambiaron. Uno que ya tenía ese valor no cuenta ni deja rastro en la auditoría.' }) updated!: number;
+}

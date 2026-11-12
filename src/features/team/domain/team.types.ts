@@ -44,3 +44,8 @@ export type InvitationContext = { inviterName: string | null; companyName: strin
 /** Un responsable (o administrador) vigente: lo que sirve de líder de un equipo. */
 export const LIVE_STATUSES = ['active', 'pending'] as const;
 export const isLiveStatus = (status: string | null): boolean => status !== null && (LIVE_STATUSES as readonly string[]).includes(status);
+
+/** Dueño y ejecutor de un control (`client_control_assignments`); `null` en ambos = «Sin asignar». */
+export type AssignmentState = { ownerId: string | null; executorId: string | null };
+/** Un control cuyo dueño o ejecutor cambió por la baja o el movimiento de una persona: de ahí sale el rastro `control_assignment.set` (uno por control). */
+export type ReleasedControl = { controlId: string; before: AssignmentState; after: AssignmentState };
