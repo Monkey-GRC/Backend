@@ -7,5 +7,8 @@
   "download": "Temporary link to view or download the evidence.",
   "reviewed": "Done, we saved your review of this evidence.",
   "requirement_created": "Done, we added the evidence to this control.",
-  "version_conflict": "Someone uploaded another version at the same time. Please try again."
+  "version_conflict": "Someone uploaded another version at the same time. Please try again.",
+  "validity": {
+    "within_period": "Within the evaluation period"
+  }
 }

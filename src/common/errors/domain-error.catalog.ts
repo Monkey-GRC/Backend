@@ -114,4 +114,5 @@ export const DOMAIN_ERROR_CATALOG: Record<
   },
   // Esta instalación aún no puede comprobar conexiones (sin sonda). No es un fallo del cliente.
   CONNECTION_UNAVAILABLE: { status: HttpStatus.SERVICE_UNAVAILABLE, messageKey: 'connection.unavailable' },
+  INTEGRATION_NOT_FOUND: { status: HttpStatus.NOT_FOUND, messageKey: 'integration.not_found' },
 };

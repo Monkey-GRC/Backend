@@ -30,7 +30,7 @@ const DIMENSION_OF_ASSET_TYPE: Record<string, Dimension | null> = {
 };
 export const dimensionOfAssetType = (type: string): Dimension | null => DIMENSION_OF_ASSET_TYPE[type] ?? null;
 
-export type ReadoutTest = { testId: string; code: string; displayName: string | null; displayDescription: string | null; dimension: Dimension; mandatory: boolean; active: boolean };
+export type ReadoutTest = { testId: string; code: string; displayName: string | null; displayNameEn: string | null; displayDescription: string | null; dimension: Dimension; mandatory: boolean; active: boolean };
 export type ReadoutAsset = { id: string; name: string; type: string };
 export type ReadoutDimension = { dimension: Dimension; applies: boolean; type: ControlType; reasonNotApplicable: string | null };
 export type ReadoutAssignee = { userId: string; name: string | null; lastName: string | null };
@@ -65,7 +65,7 @@ export type ReadoutControl = {
 export type ResultsIndex = ReadonlyMap<string, AssetResult>;
 export const resultKey = (controlId: string, testId: string, assetId: string) => `${controlId}|${testId}|${assetId}`;
 
-export type FailingItem = { dimension: Dimension; affected: Array<{ kind: 'asset'; id: string; name: string } | { kind: 'test'; id: string; displayName: string | null; testCode: string }> };
+export type FailingItem = { dimension: Dimension; affected: Array<{ kind: 'asset'; id: string; name: string } | { kind: 'test'; id: string; displayName: string | null; displayNameEn: string | null; testCode: string }> };
 
 export type ControlReadout = {
   control: ReadoutControl;
@@ -132,7 +132,7 @@ export function readControl(control: ReadoutControl, assets: readonly ReadoutAss
   const byDimension = new Map<Dimension, FailingItem['affected']>();
   for (const e of failingTests) {
     const list = byDimension.get(e.test.dimension) ?? [];
-    if (e.test.dimension === 'policy' || e.failed.length === 0) list.push({ kind: 'test', id: e.test.testId, displayName: e.test.displayName, testCode: e.test.code });
+    if (e.test.dimension === 'policy' || e.failed.length === 0) list.push({ kind: 'test', id: e.test.testId, displayName: e.test.displayName, displayNameEn: e.test.displayNameEn, testCode: e.test.code });
     else for (const a of e.failed) if (!list.some((x) => x.kind === 'asset' && x.id === a.id)) list.push({ kind: 'asset', id: a.id, name: a.name });
     byDimension.set(e.test.dimension, list);
   }

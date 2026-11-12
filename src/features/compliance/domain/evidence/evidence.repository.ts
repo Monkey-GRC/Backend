@@ -24,7 +24,7 @@ export type SubmissionRecord = {
 };
 
 /** La prueba documental a la que sirve un requerimiento (D88). */
-export type RequirementTest = { id: string; code: string; displayName: string | null };
+export type RequirementTest = { id: string; code: string; displayName: string | null; displayNameEn: string | null };
 
 export type RequirementRecord = {
   id: string;
@@ -83,7 +83,7 @@ export type ControlEvidenceFacts = {
   /** Dimensiones que el control exige y aplican. */
   dimensions: string[];
   /** Las pruebas que el control lleva (el vínculo `client_control_tests`). */
-  tests: Array<{ id: string; code: string; displayName: string | null; dimension: string }>;
+  tests: Array<{ id: string; code: string; displayName: string | null; displayNameEn: string | null; dimension: string }>;
   /** El período de vigencia que ya usa el servicio en sus evidencias, si lo hay. */
   validityWithinPeriod: string | null;
 };

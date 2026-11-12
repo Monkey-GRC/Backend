@@ -20,7 +20,7 @@ export type OverviewFailingControl = {
   requirementCodes: string[];
 };
 
-export type OverviewControlLine = { readout: ControlReadout; code: string; blockingTests: Array<{ code: string; displayName: string | null; dimension: string; state: TestState }> };
+export type OverviewControlLine = { readout: ControlReadout; code: string; blockingTests: Array<{ code: string; displayName: string | null; displayNameEn: string | null; dimension: string; state: TestState }> };
 
 export type OverviewCategory = {
   trustCriterion: string;
@@ -69,7 +69,7 @@ const ratioOf = (controls: readonly ControlReadout[]): { progress: Ratio; covera
 const blockingTests = (r: ControlReadout): OverviewControlLine['blockingTests'] =>
   r.tests
     .filter((t) => t.state !== 'compliant' && t.state !== 'not_applicable' && t.state !== 'deactivated')
-    .map((t) => ({ code: t.test.code, displayName: t.test.displayName, dimension: t.test.dimension, state: t.state }));
+    .map((t) => ({ code: t.test.code, displayName: t.test.displayName, displayNameEn: t.test.displayNameEn, dimension: t.test.dimension, state: t.state }));
 
 export type OverviewInput = {
   readouts: readonly ControlReadout[];

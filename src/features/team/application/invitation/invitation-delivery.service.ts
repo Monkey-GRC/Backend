@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { platformAppUrl } from '../../../../common/mail/app-url';
 import { Mailer } from '../../../../common/mail/mailer';
 import { Invitation } from '../../domain/team.types';
-import { buildInvitationEmail, InvitationEmailInput } from './invitation-email';
+import { buildInvitationEmail, INVITATION_DEFAULTS, InvitationEmailInput } from './invitation-email';
 
 // Quién invita y la empresa pueden faltar si su fila ya no se encuentra al leerlas (después del commit): el correo sale con palabras neutras en vez de perder la invitación.
 export type InvitationDeliveryInput = Omit<InvitationEmailInput, 'appUrl' | 'inviterName' | 'companyName'> & { userId: string; inviterName: string | null; companyName: string | null };
@@ -22,7 +22,7 @@ export class InvitationDelivery {
   async deliver(input: InvitationDeliveryInput): Promise<Invitation['deliveryStatus']> {
     const appUrl = platformAppUrl(this.config) ?? null;
     try {
-      await this.mailer.send(buildInvitationEmail({ ...input, inviterName: input.inviterName ?? 'Tu equipo', companyName: input.companyName ?? 'tu empresa', appUrl }));
+      await this.mailer.send(buildInvitationEmail({ ...input, inviterName: input.inviterName ?? INVITATION_DEFAULTS[input.language ?? 'es'].inviter, companyName: input.companyName ?? INVITATION_DEFAULTS[input.language ?? 'es'].company, appUrl }));
       return 'sent';
     } catch (error) {
       this.logger.warn(`No se pudo enviar la invitación de la cuenta ${input.userId}: ${error instanceof Error ? error.message : 'error desconocido'}`);

@@ -2,6 +2,8 @@
 // opcional, una lista y una nota al pie. Los clientes de correo no cargan hojas de estilo ni SVG: todo va en línea, con tablas, y el logo es un PNG que viaja incrustado en el
 // propio correo (`cid:`), así se ve siempre. Quien la usa pone el texto; aquí no hay nada de ningún correo en particular.
 
+import { MailLanguage } from './mail-language';
+
 export const escapeHtml = (value: string): string => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const BRAND = { primary: '#046cc4', navy: '#01264a', text: '#1d2939', muted: '#667085', soft: '#f2f4f7', line: '#e4e7ec' };
@@ -21,9 +23,14 @@ export type BrandEmailInput = {
   footnote: string;
   // El `cid` de la imagen incrustada del logo (`BRAND_LOGO_CID`). Sin él, se escribe el nombre en texto.
   logoCid: string | null;
+  // D111 · El idioma del correo: va en `<html lang>` y en el pie. Por omisión, español.
+  lang?: MailLanguage;
 };
 
+const TAGLINE: Record<MailLanguage, string> = { es: 'Ciberseguridad y cumplimiento', en: 'Cybersecurity and compliance' };
+
 export function renderBrandEmail(input: BrandEmailInput): string {
+  const lang = input.lang ?? 'es';
   const logo = input.logoCid
     ? `<img src="cid:${escapeHtml(input.logoCid)}" width="150" alt="Monkey" style="display:block;margin:0 auto;border:0;height:auto;">`
     : `<span style="font-size:26px;font-weight:700;letter-spacing:3px;color:#ffffff;">MONKEY</span>`;
@@ -35,7 +42,7 @@ export function renderBrandEmail(input: BrandEmailInput): string {
     ? `<tr><td style="padding:20px 36px 8px;font-size:14px;line-height:1.6;color:${BRAND.text};">${input.bulletsHtml.map((line, i, all) => `<p style="margin:0${i < all.length - 1 ? ' 0 8px' : ''};">&bull; ${line}</p>`).join('')}</td></tr>`
     : '';
   return `<!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeHtml(input.title)}</title></head>
+<html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeHtml(input.title)}</title></head>
 <body style="margin:0;padding:0;background:${BRAND.soft};font-family:'Segoe UI',Helvetica,Arial,sans-serif;color:${BRAND.text};">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(input.preheader)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.soft};"><tr><td align="center" style="padding:32px 16px;">
@@ -52,7 +59,7 @@ export function renderBrandEmail(input: BrandEmailInput): string {
       <p style="margin:0;padding-top:16px;border-top:1px solid ${BRAND.line};font-size:12.5px;line-height:1.6;color:${BRAND.muted};">${escapeHtml(input.footnote)}</p>
     </td></tr>
   </table>
-  <p style="margin:16px 0 0;font-size:12px;color:${BRAND.muted};">Monkey &middot; Ciberseguridad y cumplimiento</p>
+  <p style="margin:16px 0 0;font-size:12px;color:${BRAND.muted};">Monkey &middot; ${TAGLINE[lang]}</p>
 </td></tr></table>
 </body></html>`;
 }

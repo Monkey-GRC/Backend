@@ -1,3 +1,4 @@
+import { groupDisplayName } from '../../../common/text/translate-or';
 import { AuthUser } from '../domain/entities/auth-user.entity';
 import { OnboardingProgress } from '../application/use-cases/session/get-onboarding-progress.use-case';
 
@@ -13,7 +14,8 @@ export function toAuthResponse(user: AuthUser, onboarding?: OnboardingProgress |
       role: user.role,
       status: user.status,
       is_mfa_enabled: user.isMfaEnabled,
-      group: user.group,
+      preferred_language: user.preferredLanguage,
+      group: user.group ? { ...user.group, name: groupDisplayName(user.group.name) } : user.group,
       ...(user.role === 'delegado' ? { responsible: user.responsible ? { id: user.responsible.id, name: user.responsible.name, last_name: user.responsible.lastName } : null } : {}),
       last_login_at: user.lastLoginAt?.toISOString() ?? null,
       created_at: user.createdAt.toISOString(),

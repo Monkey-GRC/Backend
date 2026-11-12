@@ -19,6 +19,8 @@ export class UserCredentials {
     public readonly isMfaEnabled = false,
     public readonly mfaSecretEncrypted: string | null = null,
     public readonly mfaLastUsedStep: number | null = null,
+    // D111 · El idioma de sus correos.
+    public readonly preferredLanguage: 'es' | 'en' = 'es',
   ) {}
 
   isLocked(now: Date): boolean {
@@ -63,6 +65,7 @@ export class AuthUser {
     // D104 · El grupo de la persona (nulo en admin_empresa, auditor y admin_monkey) y, solo en el delegado, el líder de ese grupo.
     public readonly group: { id: string; name: string } | null = null,
     public readonly responsible: { id: string; name: string | null; lastName: string | null } | null = null,
+    public readonly preferredLanguage: 'es' | 'en' = 'es',
   ) {}
 
   isActive(): boolean {

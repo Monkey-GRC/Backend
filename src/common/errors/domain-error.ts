@@ -110,7 +110,9 @@ export type DomainErrorCode =
   | 'EXECUTION_NOT_RUNNING'
   | 'ENGINE_OUTPUT_INVALID'
   | 'CONNECTION_METHOD_NOT_APPLICABLE'
-  | 'CONNECTION_UNAVAILABLE';
+  | 'CONNECTION_UNAVAILABLE'
+  // D110 · La integración no existe o, para el auditor, la empresa no la tiene conectada.
+  | 'INTEGRATION_NOT_FOUND';
 
 export class DomainError extends Error {
   constructor(

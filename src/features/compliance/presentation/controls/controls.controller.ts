@@ -56,6 +56,7 @@ export class ControlsController {
       readiness: q.readiness,
       origin: q.origin,
       view: q.view,
+      locale: I18nContext.current()?.lang,
     });
     return new ResponseDto(HttpStatus.OK, t('control.list'), toPageResponse(page, (r) => toControlListItem(r, view === 'technical')));
   }

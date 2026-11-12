@@ -33,7 +33,7 @@ export class AssignmentsListController {
   async assignments(@CurrentUser() p: Principal, @Query() q: ListAssignmentsQuery) {
     const page = await this.list.execute(p, {
       page: q.page, pageSize: q.page_size, serviceId: q.service_id, frameworkId: q.framework_id, category: q.category, requirementCode: q.requirement_code,
-      status: q.status, assignment: q.assignment, ownerId: q.owner_id, executorId: q.executor_id, q: q.q,
+      status: q.status, assignment: q.assignment, ownerId: q.owner_id, executorId: q.executor_id, q: q.q, locale: I18nContext.current()?.lang,
     });
     return new ResponseDto(HttpStatus.OK, t('assignment.list'), toPageResponse(page, toAssignmentItem));
   }

@@ -7,5 +7,8 @@
   "download": "Enlace temporal para ver o descargar la evidencia.",
   "reviewed": "Listo, guardamos tu revisión de esta evidencia.",
   "requirement_created": "Listo, agregamos la evidencia a este control.",
-  "version_conflict": "Alguien subió otra versión al mismo tiempo. Vuelve a intentarlo."
+  "version_conflict": "Alguien subió otra versión al mismo tiempo. Vuelve a intentarlo.",
+  "validity": {
+    "within_period": "Dentro del período de evaluación"
+  }
 }

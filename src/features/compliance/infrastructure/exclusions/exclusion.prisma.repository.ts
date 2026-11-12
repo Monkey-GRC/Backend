@@ -13,7 +13,7 @@ import { ExclusionFilters, ExclusionRecord, ExclusionRepository, ExclusionStatus
 const PERSON = { select: { id: true, name: true, lastName: true } } as const;
 const SELECT = {
   id: true, serviceId: true, justification: true, technicalJustification: true, status: true, validFrom: true, validUntil: true, requestedAt: true, decisionNote: true, decidedAt: true,
-  test: { select: { id: true, displayName: true, dimension: true } },
+  test: { select: { id: true, displayName: true, displayNameEn: true, dimension: true } },
   asset: { select: { id: true, name: true } },
   proposedByUser: PERSON,
   decidedByUser: PERSON,
@@ -22,7 +22,7 @@ type Row = Prisma.ExclusionGetPayload<{ select: typeof SELECT }>;
 
 const toRecord = (r: Row): ExclusionRecord => ({
   id: r.id, serviceId: r.serviceId,
-  test: { id: r.test.id, displayName: r.test.displayName, dimension: r.test.dimension },
+  test: { id: r.test.id, displayName: r.test.displayName, displayNameEn: r.test.displayNameEn, dimension: r.test.dimension },
   // `asset_id` es nulo solo en la exclusión de un check, que el contrato todavía no expone.
   asset: { id: r.asset?.id ?? '', name: r.asset?.name ?? '' },
   justification: r.justification, technicalJustification: r.technicalJustification, status: r.status as ExclusionStatus, validFrom: r.validFrom, validUntil: r.validUntil,

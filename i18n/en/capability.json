@@ -1,0 +1,57 @@
+{
+  "ac_01": {
+    "category": "Cloud services (managed, serverless)",
+    "method": "API authorization / read-only role or OAuth",
+    "required_permissions": [
+      "Read-only role",
+      "OAuth consent"
+    ],
+    "base_frequency": "every 6-24 h",
+    "generated_evidence": "Cloud configuration posture and activity logs"
+  },
+  "ac_02": {
+    "category": "Cloud servers / VPS",
+    "method": "Install the lightweight Monkey agent (or agentless SSH/WinRM)",
+    "required_permissions": [
+      "sudo or administrator for the installation"
+    ],
+    "base_frequency": "continuous",
+    "generated_evidence": "Operating system configuration, user accounts and server event logs"
+  },
+  "ac_03": {
+    "category": "Cloud databases",
+    "method": "Host agent + read-only user",
+    "required_permissions": [
+      "Read-only audit user"
+    ],
+    "base_frequency": "continuous",
+    "generated_evidence": "Database configuration, access and audit logs"
+  },
+  "ac_04": {
+    "category": "On-premise servers",
+    "method": "Install the lightweight Monkey agent (or agentless SSH/WinRM)",
+    "required_permissions": [
+      "sudo or administrator for the installation"
+    ],
+    "base_frequency": "continuous",
+    "generated_evidence": "Operating system configuration, user accounts and server event logs"
+  },
+  "ac_05": {
+    "category": "On-premise databases",
+    "method": "Host agent + read-only user",
+    "required_permissions": [
+      "Read-only audit user"
+    ],
+    "base_frequency": "continuous",
+    "generated_evidence": "Database configuration, access and audit logs"
+  },
+  "ac_06": {
+    "category": "Endpoints / workstations",
+    "method": "Install the lightweight Monkey agent",
+    "required_permissions": [
+      "Local administrator permissions for the installation"
+    ],
+    "base_frequency": "continuous",
+    "generated_evidence": "Encryption status, patches, antivirus and workstation configuration"
+  }
+}

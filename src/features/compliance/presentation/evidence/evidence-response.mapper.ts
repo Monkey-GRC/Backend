@@ -1,4 +1,6 @@
-import { evidenceStateOf } from '../../domain/evidence/evidence';
+import { I18nContext } from 'nestjs-i18n';
+import { localizedTestName } from '../../../../common/text/test-display-name';
+import { evidenceStateOf, WITHIN_EVALUATION_PERIOD } from '../../domain/evidence/evidence';
 import { RequirementRecord, SubmissionRecord } from '../../domain/evidence/evidence.repository';
 import { fileNameOfKey } from '../../application/evidence/evidence-file';
 import type { ViewMode } from '../../application/shared/view-access';
@@ -46,11 +48,12 @@ export function toRequirement(r: RequirementRecord, view: ViewMode) {
     id: r.id,
     code: r.code,
     sequence: r.sequence,
-    description: r.description,
+    // Un requerimiento creado desde una prueba copió su nombre neutro (D70): se muestra en el idioma de la petición. Un requerimiento del catálogo o escrito por la empresa es texto de la empresa y no se toca.
+    description: r.test && r.description === r.test.displayName ? (localizedTestName(r.test, I18nContext.current()?.lang) ?? r.description) : r.description,
     dimension: r.dimension,
     // D88 · `null` = compartida con todas las pruebas documentales del control; si no, la prueba de este control a la que sirve.
-    test: r.test ? { id: r.test.id, code: r.test.code, display_name: r.test.displayName } : null,
-    validity_within_period: r.validityWithinPeriod,
+    test: r.test ? { id: r.test.id, code: r.test.code, display_name: localizedTestName(r.test, I18nContext.current()?.lang) } : null,
+    validity_within_period: r.validityWithinPeriod === WITHIN_EVALUATION_PERIOD ? ((I18nContext.current()?.t('evidence.validity.within_period') as string | undefined) ?? r.validityWithinPeriod) : r.validityWithinPeriod,
     origin: r.origin,
     responsible: r.responsible ? { id: r.responsible.id, type: r.responsible.type, person_name: r.responsible.personName } : null,
     submissions: r.submissions.map((s) => toSubmission(s, view)),

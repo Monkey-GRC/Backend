@@ -53,3 +53,9 @@ export type DocumentaryEvidence = {
   /** Estado de su entrega MÁS RECIENTE; sin entregas, `pending` (la ausencia de evidencia nunca es cumplimiento). */
   state: EvidenceState;
 };
+
+/**
+ * Valor neutro de `validity_within_period` cuando el requerimiento no fija otro período: se guarda el marcador y la etiqueta se traduce al responder (`evidence.validity.within_period`).
+ * Un período concreto (p. ej. `2026-Q4`) es un dato y se devuelve tal cual.
+ */
+export const WITHIN_EVALUATION_PERIOD = 'within_evaluation_period';

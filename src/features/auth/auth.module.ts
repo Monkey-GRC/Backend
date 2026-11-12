@@ -30,6 +30,7 @@ import { ResetPasswordUseCase } from './application/use-cases/password/reset-pas
 import { ConfirmMfaSetupUseCase } from './application/use-cases/mfa/confirm-mfa-setup.use-case';
 import { LookupActivationCodeUseCase } from './application/use-cases/activation/lookup-activation-code.use-case';
 import { RedeemAccessKeyUseCase } from './application/use-cases/access-key/redeem-access-key.use-case';
+import { SetLanguageUseCase } from './application/use-cases/session/set-language.use-case';
 import { GetCurrentUserUseCase } from './application/use-cases/session/get-current-user.use-case';
 import { GetOnboardingProgressUseCase } from './application/use-cases/session/get-onboarding-progress.use-case';
 import { LoginUseCase } from './application/use-cases/session/login.use-case';
@@ -121,6 +122,7 @@ const seconds = (config: ConfigService, key: string): number => {
     LogoutUseCase,
     ValidateSessionUseCase,
     GetCurrentUserUseCase,
+    SetLanguageUseCase,
     // El orden importa: primero se autentica (SessionAuthGuard), después se autoriza por rol y al final se limita el ritmo.
     { provide: APP_GUARD, useClass: SessionAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

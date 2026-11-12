@@ -75,6 +75,6 @@ export class ChangePasswordUseCase {
         afterState: { user_id: credentials.id, via: 'change', sessions_closed: sessionsClosed },
       }),
     );
-    await this.notifier.sendChanged(user.email, 'changed');
+    await this.notifier.sendChanged(user.email, 'changed', user.preferredLanguage);
   }
 }

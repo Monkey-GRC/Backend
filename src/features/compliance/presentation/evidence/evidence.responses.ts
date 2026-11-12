@@ -53,7 +53,7 @@ export class EvidenceRequirementResponse {
   @ApiProperty({ description: 'Qué evidencia se pide.' }) description!: string;
   @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension', description: 'Dimensión de la evidencia.' }) dimension!: string;
   @ApiProperty({ type: EvidenceTestRefResponse, nullable: true, description: 'La prueba documental de este control a la que sirve la evidencia. `null`: está **compartida** con todas las pruebas documentales del control (así llegan las plantillas del catálogo; D88).' }) test!: EvidenceTestRefResponse | null;
-  @ApiProperty({ description: 'Si la evidencia debe estar vigente dentro del período evaluado.' }) validity_within_period!: boolean;
+  @ApiProperty({ example: 'Dentro del período de evaluación', description: 'Vigencia que se le pide a la evidencia: «Dentro del período de evaluación» (traducido según `Accept-Language`) o un período concreto (`2026-Q4`).' }) validity_within_period!: string;
   @ApiProperty({ enum: ['catalog', 'own'], enumName: 'ControlOrigin', description: '`catalog` viene del catálogo clonado · `own` la creó la empresa.' }) origin!: string;
   @ApiProperty({ type: ResponsibleRefResponse, nullable: true, description: 'Cargo responsable de aportarla; `null` si no se asignó.' }) responsible!: ResponsibleRefResponse | null;
   @ApiProperty({ type: EvidenceSubmissionResponse, isArray: true, description: 'Entregas, de la versión más reciente a la más antigua.' }) submissions!: EvidenceSubmissionResponse[];

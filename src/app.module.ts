@@ -9,6 +9,7 @@ import { CatalogAdminModule } from './features/catalog-admin/catalog-admin.modul
 import { CatalogsModule } from './features/catalogs/catalogs.module';
 import { CompaniesModule } from './features/companies/companies.module';
 import { ComplianceModule } from './features/compliance/compliance.module';
+import { IntegrationsModule } from './features/integrations/integrations.module';
 import { OnboardingModule } from './features/onboarding/onboarding.module';
 import { ServicesModule } from './features/services/services.module';
 import { TeamModule } from './features/team/team.module';
@@ -44,6 +45,7 @@ import { StorageModule } from './infrastructure/storage/storage.module';
     TeamModule,
     ComplianceModule,
     TechnicalControlModule,
+    IntegrationsModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],
 })

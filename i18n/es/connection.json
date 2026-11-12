@@ -22,5 +22,6 @@
   "agent": {
     "step_1": "Copia el comando de instalación y ejecútalo en el servidor.",
     "step_2": "Cuando el agente se conecte, el estado cambiará a «Conectado»."
-  }
+  },
+  "permission_denied": "El usuario no tiene permisos suficientes para la evaluación automática."
 }

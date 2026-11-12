@@ -60,6 +60,6 @@ export class ResetPasswordUseCase {
         afterState: { user_id: credentials.id, via: 'reset', sessions_closed: sessionsClosed },
       }),
     );
-    await this.notifier.sendChanged(user.email, 'reset');
+    await this.notifier.sendChanged(user.email, 'reset', user.preferredLanguage);
   }
 }

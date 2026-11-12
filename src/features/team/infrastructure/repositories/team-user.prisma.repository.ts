@@ -40,7 +40,7 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
         await assertUserRoom(tx, scope.companyId);
         const groupId = await this.resolveGroup(tx, scope, input.placement, input.createdBy);
         const user = await tx.user.create({
-          data: { companyId: scope.companyId, email: input.email, name: input.name, lastName: input.lastName, passwordHash: input.passwordHash, role: input.role, status: 'pending', groupId, isInternal: input.isInternal },
+          data: { companyId: scope.companyId, email: input.email, name: input.name, lastName: input.lastName, passwordHash: input.passwordHash, role: input.role, status: 'pending', groupId, isInternal: input.isInternal, preferredLanguage: input.language },
           select: { id: true },
         });
         await tx.userActivationCode.create({

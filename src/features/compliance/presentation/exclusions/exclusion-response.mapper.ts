@@ -10,7 +10,7 @@ export const toExclusion = (e: ExclusionRecord, t: (key: string) => string, now:
   return {
     id: e.id,
     service_id: e.serviceId,
-    test: { id: e.test.id, display_name: neutralName(e.test.displayName, e.test.dimension as Dimension, t) },
+    test: { id: e.test.id, display_name: neutralName(e.test, e.test.dimension as Dimension, t) },
     asset: { id: e.asset.id, name: e.asset.name },
     justification: e.justification,
     technical_justification: e.technicalJustification,

@@ -1,5 +1,14 @@
 {
   "not_contracted": "Tu empresa aún no tiene contratado ese marco. Escríbenos y lo habilitamos.",
   "contracted": "Marcos contratados por tu empresa.",
-  "not_available": "Ese marco todavía no está disponible para contratar. Estamos trabajando en él."
+  "not_available": "Ese marco todavía no está disponible para contratar. Estamos trabajando en él.",
+  "scope": {
+    "gdpr": "Reglamento europeo de protección de datos personales; aplica a quien trate datos de personas en la UE.",
+    "hipaa": "Salvaguardas administrativas, físicas y técnicas para proteger la información de salud electrónica en EE. UU.",
+    "iso27001": "Certificación internacional de un sistema de gestión de seguridad de la información, con 93 controles en el Anexo A.",
+    "nist_csf": "Marco voluntario de ciberseguridad organizado en seis funciones: gobernar, identificar, proteger, detectar, responder y recuperar.",
+    "pci_dss": "Estándar de la industria de tarjetas de pago para proteger los datos de los titulares, con 12 requisitos.",
+    "soc1": "Informe de atestación sobre los controles de una organización de servicios que afectan el reporte financiero de sus clientes.",
+    "soc2": "Informe de atestación sobre los controles de una organización de servicios relevantes para la seguridad, la disponibilidad, la integridad del procesamiento, la confidencialidad y la privacidad, según los Trust Services Criteria de la AICPA."
+  }
 }

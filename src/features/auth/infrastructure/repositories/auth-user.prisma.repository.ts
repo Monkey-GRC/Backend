@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
+import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { AuthUser, UserCredentials } from '../../domain/entities/auth-user.entity';
 import { AuthUserRepository } from '../../domain/repositories/auth-user.repository';
@@ -15,15 +17,16 @@ const CREDENTIAL_FIELDS = {
   isMfaEnabled: true,
   mfaSecretEncrypted: true,
   mfaLastUsedStep: true,
+  preferredLanguage: true,
 } as const;
 
 const toCredentials = (
   id: string,
   companyId: string,
   passwordHash: string,
-  u: { role: UserCredentials['role']; status: UserCredentials['status']; failedLoginAttempts: number; lockedUntil: Date | null; isMfaEnabled: boolean; mfaSecretEncrypted: string | null; mfaLastUsedStep: number | null },
+  u: { role: UserCredentials['role']; status: UserCredentials['status']; failedLoginAttempts: number; lockedUntil: Date | null; isMfaEnabled: boolean; mfaSecretEncrypted: string | null; mfaLastUsedStep: number | null; preferredLanguage: 'es' | 'en' },
 ): UserCredentials =>
-  new UserCredentials(id, companyId, passwordHash, u.role, u.status, u.failedLoginAttempts, u.lockedUntil, u.isMfaEnabled, u.mfaSecretEncrypted, u.mfaLastUsedStep);
+  new UserCredentials(id, companyId, passwordHash, u.role, u.status, u.failedLoginAttempts, u.lockedUntil, u.isMfaEnabled, u.mfaSecretEncrypted, u.mfaLastUsedStep, u.preferredLanguage);
 
 @Injectable()
 export class AuthUserPrismaRepository extends AuthUserRepository {
@@ -87,6 +90,7 @@ export class AuthUserPrismaRepository extends AuthUserRepository {
       user.createdAt,
       user.group ? { id: user.group.id, name: user.group.name } : null,
       user.role === 'delegado' && user.group ? user.group.leader : null,
+      user.preferredLanguage,
     );
   }
 
@@ -101,6 +105,14 @@ export class AuthUserPrismaRepository extends AuthUserRepository {
         data: { failedLoginAttempts: state.failedLoginAttempts, lockedUntil: state.lockedUntil },
       }),
     );
+  }
+
+  async setPreferredLanguage(scope: TenantScope, userId: string, language: 'es' | 'en', audit: AuditIntent<{ from: 'es' | 'en'; to: 'es' | 'en' }>): Promise<void> {
+    await this.prisma.withScope(scope, async (tx) => {
+      const before = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { preferredLanguage: true } });
+      await tx.user.update({ where: { id: userId }, data: { preferredLanguage: language } });
+      await insertAuditLog(tx, audit({ from: before.preferredLanguage, to: language }));
+    });
   }
 
   async registerSuccessfulLogin(scope: TenantScope, userId: string, at: Date): Promise<void> {

@@ -4,5 +4,6 @@
   "updated": "Listo, guardamos los cambios del grupo.",
   "team_already_exists": "Este responsable ya tiene un equipo de delegados: solo puede liderar uno.",
   "name_taken": "Ya existe un grupo con ese nombre en tu empresa. Elige otro (el nombre «Responsables» está reservado).",
-  "reserved": "El grupo «Responsables» es el grupo por omisión de los responsables y no se puede renombrar."
+  "reserved": "El grupo «Responsables» es el grupo por omisión de los responsables y no se puede renombrar.",
+  "responsibles_default_name": "Responsables"
 }

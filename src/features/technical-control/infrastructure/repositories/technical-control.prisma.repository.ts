@@ -8,6 +8,7 @@ import {
 import { ResourceKindValue } from '../../../../common/catalogs/technical-catalogs';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { ValidationException } from '../../../../common/errors/validation.exception';
+import { liveConnectionWhere, recognizedChildWhere } from '../../../../infrastructure/database/asset-visibility';
 import { Page, PageRequest } from '../../../../common/pagination/page';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
@@ -162,12 +163,8 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
   listAssets(scope: TenantScope, filters: AssetFilters, page: PageRequest): Promise<Page<Asset>> {
     return this.prisma.withScope(scope, async (tx) => {
       const where = {
-        organization: { companyId: scope.companyId },
-        status: 'active' as const,
-        // Las conexiones (y lo que el cliente registró a mano). Los activos descubiertos viven dentro de su conexión y se ven ahí (D61).
-        parentAssetId: null,
-        // Un activo sin aprovisionamiento no se puede mostrar como conexión (no tiene método, estado ni regiones): se omite en vez de tumbar toda la lista.
-        provisionings: { some: {} },
+        // Las conexiones (y lo que el cliente registró a mano); un activo sin aprovisionamiento se omite en vez de tumbar toda la lista.
+        ...liveConnectionWhere(scope.companyId),
         ...(filters.serviceId ? { serviceAssets: { some: { serviceId: filters.serviceId } } } : {}),
         ...(filters.connectionCategory ? { connectionCategory: filters.connectionCategory } : {}),
         ...(filters.operationalStatus ? { operationalStatus: filters.operationalStatus as 'operational' } : {}),
@@ -199,7 +196,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
       if (!inventoryAt) return { discoveredAt: null, regions, incompleteServices: [], summary: [], items: [], total: 0, includedCount: filter.serviceId ? 0 : null };
       // Los activos que el descubrimiento reconoció dentro de esta conexión (D61), solo de las regiones declaradas. Los recursos que únicamente conoce la evaluación
       // (usuarios, políticas…) no son activos que el cliente reconozca y no tienen activo propio.
-      const base = { parentAssetId: assetId, status: 'active' as const, resource: { is: { kind: { not: 'other' }, OR: [{ region: null }, { region: { in: regions } }] } } };
+      const base = recognizedChildWhere(assetId, regions);
       const where = { ...base, ...(filter.kind ? { resource: { is: { ...base.resource.is, kind: filter.kind } } } : {}) };
       const [groups, total, rows, included] = await Promise.all([
         tx.assetResource.groupBy({ by: ['kind'], where: { childAsset: { is: base }, kind: { not: 'other' } }, _count: { _all: true } }),

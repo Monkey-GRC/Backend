@@ -34,6 +34,7 @@ export const API_TAGS = {
   responsibles: 'Cumplimiento · Responsables',
   exclusions: 'Cumplimiento · Exclusiones',
   observations: 'Cumplimiento · Observaciones del auditor',
+  integrations: 'Integraciones',
 } as const;
 
 export const API_TAG_DESCRIPTIONS: Record<(typeof API_TAGS)[keyof typeof API_TAGS], string> = {
@@ -79,6 +80,8 @@ export const API_TAG_DESCRIPTIONS: Record<(typeof API_TAGS)[keyof typeof API_TAG
     'Exclusiones de requisitos o controles que el administrador de la empresa crea y decide en un solo acto (D96). Contrato: `contracts/modules/compliance-audit.md`.',
   [API_TAGS.observations]:
     'Observaciones que escribe el auditor sobre un servicio, un control o una evidencia, y que la empresa responde y el auditor cierra (D96). No mueven el porcentaje. Contrato: `contracts/modules/compliance-audit.md`.',
+  [API_TAGS.integrations]:
+    'La sección Integraciones de la empresa: el catálogo de lo que se puede conectar y las integraciones ya conectadas con su estado derivado. Contrato: `contracts/integraciones.md`.',
 };
 
 // Los textos de error salen de i18n/es: la tabla de la descripción nunca se desfasa del producto.

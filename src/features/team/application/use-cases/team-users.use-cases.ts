@@ -51,12 +51,12 @@ export class CreateTeamMemberUseCase {
       scopeOf(p),
       {
         email: dto.email, name: dto.name, lastName: dto.last_name, role: dto.role, isInternal: plan.isInternal, placement: plan.placement,
-        passwordHash: await unusablePasswordHash(), codeHash: issued.codeHash, codeExpiresAt: issued.codeExpiresAt, createdBy: p.userId,
+        passwordHash: await unusablePasswordHash(), codeHash: issued.codeHash, codeExpiresAt: issued.codeExpiresAt, createdBy: p.userId, language: meta.language ?? 'es',
       },
       (done) => entry(p, meta, 'user.create', null, snapshot(done)),
     );
     const context = await this.repo.invitationContext(scopeOf(p), p.userId);
-    const deliveryStatus = await this.delivery.deliver({ userId: member.id, to: member.email, role: member.role, code: issued.code, expiresAt: issued.codeExpiresAt, ...context });
+    const deliveryStatus = await this.delivery.deliver({ userId: member.id, to: member.email, role: member.role, code: issued.code, expiresAt: issued.codeExpiresAt, language: meta.language, ...context });
     return { member, invitation: { deliveryStatus, expiresAt: issued.codeExpiresAt } };
   }
 }
@@ -104,7 +104,7 @@ export class ReissueActivationCodeUseCase {
     );
     if (!member) throw new DomainError('NOT_FOUND');
     const context = await this.repo.invitationContext(scopeOf(p), p.userId);
-    const deliveryStatus = await this.delivery.deliver({ userId: member.id, to: member.email, role: member.role, code: issued.code, expiresAt: issued.codeExpiresAt, ...context });
+    const deliveryStatus = await this.delivery.deliver({ userId: member.id, to: member.email, role: member.role, code: issued.code, expiresAt: issued.codeExpiresAt, language: meta.language, ...context });
     return { deliveryStatus, expiresAt: issued.codeExpiresAt };
   }
 }

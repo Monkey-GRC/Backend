@@ -39,6 +39,7 @@ export class AccessKeyDelivery {
       code: input.code,
       expiresAt: input.expiresAt,
       redeemUrl: base ? `${base}/register` : null,
+      language: meta.language,
     });
 
     let status: DeliveryStatus = 'sent';
