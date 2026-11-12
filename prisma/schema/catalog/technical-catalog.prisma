@@ -39,6 +39,7 @@ model CapabilityPlatform {
   connectionMethods   PlatformConnectionMethod[]
   regions             PlatformRegion[]
   assets              Asset[]
+  integration         Integration?
 
   @@unique([automatedCapabilityId, code])
   @@map("capability_platforms")

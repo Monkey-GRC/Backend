@@ -1,0 +1,25 @@
+enum IntegrationPurpose {
+  measurement
+  workflow
+
+  @@map("integration_purpose")
+  @@schema("catalog")
+}
+
+// Una plataforma de un tercero con la que Monkey trabaja (D110). Las de medición que ya tienen flujo de conexión se enlazan a su plataforma
+// (`capabilityPlatformId`) y de ella toman nombre, logo y disponibilidad (un dato, un dueño); las demás los llevan aquí.
+model Integration {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  code                 String                 @unique
+  purpose              IntegrationPurpose
+  capabilityPlatformId String?                @unique @map("capability_platform_id") @db.Uuid
+  name                 String?
+  logoKey              String?                @map("logo_key")
+  availability         FrameworkAvailability?
+  sortOrder            Int                    @map("sort_order")
+
+  capabilityPlatform CapabilityPlatform? @relation(fields: [capabilityPlatformId], references: [id], onDelete: Restrict)
+
+  @@map("integrations")
+  @@schema("catalog")
+}

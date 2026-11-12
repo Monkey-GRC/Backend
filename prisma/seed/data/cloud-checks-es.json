@@ -10,6 +10,31 @@
         "remediationEs":  "Habilita **IAM Access Analyzer** en todas las regiones relevantes y en los ámbitos de organización o cuenta. Atiende cada hallazgo `Active`:\n- Elimina los accesos no previstos ajustando las políticas de recursos y de confianza\n- Aplica **mínimo privilegio** y separación de funciones\n- Archiva solo los accesos validados y previstos\n- Monitorea continuamente y automatiza las revisiones"
     },
     {
+        "checkId":  "account_maintain_current_contact_details",
+        "titleEs":  "La información de contacto de la cuenta de AWS está actualizada",
+        "remediationEs":  "Adopta:\n- Contactos **principal** y **alternos** para `security`, `billing` y `operations`\n- Alias compartidos y monitoreados, y teléfonos con SMS (no personales)\n- Gestión centralizada entre cuentas con revisiones periódicas\n- **Mínimo privilegio** para quien puede modificar los datos de contacto\n- Pruebas periódicas de localización y responsables documentados"
+    },
+    {
+        "checkId":  "account_maintain_different_contact_details_to_security_billing_and_operations",
+        "titleEs":  "La cuenta de AWS tiene datos de contacto distintos para Seguridad, Facturación y Operaciones, diferentes entre sí y del contacto raíz",
+        "remediationEs":  "Mantén contactos alternos de **Seguridad**, **Facturación** y **Operaciones** distintos, monitoreados y diferentes del contacto raíz.\n- Usa alias de equipo y teléfonos 24x7\n- Revisa y prueba periódicamente las vías de contacto\n- Centraliza a nivel de organización para mantener la coherencia\n\nAplica los principios de **resiliencia operativa** y **separación de funciones**."
+    },
+    {
+        "checkId":  "account_security_contact_information_is_registered",
+        "titleEs":  "La cuenta de AWS tiene registrado el contacto alterno de seguridad",
+        "remediationEs":  "Define y mantén un **contacto alterno de seguridad**:\n- Usa un alias monitoreado (p. ej., `security@dominio`) y un teléfono del equipo\n- Aplícalo a todas las cuentas (prefiere la automatización a nivel de organización)\n- Revísalo tras cambios en la organización o el personal y prueba la entrega\n- Documenta los responsables y las rutas de escalamiento\nSe alinea con los principios de **respuesta a incidentes** y **mínimo privilegio**."
+    },
+    {
+        "checkId":  "account_security_questions_are_registered_in_the_aws_account",
+        "titleEs":  "[OBSOLETO] El usuario raíz de AWS tiene preguntas de seguridad configuradas",
+        "remediationEs":  "Prefiere una recuperación más sólida en lugar de las preguntas de seguridad:\n- Exige **MFA para el usuario raíz** y reduce al mínimo su uso\n- Mantén vigentes y protegidos los **contactos alternos** y el correo del usuario raíz\n- Establece un **rol de emergencia** estrictamente controlado, con mínimo privilegio y separación de funciones\n- Documenta y prueba los procedimientos de recuperación; monitorea la actividad del usuario raíz"
+    },
+    {
+        "checkId":  "acm_certificates_expiration_check",
+        "titleEs":  "El certificado de ACM vence en más días que el umbral configurado",
+        "remediationEs":  "Adopta una **gestión automatizada del ciclo de vida de los certificados**: prefiere **certificados emitidos por ACM con renovación automática** o integra las importaciones con un flujo automatizado de renovación y rotación. Da seguimiento a los vencimientos con alertas, aplica **mínimo privilegio** a las operaciones con certificados, elimina los que no uses y prueba los cambios de certificado para evitar interrupciones."
+    },
+    {
         "checkId":  "acm_certificates_transparency_logs_enabled",
         "titleEs":  "El certificado de ACM está importado o tiene habilitado el registro de Certificate Transparency",
         "remediationEs":  "Habilita el **registro CT** en todos los certificados públicos emitidos por ACM para mantener la transparencia y poder revocar con rapidez.\n\nMonitorea los registros CT de tus dominios y genera alertas ante emisiones inesperadas. Para nombres internos sensibles, prefiere una PKI privada o nombres de host no públicos en lugar de desactivar CT, y aplica **defensa en profundidad** con certificados de vida corta."
@@ -75,6 +100,11 @@
         "remediationEs":  "Habilita el **rastreo activo de X-Ray** en todas las etapas de API Gateway y propaga el contexto de traza a los servicios posteriores.\n\nUsa un muestreo prudente, correlaciona las trazas con registros y métricas, y genera alertas ante errores o latencia. Aplica **mínimo privilegio** al acceso a X-Ray y **defensa en profundidad** en la observabilidad."
     },
     {
+        "checkId":  "apigateway_restapi_waf_acl_attached",
+        "titleEs":  "La etapa de API Gateway tiene asociada una ACL web de WAF",
+        "remediationEs":  "Asocia una **ACL web de AWS WAF** a cada etapa expuesta y aplica **defensa en profundidad**:\n- Usa grupos de reglas administrados y listas de permitidos/denegados a medida\n- Aplica límites de tasa para frenar el abuso\n- Limita la exposición de red al mínimo privilegio\n- Ajusta continuamente las reglas con registros y métricas\n*Valida los cambios para reducir los falsos positivos.*"
+    },
+    {
         "checkId":  "apigatewayv2_api_access_logging_enabled",
         "titleEs":  "La etapa de la API de API Gateway V2 tiene habilitado el registro de acceso",
         "remediationEs":  "Habilita el **registro de acceso a nivel de etapa** hacia un destino centralizado y usa formatos estructurados. Define una retención adecuada y restringe el acceso a los registros según el **mínimo privilegio**. Integra los registros con el monitoreo y las alertas para detectar anomalías, y complementa con controles de **defensa en profundidad**."
@@ -88,6 +118,16 @@
         "checkId":  "appstream_fleet_default_internet_access_disabled",
         "titleEs":  "La flota de AppStream tiene deshabilitado el acceso a Internet por defecto",
         "remediationEs":  "Deshabilita el acceso a Internet por defecto (`EnableDefaultInternetAccess=false`) y coloca las flotas en **subredes privadas**. Ofrece la salida mediante **NAT gateways** o proxies, aplica **filtrado de salida** y usa **mínimo privilegio** y **confianza cero** para restringir el tráfico saliente. Usa conectividad privada hacia los servicios de AWS siempre que sea posible."
+    },
+    {
+        "checkId":  "appstream_fleet_maximum_session_duration",
+        "titleEs":  "La duración máxima de sesión de usuario de la flota de AppStream es menor a 10 horas",
+        "remediationEs":  "Configura la **duración máxima de sesión** en `<= 10 horas` (p. ej., `600` minutos) o menos según la sensibilidad de los datos. Prefiere límites más cortos, exige **reautenticación** al renovar, aplica **mínimo privilegio** y habilita **tiempos de inactividad**. Monitorea la actividad de las sesiones como parte de la **defensa en profundidad**."
+    },
+    {
+        "checkId":  "appstream_fleet_session_disconnect_timeout",
+        "titleEs":  "El tiempo de espera de desconexión de sesión de la flota de AppStream es de 5 minutos o menos",
+        "remediationEs":  "Configura `DisconnectTimeoutInSeconds` en `300` o menos en todas las flotas. Combínalo con un `IdleDisconnectTimeoutInSeconds` corto, exige reautenticación al reconectar y aplica **mínimo privilegio**. Monitorea los eventos de sesión y usa **defensa en profundidad** (restricciones de red, postura del dispositivo) para reducir el riesgo de secuestro de sesión."
     },
     {
         "checkId":  "appstream_fleet_session_idle_disconnect_timeout",
@@ -125,6 +165,16 @@
         "remediationEs":  "Nunca pongas secretos en `User Data`.\n- Usa un almacén de secretos administrado y un rol de instancia para obtenerlos en tiempo de ejecución\n- Aplica **mínimo privilegio**, rota los secretos y evita escribirlos en los registros\n- Prefiere credenciales de corta duración y acotadas, y combina controles para lograr **defensa en profundidad**"
     },
     {
+        "checkId":  "autoscaling_group_capacity_rebalance_enabled",
+        "titleEs":  "El grupo de Amazon EC2 Auto Scaling tiene habilitado el rebalanceo de capacidad",
+        "remediationEs":  "Habilita el **rebalanceo de capacidad** en los grupos de Auto Scaling que usan Spot.\n\nAplica prácticas de resiliencia:\n- Prefiere la asignación `price-capacity-optimized`\n- Deja margen por debajo de `MaxSize`\n- Usa ganchos de ciclo de vida para drenar y dar de baja instancias\n- Diseña cargas sin estado y tolerantes a interrupciones (mínimo privilegio y defensa en profundidad en las dependencias)"
+    },
+    {
+        "checkId":  "autoscaling_group_elb_health_check_enabled",
+        "titleEs":  "El grupo de Auto Scaling asociado a un balanceador de carga tiene habilitadas las comprobaciones de estado de ELB",
+        "remediationEs":  "Habilita las **comprobaciones de estado de ELB** en los grupos de Auto Scaling que están detrás de balanceadores de carga, para reflejar la accesibilidad real de los clientes. Aplica **alta disponibilidad** y **defensa en profundidad**:\n- Usando sondas del balanceador adecuadas para la aplicación\n- Ajustando los períodos de gracia y los umbrales para evitar oscilaciones\n- Monitoreando las métricas de estado y las alertas"
+    },
+    {
         "checkId":  "autoscaling_group_launch_configuration_no_public_ip",
         "titleEs":  "La configuración de lanzamiento asociada al grupo de Auto Scaling no asigna una dirección IP pública",
         "remediationEs":  "Coloca las instancias en subredes privadas y deshabilita el direccionamiento público (`AssociatePublicIpAddress=false`). Publica los servicios mediante **balanceadores de carga** o **endpoints privados**, aplica grupos de seguridad con **mínimo privilegio** y usa **SSM**, VPN o un bastión reforzado para el acceso administrativo. Prefiere las **plantillas de lanzamiento** para estandarizar los controles de red."
@@ -140,6 +190,16 @@
         "remediationEs":  "Distribuye cada grupo en al menos dos **zonas de disponibilidad** para diseñar pensando en los fallos. Usa un balanceador de carga para repartir el tráfico y el reemplazo basado en el estado de salud para sostener la capacidad. Aplica los principios de **resiliencia** y **aislamiento de fallos** para que el servicio continúe durante una degradación zonal."
     },
     {
+        "checkId":  "autoscaling_group_multiple_instance_types",
+        "titleEs":  "El grupo de Auto Scaling abarca varias zonas de disponibilidad y tiene varios tipos de instancia por zona de disponibilidad",
+        "remediationEs":  "Adopta una estrategia de **instancias mixtas** para la resiliencia:\n- Usa distintas familias y tamaños de instancia por zona de disponibilidad\n- Distribuye la capacidad entre varias zonas de disponibilidad\n- Prefiere enfoques de asignación que toleren la escasez de capacidad Spot y bajo demanda\nAplica los principios de **redundancia** y **tolerancia a fallos** y valida las políticas de escalamiento para evitar puntos únicos de falla de capacidad."
+    },
+    {
+        "checkId":  "autoscaling_group_using_ec2_launch_template",
+        "titleEs":  "El grupo de Amazon EC2 Auto Scaling usa una plantilla de lanzamiento de EC2",
+        "remediationEs":  "Adopta **plantillas de lanzamiento** en todos los grupos de Auto Scaling e inclúyelas en cualquier `mixed instances policy`. Usa versionado con aprobaciones, aplica valores predeterminados reforzados (roles con mínimo privilegio, metadatos seguros como `IMDSv2`, almacenamiento cifrado) y control de cambios para garantizar la coherencia y la defensa en profundidad."
+    },
+    {
         "checkId":  "awslambda_function_env_vars_not_encrypted_with_cmk",
         "titleEs":  "Las variables de entorno de la función Lambda están cifradas con una clave de KMS administrada por el cliente",
         "remediationEs":  "Cifra las variables de entorno de Lambda con una clave de KMS administrada por el cliente para conservar el control total sobre el ciclo de vida y el acceso de la clave.\n- Crea una clave de KMS dedicada por aplicación o por función para aislar el radio de impacto\n- Habilita la **rotación automática de claves** (`EnableKeyRotation: true`)\n- Concede acceso de descifrado solo al rol de ejecución de Lambda mediante una condición de la política de clave sobre `kms:ViaService`\n- Prefiere **AWS Secrets Manager** o **SSM Parameter Store (SecureString)** para los secretos: las variables de entorno deben contener solo configuración que no sea secreta"
@@ -153,6 +213,11 @@
         "checkId":  "awslambda_function_invoke_api_operations_cloudtrail_logging_enabled",
         "titleEs":  "Las llamadas a la API Invoke de la función Lambda quedan registradas en CloudTrail",
         "remediationEs":  "Habilita el **registro de eventos de datos de CloudTrail** para `AWS::Lambda::Function` y capturar las llamadas `Invoke` en las regiones y cuentas necesarias. Aplica selectores de **mínimo privilegio** para acotar los eventos, centraliza los registros con una retención sólida e integra alertas ante invocaciones anómalas como parte de la **defensa en profundidad**."
+    },
+    {
+        "checkId":  "awslambda_function_no_dead_letter_queue",
+        "titleEs":  "La función Lambda tiene configurada una cola de mensajes fallidos (DLQ)",
+        "remediationEs":  "Configura una cola de mensajes fallidos para cada función Lambda que atienda invocaciones asíncronas.\n- Prefiere una **cola SQS** como destino de la DLQ para poder reintentar y reproducir mensajes\n- Asegúrate de que el rol de ejecución de Lambda tenga el permiso `sqs:SendMessage` sobre la DLQ\n- Monitorea la profundidad de la DLQ con una alarma de CloudWatch para alertar sobre fallos de procesamiento"
     },
     {
         "checkId":  "awslambda_function_no_secrets_in_code",
@@ -178,6 +243,16 @@
         "checkId":  "awslambda_function_url_public",
         "titleEs":  "La URL de la función Lambda no es de acceso público",
         "remediationEs":  "Exige `AWS_IAM` en las URL de funciones y aplica **mínimo privilegio**:\n- Concede `lambda:InvokeFunctionUrl` solo a las entidades que lo requieran\n- Evita entidades `*` o condiciones demasiado amplias\n- Limita el CORS a orígenes y métodos de confianza\n- Define una concurrencia reservada para contener los abusos\n\nConsidera la **defensa en profundidad** (WAF/CDN o acceso privado) si se usa desde Internet."
+    },
+    {
+        "checkId":  "awslambda_function_using_cross_account_layers",
+        "titleEs":  "La función Lambda no usa capas de otra cuenta",
+        "remediationEs":  "Elimina las dependencias de capas de otras cuentas alojando todas las capas en tu propia cuenta de AWS.\n- Audita todas las capas con `aws lambda get-function-configuration` e inspecciona `Layers[].Arn`\n- Extrae el ID de cuenta del ARN (campo 5 al separar por dos puntos) y compáralo con el de tu cuenta\n- En las capas de proveedores aprobados, fija una versión inmutable específica del ARN y revísala en cada actualización\n- Aplícalo con una SCP: deniega `lambda:UpdateFunctionConfiguration` cuando el ARN de `lambda:Layer` no coincida con el ID de tu cuenta"
+    },
+    {
+        "checkId":  "awslambda_function_using_supported_runtimes",
+        "titleEs":  "La función Lambda usa un entorno de ejecución compatible",
+        "remediationEs":  "Actualiza a **entornos de ejecución LTS compatibles** (AL2/AL2023) e incluye las actualizaciones de runtime en un ciclo de desarrollo seguro.\n\nPrueba en preproducción, despliega mediante versiones y alias y mantén las dependencias al día. Monitorea los avisos de obsolescencia. Aplica controles que bloqueen valores de `runtime` obsoletos y permitan solo los aprobados, en línea con la **defensa en profundidad**."
     },
     {
         "checkId":  "awslambda_function_vpc_multi_az",
@@ -220,6 +295,16 @@
         "remediationEs":  "Guarda los secretos en **AWS Secrets Manager** o **SSM Parameter Store** e inyéctalos en tiempo de ejecución en lugar de usar variables de entorno en texto plano.\n\nAplica **mínimo privilegio** mediante el rol del trabajo, habilita la **rotación** periódica, evita registrar los valores de los secretos y prefiere **credenciales efímeras** para los servicios posteriores."
     },
     {
+        "checkId":  "bedrock_agent_guardrail_enabled",
+        "titleEs":  "El agente de Amazon Bedrock usa una barrera de protección (guardrail) para proteger las sesiones del agente",
+        "remediationEs":  "Asocia una **barrera de protección** a cada agente y ajusta las políticas a tu caso de uso:\n- Habilita filtros de contenido y de palabras, temas denegados y enmascaramiento de datos sensibles\n- Usa el anclaje contextual en RAG cuando corresponda\n- Prueba e itera entre versiones\nAplica **mínimo privilegio** a las herramientas del agente y **defensa en profundidad** con monitoreo y revisión."
+    },
+    {
+        "checkId":  "bedrock_agent_role_least_privilege",
+        "titleEs":  "El rol de ejecución del agente de Amazon Bedrock sigue el mínimo privilegio",
+        "remediationEs":  "Aplica **mínimo privilegio** a cada rol de ejecución de agentes de Bedrock: limita `Action` y `Resource` exactamente a lo que el agente necesita, evita las políticas administradas por AWS `*FullAccess` y adjunta siempre un **límite de permisos** para que futuras ediciones de políticas no superen un techo aprobado. Trata los roles de agentes como de alto riesgo, porque la inyección de instrucciones puede aprovechar cualquier permiso concedido."
+    },
+    {
         "checkId":  "bedrock_agent_role_not_shared_across_agents",
         "titleEs":  "El agente de Bedrock tiene un rol de ejecución dedicado",
         "remediationEs":  "Asigna a cada agente de Bedrock su propio rol de ejecución, acotado al ARN de ese agente con aws:SourceArn. Reapunta el borrador con UpdateAgent, indicando todos los campos que ya tiene porque los omitidos no se conservan; después ejecuta PrepareAgent y UpdateAgentAlias para mover cada alias a la nueva versión: un alias que quede en la versión anterior seguirá invocando el rol compartido."
@@ -245,6 +330,26 @@
         "remediationEs":  "Aplica **mínimo privilegio**: reemplaza `AmazonBedrockFullAccess` por una política personalizada que conceda solo las acciones de Bedrock necesarias.\n\nUsa **límites de permisos** y **SCP** para acotar el alcance de los permisos de Bedrock. Revisa periódicamente el acceso con **IAM Access Analyzer** para identificar y eliminar los privilegios sin uso."
     },
     {
+        "checkId":  "bedrock_guardrail_contextual_grounding_filter_enabled",
+        "titleEs":  "La barrera de protección de Bedrock bloquea las respuestas del modelo sin fundamento o irrelevantes",
+        "remediationEs":  "Configura un filtro de anclaje contextual de GROUNDING y otro de RELEVANCE en cada barrera de protección que use una aplicación con recuperación aumentada, establece la acción de cada uno en BLOCK y ajusta cada umbral por encima de 0 con una muestra etiquetada, en lugar de dejarlo en el mínimo."
+    },
+    {
+        "checkId":  "bedrock_guardrail_prompt_attack_filter_enabled",
+        "titleEs":  "La barrera de protección de Amazon Bedrock tiene la intensidad del filtro de ataques de instrucciones en HIGH",
+        "remediationEs":  "Establece el filtro de **ataques de instrucciones** en `HIGH` y aplica **defensa en profundidad**:\n- Etiqueta las entradas de usuarios y externas como no confiables para su evaluación\n- Combínalo con temas denegados y filtros de información sensible\n- Aplica **mínimo privilegio** y aprobaciones para las acciones de riesgo\n- Monitorea las detecciones de la barrera y ajústala para reducir los falsos negativos"
+    },
+    {
+        "checkId":  "bedrock_guardrail_sensitive_information_filter_enabled",
+        "titleEs":  "La barrera de protección de Amazon Bedrock bloquea o enmascara la información sensible",
+        "remediationEs":  "Habilita y ajusta los **filtros de información sensible** en las entradas y las salidas.\n- Usa `BLOCK` para las divulgaciones de alto riesgo y `ANONYMIZE` cuando se necesite el contexto\n- Agrega expresiones regulares propias para los identificadores de la organización\n- Aplica mínimo privilegio y minimización de datos\n- Prueba con regularidad y monitorea los resultados como parte de la defensa en profundidad"
+    },
+    {
+        "checkId":  "bedrock_guardrails_configured",
+        "titleEs":  "Bedrock tiene al menos una barrera de protección configurada en la región auditada",
+        "remediationEs":  "Crea al menos una **barrera de protección de Bedrock** en cada región donde uses Bedrock y asegúrate, por separado, de que esté asociada a los agentes y las rutas de invocación pertinentes.\n- Configura **filtros de contenido** para las categorías dañinas (odio, violencia, contenido sexual, mala conducta)\n- Agrega **filtros de información sensible** y **políticas de temas denegados**\n- Aplica las barreras al nivel de la llamada a la API con `guardrailIdentifier` cuando sea posible"
+    },
+    {
         "checkId":  "bedrock_knowledge_base_encrypted_with_cmk",
         "titleEs":  "El origen de datos de la base de conocimiento de Bedrock está cifrado con una clave de KMS administrada por el cliente",
         "remediationEs":  "Define una clave de KMS administrada por el cliente en cada origen de datos de la base de conocimiento, de modo que el almacenamiento transitorio de la ingesta quede protegido por una clave con una política auditable, y concede al rol de servicio de la base de conocimiento solo kms:Decrypt y kms:GenerateDataKey sobre ella."
@@ -265,9 +370,19 @@
         "remediationEs":  "Cifra cada prompt de Bedrock con una **clave de KMS administrada por el cliente** para conservar el control del acceso, la rotación y el ciclo de vida de la clave. Al usar `update-prompt`, obtén primero el borrador actual y conserva los campos que quieras mantener, como la descripción existente, `defaultVariant` y `variants`, para que el cambio de cifrado no sobrescriba sin querer la configuración del prompt."
     },
     {
+        "checkId":  "bedrock_prompt_management_exists",
+        "titleEs":  "Existen instrucciones (prompts) de Amazon Bedrock Prompt Management en la región",
+        "remediationEs":  "Adopta **Bedrock Prompt Management** para centralizar las definiciones de instrucciones, exigir versionado y mantener el gobierno de las interacciones con los modelos.\n\nUsa instrucciones administradas con **barreras de protección** y aplica controles de acceso de **mínimo privilegio** para limitar quién puede crearlas o modificarlas."
+    },
+    {
         "checkId":  "bedrock_vpc_endpoints_configured",
         "titleEs":  "Los endpoints de VPC aseguran la conectividad privada de todas las API de Bedrock",
         "remediationEs":  "Usa **endpoints de VPC de tipo interfaz** para todos los servicios de Bedrock (`bedrock`, `bedrock-runtime`, `bedrock-agent`, `bedrock-agent-runtime`, `bedrock-mantle`) en cada VPC que necesite acceso a las API de Bedrock.\n- Habilita **DNS privado** para mantener las llamadas dentro de la red de AWS\n- Aplica políticas de endpoint restrictivas (**mínimo privilegio**)\n- Reduce la dependencia de la salida pública y combina controles como **defensa en profundidad**"
+    },
+    {
+        "checkId":  "cloudformation_stack_cdktoolkit_bootstrap_version",
+        "titleEs":  "La pila de CloudFormation CDKToolkit tiene la versión de bootstrap 21 o superior",
+        "remediationEs":  "Estandariza el bootstrap moderno en la versión recomendada o superior (p. ej., `>= 21`) en cada cuenta y región.\n\nAplica **mínimo privilegio** a los roles de bootstrap, limita las cuentas de confianza, habilita la protección contra eliminación y revisa periódicamente la deriva de versiones para reforzar la **defensa en profundidad**."
     },
     {
         "checkId":  "cloudformation_stack_outputs_find_secrets",
@@ -275,9 +390,19 @@
         "remediationEs":  "Elimina los secretos de `Outputs`. Guarda las credenciales en **Secrets Manager** o **Parameter Store** y refiérelas mediante referencias dinámicas; usa `NoEcho` en los parámetros sensibles. Aplica **mínimo privilegio** para ver los metadatos de la pila, evita exportar valores sensibles y añade análisis automático de secretos en la infraestructura como código como **defensa en profundidad**."
     },
     {
+        "checkId":  "cloudformation_stacks_termination_protection_enabled",
+        "titleEs":  "La pila de CloudFormation tiene habilitada la protección contra eliminación",
+        "remediationEs":  "Habilita la **protección contra eliminación** en las pilas raíz de las cargas críticas. Aplica **mínimo privilegio** sobre quién puede cambiar este ajuste o eliminar pilas, exige **revisión de cambios** mediante conjuntos de cambios y aplica **políticas de pila** más `DeletionPolicy: Retain` en los almacenes de datos para reforzar la defensa en profundidad."
+    },
+    {
         "checkId":  "cloudfront_distributions_custom_ssl_certificate",
         "titleEs":  "La distribución de CloudFront usa un certificado SSL/TLS personalizado",
         "remediationEs":  "- Usa un **certificado SSL/TLS personalizado** que cubra tus dominios y configura los alias.\n- Aplica una política TLS moderna, **SNI** y **HSTS**; deshabilita los protocolos obsoletos.\n- Aplica **mínimo privilegio** al ciclo de vida del certificado y rota y monitorea las claves."
+    },
+    {
+        "checkId":  "cloudfront_distributions_default_root_object",
+        "titleEs":  "La distribución de CloudFront tiene configurado un objeto raíz predeterminado",
+        "remediationEs":  "Define un **objeto raíz predeterminado** que devuelva una página de inicio segura (p. ej., `index.html`). Aplica **defensa en profundidad**: restringe el acceso directo al origen, define páginas de error explícitas y estandariza las redirecciones. Prueba las solicitudes a la raíz y a los subdirectorios para obtener respuestas predecibles. Alinea los permisos del origen con el **mínimo privilegio**."
     },
     {
         "checkId":  "cloudfront_distributions_field_level_encryption_enabled",
@@ -305,6 +430,11 @@
         "remediationEs":  "Habilita los **registros de acceso estándar** o los **registros en tiempo real** en todas las distribuciones.\n\nAplica **mínimo privilegio** al almacenamiento de los registros, define retención e inmutabilidad, y centraliza la ingesta con alertas.\n\nUsa **defensa en profundidad**: correlaciona con las métricas de WAF, muestrea en tiempo real cuando haga falta y audita que las nuevas distribuciones tengan registro."
     },
     {
+        "checkId":  "cloudfront_distributions_multiple_origin_failover_configured",
+        "titleEs":  "La distribución de CloudFront tiene configurada la conmutación por error de origen con al menos dos orígenes",
+        "remediationEs":  "Habilita la **conmutación por error de origen** definiendo un grupo de orígenes con uno principal y uno secundario. Distribuye los orígenes entre zonas o proveedores independientes, define criterios claros de conmutación (p. ej., códigos HTTP o tiempos de espera), monitorea su estado y prueba la conmutación de forma rutinaria. Alinéalo con la **resiliencia** y la **defensa en profundidad** para proteger la disponibilidad."
+    },
+    {
         "checkId":  "cloudfront_distributions_origin_traffic_encrypted",
         "titleEs":  "La distribución de CloudFront cifra el tráfico hacia los orígenes personalizados",
         "remediationEs":  "Exige HTTPS de extremo a extremo. Define `origin_protocol_policy` como `https-only` y la política del visitante como `https-only` o `redirect-to-https`. Usa certificados de confianza y TLS moderno (`TLSv1.2+`), deshabilitando los protocolos débiles. Aplica **mínimo privilegio** y **defensa en profundidad** restringiendo el acceso directo al origen y prefiriendo la conectividad privada."
@@ -318,6 +448,11 @@
         "checkId":  "cloudfront_distributions_s3_origin_access_control",
         "titleEs":  "La distribución de CloudFront usa Origin Access Control (OAC) en todos los orígenes de S3",
         "remediationEs":  "Habilita **Origin Access Control** en todos los orígenes de S3 y mantén los buckets sin acceso público.\n\nAplica **mínimo privilegio**: limita los permisos del bucket y de la clave a CloudFront y a la distribución prevista. Asegúrate de que las solicitudes al origen estén firmadas, migra desde el antiguo OAI y usa **defensa en profundidad** con WAF y monitoreo para proteger y observar el acceso."
+    },
+    {
+        "checkId":  "cloudfront_distributions_s3_origin_non_existent_bucket",
+        "titleEs":  "Los orígenes S3 de la distribución de CloudFront hacen referencia a buckets existentes",
+        "remediationEs":  "Asegúrate de que los orígenes hagan referencia a buckets válidos y propios; elimina o actualiza las referencias obsoletas. Aplica **control de acceso al origen** (u OAI) y políticas de bucket estrictas para que solo la distribución pueda acceder a los objetos. Aplica **mínimo privilegio**, gestiona los nombres de bucket y monitorea el estado del origen para evitar enrutamientos erróneos."
     },
     {
         "checkId":  "cloudfront_distributions_using_deprecated_ssl_protocols",
@@ -405,6 +540,16 @@
         "remediationEs":  "Aplica **mínimo privilegio** y **defensa en profundidad**:\n- Restringe `PassRole`, `Attach*Policy`, `UpdateAssumeRolePolicy` y `CreateAccessKey`\n- Aplica límites de permisos y SCP\n- Exige MFA y aprobación de los cambios\n- Usa CloudTrail multirregión, retención inmutable y alertas ante secuencias anómalas"
     },
     {
+        "checkId":  "cloudwatch_alarm_actions_alarm_state_configured",
+        "titleEs":  "La alarma de métricas de CloudWatch tiene acciones configuradas para el estado ALARM",
+        "remediationEs":  "Asigna al menos una **acción para el estado ALARM** por alarma (p. ej., notificar por SNS o ejecutar una corrección automatizada con Lambda/SSM). Mantén las acciones habilitadas, aplica **mínimo privilegio** a los destinos y pruébalas con regularidad. *Para las métricas críticas*, agrega rutas redundantes (EventBridge) como **defensa en profundidad**."
+    },
+    {
+        "checkId":  "cloudwatch_alarm_actions_enabled",
+        "titleEs":  "La alarma de métricas de CloudWatch tiene las acciones habilitadas",
+        "remediationEs":  "Habilita `actions_enabled` en las alarmas críticas y asocia acciones de mínimo privilegio (SNS, automatización) para los estados ALARM y de recuperación. Usa destinos redundantes, prueba las notificaciones con regularidad e intégralas con la respuesta a incidentes. Aplica **defensa en profundidad** con detecciones complementarias para lograr alertas oportunas y fiables."
+    },
+    {
         "checkId":  "cloudwatch_changes_to_network_acls_alarm_configured",
         "titleEs":  "Existen un filtro de métricas y una alarma de CloudWatch Logs para los cambios en las ACL de red (NACL)",
         "remediationEs":  "Implementa un filtro de métricas y una alarma de CloudWatch Logs para los eventos de cambio de NACL provenientes de CloudTrail y enruta las alertas a quienes deben responder. Aplica **mínimo privilegio** a la administración de las NACL, exige **control de cambios** y usa **defensa en profundidad** con monitoreo de la configuración y registros de flujo para validar y vigilar la postura de red."
@@ -452,7 +597,7 @@
     {
         "checkId":  "cloudwatch_log_group_retention_policy_specific_days_enabled",
         "titleEs":  "El grupo de registros de CloudWatch tiene una política de retención de al menos los días mínimos configurados o no caduca nunca",
-        "remediationEs":  "Define una retención mínima de referencia (p. ej., `\u003e=365` días) alineada con las necesidades legales y de investigación. Aplícala de forma consistente y documenta las excepciones. Automatiza su cumplimiento, monitorea los cambios y restringe quién puede modificar la retención con **mínimo privilegio** y **defensa en profundidad**."
+        "remediationEs":  "Define una retención mínima de referencia (p. ej., `>=365` días) alineada con las necesidades legales y de investigación. Aplícala de forma consistente y documenta las excepciones. Automatiza su cumplimiento, monitorea los cambios y restringe quién puede modificar la retención con **mínimo privilegio** y **defensa en profundidad**."
     },
     {
         "checkId":  "cloudwatch_log_metric_filter_and_alarm_for_aws_config_configuration_changes_enabled",
@@ -530,6 +675,11 @@
         "remediationEs":  "Define la visibilidad como `PRIVATE` y comparte solo con entidades de confianza mediante políticas de alcance reducido. Aplica **mínimo privilegio** a los registros y a los artefactos, manteniéndolos privados. Gestiona los secretos con **Secrets Manager** o **Parameter Store**, evita imprimirlos y valida los artefactos (p. ej., con sumas de verificación)."
     },
     {
+        "checkId":  "codebuild_project_older_90_days",
+        "titleEs":  "El proyecto de CodeBuild se ha ejecutado en los últimos 90 días",
+        "remediationEs":  "Implementa una gestión del ciclo de vida: revisa los proyectos inactivos por más de `90 días`, confirma su responsable y su necesidad, y luego elimínalos o archívalos. Revoca los webhooks, tokens y roles de servicio que no se usen y rota los secretos. Aplica **mínimo privilegio**, etiquetado y auditorías periódicas para reducir la **superficie de ataque** y mantener el entorno de compilación ordenado y defendible."
+    },
+    {
         "checkId":  "codebuild_project_s3_logs_encrypted",
         "titleEs":  "Los registros de S3 del proyecto de CodeBuild están cifrados en reposo",
         "remediationEs":  "Habilita el cifrado en reposo de los registros de S3 de los proyectos de CodeBuild. Prefiere `SSE-KMS` con claves administradas por el cliente para controlar el acceso y la rotación. Exige el cifrado mediante la política del bucket, aplica **mínimo privilegio** al acceso a los registros y monitorea los patrones de acceso. *Si hace falta*, separa los registros y mantenlos privados."
@@ -538,6 +688,21 @@
         "checkId":  "codebuild_project_source_repo_url_no_sensitive_credentials",
         "titleEs":  "Las URL de los repositorios de origen del proyecto de CodeBuild no contienen credenciales sensibles",
         "remediationEs":  "Usa **OAuth/CodeStar Connections** o guarda los tokens en **Secrets Manager/SSM**, nunca en la URL. Aplica **mínimo privilegio**, limita el alcance a los repositorios necesarios, define vigencias cortas y rota con regularidad. Audita las configuraciones y los registros para eliminar secretos filtrados. *Aplica tanto a los orígenes principales como a los secundarios.*"
+    },
+    {
+        "checkId":  "codebuild_project_user_controlled_buildspec",
+        "titleEs":  "El proyecto de CodeBuild no usa un archivo buildspec controlado por el usuario",
+        "remediationEs":  "Adopta un **buildspec administrado de forma centralizada** que los colaboradores no puedan modificar.\n- Aplica ramas protegidas y revisiones obligatorias para las instrucciones de compilación\n- Aplica **mínimo privilegio** al rol de compilación y reduce al mínimo los secretos\n- Separa las funciones de los administradores del flujo y los autores del código\n\nUsa plantillas verificadas y versionadas como defensa en profundidad."
+    },
+    {
+        "checkId":  "codebuild_project_uses_allowed_github_organizations",
+        "titleEs":  "El proyecto de CodeBuild que usa GitHub usa una organización de GitHub permitida",
+        "remediationEs":  "Limita los orígenes a **organizaciones de GitHub aprobadas** mediante una lista de permitidos explícita. Aplica **mínimo privilegio** al rol de servicio de CodeBuild y evita los derechos de administrador. Aplica **separación de funciones** en los cambios de la lista y agrega **defensa en profundidad** (protección de ramas, revisiones, monitoreo) para evitar el abuso del flujo de trabajo."
+    },
+    {
+        "checkId":  "codebuild_project_webhook_filters_use_anchored_patterns",
+        "titleEs":  "Los filtros de webhook del proyecto de CodeBuild usan patrones de expresión regular anclados",
+        "remediationEs":  "Ancla todos los patrones de los filtros de webhook con `^` (inicio) y `$` (fin) para exigir una coincidencia exacta. Para varios valores usa: `^valor1$|^valor2$`. Así se evita que un atacante eluda los filtros con coincidencias parciales."
     },
     {
         "checkId":  "codebuild_report_group_export_encrypted",
@@ -607,7 +772,7 @@
     {
         "checkId":  "cognito_user_pool_password_policy_number",
         "titleEs":  "La política de contraseñas del grupo de usuarios de Cognito exige al menos un número",
-        "remediationEs":  "Aplica una política de contraseñas robusta: exige números (`RequireNumbers=true`), una longitud adecuada (p. ej., `\u003e=8`) y mayúsculas, minúsculas y símbolos. Complementa con **MFA**, limitación o bloqueo de inicios de sesión y límites a la reutilización de contraseñas como **defensa en profundidad**. Aplica **mínimo privilegio** a las aplicaciones que usan tokens y monitorea la actividad de autenticación."
+        "remediationEs":  "Aplica una política de contraseñas robusta: exige números (`RequireNumbers=true`), una longitud adecuada (p. ej., `>=8`) y mayúsculas, minúsculas y símbolos. Complementa con **MFA**, limitación o bloqueo de inicios de sesión y límites a la reutilización de contraseñas como **defensa en profundidad**. Aplica **mínimo privilegio** a las aplicaciones que usan tokens y monitorea la actividad de autenticación."
     },
     {
         "checkId":  "cognito_user_pool_password_policy_symbol",
@@ -627,7 +792,7 @@
     {
         "checkId":  "cognito_user_pool_temporary_password_expiration",
         "titleEs":  "El grupo de usuarios de Cognito tiene la caducidad de la contraseña temporal en 7 días o menos",
-        "remediationEs":  "Define una **política de contraseñas** con una vigencia de la contraseña temporal `\u003c= 7 días` (usa la más corta que sea práctica). Exige el cambio en el primer inicio de sesión, habilita **MFA** durante el registro y entrega los secretos por canales seguros. Aplica **mínimo privilegio** y revoca o vuelve a emitir con prontitud las credenciales temporales sin usar."
+        "remediationEs":  "Define una **política de contraseñas** con una vigencia de la contraseña temporal `<= 7 días` (usa la más corta que sea práctica). Exige el cambio en el primer inicio de sesión, habilita **MFA** durante el registro y entrega los secretos por canales seguros. Aplica **mínimo privilegio** y revoca o vuelve a emitir con prontitud las credenciales temporales sin usar."
     },
     {
         "checkId":  "cognito_user_pool_waf_acl_attached",
@@ -658,6 +823,16 @@
         "checkId":  "datasync_task_logging_enabled",
         "titleEs":  "La tarea de DataSync tiene configurado un grupo de registros de CloudWatch Logs para el registro",
         "remediationEs":  "Configura cada tarea para publicar registros en un grupo de CloudWatch Logs dedicado. Elige un nivel de registro adecuado (p. ej., `BASIC` o `TRANSFER`), aplica **mínimo privilegio** al acceso a los registros, define la **retención** y la inmutabilidad, e integra alertas. Centraliza y monitorea los registros para apoyar la **defensa en profundidad** y la respuesta a incidentes."
+    },
+    {
+        "checkId":  "directconnect_connection_redundancy",
+        "titleEs":  "Las conexiones de Direct Connect abarcan al menos dos ubicaciones por región",
+        "remediationEs":  "Aplica **redundancia** y **defensa en profundidad**:\n- Despliega 2 conexiones de Direct Connect en **dos ubicaciones distintas**\n- Usa **enrutamiento dinámico activo/activo** para la conmutación automática\n- Garantiza la **diversidad de proveedores y dispositivos**\n- Dimensiona la capacidad para que la pérdida de un enlace no sobrecargue las rutas restantes\n- Considera una **VPN** como respaldo terciario"
+    },
+    {
+        "checkId":  "directconnect_virtual_interface_redundancy",
+        "titleEs":  "La puerta de enlace de Direct Connect o la puerta de enlace privada virtual tiene al menos dos interfaces virtuales en conexiones de Direct Connect distintas",
+        "remediationEs":  "Aplica **defensa en profundidad** en la conectividad:\n- Asocia al menos dos `VIF` por puerta de enlace en **conexiones de Direct Connect** separadas y en ubicaciones distintas\n- Prefiere el enrutamiento dinámico activo/activo y dimensiona la capacidad para soportar la pérdida de un enlace\n- *Opcionalmente*, agrega una ruta de **VPN/Transit Gateway** para mantener la operación durante caídas del proveedor"
     },
     {
         "checkId":  "directoryservice_directory_log_forwarding_enabled",
@@ -715,6 +890,11 @@
         "remediationEs":  "Configura los endpoints para usar SSL/TLS al menos en `require`; prefiere `verify-ca` o `verify-full` donde se admita. Gestiona el material de las CA de confianza y rótalo con regularidad. Aplica **defensa en profundidad** con conectividad privada e IAM estricto, y haz cumplir esta postura mediante política como código y validación continua."
     },
     {
+        "checkId":  "dms_instance_minor_version_upgrade_enabled",
+        "titleEs":  "La instancia de replicación de DMS tiene habilitada la actualización automática de versiones menores",
+        "remediationEs":  "Habilita `auto_minor_version_upgrade` en todas las instancias de replicación para mantener un **parcheo continuo**.\n- Define una ventana de mantenimiento y valida en entornos no productivos\n- Monitorea las notas de versión y las métricas de estado\n- Aplica **mínimo privilegio** en el control de cambios\n- Conserva **respaldos** para poder revertir"
+    },
+    {
         "checkId":  "dms_instance_multi_az_enabled",
         "titleEs":  "La instancia de replicación de DMS tiene habilitado Multi-AZ",
         "remediationEs":  "Habilita **Multi-AZ** (define `multi_az` como `true`) en las instancias de replicación de DMS que atiendan migraciones de producción o sensibles al tiempo, para asegurar redundancia y conmutación automática.\n\nAplica principios de alta disponibilidad: distribuye entre zonas de disponibilidad, prueba la conmutación, monitorea la salud y planifica el mantenimiento para minimizar el impacto."
@@ -765,6 +945,11 @@
         "remediationEs":  "Habilita el **cifrado del almacenamiento en reposo** en todos los clústeres de DocumentDB y prefiere **claves de KMS administradas por el cliente** para controlar el acceso, la rotación y la revocación. Aplica **mínimo privilegio** al uso de la clave, aplica **separación de funciones** y monitorea el acceso a la clave y a las instantáneas. *Si un clúster no está cifrado*, migra a un clúster nuevo y cifrado."
     },
     {
+        "checkId":  "drs_job_exist",
+        "titleEs":  "La región tiene habilitado AWS Elastic Disaster Recovery (DRS) con al menos un trabajo de recuperación",
+        "remediationEs":  "Habilita DRS en las regiones necesarias y protege las cargas críticas. Define el RTO/RPO y realiza **simulacros de recuperación periódicos** para validar la configuración de lanzamiento y las dependencias. Aplica **mínimo privilegio**, monitorea el estado de la replicación y documenta los procedimientos de conmutación para lograr una recuperación consistente y repetible."
+    },
+    {
         "checkId":  "dynamodb_accelerator_cluster_encryption_enabled",
         "titleEs":  "El clúster de DynamoDB DAX tiene habilitado el cifrado en reposo",
         "remediationEs":  "Aprovisiona los clústeres de DAX con el **cifrado en reposo** (`encryption at rest`) habilitado. Aplica **mínimo privilegio** a la administración y al acceso a los datos de DAX, y monitorea con registros.\n\nAdopta **defensa en profundidad**: habilita el cifrado en tránsito, restringe la exposición de red y evita cachear datos muy sensibles. Vuelve a crear los clústeres sin cifrar para hacer cumplir este ajuste."
@@ -778,6 +963,11 @@
         "checkId":  "dynamodb_accelerator_cluster_multi_az",
         "titleEs":  "El clúster de DynamoDB Accelerator (DAX) tiene nodos en varias zonas de disponibilidad",
         "remediationEs":  "Despliega los **clústeres de DAX** con al menos `3` nodos repartidos en **zonas de disponibilidad** distintas para asegurar la tolerancia a fallos. Usa grupos de subredes que abarquen varias zonas, accede mediante el endpoint del clúster y valida la **conmutación** con regularidad. Monitorea la capacidad para evitar dependencias de una sola zona o de un solo nodo."
+    },
+    {
+        "checkId":  "dynamodb_table_autoscaling_enabled",
+        "titleEs":  "La tabla de DynamoDB usa capacidad bajo demanda o tiene habilitado el escalado automático de las unidades de capacidad de lectura y escritura",
+        "remediationEs":  "Adopta una **capacidad elástica**: prefiere `on-demand` para tráfico impredecible, o usa `PROVISIONED` con **escalado automático** en lecturas y escrituras.\n\nDefine objetivos y límites de uso seguros, monitorea el consumo y planifica los picos para mantener la **disponibilidad** y la **resiliencia**, en lugar de un rendimiento fijo manual."
     },
     {
         "checkId":  "dynamodb_table_cross_account_access",
@@ -800,6 +990,11 @@
         "remediationEs":  "Cifra las tablas con **claves de KMS** de tu cuenta; prefiere las **claves administradas por el cliente** para los datos sensibles.\n\n- Aplica políticas de clave de mínimo privilegio y acota las concesiones\n- Habilita la rotación y monitorea el uso de la clave\n- Separa las funciones de los administradores de claves y de los usuarios de los datos\n- Restringe qué entidades pueden usar la clave para DynamoDB"
     },
     {
+        "checkId":  "dynamodb_tables_pitr_enabled",
+        "titleEs":  "La tabla de DynamoDB tiene habilitada la recuperación a un punto en el tiempo (PITR)",
+        "remediationEs":  "Habilita **PITR** en las tablas críticas y define una ventana de recuperación alineada con tu RPO (1 a 35 días). Aplica **mínimo privilegio** sobre quién puede modificar los ajustes de respaldo. Prueba las restauraciones con regularidad y monitorea el estado de los respaldos. Incorpora PITR en la infraestructura como código y en el control de cambios para mantener la coherencia, y aplica **defensa en profundidad** con respaldos bajo demanda en los hitos clave."
+    },
+    {
         "checkId":  "ec2_ami_account_block_public_access",
         "titleEs":  "El bloqueo del acceso público a las AMI está habilitado a nivel de cuenta",
         "remediationEs":  "Habilita el bloqueo del acceso público a las AMI (`block-new-sharing`) en todas las regiones activas. Aplica barreras (SCP) para impedir que se desactive y revisa las AMI que estén compartidas públicamente en este momento."
@@ -818,6 +1013,11 @@
         "checkId":  "ec2_confidential_workload_host_imdsv2_not_enforced",
         "titleEs":  "El host de cargas confidenciales exige IMDSv2",
         "remediationEs":  "Aplica **defensa en profundidad** en las superficies de identidad: exige **IMDSv2** en cada host de cargas confidenciales para que no se puedan extraer credenciales del servicio de metadatos mediante SSRF o una carga comprometida en el host."
+    },
+    {
+        "checkId":  "ec2_confidential_workload_host_not_running",
+        "titleEs":  "La instancia principal de Nitro Enclave está en ejecución",
+        "remediationEs":  "Trata la disponibilidad del enclave como un **contrato operativo**: mantén las instancias principales en ejecución (o retira explícitamente la dependencia posterior) y prefiere patrones de ciclo de vida administrados (grupos de Auto Scaling, ganchos de ciclo de vida) que recreen el enclave cada vez que se reemplace la instancia principal."
     },
     {
         "checkId":  "ec2_confidential_workload_host_public_ip",
@@ -898,6 +1098,21 @@
         "checkId":  "ec2_instance_internet_facing_with_instance_profile",
         "titleEs":  "La instancia de EC2 no está expuesta a Internet con un perfil de instancia asociado",
         "remediationEs":  "Evita la exposición directa a Internet. Coloca las cargas detrás de un **Application Load Balancer** y protege las aplicaciones HTTP con **WAF**. Elimina las IP públicas o restringe el tráfico de entrada a orígenes de confianza. Aplica **mínimo privilegio** a los perfiles de instancia y exige **IMDSv2**. Usa **hosts bastión** o **Session Manager** para el acceso administrativo."
+    },
+    {
+        "checkId":  "ec2_instance_managed_by_ssm",
+        "titleEs":  "La instancia de EC2 está administrada por AWS Systems Manager o no está en ejecución",
+        "remediationEs":  "Inscribe todas las instancias como **nodos administrados de Systems Manager**. Prefiere **Session Manager** en lugar de SSH/RDP, restringe los puertos de administración de entrada y usa roles de **mínimo privilegio**. Asegura la conectividad con los endpoints de SSM (o con endpoints privados), automatiza el parcheo y el inventario y monitorea la actividad como defensa en profundidad."
+    },
+    {
+        "checkId":  "ec2_instance_older_than_specific_days",
+        "titleEs":  "La instancia de EC2 no supera la antigüedad máxima configurada o no está en ejecución",
+        "remediationEs":  "Adopta **cargas de corta vida y parcheadas**:\n- Reconstruye con regularidad a partir de imágenes reforzadas y actualizadas; rota las AMI\n- Usa gestión centralizada de parches y análisis de vulnerabilidades\n- Retira o moderniza los hosts heredados; etiqueta por ciclo de vida\n- Aplica **mínimo privilegio** y **defensa en profundidad** para limitar el radio de impacto\n\nAjusta `max_ec2_instance_age_in_days` para que coincida con la política."
+    },
+    {
+        "checkId":  "ec2_instance_paravirtual_type",
+        "titleEs":  "El tipo de virtualización de la instancia de EC2 es HVM",
+        "remediationEs":  "Estandariza en **HVM/Nitro**. Migra las cargas PV a AMI HVM y a familias de instancias actuales; asegura la compatibilidad con `ENA` y `NVMe`, kernels actuales y configuraciones reforzadas. Aplica **defensa en profundidad** y **mínimo privilegio**. Usa imágenes inmutables con pruebas por etapas y luego retira las imágenes PV para evitar derivas y regresiones."
     },
     {
         "checkId":  "ec2_instance_port_cassandra_exposed_to_internet",
@@ -1000,9 +1215,19 @@
         "remediationEs":  "Evita poner secretos en User Data. Guárdalos en un **servicio de secretos administrado** y obtenlos en tiempo de ejecución mediante un **rol de instancia de mínimo privilegio**. Prefiere credenciales de corta duración con **rotación periódica**. Limita quién puede ver o editar User Data y aplica **defensa en profundidad** con análisis automático de secretos en los pipelines de compilación."
     },
     {
+        "checkId":  "ec2_instance_stopped_older_than_specific_days",
+        "titleEs":  "La instancia de EC2 no ha estado detenida más del máximo de días configurado",
+        "remediationEs":  "Establece una política de ciclo de vida para las instancias detenidas:\n- Etiqueta las instancias con responsable y fecha de caducidad\n- Termina las instancias que ya no se necesitan para recuperar el costo de EBS\n- Si se conservan, inícialas con regularidad para parchearlas o reconstrúyelas desde una AMI reforzada\n- Prefiere cargas efímeras y con escalado automático en lugar de hosts detenidos de larga vida\n\nAjusta `max_ec2_instance_stopped_days` para que coincida con la política."
+    },
+    {
         "checkId":  "ec2_instance_uses_single_eni",
         "titleEs":  "La instancia de EC2 no tiene más de una interfaz de red elástica (ENI) asociada",
         "remediationEs":  "Prefiere **una sola ENI por instancia**.\n\nSi es inevitable tener varias interfaces:\n- Coloca las ENI en subredes y grupos de seguridad de mínimo privilegio\n- Mantén habilitada la `comprobación de origen/destino` y las rutas explícitas\n- Usa gateways o balanceadores para el NAT o la entrada, no el host\n- Monitorea los registros de flujo y aprueba formalmente las excepciones\n\nIncorpora **defensa en profundidad** y **confianza cero**."
+    },
+    {
+        "checkId":  "ec2_instance_with_outdated_ami",
+        "titleEs":  "La instancia de EC2 usa una AMI de Amazon no obsoleta",
+        "remediationEs":  "Adopta **AMI vigentes y mantenidas** y reemplaza de forma gradual las instancias afectadas. Estandariza en imágenes maestras reforzadas con **rotación periódica de AMI** y monitoreo de `DeprecationTime`. Actualiza las plantillas de lanzamiento y los grupos de Auto Scaling para que usen imágenes actuales. Automatiza el parcheo mediante un flujo de imágenes y aplica **defensa en profundidad**."
     },
     {
         "checkId":  "ec2_launch_template_imdsv2_required",
@@ -1140,6 +1365,11 @@
         "remediationEs":  "Aplica **mínimo privilegio**: mantén vacío el grupo predeterminado eliminando todas las reglas de entrada y salida. Usa grupos de seguridad dedicados por carga, con orígenes, destinos y puertos explícitos. Revisa regularmente los CIDR amplios como `0.0.0.0/0` y aplica **defensa en profundidad** mediante automatización y barreras de políticas."
     },
     {
+        "checkId":  "ec2_securitygroup_from_launch_wizard",
+        "titleEs":  "El grupo de seguridad no se creó con el asistente de lanzamiento de EC2",
+        "remediationEs":  "Reemplaza o refuerza estos grupos. Aplica **mínimo privilegio**: restringe la entrada a los orígenes necesarios, evita puertos de administración públicos y reduce al mínimo la salida. Usa grupos de seguridad base aprobados, aplica control de cambios con infraestructura como código y barreras de protección, prefiere la administración privada (bastión o Session Manager) y elimina las reglas que no se usen."
+    },
+    {
         "checkId":  "ec2_securitygroup_not_used",
         "titleEs":  "El grupo de seguridad de EC2 no predeterminado está en uso",
         "remediationEs":  "Aplica **mínimo privilegio** y una gestión sólida del ciclo de vida: elimina o pon en cuarentena los **grupos de seguridad sin uso**, exige etiquetas de propietario y políticas de retención, revisa con regularidad y gestiona los cambios con IaC y aprobaciones. Restringe quién puede asociar grupos y usa barreras para evitar reutilizar grupos obsoletos o permisivos."
@@ -1155,9 +1385,39 @@
         "remediationEs":  "Deshabilita `AutoAcceptSharedAttachments` y exige **aprobación explícita** para cada asociación.\n\nAplica **mínimo privilegio** y **separación de funciones** a quienes aprueban, limita los recursos compartidos a cuentas de confianza y usa **defensa en profundidad** con segmentación y registro para auditar el ciclo de vida de las asociaciones."
     },
     {
+        "checkId":  "ecr_registry_enhanced_scanning_enabled",
+        "titleEs":  "El registro de ECR tiene habilitado el análisis mejorado",
+        "remediationEs":  "Establece el tipo de análisis del registro en **análisis mejorado**, que delega el análisis en **Amazon Inspector** y añade cobertura de paquetes de lenguajes de programación y reanálisis continuo sobre la cobertura del sistema operativo que ofrece el análisis básico. Incorpora los hallazgos resultantes en las compuertas de CI/CD para que no se promuevan imágenes vulnerables."
+    },
+    {
+        "checkId":  "ecr_registry_scan_images_on_push_enabled",
+        "titleEs":  "El registro de ECR tiene habilitado el análisis automático de imágenes en todos los repositorios",
+        "remediationEs":  "Habilita `scan on push` en todo el registro y asegúrate de que las reglas se apliquen a todos los repositorios (sin filtros). Prefiere el **análisis mejorado** para una cobertura más amplia y combínalo con análisis continuos cuando estén disponibles. Integra los hallazgos en las compuertas de CI/CD y en las alertas para aplicar **defensa en profundidad** y bloquear la promoción de imágenes de riesgo."
+    },
+    {
+        "checkId":  "ecr_repositories_lifecycle_policy_enabled",
+        "titleEs":  "El repositorio de ECR tiene configurada una política de ciclo de vida",
+        "remediationEs":  "Implementa **políticas de ciclo de vida** por repositorio para expirar las imágenes sin etiqueta, antiguas o excedentes y conservar un conjunto reducido de versiones de confianza. Valida los resultados antes de aplicar, revisa las reglas con regularidad y aplícalas de forma coherente entre regiones al replicar. Esto respalda la **defensa en profundidad** al reducir la superficie de ataque de las imágenes y el riesgo operativo."
+    },
+    {
         "checkId":  "ecr_repositories_not_publicly_accessible",
         "titleEs":  "El repositorio de ECR no es de acceso público",
         "remediationEs":  "Aplica **mínimo privilegio** a las políticas de repositorio:\n- Evita `Principal:\"*\"` y bloquea el acceso anónimo\n- Concede las acciones mínimas a cuentas y roles concretos\n- Exige descargas y subidas autenticadas mediante IAM\n- Usa **conectividad privada** (p. ej., endpoints de VPC)\n- Añade **defensa en profundidad** con análisis y firma de imágenes"
+    },
+    {
+        "checkId":  "ecr_repositories_scan_images_on_push_enabled",
+        "titleEs":  "[OBSOLETO] El repositorio de ECR tiene habilitado el análisis de imágenes al subirlas",
+        "remediationEs":  "Habilita el **análisis de imágenes al subirlas** (`scan_on_push`) en todos los repositorios y usa los hallazgos como compuertas de promoción. Prefiere el **análisis continuo o mejorado** como defensa en profundidad, define umbrales de severidad y bloquea o pon en cuarentena las imágenes que no cumplan. Integra los resultados con CI/CD y adopta una gestión de vulnerabilidades **shift-left**."
+    },
+    {
+        "checkId":  "ecr_repositories_scan_vulnerabilities_in_latest_image",
+        "titleEs":  "La imagen más reciente del repositorio de ECR se analiza y no tiene vulnerabilidades en la severidad mínima configurada ni por encima",
+        "remediationEs":  "Habilita el **análisis continuo** en los repositorios y aplica compuertas de despliegue en el umbral de tu política (p. ej., `MEDIUM` o superior).\n\nReconstruye las imágenes con componentes parcheados y bases actualizadas, mantenlas mínimas y aplica **mínimo privilegio**. Usa **firma de imágenes** y verificaciones de CI/CD para que solo se ejecuten imágenes analizadas y conformes."
+    },
+    {
+        "checkId":  "ecr_repositories_tag_immutability",
+        "titleEs":  "El repositorio de ECR tiene habilitada la inmutabilidad de etiquetas de imagen",
+        "remediationEs":  "Habilita la **inmutabilidad de etiquetas** para que cada etiqueta corresponda a un único artefacto. Usa **etiquetas versionadas** por compilación, bloquea el reetiquetado en CI/CD y aplica **mínimo privilegio** a las acciones de publicación. Suma **firma de imágenes** y controles de admisión para ejecutar solo imágenes de confianza. *Si se necesitan excepciones, mantenlas acotadas y monitoreadas.*"
     },
     {
         "checkId":  "ecr_repository_image_no_secrets",
@@ -1170,9 +1430,24 @@
         "remediationEs":  "Habilita **Container Insights** en todos los clústeres; prefiere `enhanced` para tener mayor visibilidad. Aplícalo a nivel de cuenta para los clústeres nuevos y hazlo cumplir mediante automatización.\n\nUsa **mínimo privilegio** para el acceso a métricas y registros, cifra los registros y define **alarmas** sobre las métricas críticas. Correlaciona con los registros de la aplicación y el rastreo como **defensa en profundidad** y para detectar incidentes con mayor rapidez."
     },
     {
+        "checkId":  "ecs_service_fargate_latest_platform_version",
+        "titleEs":  "El servicio de ECS Fargate usa la última versión de plataforma de Fargate",
+        "remediationEs":  "- Prefiere `platformVersion` `LATEST` para recibir los parches.\n- Si la fijas, monitorea las versiones nuevas y vuelve a desplegar rápidamente con la versión actual.\n- Automatiza las actualizaciones con despliegues por etapas en CI/CD.\n- Aplica **defensa en profundidad** y **mínimo privilegio** para limitar el impacto de una vulnerabilidad en ejecución."
+    },
+    {
         "checkId":  "ecs_service_no_assign_public_ip",
         "titleEs":  "El servicio de ECS no tiene asignación automática de IP pública",
         "remediationEs":  "Deshabilita `assignPublicIp` para mantener privadas las tareas. Expón los servicios mediante **balanceadores de carga** o **endpoints privados**, restringe la entrada con grupos de seguridad de **mínimo privilegio** y enruta la salida mediante **NAT**. Aplica **defensa en profundidad** (WAF, TLS, monitoreo) y segmenta las redes para minimizar el radio de impacto."
+    },
+    {
+        "checkId":  "ecs_task_definitions_containers_readonly_access",
+        "titleEs":  "La definición de tarea de ECS tiene todos los contenedores con sistemas de archivos raíz de solo lectura",
+        "remediationEs":  "Exige `readonlyRootFilesystem: true` en los contenedores.\n- Concede acceso de escritura solo mediante los volúmenes específicos que la aplicación requiera\n- Aplica **mínimo privilegio** y **defensa en profundidad**: ejecuta sin privilegios de root, elimina las capacidades innecesarias y mantén las imágenes inmutables para que no hagan falta escrituras en ejecución"
+    },
+    {
+        "checkId":  "ecs_task_definitions_host_namespace_not_shared",
+        "titleEs":  "La definición de tarea de ECS no comparte el espacio de nombres de procesos del host con sus contenedores",
+        "remediationEs":  "Prefiere **espacios de nombres PID aislados**: define `pidMode=task` o usa el espacio de nombres predeterminado por contenedor. Evita compartir el PID del `host`, salvo en diagnósticos estrictamente controlados.\n\nAplica **mínimo privilegio**: usuarios sin privilegios de root, capacidades mínimas y sistemas de archivos de solo lectura; y **defensa en profundidad** con controles de red y de ejecución."
     },
     {
         "checkId":  "ecs_task_definitions_host_networking_mode_users",
@@ -1195,9 +1470,19 @@
         "remediationEs":  "Guarda los secretos en **AWS Secrets Manager** o **SSM Parameter Store** e inyéctalos en tiempo de ejecución en lugar de usar variables de entorno en texto plano.\n\nAplica **mínimo privilegio** mediante los roles de tarea, habilita la **rotación** periódica, evita registrar los valores de los secretos y prefiere **credenciales efímeras** para los servicios posteriores."
     },
     {
+        "checkId":  "ecs_task_definitions_no_privileged_containers",
+        "titleEs":  "La definición de tarea de ECS no tiene contenedores privilegiados",
+        "remediationEs":  "Ejecuta los contenedores sin derechos elevados (`privileged: false`) y sin privilegios de root (`user`). Aplica **mínimo privilegio**:\n- Concede solo las capacidades de Linux necesarias mediante `capDrop`/`capAdd`\n- Prefiere `readonlyRootFilesystem: true`\n- Aísla las redes y separa las funciones\n- Monitorea con registros para respaldar la defensa en profundidad"
+    },
+    {
         "checkId":  "ecs_task_set_no_assign_public_ip",
         "titleEs":  "El conjunto de tareas de ECS no asigna automáticamente una dirección IP pública",
         "remediationEs":  "Deshabilita las **IP públicas automáticas** en los conjuntos de tareas.\n\nUsa subredes privadas detrás de puntos de entrada controlados (balanceadores de carga, API gateways o descubrimiento de servicios). Aplica grupos de seguridad de **mínimo privilegio** y **defensa en profundidad**. Prefiere la conectividad privada (endpoints de VPC/VPN). *Expón solo los front-ends, no las tareas.*"
+    },
+    {
+        "checkId":  "efs_access_point_enforce_root_directory",
+        "titleEs":  "El sistema de archivos de EFS no tiene puntos de acceso que permitan el acceso al directorio raíz",
+        "remediationEs":  "Aplica **mínimo privilegio**: define el `Path` de cada punto de acceso en un subdirectorio dedicado y evita `/`.\n- Usa puntos de acceso por aplicación\n- Aplica la identidad POSIX y los permisos de directorio\n- Suma controles (segmentación de red, monitoreo) como **defensa en profundidad**"
     },
     {
         "checkId":  "efs_access_point_enforce_user_identity",
@@ -1255,6 +1540,11 @@
         "remediationEs":  "Habilita el **acceso por endpoint privado** y deshabilita o restringe estrictamente el endpoint público.\n\nExige la administración desde redes privadas, aplica **mínimo privilegio** con IAM/RBAC y aplica **defensa en profundidad** mediante segmentación y registro. *Si se necesita acceso externo*, permite solo CIDR concretos y monitorea la actividad de la API."
     },
     {
+        "checkId":  "eks_cluster_uses_a_supported_version",
+        "titleEs":  "El clúster de EKS usa una versión de Kubernetes compatible",
+        "remediationEs":  "Adopta una **política de gestión de versiones**: mantén los clústeres en una versión menor compatible, programa actualizaciones periódicas y prueba las cargas ante obsolescencias de la API. Actualiza los nodos y los complementos junto con el plano de control. Da seguimiento a las versiones de EKS, automatiza las alertas de deriva y prefiere la **defensa en profundidad** frente a las funciones obsoletas."
+    },
+    {
         "checkId":  "eks_cluster_vpc_cni_network_policy_enforced",
         "titleEs":  "El clúster de EKS aplica las políticas de red de Kubernetes mediante el complemento Amazon VPC CNI",
         "remediationEs":  "Define `enableNetworkPolicy` en `true` en el complemento Amazon VPC CNI y después redacta recursos `NetworkPolicy` que permitan a cada carga solo sus dependencias declaradas, idealmente con el modo de aplicación `strict` para que el tráfico se deniegue hasta que la política esté en vigor. Añade grupos de seguridad para pods que accedan a recursos de la VPC como las bases de datos."
@@ -1268,6 +1558,16 @@
         "checkId":  "elasticache_cluster_uses_public_subnet",
         "titleEs":  "El clúster de ElastiCache no usa subredes públicas",
         "remediationEs":  "Coloca las cachés **solo en subredes privadas** y asegúrate de que las tablas de rutas no tengan salida a Internet. Aplica **mínimo privilegio** con **grupos de seguridad** estrictos limitados a los puertos necesarios y a orígenes de confianza.\n\nPara el acceso externo, usa **peering de VPC**, **VPN** o **PrivateLink**. Habilita el cifrado en tránsito y `AUTH` de Redis para añadir capas de control."
+    },
+    {
+        "checkId":  "elasticache_redis_cluster_auto_minor_version_upgrades",
+        "titleEs":  "El clúster de caché de ElastiCache Redis tiene habilitadas las actualizaciones automáticas de versiones menores",
+        "remediationEs":  "Habilita `AutoMinorVersionUpgrade` en los grupos de replicación de Redis y gobierna las actualizaciones con una ventana de mantenimiento. Aplica **gestión de parches** y **defensa en profundidad**: valida en preproducción, conserva respaldos recientes, usa Multi-AZ para la resiliencia y monitorea las notas de versión para lograr actualizaciones oportunas y de bajo impacto."
+    },
+    {
+        "checkId":  "elasticache_redis_cluster_automatic_failover_enabled",
+        "titleEs":  "El clúster de ElastiCache Redis tiene habilitada la conmutación por error automática",
+        "remediationEs":  "Habilita la **conmutación por error automática** con **Multi-AZ**, manteniendo al menos una réplica por fragmento en una zona de disponibilidad distinta. *Prueba la conmutación* con regularidad y monitorea el retraso de replicación.\n\nDiseña los clientes para la resiliencia, con reintentos y espera progresiva que toleren cambios breves de rol, en línea con la **tolerancia a fallos** y la **defensa en profundidad**."
     },
     {
         "checkId":  "elasticache_redis_cluster_backup_enabled",
@@ -1291,8 +1591,8 @@
     },
     {
         "checkId":  "elasticache_redis_replication_group_auth_enabled",
-        "titleEs":  "El grupo de replicación de ElastiCache Redis con una versión del motor \u003c 6.0 tiene habilitado Redis OSS AUTH",
-        "remediationEs":  "Aplica defensa en profundidad:\n- Para versiones \u003c `6.0`, habilita **AUTH** con tokens robustos y rotados y exige el cifrado en tránsito.\n- Para `6.0+`, prefiere **RBAC/ACL** con roles de mínimo privilegio y denegación por defecto.\n- Restringe el acceso de red a orígenes de confianza y audita el acceso con regularidad."
+        "titleEs":  "El grupo de replicación de ElastiCache Redis con una versión del motor < 6.0 tiene habilitado Redis OSS AUTH",
+        "remediationEs":  "Aplica defensa en profundidad:\n- Para versiones < `6.0`, habilita **AUTH** con tokens robustos y rotados y exige el cifrado en tránsito.\n- Para `6.0+`, prefiere **RBAC/ACL** con roles de mínimo privilegio y denegación por defecto.\n- Restringe el acceso de red a orígenes de confianza y audita el acceso con regularidad."
     },
     {
         "checkId":  "elasticbeanstalk_environment_cloudwatch_logging_enabled",
@@ -1305,9 +1605,29 @@
         "remediationEs":  "Define el informe de estado en `enhanced` en todos los entornos y conviértelo en una línea base de seguridad. Conecta las señales de salud con alertas para responder con rapidez. Aplica **mínimo privilegio** a los roles necesarios y **defensa en profundidad** con autorreparación, alarmas y procedimientos operativos para evitar degradaciones prolongadas."
     },
     {
+        "checkId":  "elasticbeanstalk_environment_managed_updates_enabled",
+        "titleEs":  "El entorno de Elastic Beanstalk tiene habilitadas las actualizaciones administradas de la plataforma",
+        "remediationEs":  "Habilita las **actualizaciones administradas de la plataforma** con una ventana de mantenimiento definida y elige un nivel de actualización (`patch` o `minor`). Asegura que el **estado mejorado** esté activo y que el rol de actualización siga el **mínimo privilegio**. Valida en preproducción, despliega de forma gradual y escalona las ventanas entre entornos para reforzar la **defensa en profundidad** y la resiliencia."
+    },
+    {
         "checkId":  "elasticbeanstalk_environment_no_secrets_in_configuration",
         "titleEs":  "La configuración del entorno de Elastic Beanstalk no tiene secretos escritos directamente",
         "remediationEs":  "Evita guardar secretos en la configuración del entorno de Elastic Beanstalk. Guarda los valores sensibles en AWS Secrets Manager o AWS Systems Manager Parameter Store y obtenlos de forma segura en tiempo de ejecución."
+    },
+    {
+        "checkId":  "elb_connection_draining_enabled",
+        "titleEs":  "El Classic Load Balancer tiene habilitado el drenaje de conexiones",
+        "remediationEs":  "Habilita el **drenaje de conexiones** en todos los Classic Load Balancers y define un intervalo de drenaje acorde con la latencia típica de las solicitudes. Coordina el escalado automático y los despliegues para permitir apagados ordenados de las instancias. Monitorea los errores y los reintentos para validar el comportamiento y ajusta el `timeout` con prudencia para proteger la **disponibilidad** y la **integridad**."
+    },
+    {
+        "checkId":  "elb_cross_zone_load_balancing_enabled",
+        "titleEs":  "El Classic Load Balancer tiene habilitado el balanceo de carga entre zonas",
+        "remediationEs":  "Establece el `cross-zone load balancing` en `enabled` en los Classic Load Balancers y usa al menos dos zonas de disponibilidad.\n\nEquilibra la capacidad por zona, aplica comprobaciones de estado robustas con escalado automático y diseña para **alta disponibilidad**, de modo que la carga siga distribuida de forma pareja durante picos de demanda o caídas parciales de una zona."
+    },
+    {
+        "checkId":  "elb_desync_mitigation_mode",
+        "titleEs":  "El modo de mitigación de desincronización del Classic Load Balancer es defensivo o el más estricto",
+        "remediationEs":  "Establece la mitigación de desincronización del CLB en **`defensive`** o, cuando sea compatible, en **`strictest`**. Valida en preproducción para no afectar a los clientes. Aplica **defensa en profundidad**: exige un manejo estricto de los encabezados, combínalo con controles de WAF y monitorea los indicadores de solicitudes no conformes."
     },
     {
         "checkId":  "elb_insecure_ssl_ciphers",
@@ -1340,9 +1660,24 @@
         "remediationEs":  "Estandariza los **certificados de ACM emitidos por Amazon** en los listeners HTTPS/SSL del CLB para asegurar la validación administrada y la **renovación automática**.\n\nAplica **mínimo privilegio** a las operaciones con certificados, automatiza la rotación y monitorea el estado de los certificados como parte de la **defensa en profundidad**."
     },
     {
+        "checkId":  "elbv2_alb_drop_invalid_header_fields_enabled",
+        "titleEs":  "El Application Load Balancer debe configurarse para descartar los campos de encabezado HTTP no válidos",
+        "remediationEs":  "Habilita «descartar campos de encabezado no válidos» en los Application Load Balancers para que los encabezados HTTP que no cumplen el RFC se eliminen antes de que las solicitudes lleguen a los destinos, lo que reduce la exposición a la desincronización HTTP y al contrabando de solicitudes. Aplica defensa en profundidad y valida también las solicitudes en la capa de aplicación."
+    },
+    {
+        "checkId":  "elbv2_cross_zone_load_balancing_enabled",
+        "titleEs":  "El Network o Gateway Load Balancer de ELBv2 tiene habilitado el balanceo de carga entre zonas",
+        "remediationEs":  "Habilita el **balanceo de carga entre zonas** para repartir la carga entre zonas y diseña con redundancia de zonas de disponibilidad.\n\n- Equilibra la capacidad por zona y usa enrutamiento basado en el estado\n- Evita dependencias de una sola zona y diseños con afinidad de sesión\n- Monitorea el estado por zona para sostener la **tolerancia a fallos**"
+    },
+    {
         "checkId":  "elbv2_deletion_protection",
         "titleEs":  "El balanceador de carga ELBv2 tiene habilitada la protección contra eliminación",
         "remediationEs":  "Habilita la **protección contra eliminación** en los balanceadores de producción y en otros críticos.\n\nAplica **mínimo privilegio** para restringir las acciones de eliminación, aplica gobierno (etiquetas y barreras de políticas) a los activos protegidos y exige **control de cambios** con aprobaciones. *En los pipelines*, añade comprobaciones que bloqueen la eliminación de recursos protegidos."
+    },
+    {
+        "checkId":  "elbv2_desync_mitigation_mode",
+        "titleEs":  "El Application Load Balancer tiene el modo de mitigación de desincronización en el más estricto o defensivo, o descarta los campos de encabezado no válidos",
+        "remediationEs":  "Configura los ALB con `desync_mitigation_mode`=`strictest` (*o* `defensive` si se requiere compatibilidad) y mantén `routing.http.drop_invalid_header_fields.enabled`=`true`.\n\nAplica **defensa en profundidad**: valida que las solicitudes cumplan el RFC, despliega los cambios de forma gradual con monitoreo y aplica **mínimo privilegio** a los servicios posteriores."
     },
     {
         "checkId":  "elbv2_insecure_ssl_ciphers",
@@ -1370,6 +1705,11 @@
         "remediationEs":  "Migra todos los listeners HTTPS y TLS de ELBv2 a una **política TLS poscuántica** (familia `ELBSecurityPolicy-TLS13-*-PQ-2025-09`) para habilitar el intercambio de claves híbrido (ML-KEM + ECDHE). Revisa y actualiza periódicamente las políticas a medida que AWS publique nuevas opciones preparadas para lo poscuántico."
     },
     {
+        "checkId":  "elbv2_listeners_underneath",
+        "titleEs":  "El balanceador de carga de ELBv2 tiene al menos un agente de escucha",
+        "remediationEs":  "Define al menos un agente de escucha por balanceador de carga. Prefiere **HTTPS** en el puerto `443` para proteger los datos en tránsito y expón solo los puertos necesarios. Aplica **mínimo privilegio** limitando los protocolos y las reglas al tráfico previsto, y define una acción predeterminada explícita para evitar enrutamientos no deseados."
+    },
+    {
         "checkId":  "elbv2_logging_enabled",
         "titleEs":  "El Application Load Balancer de ELBv2 tiene configurados los registros de acceso a S3",
         "remediationEs":  "Habilita el **registro de acceso del ALB** en un bucket de S3 dedicado y cifrado. Aplica **mínimo privilegio** al bucket para la entrega y los lectores, define políticas de ciclo de vida para la retención y considera `Object Lock` para disuadir las manipulaciones. Centraliza los registros en un **SIEM** y alerta ante anomalías como parte de la **defensa en profundidad**."
@@ -1383,6 +1723,11 @@
         "checkId":  "elbv2_ssl_listeners",
         "titleEs":  "Los listeners del Application Load Balancer de ELBv2 usan HTTPS o redirigen HTTP a HTTPS",
         "remediationEs":  "Aplica **TLS en todas partes**: usa listeners `HTTPS` y haz que todos los listeners `HTTP` solo redirijan a `HTTPS`. No reenvíes texto plano. Aplica **defensa en profundidad** con políticas TLS robustas y certificados administrados, y considera `HSTS` para evitar que los usuarios lleguen por `http`."
+    },
+    {
+        "checkId":  "elbv2_waf_acl_attached",
+        "titleEs":  "El Application Load Balancer tiene asociada una ACL web de WAF",
+        "remediationEs":  "Asocia una **ACL web de WAF** a cada ALB como **defensa en profundidad**. Usa reglas administradas y personalizadas, listas de reputación de IP y límites de tasa para bloquear ataques. Ajusta continuamente las políticas y monitorea los registros. *Aplica mínimo privilegio* limitando las reglas a las rutas, los métodos y los orígenes necesarios."
     },
     {
         "checkId":  "emr_cluster_account_public_block_enabled",
@@ -1435,6 +1780,11 @@
         "remediationEs":  "Habilita la copia de etiquetas en los respaldos de FSx y estandariza las etiquetas obligatorias (propietario, clasificación de datos, entorno).\nVincula el **mínimo privilegio** y las políticas de ciclo de vida a esas etiquetas, hazlo cumplir con automatización y barreras, y audita regularmente para evitar respaldos sin etiquetar o mal clasificados."
     },
     {
+        "checkId":  "fsx_file_system_copy_tags_to_volumes_enabled",
+        "titleEs":  "El sistema de archivos de FSx tiene habilitada la copia de etiquetas a los volúmenes",
+        "remediationEs":  "Habilita `copy_tags_to_volumes` y adopta una **política de etiquetado obligatoria** (responsable, entorno, clase de datos). Aplica **mínimo privilegio/ABAC** usando las etiquetas e intégralas en los flujos de respaldo, retención y monitoreo para reforzar la **defensa en profundidad**."
+    },
+    {
         "checkId":  "fsx_windows_file_system_multi_az_enabled",
         "titleEs":  "El sistema de archivos FSx para Windows está configurado con despliegue Multi-AZ",
         "remediationEs":  "Prefiere `MULTI_AZ_1` en producción para sostener la **alta disponibilidad** y evitar puntos únicos de fallo a nivel de zona. Aplica **resiliencia** y **defensa en profundidad**: diseña para tolerar la pérdida de una zona, dimensiona la capacidad para la conmutación y pruébala regularmente. *Si Single-AZ es inevitable*, límitalo a cargas no críticas o replicadas por la aplicación y mantén respaldos frecuentes y verificados."
@@ -1442,17 +1792,12 @@
     {
         "checkId":  "glacier_vaults_policy_public_access",
         "titleEs":  "La bóveda de S3 Glacier no tiene política o su política no permite el acceso a todo el mundo",
-        "remediationEs":  "Aplica **mínimo privilegio** a las políticas de bóveda: restringe a cuentas o roles de AWS concretos, evita `Principal: \u0027*\u0027` y concede solo las acciones necesarias. Aplica **defensa en profundidad** con **Vault Lock** para una retención inmutable y con revisión y monitoreo continuos del acceso para evitar exposiciones amplias o no previstas."
+        "remediationEs":  "Aplica **mínimo privilegio** a las políticas de bóveda: restringe a cuentas o roles de AWS concretos, evita `Principal: '*'` y concede solo las acciones necesarias. Aplica **defensa en profundidad** con **Vault Lock** para una retención inmutable y con revisión y monitoreo continuos del acceso para evitar exposiciones amplias o no previstas."
     },
     {
         "checkId":  "glue_catalog_connection_no_secrets",
         "titleEs":  "La conexión del catálogo de datos de Glue no tiene secretos en sus propiedades",
         "remediationEs":  "Guarda los secretos en **AWS Secrets Manager** o **AWS Systems Manager Parameter Store** y refiérelos desde las propiedades de la conexión de Glue en lugar de incrustar valores en texto plano. Aplica **mínimo privilegio** a los roles de IAM de Glue y rota los secretos con regularidad."
-    },
-    {
-        "checkId":  "glue_database_connections_ssl_enabled",
-        "titleEs":  "La conexión de Glue tiene SSL habilitado",
-        "remediationEs":  "Exige **TLS** en todas las conexiones de Glue (define `JDBC_ENFORCE_SSL=true`) y exige el cifrado en las bases de datos de destino.\n\nAplica **defensa en profundidad**: valida los certificados, restringe la exposición de red, prefiere la conectividad privada y usa credenciales de **mínimo privilegio** con rotación."
     },
     {
         "checkId":  "glue_data_catalogs_connection_passwords_encryption_enabled",
@@ -1468,6 +1813,11 @@
         "checkId":  "glue_data_catalogs_not_publicly_accessible",
         "titleEs":  "El catálogo de datos de Glue no es de acceso público a través de su política de recursos",
         "remediationEs":  "Aplica **mínimo privilegio** a las políticas de recursos del catálogo:\n- Evita `Principal: *` y los comodines\n- Concede solo las acciones necesarias a entidades explícitas\n- Prefiere el acceso basado en identidad o Lake Formation para compartir\n- Limita el alcance con ARN y condiciones precisos y monitorea los cambios como **defensa en profundidad**"
+    },
+    {
+        "checkId":  "glue_database_connections_ssl_enabled",
+        "titleEs":  "La conexión de Glue tiene SSL habilitado",
+        "remediationEs":  "Exige **TLS** en todas las conexiones de Glue (define `JDBC_ENFORCE_SSL=true`) y exige el cifrado en las bases de datos de destino.\n\nAplica **defensa en profundidad**: valida los certificados, restringe la exposición de red, prefiere la conectividad privada y usa credenciales de **mínimo privilegio** con rotación."
     },
     {
         "checkId":  "glue_development_endpoints_cloudwatch_logs_encryption_enabled",
@@ -1586,7 +1936,7 @@
     },
     {
         "checkId":  "iam_aws_attached_policy_no_administrative_privileges",
-        "titleEs":  "La política de IAM administrada por AWS asociada no permite privilegios administrativos \u0027*:*\u0027",
+        "titleEs":  "La política de IAM administrada por AWS asociada no permite privilegios administrativos '*:*'",
         "remediationEs":  "Aplica **mínimo privilegio**: evita asociar políticas administradas por AWS que concedan `*:*`.\n- Usa **políticas administradas por el cliente y acotadas** por rol\n- Aplica **separación de funciones** y **límites de permisos**\n- Prefiere la **elevación temporal y limitada en el tiempo** para emergencias, con MFA\n- Revisa regularmente el acceso y usa condiciones para acotar el contexto"
     },
     {
@@ -1596,12 +1946,12 @@
     },
     {
         "checkId":  "iam_customer_attached_policy_no_administrative_privileges",
-        "titleEs":  "La política de IAM administrada por el cliente asociada no permite privilegios administrativos \u0027*:*\u0027",
+        "titleEs":  "La política de IAM administrada por el cliente asociada no permite privilegios administrativos '*:*'",
         "remediationEs":  "Aplica **mínimo privilegio**: reemplaza los comodines por acciones concretas, acota `Resource` a los ARN necesarios y añade `Condition` restrictivas. Prefiere el acceso basado en roles y la separación de funciones. Usa **límites de permisos** y barreras de la organización, y revisa regularmente las políticas con validación de políticas y Access Analyzer."
     },
     {
         "checkId":  "iam_customer_unattached_policy_no_administrative_privileges",
-        "titleEs":  "La política de IAM administrada por el cliente sin asociar no permite privilegios administrativos \u0027*:*\u0027",
+        "titleEs":  "La política de IAM administrada por el cliente sin asociar no permite privilegios administrativos '*:*'",
         "remediationEs":  "Elimina o rediseña estas políticas para aplicar **mínimo privilegio**:\n- Evita `*` en acciones y recursos; acota con precisión y usa condiciones\n- Aplica **límites de permisos** y **SCP** como barreras\n- Exige revisión por pares y validación de la política antes de asociarla\n- Usa herramientas de análisis para afinar los permisos y elimina las políticas sin uso"
     },
     {
@@ -1616,12 +1966,12 @@
     },
     {
         "checkId":  "iam_inline_policy_no_administrative_privileges",
-        "titleEs":  "La política en línea de IAM no permite privilegios administrativos \u0027*:*\u0027",
+        "titleEs":  "La política en línea de IAM no permite privilegios administrativos '*:*'",
         "remediationEs":  "Elimina `Action:\"*\"` con `Resource:\"*\"` de las políticas en línea. Aplica **mínimo privilegio** con acciones granulares acotadas a recursos y condiciones concretos. Prefiere políticas administradas por el cliente y versionadas a las políticas en línea amplias, aplica **separación de funciones** y usa **límites de permisos** o barreras para evitar concesiones administrativas accidentales."
     },
     {
         "checkId":  "iam_inline_policy_no_full_access_to_cloudtrail",
-        "titleEs":  "La política en línea de IAM no permite privilegios \u0027cloudtrail:*\u0027",
+        "titleEs":  "La política en línea de IAM no permite privilegios 'cloudtrail:*'",
         "remediationEs":  "Aplica **mínimo privilegio** y **separación de funciones**: evita `cloudtrail:*`; concede solo las acciones específicas necesarias (prefiere solo lectura cuando sea posible). Añade barreras o límites para bloquear las acciones destructivas. Usa políticas administradas y gobernadas de forma centralizada, y ajusta periódicamente los permisos según el uso."
     },
     {
@@ -1631,7 +1981,7 @@
     },
     {
         "checkId":  "iam_inline_policy_no_wildcard_marketplace_subscribe",
-        "titleEs":  "La política en línea de IAM no permite \u0027aws-marketplace:Subscribe\u0027 sobre todos los recursos",
+        "titleEs":  "La política en línea de IAM no permite 'aws-marketplace:Subscribe' sobre todos los recursos",
         "remediationEs":  "Reemplaza `Resource: \"*\"` por ARN de productos de AWS Marketplace concretos y aprobados. Prefiere las políticas administradas a las políticas en línea y aplica el principio de mínimo privilegio a los permisos de `aws-marketplace:Subscribe` para evitar suscripciones no autorizadas a modelos de Bedrock costosos y a otros productos de Marketplace."
     },
     {
@@ -1652,7 +2002,7 @@
     {
         "checkId":  "iam_password_policy_expires_passwords_within_90_days_or_less",
         "titleEs":  "La política de contraseñas de la cuenta de IAM exige la caducidad de las contraseñas en 90 días o menos",
-        "remediationEs":  "Exige la **rotación de contraseñas** a `\u003c= 90` días y **evita su reutilización**. Combínalo con **MFA**, longitud y complejidad robustas, y prefiere la **federación/SSO** para reducir las contraseñas estáticas. Aplica **mínimo privilegio**, monitorea los inicios de sesión y elimina las contraseñas de consola inactivas para limitar la exposición."
+        "remediationEs":  "Exige la **rotación de contraseñas** a `<= 90` días y **evita su reutilización**. Combínalo con **MFA**, longitud y complejidad robustas, y prefiere la **federación/SSO** para reducir las contraseñas estáticas. Aplica **mínimo privilegio**, monitorea los inicios de sesión y elimina las contraseñas de consola inactivas para limitar la exposición."
     },
     {
         "checkId":  "iam_password_policy_lowercase",
@@ -1662,7 +2012,7 @@
     {
         "checkId":  "iam_password_policy_minimum_length_14",
         "titleEs":  "La política de contraseñas de IAM exige contraseñas de al menos 14 caracteres",
-        "remediationEs":  "Define la **longitud mínima de contraseña** en `\u003e= 14` (prefiere `16+`).\n- Exige distintos tipos de caracteres y evita la reutilización\n- Exige **MFA** a todos los usuarios de la consola\n- Prefiere SSO a los usuarios locales de IAM\n- Aplica mínimo privilegio y monitorea los eventos de autenticación"
+        "remediationEs":  "Define la **longitud mínima de contraseña** en `>= 14` (prefiere `16+`).\n- Exige distintos tipos de caracteres y evita la reutilización\n- Exige **MFA** a todos los usuarios de la consola\n- Prefiere SSO a los usuarios locales de IAM\n- Aplica mínimo privilegio y monitorea los eventos de autenticación"
     },
     {
         "checkId":  "iam_password_policy_number",
@@ -1711,12 +2061,12 @@
     },
     {
         "checkId":  "iam_policy_no_full_access_to_kms",
-        "titleEs":  "La política de IAM personalizada no permite privilegios \u0027kms:*\u0027",
+        "titleEs":  "La política de IAM personalizada no permite privilegios 'kms:*'",
         "remediationEs":  "Adopta **mínimo privilegio** y **separación de funciones**:\n- Reemplaza `kms:*` solo por las acciones necesarias, acotadas a ARN de clave concretos\n- Aplica condiciones de política (p. ej., `kms:ViaService`) y barreras (límites de permisos/SCP)\n- Monitorea el uso de KMS y afina el acceso según la actividad"
     },
     {
         "checkId":  "iam_policy_no_wildcard_marketplace_subscribe",
-        "titleEs":  "La política de IAM personalizada no permite \u0027aws-marketplace:Subscribe\u0027 sobre todos los recursos",
+        "titleEs":  "La política de IAM personalizada no permite 'aws-marketplace:Subscribe' sobre todos los recursos",
         "remediationEs":  "Reemplaza `Resource: \"*\"` por ARN de productos de AWS Marketplace concretos y aprobados. Aplica el principio de mínimo privilegio a los permisos de `aws-marketplace:Subscribe` para evitar suscripciones no autorizadas a modelos de Bedrock costosos y a otros productos de Marketplace."
     },
     {
@@ -1780,11 +2130,6 @@
         "remediationEs":  "Crea un rol de IAM dedicado para AWS Support con `AWSSupportAccess` y:\n- Restringe quién puede asumirlo; exige MFA y acceso limitado en el tiempo\n- Aplica **mínimo privilegio** y **separación de funciones**\n- Monitorea el uso con registros de auditoría y revisa periódicamente las asignaciones"
     },
     {
-        "checkId":  "iam_user_accesskey_unused",
-        "titleEs":  "El usuario de IAM no tiene claves de acceso sin usar con más de 45 días",
-        "remediationEs":  "Deshabilita o elimina con prontitud las **claves de acceso sin usar** y prefiere los **roles de IAM** con credenciales temporales. Aplica **mínimo privilegio**, rotación y acceso limitado en el tiempo. Monitorea los metadatos de `last-used` y automatiza la desactivación de las claves inactivas. Usa federación/SSO para evitar claves de usuario de larga duración."
-    },
-    {
         "checkId":  "iam_user_access_not_stale_to_bedrock",
         "titleEs":  "El acceso regular a Bedrock asegura que los usuarios de IAM conserven solo los permisos que se usan activamente",
         "remediationEs":  "Aplica el **principio de mínimo privilegio** revisando regularmente los datos de IAM Access Advisor y revocando los permisos de Bedrock que ya no se usen activamente.\n\nEstablece un proceso de revisión periódica del acceso y automatiza las alertas sobre permisos obsoletos para mantener una superficie de ataque mínima."
@@ -1793,6 +2138,11 @@
         "checkId":  "iam_user_access_not_stale_to_sagemaker",
         "titleEs":  "El acceso regular a SageMaker asegura que los usuarios de IAM conserven solo los permisos que se usan activamente",
         "remediationEs":  "Aplica el **principio de mínimo privilegio** revisando regularmente los datos de IAM Access Advisor y revocando los permisos de SageMaker que ya no se usen activamente.\n\nEstablece un proceso de revisión periódica del acceso y automatiza las alertas sobre permisos obsoletos para mantener una superficie de ataque mínima."
+    },
+    {
+        "checkId":  "iam_user_accesskey_unused",
+        "titleEs":  "El usuario de IAM no tiene claves de acceso sin usar con más de 45 días",
+        "remediationEs":  "Deshabilita o elimina con prontitud las **claves de acceso sin usar** y prefiere los **roles de IAM** con credenciales temporales. Aplica **mínimo privilegio**, rotación y acceso limitado en el tiempo. Monitorea los metadatos de `last-used` y automatiza la desactivación de las claves inactivas. Usa federación/SSO para evitar claves de usuario de larga duración."
     },
     {
         "checkId":  "iam_user_administrator_access_policy",
@@ -1895,6 +2245,11 @@
         "remediationEs":  "Deshabilita el **acceso sin autenticación** y exige **autenticación robusta de los clientes** (mTLS o IAM/SASL).\n- Aplica **mínimo privilegio** con ACL de alcance reducido\n- Restringe las rutas de red mediante conectividad privada y grupos de seguridad estrictos\n- Cifra en tránsito, monitorea el acceso y rota las credenciales con regularidad"
     },
     {
+        "checkId":  "kafka_cluster_uses_latest_version",
+        "titleEs":  "El clúster de MSK usa la última versión de Kafka o es sin servidor con versión administrada por AWS",
+        "remediationEs":  "Adopta una estrategia de actualización controlada:\n- Da seguimiento al soporte de versiones de MSK y actualiza antes de que termine el soporte\n- Prueba en preproducción y programa ventanas de mantenimiento\n- Usa actualizaciones azul/verde o graduales para reducir el tiempo de inactividad\n- Valida la compatibilidad de los clientes y los ajustes de seguridad\n- Considera MSK sin servidor si el versionado automático encaja con tu modelo de riesgo"
+    },
+    {
         "checkId":  "kafka_connector_in_transit_encryption_enabled",
         "titleEs":  "El conector de MSK Connect tiene habilitado el cifrado en tránsito",
         "remediationEs":  "Exige **TLS** en todas las comunicaciones del conector y no permitas texto plano. Prefiere la conectividad privada, valida los certificados y usa suites de cifrado modernas. Combínalo con **autenticación mutua** y roles de **mínimo privilegio** como defensa en profundidad. Revisa regularmente las configuraciones de los conectores para evitar endpoints sin TLS."
@@ -1980,6 +2335,11 @@
         "remediationEs":  "Aplica acceso de red de **mínimo privilegio**: cierra los puertos sin uso, restringe los orígenes (evita `0.0.0.0/0`) y revisa las reglas de IPv4/IPv6. Usa una **VPN** o un **host bastión** para la administración. Coloca los servicios detrás de redes privadas o balanceadores de carga, y refuerza y monitorea cualquier endpoint público necesario."
     },
     {
+        "checkId":  "lightsail_static_ip_unused",
+        "titleEs":  "La IP estática de Lightsail está asociada a una instancia",
+        "remediationEs":  "Libera las IP estáticas que no uses o asócialas a la instancia prevista.\n\nAplica **mínimo privilegio** en la asignación de IP, exige etiquetado y responsables, y realiza auditorías periódicas con alertas para las direcciones sin asociar. *Si se requiere reservarla*, documenta el propósito y define un plazo para evitar derivas y costos."
+    },
+    {
         "checkId":  "macie_automated_sensitive_data_discovery_enabled",
         "titleEs":  "El descubrimiento automatizado de datos sensibles de Macie está habilitado",
         "remediationEs":  "Habilita y mantén el `descubrimiento automatizado de datos sensibles` para el administrador de Macie en las regiones requeridas. Incluye los buckets relevantes, ajusta los identificadores y las listas de permitidos para reducir el ruido y envía los hallazgos al monitoreo. Complementa con **mínimo privilegio** en S3 y **defensa en profundidad** para la protección de datos."
@@ -1990,9 +2350,29 @@
         "remediationEs":  "Habilita y mantén **Amazon Macie** en todas las regiones que alojen datos de **S3**. Usa el descubrimiento continuo de datos sensibles, aplica clasificaciones personalizadas para tus tipos de datos y envía los hallazgos al monitoreo. Aplica mínimo privilegio al acceso a Macie y refuerza la defensa en profundidad con políticas de bucket y controles de acceso restrictivos."
     },
     {
+        "checkId":  "memorydb_cluster_auto_minor_version_upgrades",
+        "titleEs":  "El clúster de MemoryDB tiene habilitadas las actualizaciones automáticas de versiones menores",
+        "remediationEs":  "Habilita las **actualizaciones automáticas de versiones menores** (`auto_minor_version_upgrade=true`) en todos los clústeres. Programa las actualizaciones en una ventana de mantenimiento, valida en preproducción y mantén planes de reversión. Aplica **defensa en profundidad** con ACL estrictas y monitoreo para limitar la exposición entre versiones."
+    },
+    {
         "checkId":  "memorydb_cluster_in_transit_encryption_enabled",
         "titleEs":  "El clúster de MemoryDB tiene habilitado el cifrado en tránsito",
         "remediationEs":  "Crea los clústeres de MemoryDB con `TLSEnabled=true`. Como este indicador es **inmutable tras la creación**, un clúster sin cifrar debe reemplazarse: toma una instantánea, restáurala en un clúster nuevo con TLS habilitado, cambia los clientes al nuevo y elimina el original.\n\nConfigura los clientes para validar el certificado del servidor y combina TLS con **usuarios ACL**, grupos de seguridad de mínimo privilegio y subredes privadas como defensa en profundidad."
+    },
+    {
+        "checkId":  "mq_broker_active_deployment_mode",
+        "titleEs":  "El agente de Apache ActiveMQ está configurado en modo de implementación activo/en espera Multi-AZ",
+        "remediationEs":  "Adopta la **implementación activa/en espera** para los agentes de ActiveMQ y lograr resiliencia multizona.\n\nDiseña los clientes para la **conmutación por error** con reintentos y procesamiento idempotente, valida la recuperación con **pruebas de conmutación** periódicas, monitorea el estado del agente y aplica **mínimo privilegio** para limitar el radio de impacto."
+    },
+    {
+        "checkId":  "mq_broker_auto_minor_version_upgrades",
+        "titleEs":  "El agente de Amazon MQ tiene habilitadas las actualizaciones automáticas de versiones menores",
+        "remediationEs":  "Habilita `autoMinorVersionUpgrade` en todos los agentes para reducir la demora en los parches.\n\n- Alinea las actualizaciones con una ventana de mantenimiento definida\n- Valida los cambios en preproducción antes de pasar a producción\n- Monitorea el estado y los registros del agente después de actualizar\n- Mantén alta disponibilidad y respaldos probados para revertir (*defensa en profundidad*)"
+    },
+    {
+        "checkId":  "mq_broker_cluster_deployment_mode",
+        "titleEs":  "El agente de MQ RabbitMQ tiene el modo de implementación en clúster (multi-AZ)",
+        "remediationEs":  "Usa la **implementación en clúster** (`CLUSTER_MULTI_AZ`) para RabbitMQ y eliminar el riesgo de una sola instancia.\n\nAplica **resiliencia desde el diseño**: reconexión automática de los clientes, reintentos con espera progresiva y procesamiento idempotente; prueba la conmutación por error, dimensiona para la pérdida de un nodo y aplica **mínimo privilegio** con monitoreo como defensa en profundidad."
     },
     {
         "checkId":  "mq_broker_logging_enabled",
@@ -2072,7 +2452,7 @@
     {
         "checkId":  "networkfirewall_multi_az",
         "titleEs":  "El firewall de Network Firewall está desplegado en varias zonas de disponibilidad",
-        "remediationEs":  "Despliega los firewalls en `\u003e=2` zonas de disponibilidad con una subred dedicada en cada zona usada. Mantén un enrutamiento simétrico por zona hacia el endpoint local para preservar la inspección con estado. Aplica **defensa en profundidad** y automatiza los controles de deriva y las pruebas de conmutación entre zonas para sostener la resiliencia."
+        "remediationEs":  "Despliega los firewalls en `>=2` zonas de disponibilidad con una subred dedicada en cada zona usada. Mantén un enrutamiento simétrico por zona hacia el endpoint local para preservar la inspección con estado. Aplica **defensa en profundidad** y automatiza los controles de deriva y las pruebas de conmutación entre zonas para sostener la resiliencia."
     },
     {
         "checkId":  "networkfirewall_policy_default_action_fragmented_packets",
@@ -2110,6 +2490,16 @@
         "remediationEs":  "Habilita el `cifrado en reposo` con AWS KMS, de preferencia con **claves administradas por el cliente**.\n- Aplica políticas de clave de **mínimo privilegio** y restringe las concesiones\n- Habilita la rotación automática de claves y monitorea el uso de KMS\n- Cifra los registros y las instantáneas exportadas\n- Aplica **defensa en profundidad** con controles de red e IAM"
     },
     {
+        "checkId":  "opensearch_service_domains_fault_tolerant_data_nodes",
+        "titleEs":  "El dominio de OpenSearch tiene al menos 3 nodos de datos y la conciencia de zona habilitada",
+        "remediationEs":  "Configura OpenSearch con **>= 3 nodos de datos** y habilita la **conciencia de zona** para repartir los nodos entre zonas de disponibilidad.\n\n- Prefiere Multi-AZ con Standby para una conmutación resiliente\n- Usa números de nodos en múltiplos de tres y define réplicas de índice (`>= 1`)\n- Practica la planificación de capacidad y las pruebas de fallo como **defensa en profundidad**"
+    },
+    {
+        "checkId":  "opensearch_service_domains_fault_tolerant_master_nodes",
+        "titleEs":  "El dominio de OpenSearch tiene al menos 3 nodos principales dedicados",
+        "remediationEs":  "Habilita los **nodos principales dedicados** y define la cantidad en al menos `3` (usa un número impar) para mantener el **quórum**. Usa *Multi-AZ con standby* para distribuir los nodos principales entre zonas. Dimensiona correctamente las instancias principales y monitorea el estado del clúster para sostener la alta disponibilidad y la resiliencia."
+    },
+    {
         "checkId":  "opensearch_service_domains_https_communications_enforced",
         "titleEs":  "El dominio de OpenSearch tiene habilitada la exigencia de HTTPS",
         "remediationEs":  "Habilita `Require HTTPS for all traffic` en cada dominio para exigir TLS. Prefiere protocolos robustos (TLS 1.2+) y bloquea HTTP mediante controles de red como defensa en profundidad. Aplica políticas de acceso de **mínimo privilegio** y usa conectividad privada para minimizar la exposición y los riesgos de degradación."
@@ -2130,6 +2520,11 @@
         "remediationEs":  "Aplica **mínimo privilegio** y **defensa en profundidad**:\n- Coloca los dominios en una **VPC** y restringe la accesibilidad con grupos de seguridad\n- Usa políticas de recursos estrechas; evita `Principal:\"*\"`\n- Exige acceso autenticado (controles detallados); *si es inevitable*, limita los endpoints públicos por IP y roles\n- Monitorea el acceso con registros y alertas"
     },
     {
+        "checkId":  "opensearch_service_domains_updated_to_the_latest_service_software_version",
+        "titleEs":  "El dominio de Amazon OpenSearch Service está actualizado a la última versión del software del servicio",
+        "remediationEs":  "Aplica con prontitud las últimas **actualizaciones del software del servicio**. Programa las actualizaciones en la **ventana de baja demanda** del dominio o habilita las actualizaciones automáticas. Monitorea las notificaciones de la consola o de **EventBridge** y prueba los cambios en preproducción para respaldar la **defensa en profundidad** y minimizar el tiempo de inactividad."
+    },
+    {
         "checkId":  "opensearch_service_domains_use_cognito_authentication_for_kibana",
         "titleEs":  "El dominio de Amazon OpenSearch Service tiene habilitada la autenticación de Amazon Cognito o SAML para Kibana",
         "remediationEs":  "Habilita **Cognito** o **SAML** para Dashboards y aplica **mínimo privilegio** con control de acceso detallado. Prefiere **SSO con MFA**, evita las credenciales compartidas o básicas y restringe el acceso mediante **VPC/endpoints privados** y controles de red. Monitorea con registros de auditoría y aplica **separación de funciones**."
@@ -2145,9 +2540,24 @@
         "remediationEs":  "Restringe la delegación a cuentas verificadas con **mínimo privilegio** y **separación de funciones**. Mantén una **lista de permitidos aprobada** gobernada de forma central, revísala regularmente y elimina las delegaciones sin uso. Aplica **autenticación robusta** a los roles de administración y monitorea los cambios de política de Organizations como **defensa en profundidad**."
     },
     {
+        "checkId":  "organizations_opt_out_ai_services_policy",
+        "titleEs":  "La organización de AWS ha optado por no participar en ningún servicio de IA y las cuentas hijas no pueden anular la política",
+        "remediationEs":  "Establece una exclusión de los servicios de IA para toda la organización: define el valor predeterminado en `optOut` y prohíbe que las políticas hijas lo anulen (`@@none`). Aplícala en el ámbito más alto, canaliza las excepciones mediante control de cambios y revísala periódicamente. Se alinea con el **mínimo privilegio** y la **minimización de datos** para evitar que se comparta contenido sin querer con servicios de IA administrados."
+    },
+    {
         "checkId":  "organizations_scp_check_deny_regions",
         "titleEs":  "La organización de AWS restringe las operaciones solo a las regiones de AWS configuradas mediante políticas SCP",
         "remediationEs":  "Aplica gobierno de regiones con **SCP** que permitan solo las regiones aprobadas mediante condiciones `aws:RequestedRegion` (denegación por defecto).\n\nAplícalas a las unidades organizativas y cuentas relevantes, con excepciones acotadas para los servicios globales necesarios. Revisa con frecuencia; alinéate con el mínimo privilegio, la residencia de datos y el monitoreo continuo."
+    },
+    {
+        "checkId":  "organizations_tags_policies_enabled_and_attached",
+        "titleEs":  "La organización de AWS tiene políticas de etiquetas habilitadas y asociadas",
+        "remediationEs":  "Habilita las **políticas de etiquetas** y asócialas a las raíces, unidades organizativas o cuentas pertinentes. Define las claves obligatorias (p. ej., `Environment`, `CostCenter`) con sus valores permitidos. Aplica **defensa en profundidad** usando las etiquetas en condiciones de IAM y en las SCP. Empieza solo con validación, luego aplícalas y monitorea de forma continua el cumplimiento entre cuentas."
+    },
+    {
+        "checkId":  "rds_cluster_backtrack_enabled",
+        "titleEs":  "El clúster de RDS Aurora MySQL tiene habilitado Backtrack",
+        "remediationEs":  "Habilita **Backtrack** en los clústeres de Aurora MySQL y define `BacktrackWindow` para cumplir el RTO equilibrando costo y carga de trabajo. Úsalo junto con los respaldos automáticos como **defensa en profundidad** y resiliencia.\n\n*En los clústeres sin Backtrack*, aprovisiona un clon o un clúster nuevo con la función habilitada; monitorea su uso y ajusta la ventana a medida que cambie la tasa de cambios."
     },
     {
         "checkId":  "rds_cluster_copy_tags_to_snapshots",
@@ -2180,9 +2590,19 @@
         "remediationEs":  "Publica los registros de RDS/Aurora en **CloudWatch Logs** y centraliza el análisis.\nSelecciona los tipos adecuados (p. ej., `error`, `general`, `slowquery`, `audit`), define la retención y crea alarmas. Limita el acceso a los registros con **mínimo privilegio** e intégralos con el SIEM para un monitoreo de defensa en profundidad."
     },
     {
+        "checkId":  "rds_cluster_minor_version_upgrade_enabled",
+        "titleEs":  "El clúster de RDS tiene habilitadas las actualizaciones automáticas de versiones menores",
+        "remediationEs":  "Habilita `auto_minor_version_upgrade` en los **clústeres Multi-AZ de RDS** y alinea las actualizaciones con las ventanas de mantenimiento aprobadas. Valida los cambios en entornos no productivos y documenta cualquier excepción con una cadencia estricta de parches manuales. Esto refuerza la **defensa en profundidad** y mejora la **disponibilidad**."
+    },
+    {
         "checkId":  "rds_cluster_multi_az",
         "titleEs":  "El clúster de RDS tiene habilitado Multi-AZ",
         "remediationEs":  "Habilita **Multi-AZ** en los clústeres de base de datos de producción para asegurar la redundancia entre zonas y la **conmutación automática**. Elige un modelo que cumpla tu SLA (una réplica en espera o dos en espera legibles; Aurora abarca 3 zonas). Coloca las subredes en zonas de disponibilidad distintas, implementa reintentos de conexión y prueba regularmente la conmutación para validar el **RTO/RPO** y la preparación."
+    },
+    {
+        "checkId":  "rds_cluster_non_default_port",
+        "titleEs":  "El clúster de RDS usa un puerto distinto al predeterminado de su motor de base de datos",
+        "remediationEs":  "Usa un **puerto no predeterminado** y aplica acceso de red de **mínimo privilegio**:\n- Permite solo los orígenes aprobados\n- Mantén las bases de datos en subredes privadas\n- Exige TLS y una autenticación sólida y centralizada\n- Monitorea las conexiones fallidas\n\nActualiza las cadenas de conexión de las aplicaciones al nuevo `port` como parte de la defensa en profundidad."
     },
     {
         "checkId":  "rds_cluster_protected_by_backup_plan",
@@ -2197,7 +2617,7 @@
     {
         "checkId":  "rds_instance_backup_enabled",
         "titleEs":  "La instancia de RDS tiene un periodo de retención de respaldo superior a 0 días",
-        "remediationEs":  "Habilita las **copias de respaldo automáticas** con retención \u003e `0` alineada con el RPO/RTO. Prueba regularmente las restauraciones para validar la **recuperación a un momento dado (PITR)**.\n\nAplica **mínimo privilegio** al acceso a los respaldos, cifra las instantáneas y replica los respaldos críticos a ubicaciones separadas como **defensa en profundidad** y para una recuperación resiliente."
+        "remediationEs":  "Habilita las **copias de respaldo automáticas** con retención > `0` alineada con el RPO/RTO. Prueba regularmente las restauraciones para validar la **recuperación a un momento dado (PITR)**.\n\nAplica **mínimo privilegio** al acceso a los respaldos, cifra las instantáneas y replica los respaldos críticos a ubicaciones separadas como **defensa en profundidad** y para una recuperación resiliente."
     },
     {
         "checkId":  "rds_instance_certificate_expiration",
@@ -2225,9 +2645,14 @@
         "remediationEs":  "Habilita la `protección contra eliminación` en las instancias de RDS y los clústeres de Aurora de producción. Aplica **mínimo privilegio** a las acciones de eliminar y modificar y exige control de cambios para deshabilitar la protección. Usa **defensa en profundidad** con respaldos fiables y restauraciones probadas para limitar el impacto si ocurre una eliminación."
     },
     {
+        "checkId":  "rds_instance_deprecated_engine_version",
+        "titleEs":  "La instancia de RDS usa una versión de motor compatible",
+        "remediationEs":  "Estandariza en **versiones de motor compatibles** y mantenlas al día.\n- Planifica y prueba las actualizaciones; respalda y define la reversión\n- Habilita `AutoMinorVersionUpgrade` donde sea aceptable\n- Monitorea los avisos de obsolescencia y actualiza antes del fin del soporte\n- Aplica **mínimo privilegio** para limitar el radio de impacto durante incidentes"
+    },
+    {
         "checkId":  "rds_instance_enhanced_monitoring_enabled",
         "titleEs":  "La instancia de RDS tiene habilitado el monitoreo mejorado",
-        "remediationEs":  "Habilita **Enhanced Monitoring** en RDS, con un intervalo de recopilación `\u003e0s` alineado con la carga y el costo. Asigna un rol de **mínimo privilegio** para la entrega de registros y aplica **defensa en profundidad** centralizando los registros, definiendo **alertas** sobre las métricas clave del sistema operativo y fijando la **retención** para apoyar la respuesta a incidentes y el análisis de tendencias."
+        "remediationEs":  "Habilita **Enhanced Monitoring** en RDS, con un intervalo de recopilación `>0s` alineado con la carga y el costo. Asigna un rol de **mínimo privilegio** para la entrega de registros y aplica **defensa en profundidad** centralizando los registros, definiendo **alertas** sobre las métricas clave del sistema operativo y fijando la **retención** para apoyar la respuesta a incidentes y el análisis de tendencias."
     },
     {
         "checkId":  "rds_instance_event_subscription_parameter_groups",
@@ -2238,6 +2663,11 @@
         "checkId":  "rds_instance_event_subscription_security_groups",
         "titleEs":  "La suscripción a eventos de RDS para los grupos de seguridad de base de datos está habilitada para los eventos de cambio de configuración y fallo",
         "remediationEs":  "Crea o actualiza una **suscripción a eventos de RDS** para el tipo de origen `db-security-group` que incluya `configuration change` y `failure`. Enruta las alertas a canales monitoreados, restringe el acceso a los temas (**mínimo privilegio**), intégralo con la **respuesta a incidentes** y aplica control de cambios y **separación de funciones** a las actualizaciones de grupos de seguridad."
+    },
+    {
+        "checkId":  "rds_instance_extended_support",
+        "titleEs":  "La instancia de RDS no está inscrita en RDS Extended Support",
+        "remediationEs":  "Actualiza las instancias de base de datos inscritas a una versión del motor cubierta por el soporte estándar para detener los cargos de Extended Support. En las instancias nuevas y las restauraciones creadas mediante automatización, define explícitamente la opción de soporte del ciclo de vida del motor para evitar una inscripción involuntaria en RDS Extended Support cuando esa sea tu política."
     },
     {
         "checkId":  "rds_instance_iam_authentication_enabled",
@@ -2255,6 +2685,11 @@
         "remediationEs":  "Habilita la exportación de los registros relevantes de RDS a **CloudWatch Logs** (`error`, `general`, `slowquery`, `audit`) y estandarízala entre motores. Aplica **mínimo privilegio** al acceso a los registros, define la retención y métricas y alarmas para los patrones críticos. Intégralo con un SIEM. Aplica **separación de funciones** y **defensa en profundidad** para proteger la integridad de los registros y del monitoreo."
     },
     {
+        "checkId":  "rds_instance_minor_version_upgrade_enabled",
+        "titleEs":  "La instancia de RDS tiene habilitada la actualización de versiones menores",
+        "remediationEs":  "Habilita `auto_minor_version_upgrade` en las instancias de RDS para que las versiones menores se apliquen con prontitud. Usa ventanas de mantenimiento y pruebas por etapas para limitar el impacto. Sigue la **defensa en profundidad** y el **mínimo privilegio**; mantén respaldos confiables y Multi-AZ para preservar la continuidad si una actualización requiere reversión."
+    },
+    {
         "checkId":  "rds_instance_multi_az",
         "titleEs":  "La instancia de RDS tiene habilitado Multi-AZ",
         "remediationEs":  "Aplica principios de tolerancia a fallos y redundancia: habilita **Multi-AZ** en las cargas de RDS de producción. Elige una réplica en espera o dos en espera legibles según las necesidades de RTO/RPO y de rendimiento. Prueba regularmente la conmutación, monitorea la deriva de configuración y permite excepciones solo con una aprobación documentada y basada en el riesgo."
@@ -2263,6 +2698,11 @@
         "checkId":  "rds_instance_no_public_access",
         "titleEs":  "La instancia de RDS no está expuesta públicamente a Internet",
         "remediationEs":  "Mantén las bases de datos privadas aplicando **mínimo privilegio** en la capa de red:\n- Define `PubliclyAccessible` en `false`\n- Coloca las instancias en subredes privadas\n- Deniega `0.0.0.0/0` y `::/0` en el puerto de la base de datos\n- Ofrece el acceso mediante endpoints privados, VPN o una capa de aplicación/proxy de base de datos\n\nAdopta **defensa en profundidad** con monitoreo y autenticación robusta."
+    },
+    {
+        "checkId":  "rds_instance_non_default_port",
+        "titleEs":  "La instancia de RDS usa un puerto distinto al predeterminado de su motor",
+        "remediationEs":  "Usa un **puerto de base de datos no predeterminado** y aplica **defensa en profundidad**:\n- Aplica reglas de red de **mínimo privilegio**\n- Mantén las bases de datos en **subredes privadas**; evita la exposición pública\n- Exige autenticación sólida y registros de auditoría\n\n*Actualiza las cadenas de conexión de los clientes y las reglas de seguridad cuando cambie el puerto.*"
     },
     {
         "checkId":  "rds_instance_protected_by_backup_plan",
@@ -2300,6 +2740,11 @@
         "remediationEs":  "Habilita las **instantáneas automáticas** con una retención alineada con el RPO/RTO. Aplica **mínimo privilegio** al acceso a las instantáneas y usa **cifrado**. Prueba regularmente las restauraciones y monitorea la salud de los respaldos.\n\n*Para dar resiliencia*, replica las instantáneas a otra región o cuenta y separa la administración de los respaldos de los propietarios de los datos."
     },
     {
+        "checkId":  "redshift_cluster_automatic_upgrades",
+        "titleEs":  "El clúster de Redshift tiene habilitada la actualización automática de versión",
+        "remediationEs":  "Habilita `AllowVersionUpgrade` para mantener los clústeres parcheados. Usa una ventana de mantenimiento controlada y una pista de mantenimiento adecuada; valida las actualizaciones en preproducción antes de pasar a producción.\n\nAlinéalo con **seguro por defecto** y **defensa en profundidad**; mantén respaldos probados y planes de reversión. *Documenta las excepciones justificadas y revísalas con regularidad.*"
+    },
+    {
         "checkId":  "redshift_cluster_encrypted_at_rest",
         "titleEs":  "El clúster de Redshift está cifrado en reposo",
         "remediationEs":  "Habilita el **cifrado en reposo** en todos los clústeres y prefiere las **claves administradas por el cliente** (`CMEK`) para tener control y auditoría. Aplica **mínimo privilegio** al uso de la clave, rota las claves y restringe el acceso a las instantáneas y las copias entre regiones. Monitorea la salud de las claves y los eventos de acceso como parte de la **defensa en profundidad**."
@@ -2318,6 +2763,11 @@
         "checkId":  "redshift_cluster_multi_az_enabled",
         "titleEs":  "El clúster de Redshift tiene habilitado Multi-AZ",
         "remediationEs":  "Habilita los **despliegues Multi-AZ** en los clústeres `RA3` aprovisionados para evitar la dependencia de una sola zona. Alinea los diseños con la **tolerancia a fallos** y la **alta disponibilidad**: aprovisiona capacidad suficiente, implementa reintentos y reconexiones en clientes y ETL, valida periódicamente la conmutación y monitorea el rendimiento y las tasas de error."
+    },
+    {
+        "checkId":  "redshift_cluster_non_default_database_name",
+        "titleEs":  "El clúster de Redshift no usa el nombre de base de datos predeterminado dev",
+        "remediationEs":  "Usa un **nombre de base de datos único y no predeterminado** por clúster. Define un estándar de nomenclatura que evite valores genéricos (p. ej., `dev`, `test`) y respalde el **mínimo privilegio** al impedir condiciones de política demasiado amplias. Revisa las reglas de IAM y de red para que hagan referencia solo a recursos explícitos y previstos."
     },
     {
         "checkId":  "redshift_cluster_non_default_username",
@@ -2410,9 +2860,19 @@
         "remediationEs":  "Habilita **Block Public Access** a nivel de cuenta y de bucket con `block_public_acls`, `ignore_public_acls`, `block_public_policy` y `restrict_public_buckets` en `true`. Aplica **mínimo privilegio** y **defensa en profundidad**. *Si el acceso público es necesario*, acota estrictamente las políticas a entidades y condiciones fijas."
     },
     {
+        "checkId":  "s3_bucket_lifecycle_enabled",
+        "titleEs":  "El bucket de S3 tiene habilitada una configuración de ciclo de vida",
+        "remediationEs":  "Define **políticas de ciclo de vida** según la clasificación de los datos: establece `Expiration` para aplicar la retención, usa `Transitions` hacia clases de menor costo y habilita `AbortIncompleteMultipartUpload`. Para los registros críticos, mantén el versionado y, *si se requiere*, **Object Lock**. Limita quién puede cambiar el ciclo de vida con mínimo privilegio y separación de funciones."
+    },
+    {
         "checkId":  "s3_bucket_no_mfa_delete",
         "titleEs":  "El bucket de S3 tiene habilitado MFA Delete",
         "remediationEs":  "Habilita **MFA Delete** en los buckets sensibles con versionado para que las eliminaciones permanentes y los cambios de `Versioning` requieran un segundo factor. Aplica **mínimo privilegio** para restringir las acciones de purga de versiones, aplica **control de cambios** y combínalo con **Object Lock** o respaldos inmutables como defensa en profundidad."
+    },
+    {
+        "checkId":  "s3_bucket_object_lock",
+        "titleEs":  "El bucket de S3 tiene habilitado Object Lock",
+        "remediationEs":  "Habilita **Object Lock** para los datos críticos y define una retención predeterminada adecuada en modo `GOVERNANCE` o `COMPLIANCE`.\n\nAplica **inmutabilidad** y **mínimo privilegio** restringiendo los permisos que eluden la retención, y usa retenciones legales cuando necesites protección indefinida para investigaciones o requisitos regulatorios."
     },
     {
         "checkId":  "s3_bucket_object_public",
@@ -2465,6 +2925,11 @@
         "remediationEs":  "Adopta la **denegación por defecto**: mantén habilitados todos los ajustes de **Block Public Access** de los MRAP; evita las ACL o políticas públicas.\n- Aplica **mínimo privilegio**\n- Prefiere el acceso privado (endpoints de VPC)\n- Revisa periódicamente los permisos y los registros\n\n*Los ajustes de acceso público de los MRAP son inmutables tras su creación.*"
     },
     {
+        "checkId":  "sagemaker_clarify_exists",
+        "titleEs":  "Existen trabajos de procesamiento de Amazon SageMaker Clarify en la región",
+        "remediationEs":  "Crea trabajos de procesamiento de SageMaker Clarify para evaluar el sesgo y la explicabilidad de los modelos antes de desplegarlos. Integra Clarify en tu flujo de ML para garantizar prácticas de IA responsable."
+    },
+    {
         "checkId":  "sagemaker_domain_sso_configured",
         "titleEs":  "Los dominios de SageMaker usan autenticación SSO en lugar del modo IAM",
         "remediationEs":  "Configura los dominios de SageMaker con el modo de autenticación SSO para anclar el acceso de los usuarios a AWS IAM Identity Center. Esto aplica la gestión centralizada del ciclo de vida de las identidades, políticas de MFA y controles de sesión. Los dominios creados con el modo IAM deben volver a crearse con el modo SSO, ya que el modo de autenticación no se puede cambiar tras la creación."
@@ -2475,9 +2940,24 @@
         "remediationEs":  "Define siempre `KmsKeyId` en las configuraciones de endpoint de SageMaker. Prefiere una **clave de KMS administrada por el cliente** con políticas de clave de mínimo privilegio, habilita la **rotación** y asegura que los endpoints se actualicen para usar la configuración cifrada."
     },
     {
+        "checkId":  "sagemaker_endpoint_config_prod_variant_instances",
+        "titleEs":  "La configuración del endpoint de SageMaker tiene todas las variantes de producción con al menos dos instancias iniciales",
+        "remediationEs":  "Aplica el principio de **resiliencia**:\n- Ejecuta cada variante de producción con `InitialInstanceCount >= 2`\n- Distribuye la capacidad entre zonas de disponibilidad con escalado basado en el estado\n- Usa actualizaciones graduales o canario para evitar interrupciones\n- Dimensiona la capacidad para tolerar la pérdida de un nodo\n\n*En cargas con picos, considera el modo sin servidor o el escalado automático para dar elasticidad.*"
+    },
+    {
+        "checkId":  "sagemaker_models_monitor_enabled",
+        "titleEs":  "Amazon SageMaker tiene una programación de monitoreo programada",
+        "remediationEs":  "Habilita **Amazon SageMaker Model Monitor** y mantén al menos una **programación de monitoreo** en estado `Scheduled` para que la calidad de los datos, la calidad del modelo y la deriva de sesgo se evalúen continuamente frente a una línea base."
+    },
+    {
         "checkId":  "sagemaker_models_network_isolation_enabled",
         "titleEs":  "El modelo de Amazon SageMaker tiene habilitado el aislamiento de red",
         "remediationEs":  "Habilita el **aislamiento de red** en todos los modelos alojados. Ejecuta los endpoints en una **VPC privada**, restringe la salida con **grupos de seguridad** estrictos y **endpoints de VPC**, y aplica **IAM de mínimo privilegio**. Adopta **defensa en profundidad**: evita las rutas públicas, usa listas de destinos permitidos y monitorea el tráfico saliente."
+    },
+    {
+        "checkId":  "sagemaker_models_registry_in_use",
+        "titleEs":  "El registro de modelos de Amazon SageMaker debe tener al menos un paquete de modelo aprobado",
+        "remediationEs":  "Registra todos los modelos de producción en el **registro de modelos de SageMaker** y exige un flujo de aprobación antes del despliegue. Asegura que al menos un paquete de modelo por grupo alcance el estado **Approved**. Usa **políticas de IAM** para restringir quién puede aprobar paquetes de modelo e intégralo con **flujos de CI/CD** para automatizar el registro."
     },
     {
         "checkId":  "sagemaker_models_vpc_settings_configured",
@@ -2645,6 +3125,16 @@
         "remediationEs":  "Aplica **mínimo privilegio** a la distribución de documentos:\n- Mantén los documentos privados; comparte solo con identificadores de cuenta de confianza concretos\n- Habilita el bloqueo del uso compartido público de documentos a nivel de cuenta\n- Elimina los secretos del contenido; usa parámetros seguros\n- Limita quién puede compartir o ejecutar documentos; exige revisiones y control de versiones"
     },
     {
+        "checkId":  "ssm_managed_compliant_patching",
+        "titleEs":  "La instancia de EC2 administrada cumple los requisitos de parcheo de Systems Manager",
+        "remediationEs":  "Adopta una **gestión de parches automatizada** con Systems Manager: inscribe las instancias de EC2 como nodos administrados, define **líneas base de parches** estrictas, ejecuta **análisis de cumplimiento** frecuentes e **instala las actualizaciones críticas** con prontitud.\n\nAplica **defensa en profundidad**: roles de mínimo privilegio para el parcheo, despliegues por etapas, ventanas de mantenimiento y reportes de cumplimiento centralizados con alertas."
+    },
+    {
+        "checkId":  "ssmincidents_enabled_with_plans",
+        "titleEs":  "El conjunto de replicación de SSM Incidents está ACTIVE y tiene al menos un plan de respuesta",
+        "remediationEs":  "Establece un **conjunto de replicación** `ACTIVE` y crea **planes de respuesta** que definan la participación, el escalamiento, los runbooks, la severidad y la comunicación.\n\nAplica **mínimo privilegio** a los roles de automatización, prueba los planes con regularidad, intégralos con el monitoreo para activarlos y usa **defensa en profundidad** con contactos y regiones redundantes."
+    },
+    {
         "checkId":  "stepfunctions_statemachine_encrypted_with_cmk",
         "titleEs":  "La máquina de estados de Step Functions está cifrada en reposo con una clave de KMS administrada por el cliente",
         "remediationEs":  "Configura cada máquina de estados de Step Functions para usar una **clave de KMS administrada por el cliente** en el cifrado en reposo. Asigna una política de clave de mínimo privilegio, habilita la **rotación automática de claves** y concede al rol de ejecución `kms:GenerateDataKey` y `kms:Decrypt`. Monitorea el uso de la clave mediante CloudTrail."
@@ -2665,6 +3155,11 @@
         "remediationEs":  "Usa una **clave de KMS administrada por el cliente** para el cifrado del lado del servidor de cada recurso compartido (`SSE-KMS`; *considera* `DSSE-KMS` para necesidades de varias capas). Aplica **mínimo privilegio** y **separación de funciones** al acceso a la clave, rota las claves, monitorea su uso y restringe el alcance a las entidades y regiones necesarias."
     },
     {
+        "checkId":  "storagegateway_gateway_fault_tolerant",
+        "titleEs":  "La puerta de enlace de AWS Storage Gateway no está alojada en EC2",
+        "remediationEs":  "Diseña para **alta disponibilidad**: evita las puertas de enlace de una sola instancia en cargas críticas. Prefiere servicios administrados multi-AZ como **EFS** o **FSx**, o usa varias puertas de enlace con conmutación por error en los clientes y nombres resilientes. Aplica **defensa en profundidad**, valida la conmutación con regularidad y monitorea el estado para prevenir interrupciones."
+    },
+    {
         "checkId":  "transfer_server_fips_security_policy_enabled",
         "titleEs":  "El servidor de AWS Transfer Family usa una política de seguridad FIPS",
         "remediationEs":  "Usa una política de seguridad **FIPS**, como `TransferSecurityPolicy-FIPS-2025-03`, en todo servidor de Transfer Family que intercambie datos federales o regulados."
@@ -2678,6 +3173,21 @@
         "checkId":  "transfer_server_pqc_ssh_kex_enabled",
         "titleEs":  "El servidor de AWS Transfer Family usa una política de seguridad de intercambio de claves SSH híbrido poscuántico",
         "remediationEs":  "Migra los servidores de AWS Transfer Family a una **política de seguridad poscuántica** (p. ej., `TransferSecurityPolicy-2025-03`, `TransferSecurityPolicy-FIPS-2025-03`, `TransferSecurityPolicy-AS2Restricted-2025-07`) que añada el intercambio de claves SSH híbrido ML-KEM. Evita las políticas obsoletas `*-PQ-SSH-Experimental-2023-04`. Revisa periódicamente las políticas permitidas a medida que AWS publique nuevas opciones preparadas para lo poscuántico."
+    },
+    {
+        "checkId":  "trustedadvisor_errors_and_warnings",
+        "titleEs":  "La comprobación de Trusted Advisor no tiene errores ni advertencias",
+        "remediationEs":  "Adopta un proceso continuo para corregir los hallazgos de Trusted Advisor:\n- Prioriza los **`error`** y luego los `warning`\n- Asigna responsables y acuerdos de nivel de servicio\n- Integra las alertas con los flujos de trabajo\n- Aplica **mínimo privilegio**, segmentación, cifrado, MFA y respaldos probados\n- Reevalúa con regularidad para confirmar las correcciones y evitar regresiones"
+    },
+    {
+        "checkId":  "trustedadvisor_premium_support_plan_subscribed",
+        "titleEs":  "La cuenta de AWS está suscrita a un plan de AWS Premium Support",
+        "remediationEs":  "Adopta **Business** o superior para las cuentas de producción y de misión crítica.\n- Integra el soporte en la respuesta a incidentes con contactos y severidades definidos\n- Aplica **mínimo privilegio** al acceso a los casos\n- Usa Trusted Advisor para un refuerzo proactivo\n- Si decides no contratarlo, asegura un soporte 24/7 y una ruta de escalamiento equivalentes"
+    },
+    {
+        "checkId":  "vpc_different_regions",
+        "titleEs":  "Hay VPC en más de una región",
+        "remediationEs":  "Adopta un **diseño de red multirregión**:\n- Crea VPC en al menos dos regiones para las cargas críticas\n- Replica de forma coherente el enrutamiento, los controles de seguridad y los endpoints\n- Aplica **tolerancia a fallos** y **defensa en profundidad** con replicación de datos y DNS/conmutación resilientes para evitar la dependencia de una sola región"
     },
     {
         "checkId":  "vpc_endpoint_connections_trust_boundaries",
@@ -2725,14 +3235,19 @@
         "remediationEs":  "Segmenta cada VPC: coloca los endpoints expuestos a Internet en **subredes públicas** y las cargas internas en **subredes privadas**. Restringe la entrada y la salida con tablas de rutas, NACL y grupos de seguridad estrictos, minimizando `0.0.0.0/0`. Aplica **mínimo privilegio** y **defensa en profundidad**. Ofrece salida controlada a las subredes privadas mediante una salida administrada y usa patrones de administración reforzados."
     },
     {
-        "checkId":  "waf_global_rulegroup_not_empty",
-        "titleEs":  "El grupo de reglas global de AWS WAF Classic tiene al menos una regla",
-        "remediationEs":  "Rellena cada grupo de reglas con **reglas eficaces** alineadas con las amenazas de la aplicación; elige las acciones `block` o `count` según corresponda. Prefiere los **grupos de reglas administrados** como línea base y añade reglas personalizadas para el **mínimo privilegio**. Evita los grupos de relleno, prueba en preproducción y monitorea las métricas para ajustar."
+        "checkId":  "vpc_vpn_connection_tunnels_up",
+        "titleEs":  "La conexión VPN de sitio a sitio de AWS tiene ambos túneles activos",
+        "remediationEs":  "Mantén ambos túneles en buen estado y listos para la conmutación por error:\n- Despliega puertas de enlace de cliente redundantes y un enrutamiento resiliente\n- Monitorea el estado de los túneles con alertas\n- Prueba periódicamente la conmutación y documenta los runbooks\n\nAplica **alta disponibilidad** y **defensa en profundidad** para evitar puntos únicos de falla."
     },
     {
         "checkId":  "waf_global_rule_with_conditions",
         "titleEs":  "La regla global de AWS WAF Classic tiene al menos una condición",
         "remediationEs":  "Asocia al menos una **condición** precisa a cada regla, alineada con las amenazas conocidas y el contexto de la aplicación. Aplica **mínimo privilegio** al tráfico, usa grupos de reglas administrados como **defensa en profundidad** y revisa rutinariamente las reglas para eliminar las de relleno. *Si usas Classic*, planifica la migración a WAFv2."
+    },
+    {
+        "checkId":  "waf_global_rulegroup_not_empty",
+        "titleEs":  "El grupo de reglas global de AWS WAF Classic tiene al menos una regla",
+        "remediationEs":  "Rellena cada grupo de reglas con **reglas eficaces** alineadas con las amenazas de la aplicación; elige las acciones `block` o `count` según corresponda. Prefiere los **grupos de reglas administrados** como línea base y añade reglas personalizadas para el **mínimo privilegio**. Evita los grupos de relleno, prueba en preproducción y monitorea las métricas para ajustar."
     },
     {
         "checkId":  "waf_global_webacl_logging_enabled",
@@ -2745,14 +3260,14 @@
         "remediationEs":  "Rellena cada ACL web global con protecciones eficaces:\n- Usa grupos de reglas y reglas específicas (administradas, basadas en tasa, conjuntos de IP)\n- Aplica mínimo privilegio: `block` por defecto cuando sea viable; `allow` explícito para el tráfico necesario\n- Añade capas de defensa y habilita el registro para ajustar las políticas\n- *Considera migrar a WAFv2*"
     },
     {
-        "checkId":  "waf_regional_rulegroup_not_empty",
-        "titleEs":  "El grupo de reglas regional de AWS WAF Classic tiene al menos una regla",
-        "remediationEs":  "Aplica **mínimo privilegio**: rellena cada grupo de reglas con reglas verificadas alineadas con tu modelo de amenazas, usando las acciones `ALLOW`, `BLOCK` o `COUNT` según corresponda. Elimina o deshabilita los grupos sin uso para evitar una falsa sensación de seguridad. Valida el comportamiento en preproducción y monitorea las métricas para mantener la **defensa en profundidad**."
-    },
-    {
         "checkId":  "waf_regional_rule_with_conditions",
         "titleEs":  "La regla regional de AWS WAF Classic tiene al menos una condición",
         "remediationEs":  "Define **condiciones** precisas para cada regla (p. ej., IP, patrón, geografía, tamaño) y evita las reglas de relleno. Aplica un filtrado de **mínimo privilegio**, revisa el orden de las reglas y usa controles por capas como **defensa en profundidad**. Valida y monitorea regularmente la eficacia de las reglas."
+    },
+    {
+        "checkId":  "waf_regional_rulegroup_not_empty",
+        "titleEs":  "El grupo de reglas regional de AWS WAF Classic tiene al menos una regla",
+        "remediationEs":  "Aplica **mínimo privilegio**: rellena cada grupo de reglas con reglas verificadas alineadas con tu modelo de amenazas, usando las acciones `ALLOW`, `BLOCK` o `COUNT` según corresponda. Elimina o deshabilita los grupos sin uso para evitar una falsa sensación de seguridad. Valida el comportamiento en preproducción y monitorea las métricas para mantener la **defensa en profundidad**."
     },
     {
         "checkId":  "waf_regional_webacl_logging_enabled",
@@ -2778,6 +3293,11 @@
         "checkId":  "wafv2_webacl_with_rules",
         "titleEs":  "La ACL web de AWS WAFv2 tiene al menos una regla o grupo de reglas asociado",
         "remediationEs":  "Rellena cada ACL web con reglas específicas o grupos de reglas administrados para aplicar un acceso web de mínimo privilegio: cubre los ataques comunes (SQLi/XSS), la reputación de IP y los límites de tasa, acotados a tus aplicaciones. Usa un `DefaultAction` conservador, monitorea las métricas y los registros y ajusta continuamente, apoyando la **defensa en profundidad** y la **confianza cero**."
+    },
+    {
+        "checkId":  "wellarchitected_workload_no_high_or_medium_risks",
+        "titleEs":  "La carga de trabajo de AWS Well-Architected Tool no tiene riesgos altos ni medios",
+        "remediationEs":  "Corrige los hallazgos, priorizando `HIGH` y luego `MEDIUM`.\n\nAplica **mínimo privilegio**, **cifrado** sólido y **registro y alertas** continuos; minimiza la exposición pública con **defensa en profundidad**; diseña para la **resiliencia** con recuperación probada. Incorpora revisiones periódicas en el ciclo de desarrollo y automatiza las barreras de protección para lograr coherencia."
     },
     {
         "checkId":  "workspaces_volume_encryption_enabled",

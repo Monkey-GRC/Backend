@@ -13,6 +13,22 @@ export const NEUTRAL_NAME_OVERRIDES: Readonly<Record<string, string>> = {
   'T-SRV-005': 'Validación de gestión y monitoreo de logs de servidores',
 };
 
+// El nombre neutro en inglés (MD-211). Solo las pruebas de nube (T-CLD) lo tienen por ahora; el resto se muestra con su nombre en español. Mismo dato que la migración
+// 20261112000300_test_display_name_en. Ningún nombre nombra al proveedor de la sonda.
+export const DISPLAY_NAMES_EN: Readonly<Record<string, string>> = {
+  'T-CLD-001': 'Assessment of IAM, MFA and privileged accounts at the cloud provider',
+  'T-CLD-002': 'Assessment of encryption, network, public exposure and storage in the cloud',
+  'T-CLD-003': 'Assessment of logging, monitoring and backups/replication in the cloud',
+  'T-CLD-004': 'Verification of capacity and performance monitoring in the cloud (Azure) with threshold alerts',
+  'T-CLD-005': 'Operational verification of log ingestion, retention and review (SIEM/log management)',
+  'T-CLD-006': 'Operational verification of infrastructure performance monitoring with threshold alerts (Azure)',
+  'T-CLD-007': 'Verification of replication failure alerts to administrators',
+  'T-CLD-008': 'Operational verification of production backups, separate location and restore tests',
+  'T-CLD-009': 'Verification of the multi-availability-zone architecture in production',
+  'T-CLD-010': 'Intrusion detection and network threat monitoring in the cloud',
+  'T-CLD-011': 'Validation of the password and authentication policy at the cloud provider (IAM/Entra ID)',
+};
+
 // La descripción corta que ve el cliente junto al nombre (D82): el objetivo del comité (hoja «Pruebas», columna OBJETIVO DEL TEST), reescrito solo en las mismas cuatro
 // pruebas, cuyo objetivo nombra al proveedor y sus módulos. Dice de qué va la prueba, en una o dos frases; no es el «por qué importa» ni el paso a paso.
 export const NEUTRAL_DESCRIPTION_OVERRIDES: Readonly<Record<string, string>> = {
@@ -33,4 +49,9 @@ export function displayNameOf(test: Pick<TestRow, 'code' | 'name'>): string {
 /** La descripción corta de una prueba: el objetivo del comité, o la que lo reescribe cuando el objetivo nombra al proveedor. */
 export function displayDescriptionOf(test: Pick<TestRow, 'code' | 'objective'>): string {
   return NEUTRAL_DESCRIPTION_OVERRIDES[test.code] ?? test.objective;
+}
+
+/** El nombre neutro en inglés de una prueba, o null si aún no está traducido. */
+export function displayNameEnOf(test: Pick<TestRow, 'code'>): string | null {
+  return DISPLAY_NAMES_EN[test.code] ?? null;
 }

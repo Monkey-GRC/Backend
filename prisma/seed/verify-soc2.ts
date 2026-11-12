@@ -7,7 +7,7 @@
 import { createHash } from 'node:crypto';
 import { Client } from 'pg';
 import { connectAsOwner, readCatalogJson, short } from './soc2/db';
-import { PROVIDER_PATTERN, displayDescriptionOf, displayNameOf } from './soc2/display-names';
+import { PROVIDER_PATTERN, displayDescriptionOf, displayNameEnOf, displayNameOf } from './soc2/display-names';
 import { EXPECTED_CAUSES_WITHOUT_RISK, PREFIX_TO_CRITERION } from './soc2/types';
 import { validateCatalog } from './soc2/validate';
 
@@ -169,6 +169,11 @@ async function main() {
     check(wrongDisplayName.length === 0, 'el nombre neutro de cada prueba es el que fija el catálogo', `nombre neutro distinto al del catálogo: ${wrongDisplayName.join(', ')}`);
     const providerInName = testDb.filter((x) => !!x.displayName && PROVIDER_PATTERN.test(x.displayName)).map((x) => x.code).sort();
     check(providerInName.length === 0, 'ningún nombre neutro nombra al proveedor de la sonda (SEG-39)', `nombran al proveedor: ${providerInName.join(', ')}`);
+    // El nombre en inglés (MD-211): el de las pruebas traducidas es el que fija la fuente y ninguno nombra al proveedor de la sonda.
+    const wrongDisplayNameEn = testDb.filter((x) => { const s = srcTestByCode.get(x.code); const want = s ? displayNameEnOf(s) : null; return want !== null && x.displayNameEn !== want; }).map((x) => x.code).sort();
+    check(wrongDisplayNameEn.length === 0, 'el nombre neutro en inglés de cada prueba traducida es el que fija el catálogo', `nombre en inglés distinto o vacío: ${wrongDisplayNameEn.join(', ')}`);
+    const providerInNameEn = testDb.filter((x) => !!x.displayNameEn && PROVIDER_PATTERN.test(x.displayNameEn)).map((x) => x.code).sort();
+    check(providerInNameEn.length === 0, 'ningún nombre en inglés nombra al proveedor de la sonda (SEG-39)', `nombran al proveedor: ${providerInNameEn.join(', ')}`);
     // La descripción corta que ve el cliente (D82): misma regla que el nombre.
     const noDisplayDescription = testDb.filter((x) => !x.displayDescription?.trim()).map((x) => x.code).sort();
     check(noDisplayDescription.length === 0, 'toda prueba tiene su descripción corta (D82)', `${noDisplayDescription.length} pruebas sin descripción: ${noDisplayDescription.slice(0, 8).join(', ')}${noDisplayDescription.length > 8 ? '…' : ''}`);
