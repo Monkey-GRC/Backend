@@ -15,7 +15,7 @@
 //    cambio en `audit.audit_logs` (`catalog.*`): hay que decidir con el comité qué versión queda.
 //  - Se niega a correr como `monkey_app`.
 import { connectAsOwner, readCatalogJson, short } from './soc2/db';
-import { displayDescriptionOf, displayNameOf } from './soc2/display-names';
+import { DISPLAY_NAMES_EN, displayDescriptionOf, displayNameEnOf, displayNameOf } from './soc2/display-names';
 import { validateCatalog } from './soc2/validate';
 
 const apply = process.argv.includes('--apply');
@@ -114,7 +114,8 @@ async function main() {
     const srcTest = new Map(cat.tests.map((t) => [t.code, t]));
     const displayNameFill: string[] = [];
     const displayDescriptionFill: string[] = [];
-    const displayFill = new Map<string, { displayName?: string; displayDescription?: string }>();
+    const displayNameEnFill: string[] = [];
+    const displayFill = new Map<string, { displayName?: string; displayDescription?: string; displayNameEn?: string }>();
     for (const d of testDb) {
       const s = srcTest.get(d.code);
       if (!s) continue;
@@ -123,6 +124,13 @@ async function main() {
         displayNameFill.push(d.code);
         displayFill.set(d.code, { ...displayFill.get(d.code), displayName: wanted });
       } else if (d.displayName !== wanted) conflicts.push(`prueba ${d.code}: displayName  BD=${short(d.displayName)}  fuente=${short(wanted)}`);
+      const wantedEn = displayNameEnOf(s);
+      if (wantedEn !== null) {
+        if (d.displayNameEn === null) {
+          displayNameEnFill.push(d.code);
+          displayFill.set(d.code, { ...displayFill.get(d.code), displayNameEn: wantedEn });
+        } else if (d.displayNameEn !== wantedEn) conflicts.push(`prueba ${d.code}: displayNameEn  BD=${short(d.displayNameEn)}  fuente=${short(wantedEn)}`);
+      }
       const wantedDescription = displayDescriptionOf(s);
       if (d.displayDescription === null) {
         displayDescriptionFill.push(d.code);
@@ -152,6 +160,7 @@ async function main() {
       ['cause_controls', cat.causeControls.length, ccMissing.length],
       ['tests', cat.tests.length, testMissing.length],
       ['tests.display_name (a completar)', cat.tests.length, displayNameFill.length],
+      ['tests.display_name_en (a completar)', Object.keys(DISPLAY_NAMES_EN).length, displayNameEnFill.length],
       ['tests.display_description (a completar)', cat.tests.length, displayDescriptionFill.length],
       ['control_tests', cat.controlTests.length, ctMissing.length],
       ['evidence_templates', cat.evidenceTemplates.length, tplMissing.length],
@@ -230,7 +239,7 @@ async function main() {
         await tx.causeControl.createMany({ data: ccMissing.map((r) => ({ causeId: causeId.get(r.causeCode)!, controlId: ctrlId.get(r.controlCode)! })) });
 
         // Pruebas y su asignación a controles
-        await tx.test.createMany({ data: testMissing.map((t) => ({ ...t, displayName: displayNameOf(t), displayDescription: displayDescriptionOf(t) })) });
+        await tx.test.createMany({ data: testMissing.map((t) => ({ ...t, displayName: displayNameOf(t), displayNameEn: displayNameEnOf(t), displayDescription: displayDescriptionOf(t) })) });
         for (const [code, data] of displayFill) await tx.test.update({ where: { code }, data });
         const testId = new Map((await tx.test.findMany()).map((t) => [t.code, t.id]));
         await tx.controlTest.createMany({ data: ctMissing.map((r) => ({ controlId: ctrlId.get(r.controlCode)!, testId: testId.get(r.testCode)! })) });

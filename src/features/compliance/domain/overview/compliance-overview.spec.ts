@@ -14,7 +14,7 @@ const CRITERIA: OverviewCriterionData[] = [
   { criterion: 'privacy', mandatory: false, selected: false },
 ];
 
-const test = (id: string): ReadoutTest => ({ testId: id, code: `T-${id}`, displayName: null, displayDescription: null, dimension: 'cloud', mandatory: true, active: true });
+const test = (id: string): ReadoutTest => ({ testId: id, code: `T-${id}`, displayName: null, displayNameEn: null, displayDescription: null, dimension: 'cloud', mandatory: true, active: true });
 const control = (id: string, patch: Partial<ReadoutControl> = {}): ReadoutControl => ({
   id, serviceId: 's1', ownCode: id.toUpperCase(), name: `Control ${id}`, origin: 'catalog', type: 'automated', interpretation: 'x', catalogDescription: 'x', dimensions: [],
   tests: [test(`t-${id}`)], trustCriteria: ['security'], assignee: null, assignedUserIds: [], responsibleByDimension: {}, approval: 'approved', catalogCode: `IAC-${id}`, requirementCodes: ['CC6.1'], pointsOfFocus: [], documentary: [], ...patch,

@@ -10,6 +10,7 @@ import { GetCatalogUseCase } from '../application/use-cases/get-catalog.use-case
 import { GetContractedFrameworksUseCase } from '../application/use-cases/get-contracted-frameworks.use-case';
 import { Catalog } from '../domain/entities/catalog-item';
 import { ENUM_CATALOG_NAMES } from '../../../common/catalogs/onboarding-catalogs';
+import { capabilityTexts, translateOr } from '../../../common/text/translate-or';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiItems, ApiItemsOneOf } from '../../../common/swagger/api-envelope';
 import { CapabilityOptionResponse, CatalogOptionResponse, FrameworkOptionResponse, RegulationOptionResponse } from './catalogs.responses';
@@ -29,10 +30,7 @@ function toItems(catalog: Catalog) {
   if (catalog.kind === 'capabilities') {
     return catalog.items.map((c) => ({
       catalog_code: c.catalogCode,
-      category: c.category,
-      method: c.method,
-      required_permissions: c.requiredPermissions,
-      base_frequency: c.baseFrequency,
+      ...capabilityTexts(c),
       // Lo que el cliente elige al conectar (D67). `name` es la marca y no se traduce; `logo_key` es el nombre del SVG en la plataforma.
       platforms: c.platforms.map((p) => ({
         code: p.code,
@@ -41,7 +39,6 @@ function toItems(catalog: Catalog) {
         availability: p.availability,
         connection_methods: p.connectionMethods,
       })),
-      generated_evidence: c.generatedEvidence,
     }));
   }
   if (catalog.kind === 'regions') {
@@ -54,7 +51,7 @@ function toItems(catalog: Catalog) {
   if (catalog.kind === 'regulations') {
     return catalog.items.map((r) => ({
       code: r.code,
-      name: r.name,
+      name: r.code === 'none' || r.code === 'other' ? translateOr(`catalogs.regulation.${r.code}`, r.name) : r.name,
       jurisdiction: r.jurisdiction,
       // "Ninguna" y "Otra" no son leyes: su etiqueta sale de i18n, el resto usa su nombre propio.
       label: r.code === 'none' || r.code === 'other' ? t(`catalogs.regulation.${r.code}`) : r.name,
@@ -64,7 +61,7 @@ function toItems(catalog: Catalog) {
     return catalog.items.map((f) => ({
       code: f.code,
       name: f.name,
-      description: f.description,
+      description: translateOr(`framework.scope.${f.code}`, f.description),
       availability: f.availability,
       label: f.name,
     }));

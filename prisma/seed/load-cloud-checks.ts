@@ -4,12 +4,16 @@
 //   npm run cloud:load -- --apply   # escribe, en UNA transacción
 //   npm run cloud:verify            # solo lectura; sale con código 1 si algo no cuadra
 //
+// También escribe la guía en español de cada check (D90, data/cloud-checks-es.json: `title_es`, `remediation_es`, `translation_origin = machine`) sin pisar una que una persona ya revisó;
+// `--verify` falla si algún check queda sin traducir. `npm run cloud:translate` hace solo esta parte.
+//
 // Mismas reglas que los otros seeds: solo inserta lo que falta, aborta con diff si una fila existe con contenido distinto,
 // no borra nada y se niega a correr como `monkey_app`. Requiere el catálogo de SOC 2 ya cargado (las pruebas T-CLD).
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { connectAsOwner, short } from './soc2/db';
 import { CloudDataset } from './cloud/build';
+import { CheckTranslation, validateTranslations } from './cloud/translations';
 
 const apply = process.argv.includes('--apply');
 const verify = process.argv.includes('--verify');
@@ -33,6 +37,15 @@ async function main() {
       console.error(`✗ Faltan en la base las pruebas ${missingTests.join(', ')}. Carga primero el catálogo (npm run catalog:load -- --apply).`);
       process.exit(1);
     }
+
+    const translations = JSON.parse(readFileSync(resolve('prisma/seed/data/cloud-checks-es.json'), 'utf8')) as CheckTranslation[];
+    const translationProblems = validateTranslations(translations, new Set(ds.checks.map((c) => c.checkId)));
+    if (translationProblems.length) {
+      console.error(`✗ ${translationProblems.length} problema(s) en data/cloud-checks-es.json:\n` + translationProblems.slice(0, 30).map((p) => '  - ' + p).join('\n'));
+      process.exit(1);
+    }
+    const translatedIds = new Set(translations.map((t) => t.checkId));
+    const untranslated = ds.checks.filter((c) => !translatedIds.has(c.checkId)).map((c) => `check ${c.checkId} sin traducción al español (D90)`);
 
     const dbChecks = await prisma.check.findMany({ where: { platform: 'aws', policyId: 'cloud_configuration' } });
     const dbByKey = new Map(dbChecks.map((c) => [c.checkId, c]));
@@ -65,10 +78,19 @@ async function main() {
       return false;
     });
 
+    // La guía en español (D90): se escribe lo que falta o cambió, salvo lo que una persona ya revisó.
+    const translationMissing = translations.filter((t) => {
+      const d = dbByKey.get(t.checkId);
+      if (!d) return true;
+      return d.translationOrigin !== 'reviewed' && (d.titleEs !== t.titleEs || d.remediationEs !== t.remediationEs || d.translationOrigin !== 'machine');
+    });
+
     console.log('\ntabla            fuente   a insertar');
     console.log(`checks           ${String(ds.checks.length).padStart(6)}   ${String(checkMissing.length).padStart(10)}`);
     console.log(`check_mappings   ${String(ds.mappings.length).padStart(6)}   ${String(mapMissing.length).padStart(10)}`);
     console.log(`test_checks      ${String(ds.testChecks.length).padStart(6)}   ${String(tcMissing.length).padStart(10)}`);
+    console.log(`checks (guía es)  ${String(translations.length).padStart(6)}   ${String(translationMissing.length).padStart(10)}`);
+    untranslated.slice(0, 10).forEach((m) => console.warn('  ⚠ ' + m));
     orphans.slice(0, 10).forEach((m) => console.warn('  ⚠ ' + m + ' (NO se toca)'));
     if (conflicts.length) {
       console.error(`\n✗ ${conflicts.length} fila(s) existen con contenido DISTINTO al de la fuente. No se sobrescribe nada:`);
@@ -76,13 +98,14 @@ async function main() {
       process.exit(1);
     }
 
-    const total = checkMissing.length + mapMissing.length + tcMissing.length;
+    const total = checkMissing.length + mapMissing.length + tcMissing.length + translationMissing.length;
     if (verify) {
-      if (total || orphans.length) {
-        console.error(`\n✗ La base no coincide con la fuente (faltan ${total} filas, ${orphans.length} huérfanas).`);
+      if (total || orphans.length || untranslated.length) {
+        untranslated.slice(0, 30).forEach((m) => console.error('  ✗ ' + m));
+        console.error(`\n✗ La base no coincide con la fuente (faltan ${total} filas, ${orphans.length} huérfanas, ${untranslated.length} sin traducir).`);
         process.exit(1);
       }
-      console.log(`\n✓ checks = ${ds.checks.length}, check_mappings = ${ds.mappings.length}, test_checks (T-CLD) = ${ds.testChecks.length}: idénticos a la fuente.`);
+      console.log(`\n✓ checks = ${ds.checks.length}, check_mappings = ${ds.mappings.length}, test_checks (T-CLD) = ${ds.testChecks.length}, guía en español = ${translations.length}: idénticos a la fuente.`);
       return;
     }
     if (total === 0) {
@@ -98,6 +121,7 @@ async function main() {
         await tx.check.createMany({ data: checkMissing.map((c) => ({ ...c, categories: c.categories })) });
         const ids = new Map((await tx.check.findMany({ where: { platform: 'aws', policyId: 'cloud_configuration' }, select: { id: true, checkId: true } })).map((c) => [c.checkId, c.id]));
         await tx.checkMapping.createMany({ data: mapMissing.map((m) => ({ checkId: ids.get(m.checkId)!, frameworkCode: m.frameworkCode, frameworkVersion: m.frameworkVersion, requirementCode: m.requirementCode, provenance: m.provenance })) });
+        for (const t of translationMissing) await tx.check.update({ where: { id: ids.get(t.checkId)! }, data: { titleEs: t.titleEs, remediationEs: t.remediationEs, translationOrigin: 'machine' } });
         await tx.testCheck.createMany({ data: tcMissing.map((t) => ({ testId: testIdByCode.get(t.testCode)!, checkId: ids.get(t.checkId)!, provenance: t.provenance, confidence: t.confidence, rationale: t.rationale })) });
       },
       { timeout: 120000 },

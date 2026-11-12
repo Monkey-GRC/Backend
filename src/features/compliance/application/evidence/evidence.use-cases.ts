@@ -9,7 +9,7 @@ import { Page } from '../../../../common/pagination/page';
 import { FileStorage } from '../../../../common/storage/file-storage';
 import type { UploadedFile } from '../../../../common/storage/uploaded-file';
 import { ValidationException } from '../../../../common/errors/validation.exception';
-import { evidenceStateOf, reviewerRoleFor } from '../../domain/evidence/evidence';
+import { evidenceStateOf, reviewerRoleFor, WITHIN_EVALUATION_PERIOD } from '../../domain/evidence/evidence';
 import { EvidenceAccess, EvidenceRepository, RequirementRecord, ServiceEvidence, SubmissionRecord, TestEvidence } from '../../domain/evidence/evidence.repository';
 import { CreateEvidenceRequirementDto, ReviewEvidenceDto } from './evidence.dto';
 import { assertEvidenceFile, evidenceKey, fileNameOfKey, INLINE_TYPES } from './evidence-file';
@@ -202,7 +202,7 @@ export class UploadTestEvidenceUseCase {
 
     const slot = await this.repo.findOrCreateTestRequirement(
       scopeOf(p), controlId, testId,
-      { description: test.displayName ?? test.code, dimension: 'policy', testId, validityWithinPeriod: facts.validityWithinPeriod ?? 'Dentro del período de evaluación' },
+      { description: test.displayName ?? test.code, dimension: 'policy', testId, validityWithinPeriod: facts.validityWithinPeriod ?? WITHIN_EVALUATION_PERIOD },
       (done): AuditEntry => ({
         tenantId: p.companyId, userId: p.userId, action: 'evidence_requirement.create', resource: 'evidence_requirement', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
         beforeState: null,
@@ -238,7 +238,7 @@ export class CreateEvidenceRequirementUseCase {
 
     const created = await this.repo.createRequirement(
       scopeOf(p), controlId,
-      { description, dimension: dto.dimension, testId: dto.test_id ?? null, validityWithinPeriod: facts.validityWithinPeriod ?? 'Dentro del período de evaluación' },
+      { description, dimension: dto.dimension, testId: dto.test_id ?? null, validityWithinPeriod: facts.validityWithinPeriod ?? WITHIN_EVALUATION_PERIOD },
       (done): AuditEntry => ({
         tenantId: p.companyId, userId: p.userId, action: 'evidence_requirement.create', resource: 'evidence_requirement', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
         beforeState: null,

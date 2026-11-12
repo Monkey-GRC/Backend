@@ -19,6 +19,8 @@ export type AssignmentListFilters = {
   ownerId?: string;
   executorId?: string;
   q?: string;
+  // El orden alfabético sigue el idioma de la petición (es por omisión).
+  locale?: string;
 };
 
 export type AssignmentItem = {
@@ -71,7 +73,7 @@ export function listAssignments(p: Principal, data: AssignmentListingData, f: As
       });
     }
   }
-  items.sort((a, b) => a.service.name.localeCompare(b.service.name, 'es') || a.service.id.localeCompare(b.service.id) || compareOwnCode(a.ownCode, b.ownCode) || a.clientControlId.localeCompare(b.clientControlId));
+  items.sort((a, b) => a.service.name.localeCompare(b.service.name, f.locale ?? 'es') || a.service.id.localeCompare(b.service.id) || compareOwnCode(a.ownCode, b.ownCode) || a.clientControlId.localeCompare(b.clientControlId));
   const start = (f.page - 1) * f.pageSize;
   return { items: items.slice(start, start + f.pageSize), total: items.length, page: f.page, pageSize: f.pageSize };
 }

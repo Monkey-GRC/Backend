@@ -1,3 +1,4 @@
+import { capabilityTexts } from '../../../common/text/translate-or';
 import { buildConnectionSetup } from '../application/cloud-connection';
 import { Asset, Capability, TechnicalControlState } from '../domain/entities/technical-control.entities';
 
@@ -6,13 +7,9 @@ import { Asset, Capability, TechnicalControlState } from '../domain/entities/tec
 export function toCapabilityResponse(c: Capability) {
   return {
     catalog_code: c.catalogCode,
-    category: c.category,
-    method: c.method,
-    required_permissions: c.requiredPermissions,
-    base_frequency: c.baseFrequency,
+    ...capabilityTexts(c),
     // Lo que el cliente elige (D67): la marca no se traduce y las bloqueadas se muestran como tales.
     platforms: c.platforms.map((p) => ({ code: p.code, name: p.name, logo_key: p.logoKey, availability: p.availability, connection_methods: p.connectionMethods })),
-    generated_evidence: c.generatedEvidence,
   };
 }
 

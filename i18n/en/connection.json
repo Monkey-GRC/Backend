@@ -22,5 +22,6 @@
   "agent": {
     "step_1": "Copy the install command and run it on the server.",
     "step_2": "Once the agent connects, the status will change to “Connected”."
-  }
+  },
+  "permission_denied": "The user does not have enough permissions for automatic evaluation."
 }

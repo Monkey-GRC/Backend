@@ -13,6 +13,7 @@ import {
   CAPABILITIES_BY_SCENARIO,
   FRAMEWORK_OFFERS,
   FREQUENCIES_BY_CAPABILITY,
+  INTEGRATIONS,
   PLATFORMS,
   PLATFORM_REGIONS,
   REGULATIONS,
@@ -89,6 +90,18 @@ async function main() {
       if (d.name !== s.name || d.sortOrder !== s.sortOrder) conflicts.push(`región ${s.platform}/${s.code}: BD=${short(d)}  fuente=${short(s)}`);
       return false;
     });
+    // Las integraciones (D110): las de medición con flujo de conexión apuntan a su plataforma; el resto lleva su nombre, logo y disponibilidad.
+    const integrationsSource = INTEGRATIONS.map((i, idx) => ({ ...i, sortOrder: idx + 1 }));
+    const integrationsDb = await prisma.integration.findMany({ include: { capabilityPlatform: { include: { automatedCapability: { select: { catalogCode: true } } } } } });
+    const integrationsMissing = integrationsSource.filter((s) => {
+      const d = integrationsDb.find((r) => r.code === s.code);
+      if (!d) return true;
+      const dbPlatform = d.capabilityPlatform ? platformKey(d.capabilityPlatform.automatedCapability.catalogCode, d.capabilityPlatform.code) : null;
+      const db = { purpose: d.purpose, platform: dbPlatform, name: d.name, logoKey: d.logoKey, availability: d.availability, sortOrder: d.sortOrder };
+      const src = { purpose: s.purpose, platform: s.platform, name: s.name, logoKey: s.logoKey, availability: s.availability, sortOrder: s.sortOrder };
+      if (!same(db, src)) conflicts.push(`integración ${s.code}: BD=${short(db)}  fuente=${short(src)}`);
+      return false;
+    });
     const freqDb = (await prisma.capabilityFrequency.findMany({ include: { automatedCapability: { select: { catalogCode: true } } } })).map((f) => `${f.automatedCapability.catalogCode}/${f.scheduleFrequency}`);
     const freqSource = Object.entries(FREQUENCIES_BY_CAPABILITY).flatMap(([cap, list]) => list.map((f) => `${cap}/${f}`));
     const freqMissing = freqSource.filter((k) => !freqDb.includes(k));
@@ -102,6 +115,7 @@ async function main() {
       ...platformDb.filter((d) => !platformsSource.some((s) => platformKey(s.capability, s.code) === platformKey(d.automatedCapability.catalogCode, d.code))).map((d) => `plataforma ${platformKey(d.automatedCapability.catalogCode, d.code)} está en la base y no en la fuente`),
       ...methodsDb.filter((d) => !methodsSource.some((s) => s.platform === d.platform && s.method === d.method)).map((d) => `canal ${d.platform}/${d.method} está en la base y no en la fuente`),
       ...regionsDb.filter((d) => !regionsSource.some((s) => s.platform === d.platform && s.code === d.code)).map((d) => `región ${d.platform}/${d.code} está en la base y no en la fuente`),
+      ...integrationsDb.filter((d) => !integrationsSource.some((s) => s.code === d.code)).map((d) => `integración ${d.code} está en la base y no en la fuente`),
       ...freqDb.filter((k) => !freqSource.includes(k)).map((k) => `frecuencia ${k} está en la base y no en la fuente`),
       ...scenDb.filter((k) => !scenSource.includes(k)).map((k) => `escenario ${k} está en la base y no en la fuente`),
     ];
@@ -113,6 +127,7 @@ async function main() {
     console.log(`capability_platforms     ${String(platformsSource.length).padStart(6)}   ${String(platformMissing.length).padStart(10)}`);
     console.log(`platform_connection_methods ${String(methodsSource.length).padStart(3)}   ${String(methodsMissing.length).padStart(10)}`);
     console.log(`platform_regions         ${String(regionsSource.length).padStart(6)}   ${String(regionsMissing.length).padStart(10)}`);
+    console.log(`integrations             ${String(integrationsSource.length).padStart(6)}   ${String(integrationsMissing.length).padStart(10)}`);
     console.log(`capability_frequencies   ${String(freqSource.length).padStart(6)}   ${String(freqMissing.length).padStart(10)}`);
     console.log(`deployment_scenario_capabilities ${String(scenSource.length).padStart(0)}  ${String(scenMissing.length).padStart(10)}`);
     orphans.forEach((m) => console.warn('  ⚠ ' + m + ' (NO se toca)'));
@@ -130,6 +145,7 @@ async function main() {
         ...platformMissing.map((s) => `falta la plataforma ${platformKey(s.capability, s.code)}`),
         ...methodsMissing.map((s) => `falta el canal ${s.platform}/${s.method}`),
         ...regionsMissing.map((s) => `falta la región ${s.platform}/${s.code}`),
+        ...integrationsMissing.map((s) => `falta la integración ${s.code}`),
         ...freqMissing.map((k) => `falta la frecuencia ${k}`),
         ...scenMissing.map((k) => `falta la fila de escenario ${k}`),
         ...orphans,
@@ -138,12 +154,12 @@ async function main() {
         problems.forEach((m) => console.error('  ✗ ' + m));
         process.exit(1);
       }
-      console.log(`\n  ✓ regulations = ${REGULATIONS.length}, idénticas a la fuente\n  ✓ automated_capabilities = ${CAPABILITIES.length}, idénticas a la fuente\n  ✓ frameworks ofrecidos = ${FRAMEWORK_OFFERS.length}, presentes\n  ✓ catálogo de conexiones: ${platformsSource.length} plataformas, ${methodsSource.length} canales, ${regionsSource.length} regiones, ${freqSource.length} frecuencias, ${scenSource.length} filas de escenario`);
+      console.log(`\n  ✓ regulations = ${REGULATIONS.length}, idénticas a la fuente\n  ✓ automated_capabilities = ${CAPABILITIES.length}, idénticas a la fuente\n  ✓ frameworks ofrecidos = ${FRAMEWORK_OFFERS.length}, presentes\n  ✓ catálogo de conexiones: ${platformsSource.length} plataformas, ${methodsSource.length} canales, ${regionsSource.length} regiones, ${freqSource.length} frecuencias, ${scenSource.length} filas de escenario, ${integrationsSource.length} integraciones`);
       console.log('\n✓ Los catálogos de referencia coinciden con la fuente.');
       return;
     }
 
-    const total = regMissing.length + capMissing.length + fwMissing.length + platformMissing.length + methodsMissing.length + regionsMissing.length + freqMissing.length + scenMissing.length;
+    const total = regMissing.length + capMissing.length + fwMissing.length + platformMissing.length + methodsMissing.length + regionsMissing.length + integrationsMissing.length + freqMissing.length + scenMissing.length;
     if (total === 0) {
       console.log('\n✓ La base ya coincide con la fuente. Nada que insertar.');
       return;
@@ -169,6 +185,9 @@ async function main() {
         data: methodsMissing.map((m) => ({ platformId: platId(m.platform), connectionMethod: m.method, isRecommended: m.isRecommended, sortOrder: m.sortOrder })),
       });
       await tx.platformRegion.createMany({ data: regionsMissing.map((r) => ({ platformId: platId(r.platform), code: r.code, name: r.name, sortOrder: r.sortOrder })) });
+      await tx.integration.createMany({
+        data: integrationsMissing.map((i) => ({ code: i.code, purpose: i.purpose, capabilityPlatformId: i.platform ? platId(i.platform) : null, name: i.name, logoKey: i.logoKey, availability: i.availability, sortOrder: i.sortOrder })),
+      });
       await tx.capabilityFrequency.createMany({
         data: freqMissing.map((k) => ({ automatedCapabilityId: capId(k.split('/')[0]), scheduleFrequency: k.split('/')[1] as 'continuous' })),
       });

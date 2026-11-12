@@ -44,7 +44,7 @@ export class ForgotPasswordUseCase {
       expiresAt: new Date(now.getTime() + PASSWORD_RESET_TOKEN_MINUTES * 60_000),
       at: now,
     });
-    void this.notifier.sendResetLink(normalized, credentials.role, token);
+    void this.notifier.sendResetLink(normalized, credentials.role, token, credentials.preferredLanguage);
     await this.audit.write({
       tenantId: credentials.companyId,
       userId: credentials.id,

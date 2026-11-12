@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Inject, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Inject, Patch, Post, Req, Res } from '@nestjs/common';
 import { ApiExtraModels, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { I18nContext } from 'nestjs-i18n';
@@ -15,6 +15,8 @@ import { LookupAccessKeyDto } from '../application/dtos/lookup-access-key.dto';
 import { RedeemAccessKeyDto } from '../application/dtos/redeem-access-key.dto';
 import { SESSION_POLICY } from '../application/session-policy.token';
 import { ActivateAccountUseCase } from '../application/use-cases/activation/activate-account.use-case';
+import { SetLanguageUseCase } from '../application/use-cases/session/set-language.use-case';
+import { SetLanguageDto } from '../application/dtos/language.dto';
 import { GetCurrentUserUseCase } from '../application/use-cases/session/get-current-user.use-case';
 import { GetOnboardingProgressUseCase } from '../application/use-cases/session/get-onboarding-progress.use-case';
 import { ConfirmMfaSetupUseCase } from '../application/use-cases/mfa/confirm-mfa-setup.use-case';
@@ -75,6 +77,7 @@ export class AuthController {
     private readonly forgotPassword: ForgotPasswordUseCase,
     private readonly resetPassword: ResetPasswordUseCase,
     @Inject(SESSION_POLICY) private readonly policy: SessionPolicy,
+    private readonly setLanguage: SetLanguageUseCase,
   ) {}
 
   @Public()
@@ -301,5 +304,14 @@ export class AuthController {
     const user = await this.getCurrentUser.execute(principal);
     const onboarding = await this.getOnboardingProgress.execute(user);
     return new ResponseDto(HttpStatus.OK, t('auth.me'), toAuthResponse(user, onboarding));
+  }
+
+  // D111 · Con sesión, cualquier rol. Lo llama el frontend al cambiar de idioma y al iniciar sesión si el de la app no coincide con `user.preferred_language`.
+  @ApiOperation({ summary: 'Guardar mi idioma', description: 'Guarda el idioma en el que la persona usa Monkey (`es` o `en`); con él salen sus correos (recuperar la contraseña y el aviso de contraseña cambiada). Cualquier rol con sesión. Deja rastro (`user.language_changed`) en la misma transacción. Contrato: `contracts/autenticacion.md`.' })
+  @ApiNoBody('Idioma guardado. No hay cuerpo.')
+  @Patch('me/language')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async changeLanguage(@CurrentUser() principal: Principal, @Body() dto: SetLanguageDto, @Req() req: Request): Promise<void> {
+    await this.setLanguage.execute(principal, dto.language, requestMeta(req));
   }
 }

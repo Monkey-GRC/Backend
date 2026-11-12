@@ -264,6 +264,27 @@ export const PLATFORMS: PlatformSeed[] = [
   platform('ac_06', 'linux', 'Linux', ['agent']),
 ];
 
+// Las integraciones (D110, MD-211), en su orden: primero las de medición. Las que tienen plataforma de conexión (`platform` = `ac_01/<código>`)
+// toman nombre, logo y disponibilidad de ella (un dato, un dueño); las demás los llevan aquí. Las descripciones viven en i18n (`integration.description.<code>`).
+export interface IntegrationSeed {
+  code: string;
+  purpose: 'measurement' | 'workflow';
+  platform: string | null;
+  name: string | null;
+  logoKey: string | null;
+  availability: 'available' | 'coming_soon' | null;
+}
+const connected = (code: string): IntegrationSeed => ({ code, purpose: 'measurement', platform: `ac_01/${code}`, name: null, logoKey: null, availability: null });
+export const INTEGRATIONS: IntegrationSeed[] = [
+  connected('aws'),
+  connected('azure'),
+  connected('gcp'),
+  connected('microsoft_365'),
+  connected('google_workspace'),
+  { code: 'github', purpose: 'measurement', platform: null, name: 'GitHub', logoKey: 'github', availability: 'coming_soon' },
+  { code: 'jira', purpose: 'workflow', platform: null, name: 'Jira', logoKey: 'jira', availability: 'coming_soon' },
+];
+
 export interface PlatformRegionSeed {
   code: string;
   // Nombre del proveedor. La etiqueta que ve el cliente sale de i18n (`catalogs.aws_region.<code>`) cuando existe.

@@ -320,5 +320,14 @@
   "assessment_verdict": {
     "certified": "Certifica",
     "not_certified": "No certifica"
+  },
+  "integration_purpose": {
+    "measurement": "Medición y cumplimiento",
+    "workflow": "Gestión y flujo de trabajo"
+  },
+  "integration_status": {
+    "active": "Activa",
+    "pending": "Pendiente de activar",
+    "needs_attention": "Necesita atención"
   }
 }

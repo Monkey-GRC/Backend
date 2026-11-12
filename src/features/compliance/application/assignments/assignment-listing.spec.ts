@@ -29,6 +29,23 @@ describe('categoryOfRequirement', () => {
   });
 });
 
+describe('listAssignments: orden alfabético según el idioma', () => {
+  const named = (): AssignmentListingData => ({
+    services: [
+      { id: 's1', name: 'Ñandú', readout: { serviceId: 's1', ...empty, controls: [control('n1', 'C01')] } },
+      { id: 's2', name: 'Nube', readout: { serviceId: 's2', ...empty, controls: [control('n2', 'C01')] } },
+      { id: 's3', name: 'Oro', readout: { serviceId: 's3', ...empty, controls: [control('n3', 'C01')] } },
+    ],
+    assignments: new Map(),
+    frameworkRequirements: null,
+  });
+  it('en español la ñ va después de la n; en inglés es una n con tilde y va antes de «Nube»', () => {
+    expect(codes(admin, named(), { locale: 'es' })).toEqual(['n2', 'n1', 'n3']);
+    expect(codes(admin, named(), { locale: 'en' })).toEqual(['n1', 'n2', 'n3']);
+    expect(codes(admin, named())).toEqual(['n2', 'n1', 'n3']);
+  });
+});
+
 describe('listAssignments', () => {
   it('ordena por servicio y luego por código: IAC-2 antes que IAC-10', () => {
     expect(codes(admin, data())).toEqual(['a1', 'b1', 'b2']);

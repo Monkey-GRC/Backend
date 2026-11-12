@@ -11,7 +11,7 @@ export type Person = { id: string; name: string | null; lastName: string | null 
 export type ExclusionRecord = {
   id: string;
   serviceId: string;
-  test: { id: string; displayName: string | null; dimension: string };
+  test: { id: string; displayName: string | null; displayNameEn: string | null; dimension: string };
   asset: { id: string; name: string };
   justification: string;
   technicalJustification: string | null;

@@ -23,6 +23,7 @@ import { toPageResponse } from '../../../common/pagination/page';
 import { ArchiveCompanyDto, ReactivateCompanyDto } from '../application/dtos/archive-company.dto';
 import { CreateCompanyDto } from '../application/dtos/create-company.dto';
 import { UpdateMaxUsersDto } from '../application/dtos/update-max-users.dto';
+import { mailLanguageOf } from '../../../common/mail/mail-language';
 import { ListCompaniesQuery } from '../application/dtos/list-companies.query';
 import { ArchiveCompanyUseCase } from '../application/use-cases/archive-company.use-case';
 import { GetCompanyUseCase } from '../application/use-cases/get-company.use-case';
@@ -80,7 +81,7 @@ export class CompaniesController {
         maxUsers: dto.max_users,
         frameworkCodes: dto.framework_codes ?? [...DEFAULT_CONTRACTED_FRAMEWORKS],
       },
-      { ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' },
+      { ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '', language: mailLanguageOf(I18nContext.current()?.lang) },
     );
     return new ResponseDto(
       HttpStatus.CREATED,
@@ -102,6 +103,7 @@ export class CompaniesController {
     const { accessKey, deliveryStatus } = await this.regenerateAccessKey.execute(principal, id, {
       ipAddress: req.ip ?? '',
       userAgent: req.get('user-agent') ?? '',
+      language: mailLanguageOf(I18nContext.current()?.lang),
     });
     return new ResponseDto(HttpStatus.OK, t('access_key.regenerated'), toIssuedAccessKey(accessKey, deliveryStatus));
   }

@@ -2,6 +2,7 @@ import { appUrl, platformAppUrl } from '../../../../common/mail/app-url';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { UserRole } from '../../../../common/enums/user-role.enum';
+import { MailLanguage } from '../../../../common/mail/mail-language';
 import { Mailer } from '../../../../common/mail/mailer';
 import { PASSWORD_RESET_TOKEN_MINUTES } from '../../domain/password-rules';
 import { buildPasswordChangedEmail, buildPasswordResetLinkEmail, PasswordEmailKind } from '../password-email';
@@ -17,7 +18,7 @@ export class PasswordNotifier {
     private readonly config: ConfigService,
   ) {}
 
-  async sendResetLink(email: string, role: UserRole, token: string): Promise<void> {
+  async sendResetLink(email: string, role: UserRole, token: string, language: MailLanguage = 'es'): Promise<void> {
     // Monkey Admin y Monkey Platform son apps distintas: el enlace lleva a la de quien lo pidió.
     const admin = role === 'admin_monkey' ? appUrl(this.config, 'ADMIN_APP_URL') : undefined;
     const base = admin || platformAppUrl(this.config);
@@ -25,11 +26,11 @@ export class PasswordNotifier {
     if (!base) return this.logger.warn('No se envió el enlace de recuperación: falta PLATFORM_APP_URL.');
     // En Monkey Admin las pantallas de acceso cuelgan de /auth; en Platform, de la raíz.
     const path = admin ? '/auth/reset-password' : '/reset-password';
-    await this.deliver(buildPasswordResetLinkEmail({ to: email, resetUrl: `${base}${path}?token=${encodeURIComponent(token)}`, minutes: PASSWORD_RESET_TOKEN_MINUTES }));
+    await this.deliver(buildPasswordResetLinkEmail({ to: email, resetUrl: `${base}${path}?token=${encodeURIComponent(token)}`, minutes: PASSWORD_RESET_TOKEN_MINUTES, language }));
   }
 
-  async sendChanged(email: string, via: PasswordEmailKind): Promise<void> {
-    await this.deliver(buildPasswordChangedEmail({ to: email, via }));
+  async sendChanged(email: string, via: PasswordEmailKind, language: MailLanguage = 'es'): Promise<void> {
+    await this.deliver(buildPasswordChangedEmail({ to: email, via, language }));
   }
 
   private async deliver(message: Parameters<Mailer['send']>[0]): Promise<void> {

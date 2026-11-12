@@ -1,3 +1,4 @@
+import { translateOr } from '../../../common/text/translate-or';
 import { OrganizationalContext } from '../domain/entities/organizational-context.entity';
 
 // Forma de contracts/modules/onboarding-organizational-context.md, en snake_case.
@@ -15,7 +16,8 @@ export function toOrganizationalContextResponse(ctx: OrganizationalContext) {
     incorporation_countries: ctx.incorporationCountries,
     client_countries: ctx.clientCountries,
     compliance_maturity: ctx.complianceMaturity,
-    regulations: ctx.regulations,
+    // «Ninguna» y «Otra» no son leyes: su nombre sale de i18n (como en `GET /v1/catalogs/regulations`); el resto usa su nombre propio.
+    regulations: ctx.regulations.map((r) => (r.code === 'none' || r.code === 'other' ? { ...r, name: translateOr(`catalogs.regulation.${r.code}`, r.name) } : r)),
     completion: ctx.completion,
     is_complete: ctx.isComplete,
   };

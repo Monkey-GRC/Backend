@@ -31,7 +31,7 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
         },
       },
       dimensions: { select: { dimension: true, type: true, reasonNotApplicable: true } },
-      tests: { select: { testId: true, test: { select: { code: true, dimension: true, displayName: true, displayDescription: true } } } },
+      tests: { select: { testId: true, test: { select: { code: true, dimension: true, displayName: true, displayNameEn: true, displayDescription: true } } } },
     },
   });
 
@@ -74,7 +74,7 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
       catalogDescription: c.control?.description ?? null,
       dimensions: c.dimensions.map((d) => ({ dimension: d.dimension as Dimension, applies: d.reasonNotApplicable === null, type: d.type, reasonNotApplicable: d.reasonNotApplicable })),
       // `client_control_tests` todavía no guarda «obligatorio» ni «vigente» (D68): hasta entonces todo test vinculado es obligatorio y vigente.
-      tests: c.tests.map((t) => ({ testId: t.testId, code: t.test.code, displayName: t.test.displayName, displayDescription: t.test.displayDescription, dimension: t.test.dimension as Dimension, mandatory: true, active: true })),
+      tests: c.tests.map((t) => ({ testId: t.testId, code: t.test.code, displayName: t.test.displayName, displayNameEn: t.test.displayNameEn, displayDescription: t.test.displayDescription, dimension: t.test.dimension as Dimension, mandatory: true, active: true })),
       // Un control propio no llega a ningún requisito: su categoría es la que eligió la empresa.
       trustCriteria: c.control ? [...criteria].sort((a, b) => CRITERIA_ORDER.indexOf(a) - CRITERIA_ORDER.indexOf(b)) : c.trustCriterion ? [c.trustCriterion] : [],
       // Con varias personas por control (D102) no hay «una» persona a cargo que mostrar.

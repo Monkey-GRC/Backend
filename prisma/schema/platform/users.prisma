@@ -12,6 +12,16 @@ enum UserRole {
 }
 
 // pending (D95): la cuenta existe desde el alta pero la persona aún no activó su código; no puede iniciar sesión.
+// D111 · El idioma en el que la persona usa Monkey (es · en).
+enum Language {
+  es
+  en
+
+  @@map("language")
+
+  @@schema("platform")
+}
+
 enum UserStatus {
   active
   inactive
@@ -75,6 +85,8 @@ model User {
   groupId             String?   @map("group_id") @db.Uuid
   // D102 · Solo `delegado`: true si es de la empresa, false si es externo. Nulo en los demás roles (lo impone un CHECK en la migración).
   isInternal          Boolean?  @map("is_internal")
+  // D111 · Con él salen sus correos; lo fija el frontend (`PATCH /v1/auth/me/language`) y la cuenta invitada nace con el de quien la invita.
+  preferredLanguage   Language  @default(es) @map("preferred_language")
   createdAt      DateTime    @default(now()) @map("created_at")
 
   company    Company     @relation(fields: [companyId], references: [id])

@@ -65,6 +65,8 @@ model Test {
   name                           String
   // El nombre neutro que ve el cliente (D70): lo escribe Monkey. `name` es del comité y puede nombrar al proveedor del motor, así que nunca sale de la API.
   displayName                    String?   @map("display_name")
+  // El mismo nombre neutro en inglés. Nullable: solo las pruebas que ya lo tienen traducido; sin él, se muestra `display_name` (MD-211).
+  displayNameEn                  String?   @map("display_name_en")
   // La descripción corta que ve el cliente (D82): el objetivo del comité, o una reescritura cuando el objetivo nombra al proveedor del motor. Nullable: se carga como dato.
   displayDescription             String?   @map("display_description") @db.Text
   objective                      String    @db.Text

@@ -1,3 +1,4 @@
+import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { AuthUser, UserCredentials } from '../entities/auth-user.entity';
 
@@ -17,4 +18,7 @@ export abstract class AuthUserRepository {
   ): Promise<void>;
 
   abstract registerSuccessfulLogin(scope: TenantScope, userId: string, at: Date): Promise<void>;
+
+  // D111 · Guarda el idioma de la persona y su rastro (`user.language_changed`) en la misma transacción (SEG-36).
+  abstract setPreferredLanguage(scope: TenantScope, userId: string, language: 'es' | 'en', audit: AuditIntent<{ from: 'es' | 'en'; to: 'es' | 'en' }>): Promise<void>;
 }

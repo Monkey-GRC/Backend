@@ -22,6 +22,7 @@ export class AuthUserResponse {
   @ApiProperty({ enum: USER_ROLES, enumName: 'UserRole', description: 'Rol del usuario; el servidor lo lee de la base en cada petición.' }) role!: string;
   @ApiProperty({ enum: USER_STATUSES, enumName: 'UserStatus', description: 'Solo un usuario `active` puede iniciar sesión.' }) status!: string;
   @ApiProperty({ example: true, description: 'Si la persona ya activó el segundo factor (TOTP, D94). Es obligatorio para los 4 roles: lo configura en su primer ingreso.' }) is_mfa_enabled!: boolean;
+  @ApiProperty({ enum: ['es', 'en'], enumName: 'Language', example: 'es', description: 'D111 · El idioma en el que la persona usa Monkey; con él salen sus correos. Se cambia con `PATCH /v1/auth/me/language`.' }) preferred_language!: string;
   @ApiProperty({ type: AuthGroupResponse, nullable: true, description: 'D104 · El grupo de la persona. `null` en `admin_empresa`, `auditor` y `admin_monkey`.' }) group!: AuthGroupResponse | null;
   @ApiPropertyOptional({ type: AuthResponsibleResponse, nullable: true, description: 'D104 · Solo el `delegado`: a quién pertenece (el líder de su grupo).' }) responsible?: AuthResponsibleResponse | null;
   @ApiProperty({ format: 'date-time', nullable: true, example: null, description: 'Último inicio de sesión; `null` si nunca ha entrado.' }) last_login_at!: string | null;

@@ -1,3 +1,5 @@
+import { I18nContext } from 'nestjs-i18n';
+import { localizedTestName, TestNames } from '../../../../common/text/test-display-name';
 import { ControlReadout, Dimension } from '../../domain/controls/control-readout';
 import { ControlDetail } from '../../application/controls/get-control.use-case';
 import { codeOfControl } from '../../domain/overview/compliance-overview';
@@ -7,7 +9,8 @@ import { codeOfControl } from '../../domain/overview/compliance-overview';
 type Translate = (key: string) => string;
 
 // Un test sin nombre neutro (D70) se muestra con un texto genérico de su dimensión: nunca el nombre del comité.
-export const neutralName = (displayName: string | null, dimension: Dimension, t: Translate) => displayName ?? t(`control.test.${dimension}`);
+// El nombre sale en el idioma de la petición (`display_name_en` si existe, si no el español).
+export const neutralName = (test: TestNames, dimension: Dimension, t: Translate) => localizedTestName(test, I18nContext.current()?.lang) ?? t(`control.test.${dimension}`);
 
 const assignee = (a: ControlReadout['control']['assignee']) => (a ? { user_id: a.userId, name: a.name, last_name: a.lastName } : null);
 
@@ -57,13 +60,13 @@ export function toControlDetail(d: ControlDetail, t: Translate) {
     causes: d.causes,
     failing: r.failing.map((f) => ({
       dimension: f.dimension,
-      affected: f.affected.map((a) => (a.kind === 'asset' ? { kind: 'asset', id: a.id, name: a.name } : { kind: 'test', id: a.id, display_name: neutralName(a.displayName, f.dimension, t) })),
+      affected: f.affected.map((a) => (a.kind === 'asset' ? { kind: 'asset', id: a.id, name: a.name } : { kind: 'test', id: a.id, display_name: neutralName(a, f.dimension, t) })),
     })),
     ...(d.view === 'technical'
       ? {
           technical: {
             ...technicalBlock(r),
-            tests: r.tests.map((x) => ({ test_id: x.test.testId, test_code: x.test.code, display_name: neutralName(x.test.displayName, x.test.dimension, t), display_description: x.test.displayDescription, dimension: x.test.dimension, state: x.state })),
+            tests: r.tests.map((x) => ({ test_id: x.test.testId, test_code: x.test.code, display_name: neutralName(x.test, x.test.dimension, t), display_description: x.test.displayDescription, dimension: x.test.dimension, state: x.state })),
           },
         }
       : {}),

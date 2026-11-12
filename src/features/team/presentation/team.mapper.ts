@@ -1,3 +1,4 @@
+import { groupDisplayName } from '../../../common/text/translate-or';
 import { InvitedMember } from '../application/use-cases/team-users.use-cases';
 import { Invitation, TeamGroup, TeamMember } from '../domain/team.types';
 
@@ -12,7 +13,7 @@ export const toMember = (m: TeamMember) => ({
   status: m.status,
   is_mfa_enabled: m.isMfaEnabled,
   is_internal: m.role === 'delegado' ? m.isInternal : null,
-  group: m.group,
+  group: m.group ? { ...m.group, name: groupDisplayName(m.group.name) } : m.group,
   ...(m.role === 'delegado' ? { responsible: m.responsible ? { id: m.responsible.id, name: m.responsible.name, last_name: m.responsible.lastName } : null } : {}),
   last_login_at: m.lastLoginAt ? m.lastLoginAt.toISOString() : null,
   created_at: m.createdAt.toISOString(),
@@ -25,7 +26,7 @@ export const toInvitedMember = (v: InvitedMember) => ({ ...toMember(v.member), i
 
 export const toGroup = (g: TeamGroup) => ({
   id: g.id,
-  name: g.name,
+  name: g.kind === 'responsables' ? groupDisplayName(g.name) : g.name,
   kind: g.kind,
   leader: { id: g.leader.id, name: g.leader.name, last_name: g.leader.lastName, role: g.leader.role },
   members_count: g.membersCount,

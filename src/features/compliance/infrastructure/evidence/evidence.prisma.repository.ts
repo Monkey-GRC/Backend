@@ -39,7 +39,7 @@ const newestFirst = (a: SubmissionRecord, b: SubmissionRecord) => b.version - a.
 const requirementSelect = (viewer: ReviewerRole) =>
   ({
     id: true, code: true, sequence: true, description: true, dimension: true, validityWithinPeriod: true, sourceRef: true,
-    test: { select: { id: true, code: true, displayName: true } },
+    test: { select: { id: true, code: true, displayName: true, displayNameEn: true } },
     responsible: { select: { id: true, type: true, personName: true } },
     submissions: { select: submissionSelect(viewer) },
   }) as const;
@@ -47,7 +47,7 @@ type RequirementRow = Prisma.EvidenceRequirementGetPayload<{ select: ReturnType<
 
 const toRequirement = (r: RequirementRow): RequirementRecord => ({
   id: r.id, code: r.code, sequence: r.sequence, description: r.description, dimension: r.dimension, validityWithinPeriod: r.validityWithinPeriod,
-  test: r.test ? { id: r.test.id, code: r.test.code, displayName: r.test.displayName } : null,
+  test: r.test ? { id: r.test.id, code: r.test.code, displayName: r.test.displayName, displayNameEn: r.test.displayNameEn } : null,
   origin: r.sourceRef ? ('catalog' as const) : ('own' as const),
   responsible: r.responsible ? { id: r.responsible.id, type: r.responsible.type, personName: r.responsible.personName } : null,
   submissions: r.submissions.map(toSubmission).sort(newestFirst),
@@ -234,7 +234,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         select: {
           id: true, serviceId: true, isActive: true, ownCode: true,
           dimensions: { select: { dimension: true, reasonNotApplicable: true } },
-          tests: { select: { testId: true, test: { select: { code: true, displayName: true, dimension: true } } } },
+          tests: { select: { testId: true, test: { select: { code: true, displayName: true, displayNameEn: true, dimension: true } } } },
           evidenceRequirements: { select: { sequence: true, validityWithinPeriod: true } },
         },
       });
@@ -251,7 +251,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         assignedUserIds: usersOf(dims),
         responsibleByDimension: Object.fromEntries(dims ?? []),
         dimensions: c.dimensions.filter((d) => d.reasonNotApplicable === null).map((d) => d.dimension),
-        tests: c.tests.map((t) => ({ id: t.testId, code: t.test.code, displayName: t.test.displayName, dimension: t.test.dimension })),
+        tests: c.tests.map((t) => ({ id: t.testId, code: t.test.code, displayName: t.test.displayName, displayNameEn: t.test.displayNameEn, dimension: t.test.dimension })),
         validityWithinPeriod: validity,
       };
     });

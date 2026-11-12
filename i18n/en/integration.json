@@ -1,0 +1,140 @@
+{
+  "catalog": "Integrations catalog.",
+  "list": "Your company's integrations.",
+  "description": {
+    "aws": "Continuously assesses your account configuration: identity and access, encryption, logging and network.",
+    "azure": "Will continuously assess your subscription configuration: identity and access, encryption, logging and network.",
+    "gcp": "Will continuously assess your project configuration: identity and access, encryption, logging and network.",
+    "microsoft_365": "Will assess your organization's configuration: multi-factor sign-in, conditional access, email and collaboration.",
+    "google_workspace": "Will assess your domain's configuration: sign-in, multi-factor authentication and sharing.",
+    "github": "Will show how changes to your code are reviewed and approved, and the vulnerabilities in its dependencies.",
+    "jira": "Will turn each finding into an assigned ticket and follow its progress until it is closed."
+  },
+  "detail": "Integration detail.",
+  "not_found": "We could not find that integration.",
+  "content": {
+    "aws": {
+      "overview": "Monkey continuously assesses the security configuration of your AWS account through a read-only role. It discovers its servers, databases, storage and functions, lets you choose which ones belong to each service and turns every result into input for your controls' automated tests.",
+      "features": [
+        "Discover the account's resources in the regions you declare",
+        "Choose which resources belong to each service",
+        "Assess identity and privileged access, encryption and network exposure, logging, alerts and backups",
+        "Repeat the assessment every 6 or 24 hours",
+        "See each finding with its control code, its impact and how to fix it"
+      ],
+      "prerequisites": [
+        "Permission in your AWS account to create an IAM role or deploy a CloudFormation template",
+        "Your AWS account number and the regions where the service runs",
+        "The service's risks already assessed"
+      ],
+      "permissions": {
+        "security_audit": {
+          "name": "SecurityAudit",
+          "detail": "Read the security configuration of the account's services."
+        },
+        "view_only_access": {
+          "name": "ViewOnlyAccess",
+          "detail": "List and view resources without reading the content of your data."
+        },
+        "assume_role": {
+          "name": "Assume the role",
+          "detail": "Only Monkey, with your company's external ID, and for sessions of one hour at most."
+        }
+      },
+      "security": {
+        "read_only": "The role cannot create, change or delete anything in your account.",
+        "temporary_credentials": "Each assessment uses one-hour temporary credentials; with the recommended role Monkey does not store keys to your account.",
+        "external_id": "Only Monkey, with the identifier it generates for your company, can assume the role.",
+        "isolated_execution": "Each assessment runs in an isolated environment that is deleted when it finishes.",
+        "tenant_isolation": "Your account's results are visible only to your company.",
+        "encrypted_keys": "If you choose the access keys channel, they are stored encrypted and never shown."
+      },
+      "capabilities": [
+        "Continuous configuration assessment",
+        "Resource inventory"
+      ],
+      "works_with": [
+        "Compliance",
+        "Your services' connections"
+      ]
+    },
+    "azure": {
+      "overview": "Monkey will continuously assess the security configuration of your Azure subscription and turn every result into input for your controls' automated tests. It is not available yet.",
+      "features": [
+        "Assess identity and access, encryption, logging and network",
+        "See each finding with its control code, its impact and how to fix it"
+      ],
+      "capabilities": [
+        "Continuous configuration assessment"
+      ],
+      "works_with": [
+        "Compliance"
+      ]
+    },
+    "gcp": {
+      "overview": "Monkey will continuously assess the security configuration of your Google Cloud project and turn every result into input for your controls' automated tests. It is not available yet.",
+      "features": [
+        "Assess identity and access, encryption, logging and network",
+        "See each finding with its control code, its impact and how to fix it"
+      ],
+      "capabilities": [
+        "Continuous configuration assessment"
+      ],
+      "works_with": [
+        "Compliance"
+      ]
+    },
+    "microsoft_365": {
+      "overview": "Monkey will assess your Microsoft 365 organization's configuration and turn every result into input for your controls' automated tests. It is not available yet.",
+      "features": [
+        "Assess multi-factor sign-in, conditional access, email and collaboration",
+        "See each finding with its control code, its impact and how to fix it"
+      ],
+      "capabilities": [
+        "Continuous configuration assessment"
+      ],
+      "works_with": [
+        "Compliance"
+      ]
+    },
+    "google_workspace": {
+      "overview": "Monkey will assess your Google Workspace domain's configuration and turn every result into input for your controls' automated tests. It is not available yet.",
+      "features": [
+        "Assess sign-in, multi-factor authentication and sharing",
+        "See each finding with its control code, its impact and how to fix it"
+      ],
+      "capabilities": [
+        "Continuous configuration assessment"
+      ],
+      "works_with": [
+        "Compliance"
+      ]
+    },
+    "github": {
+      "overview": "Monkey will show how changes to your code are reviewed and approved and the vulnerabilities in its dependencies, as input for your controls. It is not available yet.",
+      "features": [
+        "See how changes to your code are reviewed and approved",
+        "See the vulnerabilities in dependencies"
+      ],
+      "capabilities": [
+        "Software development evidence"
+      ],
+      "works_with": [
+        "Compliance"
+      ]
+    },
+    "jira": {
+      "overview": "Monkey will turn each finding into an assigned ticket and follow its progress until it is closed. It is not available yet.",
+      "features": [
+        "Create a ticket for each finding",
+        "Follow the ticket's progress until it is closed"
+      ],
+      "capabilities": [
+        "Compliance work management"
+      ],
+      "works_with": [
+        "Findings"
+      ]
+    }
+  }
+}

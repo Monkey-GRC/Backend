@@ -30,6 +30,8 @@ export type NewMember = {
   codeHash: string;
   codeExpiresAt: Date;
   createdBy: string;
+  // D111 · La cuenta nace con el idioma de quien la invita.
+  language: 'es' | 'en';
 };
 
 export type MemberFilters = {

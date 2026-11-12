@@ -1,4 +1,4 @@
-import { CAPABILITIES, CAPABILITIES_BY_SCENARIO, FRAMEWORK_OFFERS, FREQUENCIES_BY_CAPABILITY, PLATFORMS, PLATFORM_REGIONS, REGULATIONS } from './data';
+import { CAPABILITIES, CAPABILITIES_BY_SCENARIO, FRAMEWORK_OFFERS, FREQUENCIES_BY_CAPABILITY, INTEGRATIONS, PLATFORMS, PLATFORM_REGIONS, REGULATIONS } from './data';
 
 describe('catálogos de referencia (MD-75, MD-83)', () => {
   it('trae las 18 regulaciones del contrato, sin códigos ni nombres repetidos y con jurisdicción', () => {
@@ -100,6 +100,31 @@ describe('catálogos de referencia (MD-75, MD-83)', () => {
 
     it('las regiones son de plataformas que existen', () => {
       for (const key of Object.keys(PLATFORM_REGIONS)) expect(PLATFORMS.some((p) => `${p.capability}/${p.code}` === key)).toBe(true);
+    });
+  });
+
+  // Las integraciones (D110): un dato, un dueño.
+  describe('integraciones (D110)', () => {
+    it('son las siete del contrato, en su orden: la medición antes que el flujo de trabajo', () => {
+      expect(INTEGRATIONS.map((i) => i.code)).toEqual(['aws', 'azure', 'gcp', 'microsoft_365', 'google_workspace', 'github', 'jira']);
+      expect(INTEGRATIONS.map((i) => i.purpose)).toEqual([...Array(6).fill('measurement'), 'workflow']);
+    });
+
+    it('con plataforma de conexión no repite nombre, logo ni disponibilidad; sin ella, los tres', () => {
+      for (const i of INTEGRATIONS) {
+        if (i.platform) {
+          expect(PLATFORMS.some((p) => `${p.capability}/${p.code}` === i.platform)).toBe(true);
+          expect([i.name, i.logoKey, i.availability]).toEqual([null, null, null]);
+        } else {
+          expect(i.name?.trim()).toBeTruthy();
+          expect(i.logoKey).toMatch(/^[a-z0-9_]+$/);
+          expect(i.availability).toBe('coming_soon');
+        }
+      }
+    });
+
+    it('ninguna nombra al motor que evalúa', () => {
+      expect(JSON.stringify(INTEGRATIONS)).not.toMatch(/wazuh|prowler/i);
     });
   });
 });

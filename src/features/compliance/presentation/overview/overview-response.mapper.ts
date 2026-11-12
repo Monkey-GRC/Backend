@@ -21,7 +21,7 @@ const category = (c: OverviewCategory, technical: boolean, t: Translate) => ({
     readiness: f.readout.readiness,
     failing: f.readout.failing.map((x) => ({
       dimension: x.dimension,
-      affected: x.affected.map((a) => (a.kind === 'asset' ? { kind: 'asset', id: a.id, name: a.name } : { kind: 'test', id: a.id, display_name: neutralName(a.displayName, x.dimension, t) })),
+      affected: x.affected.map((a) => (a.kind === 'asset' ? { kind: 'asset', id: a.id, name: a.name } : { kind: 'test', id: a.id, display_name: neutralName(a, x.dimension, t) })),
     })),
   })),
   ...(technical
@@ -33,7 +33,7 @@ const category = (c: OverviewCategory, technical: boolean, t: Translate) => ({
             control_code: l.code,
             state: l.readout.state,
             progress: l.readout.progress,
-            blocking_tests: l.blockingTests.map((b) => ({ test_code: b.code, display_name: neutralName(b.displayName, b.dimension as never, t), state: b.state })),
+            blocking_tests: l.blockingTests.map((b) => ({ test_code: b.code, display_name: neutralName(b, b.dimension as never, t), state: b.state })),
           })),
         },
       }

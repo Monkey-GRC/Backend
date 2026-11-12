@@ -17,6 +17,8 @@ export type ControlFilters = {
   readiness?: string;
   origin?: string;
   view?: 'technical';
+  // El orden alfabético sigue el idioma de la petición (es por omisión).
+  locale?: string;
 };
 
 @Injectable()
@@ -42,7 +44,7 @@ export class ListControlsUseCase {
 
     const direction = filters.sort.startsWith('-') ? -1 : 1;
     const byName = filters.sort.endsWith('name');
-    items.sort((a, b) => direction * (byName ? a.control.name.localeCompare(b.control.name, 'es') : compareOwnCode(a.control.ownCode, b.control.ownCode)));
+    items.sort((a, b) => direction * (byName ? a.control.name.localeCompare(b.control.name, filters.locale ?? 'es') : compareOwnCode(a.control.ownCode, b.control.ownCode)));
 
     const start = (filters.page - 1) * filters.pageSize;
     return { view, page: { items: items.slice(start, start + filters.pageSize), total: items.length, page: filters.page, pageSize: filters.pageSize } };
