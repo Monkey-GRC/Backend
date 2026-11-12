@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { NEUTRAL_DESCRIPTION_OVERRIDES, NEUTRAL_NAME_OVERRIDES, PROVIDER_PATTERN, displayDescriptionOf, displayNameOf } from './display-names';
+import { NEUTRAL_DESCRIPTION_OVERRIDES, NEUTRAL_NAME_OVERRIDES, PROVIDER_PATTERN, DISPLAY_NAMES_EN, displayDescriptionOf, displayNameEnOf, displayNameOf } from './display-names';
 import { Soc2Catalog } from './types';
 import { validateCatalog } from './validate';
 
@@ -85,5 +85,25 @@ describe('la descripción corta de una prueba (D82)', () => {
     const c = baseline();
     c.tests.find((x) => x.code === 'T-BD-001')!.objective = 'Revisar la base de datos con Prowler.';
     expect(has(validateCatalog(c), 'confidencialidad', 'T-BD-001')).toBe(true);
+  });
+});
+
+describe('el nombre neutro en inglés (MD-211)', () => {
+  it('las 11 pruebas T-CLD tienen su nombre y existen en el catálogo', () => {
+    const cloud = baseline().tests.filter((t) => t.code.startsWith('T-CLD-')).map((t) => t.code).sort();
+    expect(cloud).toHaveLength(11);
+    expect(Object.keys(DISPLAY_NAMES_EN).sort()).toEqual(cloud);
+  });
+
+  it('ninguno nombra al proveedor de la sonda y ninguno repite el texto en español', () => {
+    for (const t of baseline().tests.filter((x) => x.code in DISPLAY_NAMES_EN)) {
+      const en = displayNameEnOf(t)!;
+      expect(PROVIDER_PATTERN.test(en)).toBe(false);
+      expect(en).not.toBe(displayNameOf(t));
+    }
+  });
+
+  it('una prueba sin traducir devuelve null', () => {
+    expect(displayNameEnOf({ code: 'T-SRV-001' })).toBeNull();
   });
 });

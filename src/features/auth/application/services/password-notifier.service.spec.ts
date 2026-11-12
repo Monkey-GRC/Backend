@@ -45,4 +45,14 @@ describe('PasswordNotifier (D101)', () => {
     await expect(notifier.sendResetLink('ana@acme.co', 'admin_empresa', 'tok')).resolves.toBeUndefined();
     await expect(notifier.sendChanged('ana@acme.co', 'changed')).resolves.toBeUndefined();
   });
+
+  it('el correo sale en el idioma guardado de la persona (D111)', async () => {
+    const { notifier, sent } = build({ PLATFORM_APP_URL: 'https://app.monkey.test' });
+    await notifier.sendResetLink('ana@acme.co', 'admin_empresa', 'tok', 'en');
+    await notifier.sendChanged('ana@acme.co', 'reset', 'en');
+    await notifier.sendResetLink('ana@acme.co', 'admin_empresa', 'tok', 'es');
+    expect(sent.map((m) => m.subject)).toEqual(['Create your new Monkey password', 'Your Monkey account password changed', 'Crea tu contraseña nueva de Monkey']);
+    expect(sent[0].html).toContain('<html lang="en">');
+    expect(sent[2].html).toContain('<html lang="es">');
+  });
 });
