@@ -8,11 +8,12 @@ import { Page } from '../../../../common/pagination/page';
 import { generateAccessKeyCode, normalizeAccessKeyCode } from '../../../../common/security/access-key-code';
 import { TokenHasher } from '../../../../common/security/token-hasher';
 import { unusablePasswordHash } from '../../../../common/security/unusable-password-hash';
-import { AssignmentState, MemberFilters, ReleasedControl, TeamUserRepository } from '../../domain/repositories/team-user.repository';
+import { MemberFilters, TeamUserRepository } from '../../domain/repositories/team-user.repository';
 import { Invitation, TeamMember } from '../../domain/team.types';
 import { CreateTeamMemberDto, UpdateTeamMemberDto } from '../dtos/team.dto';
 import { ACTIVATION_CODE_TTL_HOURS } from '../activation-policy.token';
 import { InvitationDelivery } from '../invitation/invitation-delivery.service';
+import { assignmentEntry } from './assignment-audit';
 import { planCreation } from './team-member-placement';
 
 // contracts/gestion-usuarios.md · Crear y listar los abren `admin_empresa` y `responsable` (@Roles en la ruta y la regla de cada rol aquí); editar y reemitir, solo `admin_empresa`.
@@ -22,12 +23,6 @@ const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, r
 const entry = (p: Principal, meta: RequestMeta, action: string, before: unknown, after: unknown): AuditEntry => ({
   tenantId: p.companyId, userId: p.userId, action, resource: 'user', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
   beforeState: (before as Record<string, unknown>) ?? null, afterState: (after as Record<string, unknown>) ?? null,
-});
-// Una entrada por control cuyo dueño o ejecutor cambia (contracts/gestion-usuarios.md · Auditoría); el control va en el estado porque la entrada no tiene columna de recurso.
-const assignmentState = (controlId: string, s: AssignmentState) => ({ client_control_id: controlId, owner_id: s.ownerId, executor_id: s.executorId });
-const assignmentEntry = (p: Principal, meta: RequestMeta, r: ReleasedControl): AuditEntry => ({
-  tenantId: p.companyId, userId: p.userId, action: 'control_assignment.set', resource: 'control_assignment', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
-  beforeState: assignmentState(r.controlId, r.before), afterState: assignmentState(r.controlId, r.after),
 });
 const snapshot = (m: TeamMember) => ({
   id: m.id, email: m.email, name: m.name, last_name: m.lastName, role: m.role, status: m.status, group_id: m.group?.id ?? null, is_internal: m.isInternal,

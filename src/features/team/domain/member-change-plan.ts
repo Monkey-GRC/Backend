@@ -1,6 +1,7 @@
 import { DomainError } from '../../../common/errors/domain-error';
 import { FieldError, ValidationException } from '../../../common/errors/validation.exception';
-import type { MemberChange, ReleasedControl } from './repositories/team-user.repository';
+import type { MemberChange } from './repositories/team-user.repository';
+import type { ReleasedControl } from './team.types';
 import { TEAM_ROLES } from './team.types';
 
 // contracts/gestion-usuarios.md · PATCH /v1/users/{id}. Las reglas del cambio, puras (sin base ni Nest): el repositorio solo bloquea, lee, escribe y audita.

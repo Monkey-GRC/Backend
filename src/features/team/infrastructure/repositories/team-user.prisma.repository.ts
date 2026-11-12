@@ -8,9 +8,9 @@ import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.inser
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { lockActorAndSubject, lockGroupRow, lockLeaderShare } from '../../../../infrastructure/database/row-locks';
 import { isEmailTaken } from './unique-violation';
-import { MemberChange, MemberFilters, MemberUpdated, NewMember, Placement, ReleasedControl, TeamUserRepository } from '../../domain/repositories/team-user.repository';
+import { MemberChange, MemberFilters, MemberUpdated, NewMember, Placement, TeamUserRepository } from '../../domain/repositories/team-user.repository';
 import { assertNoLiveDelegates, describeReleased, isMoving, leaderToCheck, MemberState, partitionReleased, planMemberChange, releasesControls, TargetTeam } from '../../domain/member-change-plan';
-import { InvitationContext, isLiveStatus, LIVE_STATUSES, RESPONSIBLES_GROUP_NAME, TEAM_ROLES, TeamMember } from '../../domain/team.types';
+import { InvitationContext, isLiveStatus, LIVE_STATUSES, ReleasedControl, RESPONSIBLES_GROUP_NAME, TEAM_ROLES, TeamMember } from '../../domain/team.types';
 
 const SELECT = {
   id: true, email: true, name: true, lastName: true, role: true, status: true, isMfaEnabled: true, isInternal: true, lastLoginAt: true, createdAt: true,

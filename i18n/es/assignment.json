@@ -1,0 +1,7 @@
+{
+  "list": "Controles de tu empresa con su dueño y su ejecutor.",
+  "owner_updated": "Listo, guardamos el dueño de los controles.",
+  "executor_updated": "Listo, guardamos el ejecutor de los controles.",
+  "owner_not_eligible": "Solo puedes elegir como dueño a un responsable activo o pendiente de tu empresa, o a ti mismo.",
+  "executor_not_in_team": "Solo puedes elegir como ejecutor a un delegado activo o pendiente de tu equipo."
+}
