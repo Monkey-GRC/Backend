@@ -26,16 +26,15 @@ import { LogoutUseCase } from '../application/use-cases/session/logout.use-case'
 import { LookupActivationCodeUseCase } from '../application/use-cases/activation/lookup-activation-code.use-case';
 import { LookupAccessKeyUseCase } from '../application/use-cases/access-key/lookup-access-key.use-case';
 import { RedeemAccessKeyUseCase } from '../application/use-cases/access-key/redeem-access-key.use-case';
-import { RefreshSessionUseCase } from '../application/use-cases/session/refresh-session.use-case';
+import { RefreshSessionUseCase, UnknownRefreshTokenError } from '../application/use-cases/session/refresh-session.use-case';
 import { RegenerateRecoveryCodesUseCase } from '../application/use-cases/mfa/regenerate-recovery-codes.use-case';
 import { StartMfaSetupUseCase } from '../application/use-cases/mfa/start-mfa-setup.use-case';
 import { VerifyMfaUseCase } from '../application/use-cases/mfa/verify-mfa.use-case';
 import {
   clearAuthCookies,
   clearMfaChallengeCookie,
-  MFA_COOKIE,
-  readCookie,
-  REFRESH_COOKIE,
+  readMfaCookie,
+  readRefreshCookie,
   requestMeta,
   setAuthCookies,
   setMfaChallengeCookie,
@@ -79,7 +78,7 @@ export class AuthController {
   ) {}
 
   @Public()
-  @ApiOperation({ summary: 'Iniciar sesión', description: 'Valida el correo y la contraseña y abre la sesión: el servidor deja las cookies `httpOnly` `mnk_access` (15 min) y `mnk_refresh` en la respuesta. Nunca revela cuál de los dos datos falló. **Con el segundo factor (D94) la contraseña correcta no abre la sesión:** responde `data.next_step` (`mfa_verify` o `mfa_setup`) y deja la cookie `mnk_mfa` (el desafío, 5 minutos); la sesión se abre en `POST /auth/mfa/verify` o `POST /auth/mfa/setup/confirm`. La sesión cierra a los 30 min sin actividad y a las 8 h de abierta; a los 5 intentos fallidos la cuenta se bloquea 15 min.' })
+  @ApiOperation({ summary: 'Iniciar sesión', description: 'Valida el correo y la contraseña y abre la sesión: el servidor deja las cookies `httpOnly` `mnk_access` (15 min) y `mnk_refresh` en la respuesta (Monkey Admin, con el header `X-Monkey-Client: admin`, usa el prefijo `mnka_`). Nunca revela cuál de los dos datos falló. **Con el segundo factor (D94) la contraseña correcta no abre la sesión:** responde `data.next_step` (`mfa_verify` o `mfa_setup`) y deja la cookie `mnk_mfa` (el desafío, 5 minutos); la sesión se abre en `POST /auth/mfa/verify` o `POST /auth/mfa/setup/confirm`. La sesión cierra a los 30 min sin actividad y a las 8 h de abierta; a los 5 intentos fallidos la cuenta se bloquea 15 min.' })
   @ApiData(AuthSessionResponse, 'Sesión abierta. Trae el usuario, su empresa y, para `admin_empresa`, el avance del onboarding.')
   @ApiDomainErrors('INVALID_CREDENTIALS', 'ACCOUNT_LOCKED', 'ACCOUNT_INACTIVE')
   @Post('login')
@@ -91,10 +90,10 @@ export class AuthController {
   ) {
     const result = await this.login.execute(dto.email, dto.password, requestMeta(req));
     if (result.kind === 'mfa') {
-      setMfaChallengeCookie(res, result.challenge.token, result.challenge.expiresAt);
+      setMfaChallengeCookie(req, res, result.challenge.token, result.challenge.expiresAt);
       return new ResponseDto(HttpStatus.OK, t(result.challenge.purpose === 'verify' ? 'auth.mfa_required' : 'auth.mfa_setup_required'), mfaStep(result.challenge));
     }
-    setAuthCookies(res, result, this.policy.accessTokenTtl, result.session.expiresAt);
+    setAuthCookies(req, res, result, this.policy.accessTokenTtl, result.session.expiresAt);
     const onboarding = await this.getOnboardingProgress.execute(result.user);
     return new ResponseDto(HttpStatus.OK, t('auth.logged_in'), toAuthResponse(result.user, onboarding));
   }
@@ -138,10 +137,10 @@ export class AuthController {
     );
     // D94 · Con el segundo factor obligatorio, la cuenta recién creada lo configura antes de entrar.
     if (result.kind === 'mfa') {
-      setMfaChallengeCookie(res, result.challenge.token, result.challenge.expiresAt);
+      setMfaChallengeCookie(req, res, result.challenge.token, result.challenge.expiresAt);
       return new ResponseDto(HttpStatus.CREATED, t('auth.mfa_setup_required'), mfaStep(result.challenge));
     }
-    setAuthCookies(res, result, this.policy.accessTokenTtl, result.session.expiresAt);
+    setAuthCookies(req, res, result, this.policy.accessTokenTtl, result.session.expiresAt);
     const onboarding = await this.getOnboardingProgress.execute(result.user);
     return new ResponseDto(HttpStatus.CREATED, t('auth.account_created'), toAuthResponse(result.user, onboarding));
   }
@@ -154,9 +153,9 @@ export class AuthController {
   @Post('mfa/verify')
   @HttpCode(HttpStatus.OK)
   async verify(@Body() dto: VerifyMfaDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const result = await this.verifyMfa.execute({ challengeToken: readCookie(req, MFA_COOKIE), code: dto.code, recoveryCode: dto.recovery_code }, requestMeta(req));
-    clearMfaChallengeCookie(res);
-    setAuthCookies(res, result, this.policy.accessTokenTtl, result.session.expiresAt);
+    const result = await this.verifyMfa.execute({ challengeToken: readMfaCookie(req), code: dto.code, recoveryCode: dto.recovery_code }, requestMeta(req));
+    clearMfaChallengeCookie(req, res);
+    setAuthCookies(req, res, result, this.policy.accessTokenTtl, result.session.expiresAt);
     const onboarding = await this.getOnboardingProgress.execute(result.user);
     return new ResponseDto(HttpStatus.OK, t('auth.logged_in'), {
       ...toAuthResponse(result.user, onboarding),
@@ -171,7 +170,7 @@ export class AuthController {
   @Post('mfa/setup')
   @HttpCode(HttpStatus.OK)
   async setupStart(@Req() req: Request) {
-    const started = await this.startMfaSetup.execute(readCookie(req, MFA_COOKIE));
+    const started = await this.startMfaSetup.execute(readMfaCookie(req));
     return new ResponseDto(HttpStatus.OK, t('auth.mfa_setup_started'), {
       secret: started.secret,
       otpauth_uri: started.otpauthUri,
@@ -187,9 +186,9 @@ export class AuthController {
   @Post('mfa/setup/confirm')
   @HttpCode(HttpStatus.OK)
   async setupConfirm(@Body() dto: MfaCodeDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const result = await this.confirmMfaSetup.execute({ challengeToken: readCookie(req, MFA_COOKIE), code: dto.code }, requestMeta(req));
-    clearMfaChallengeCookie(res);
-    setAuthCookies(res, result, this.policy.accessTokenTtl, result.session.expiresAt);
+    const result = await this.confirmMfaSetup.execute({ challengeToken: readMfaCookie(req), code: dto.code }, requestMeta(req));
+    clearMfaChallengeCookie(req, res);
+    setAuthCookies(req, res, result, this.policy.accessTokenTtl, result.session.expiresAt);
     const onboarding = await this.getOnboardingProgress.execute(result.user);
     return new ResponseDto(HttpStatus.OK, t('auth.mfa_enabled'), { ...toAuthResponse(result.user, onboarding), recovery_codes: result.recoveryCodes });
   }
@@ -259,39 +258,40 @@ export class AuthController {
   async activate(@Body() dto: ActivateAccountDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const result = await this.activateAccount.execute({ code: dto.code, email: dto.email, password: dto.password }, requestMeta(req));
     if (result.kind === 'mfa') {
-      setMfaChallengeCookie(res, result.challenge.token, result.challenge.expiresAt);
+      setMfaChallengeCookie(req, res, result.challenge.token, result.challenge.expiresAt);
       return new ResponseDto(HttpStatus.CREATED, t('auth.mfa_setup_required'), mfaStep(result.challenge));
     }
     // Solo con MFA_REQUIRED=false (desarrollo y pruebas): la cuenta activada entra directo.
-    setAuthCookies(res, result, this.policy.accessTokenTtl, result.session.expiresAt);
+    setAuthCookies(req, res, result, this.policy.accessTokenTtl, result.session.expiresAt);
     return new ResponseDto(HttpStatus.CREATED, t('auth.account_activated'), toAuthResponse(result.user));
   }
   @Public()
-  @ApiOperation({ summary: 'Renovar la sesión', description: 'Sin cuerpo: usa la cookie `mnk_refresh`. Rota el refresh token (el anterior deja de servir) y renueva las cookies. Pasadas las 8 h de sesión o 30 min sin actividad responde 401 y hay que iniciar sesión de nuevo.' })
+  @ApiOperation({ summary: 'Renovar la sesión', description: 'Sin cuerpo: usa la cookie `mnk_refresh` (`mnka_refresh` para Admin, según `X-Monkey-Client`). Rota el refresh token (el anterior deja de servir) y renueva las cookies. Pasadas las 8 h de sesión o 30 min sin actividad responde 401 y hay que iniciar sesión de nuevo.' })
   @ApiEmpty('Cookies renovadas. `data` es `null`.')
   @ApiDomainErrors('SESSION_EXPIRED', 'ACCOUNT_INACTIVE')
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async renew(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     try {
-      const result = await this.refresh.execute(readCookie(req, REFRESH_COOKIE));
-      setAuthCookies(res, result, this.policy.accessTokenTtl, result.session.expiresAt);
+      const result = await this.refresh.execute(readRefreshCookie(req));
+      setAuthCookies(req, res, result, this.policy.accessTokenTtl, result.session.expiresAt);
       return new ResponseDto(HttpStatus.OK, t('auth.refreshed'), null);
     } catch (error) {
-      // Sesión muerta: se limpian las cookies para que el navegador no reintente con ellas.
-      clearAuthCookies(res);
+      // Sesión muerta: se limpian las cookies para que el navegador no reintente con ellas. Si el token no corresponde a ninguna sesión
+      // (rotado por otra pestaña a la vez) no se tocan: borrarían las cookies recién renovadas y la persona caería al login.
+      if (!(error instanceof UnknownRefreshTokenError)) clearAuthCookies(req, res);
       throw error;
     }
   }
 
   @Public()
-  @ApiOperation({ summary: 'Cerrar la sesión', description: 'Sin cuerpo. Invalida la sesión y limpia las cookies. Es idempotente: sin sesión también responde 204.' })
+  @ApiOperation({ summary: 'Cerrar la sesión', description: 'Sin cuerpo. Invalida la sesión y limpia las cookies (`mnk_` o, para Admin, `mnka_`). Es idempotente: sin sesión también responde 204.' })
   @ApiNoBody('Sesión cerrada. No hay cuerpo.')
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   async signOut(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
-    await this.logout.execute(readCookie(req, REFRESH_COOKIE), requestMeta(req));
-    clearAuthCookies(res);
+    await this.logout.execute(readRefreshCookie(req), requestMeta(req));
+    clearAuthCookies(req, res);
   }
 
   @ApiOperation({ summary: 'Usuario en sesión', description: 'Lo primero que llama el frontend al arrancar: dice si hay sesión, quién es y dónde continuar el onboarding.' })

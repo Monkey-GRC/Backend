@@ -18,7 +18,7 @@ async function bootstrap() {
           'http://localhost:4201',
           'http://127.0.0.1:4201',
         ],
-    allowedHeaders: 'Content-Type, Authorization, Accept-Language',
+    allowedHeaders: 'Content-Type, Authorization, Accept-Language, X-Monkey-Client',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });

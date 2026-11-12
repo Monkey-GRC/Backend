@@ -4,7 +4,7 @@ import { Request } from 'express';
 import { Principal } from '../../../../common/auth/principal';
 import { IS_PUBLIC_KEY } from '../../../../common/decorators/public.decorator';
 import { ValidateSessionUseCase } from '../../application/use-cases/session/validate-session.use-case';
-import { ACCESS_COOKIE, readCookie } from '../auth-cookies';
+import { readAccessCookie } from '../auth-cookies';
 
 // Guard global: todo endpoint exige sesión válida salvo los marcados con @Public().
 @Injectable()
@@ -22,7 +22,7 @@ export class SessionAuthGuard implements CanActivate {
     if (isPublic) return true;
 
     const req = context.switchToHttp().getRequest<Request & { principal?: Principal }>();
-    req.principal = await this.validateSession.execute(readCookie(req, ACCESS_COOKIE));
+    req.principal = await this.validateSession.execute(readAccessCookie(req));
     return true;
   }
 }

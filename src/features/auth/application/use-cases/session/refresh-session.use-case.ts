@@ -15,6 +15,14 @@ export type RefreshResult = {
   refreshToken: string;
 };
 
+// El token no corresponde a ninguna sesión (otra petición ya lo rotó, o es basura). Mismo 401 SESSION_EXPIRED, pero el controlador
+// no debe borrar cookies: podrían ser las nuevas que esa otra petición acaba de escribir (carrera entre pestañas).
+export class UnknownRefreshTokenError extends DomainError {
+  constructor() {
+    super('SESSION_EXPIRED');
+  }
+}
+
 @Injectable()
 export class RefreshSessionUseCase {
   constructor(
@@ -26,11 +34,11 @@ export class RefreshSessionUseCase {
   ) {}
 
   async execute(refreshToken: string | undefined): Promise<RefreshResult> {
-    if (!refreshToken) throw new DomainError('SESSION_EXPIRED');
+    if (!refreshToken) throw new UnknownRefreshTokenError();
     const now = new Date();
 
     const session = await this.sessions.findByRefreshTokenHash(this.tokens.hash(refreshToken));
-    if (!session) throw new DomainError('SESSION_EXPIRED');
+    if (!session) throw new UnknownRefreshTokenError();
 
     const scope: TenantScope = { companyId: session.companyId, userId: session.userId };
     const state = session.stateAt(now, this.policy);
