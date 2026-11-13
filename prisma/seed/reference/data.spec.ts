@@ -72,14 +72,15 @@ describe('catálogos de referencia (MD-75, MD-83)', () => {
       expect(all).not.toMatch(/EC2|RDS|Cloud SQL|Atlas|VPS|Azure VM/i);
     });
 
-    it('solo AWS está disponible: es el único flujo construido', () => {
-      expect(PLATFORMS.filter((p) => p.availability === 'available').map((p) => `${p.capability}/${p.code}`)).toEqual(['ac_01/aws']);
+    it('solo está disponible lo que tiene flujo construido: AWS y Linux y Windows en servidores on-premise (D113)', () => {
+      expect(PLATFORMS.filter((p) => p.availability === 'available').map((p) => `${p.capability}/${p.code}`)).toEqual(['ac_01/aws', 'ac_04/linux', 'ac_04/windows']);
     });
 
     it('una plataforma disponible tiene canal y regiones; una bloqueada no se puede conectar todavía', () => {
       for (const p of PLATFORMS.filter((x) => x.availability === 'available')) {
         expect(p.methods.length).toBeGreaterThan(0);
-        expect(PLATFORM_REGIONS[`${p.capability}/${p.code}`]?.length).toBeGreaterThan(0);
+        // Una nube se evalúa por regiones; un servidor con agente no tiene regiones.
+        if (!p.methods.includes('agent')) expect(PLATFORM_REGIONS[`${p.capability}/${p.code}`]?.length).toBeGreaterThan(0);
       }
       expect(PLATFORMS.find((p) => p.code === 'aws')?.methods[0]).toBe('readonly_role');
     });

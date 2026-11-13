@@ -91,7 +91,7 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   await drainQueue();
-  await setAvailability('coming_soon');
+  await setAvailability('available');
   await owner(`delete from tenant.executions where kind = 'enrollment' and asset_id in (select asset_id from tenant.asset_agents where sca_policy_id in (select id from catalog.sca_policies where sca_id = any($1)))`, [SCA_IDS]).catch(() => undefined);
   await owner(`delete from tenant.asset_agents where sca_policy_id in (select id from catalog.sca_policies where sca_id = any($1))`, [SCA_IDS]).catch(() => undefined);
   await owner(`delete from catalog.sca_policies where sca_id = any($1)`, [SCA_IDS]).catch(() => undefined);

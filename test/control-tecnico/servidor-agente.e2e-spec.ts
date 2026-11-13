@@ -51,7 +51,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await setAvailability('coming_soon');
+  await setAvailability('available');
   await owner(`delete from tenant.asset_agents where sca_policy_id in (select id from catalog.sca_policies where sca_id = any($1))`, [SCA_IDS]).catch(() => undefined);
   await owner(`delete from catalog.sca_policies where sca_id = any($1)`, [SCA_IDS]).catch(() => undefined);
   await app?.close();
