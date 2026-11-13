@@ -42,6 +42,34 @@ describe('proposeTests', () => {
   it('un check sin categoría que lo ubique queda sin prueba (cobertura no alcanzada)', () => expect(proposeTests(meta({ CheckID: 'sagemaker_clarify_exists', Categories: ['gen-ai'] }))).toEqual([]));
 });
 
+describe('proposeTests · reglas solo de GCP', () => {
+  const gcp = (id: string, cats: string[] = []) => proposeTests(meta({ CheckID: id, Categories: cats }), 'gcp');
+  it.each([
+    ['compute_project_os_login_2fa_enabled', ['T-CLD-001', 'T-CLD-011']],
+    ['compute_subnet_flow_logs_enabled', ['T-CLD-010']],
+    ['logging_log_metric_filter_and_alert_for_vpc_network_changes_enabled', ['T-CLD-003']],
+    ['compute_instance_group_multiple_zones', ['T-CLD-009']],
+    ['compute_instance_group_autohealing_enabled', ['T-CLD-009']],
+    ['compute_instance_group_load_balancer_attached', ['T-CLD-009']],
+    ['cloudsql_instance_high_availability_enabled', ['T-CLD-009']],
+    ['cloudstorage_bucket_soft_delete_enabled', ['T-CLD-003']],
+    ['compute_instance_disk_auto_delete_disabled', ['T-CLD-003']],
+    ['dns_rsasha1_in_use_to_zone_sign_in_dnssec', ['T-CLD-002']],
+  ])('%s → %j', (id, tests) => expect(gcp(id, ['logging', 'internet-exposed'])[0].tests).toEqual(tests));
+  it('el escaneo de contenedores va a T-CLD-010 con confianza low', () => {
+    for (const id of ['gcr_container_scanning_enabled', 'artifacts_container_analysis_enabled']) expect(gcp(id)[0]).toMatchObject({ tests: ['T-CLD-010'], confidence: 'low' });
+  });
+  it('un check de GCP sin regla ni categoría queda sin prueba', () => expect(gcp('compute_instance_shielded_vm_enabled')).toEqual([]));
+  it('las reglas de GCP no afectan a AWS', () => {
+    expect(proposeTests(meta({ CheckID: 'x_2fa_enabled' }))).toEqual([]);
+    expect(proposeTests(meta({ CheckID: 'iam_root_mfa_enabled' }), 'gcp')).toEqual([]);
+    expect(proposeTests(meta({ CheckID: 'iam_password_policy_minimum_length_14' }), 'gcp')).toEqual([]);
+    expect(proposeTests(meta({ CheckID: 'x_subnet_flow_logs_enabled', Categories: ['logging'] }))[0].tests).toEqual(['T-CLD-003']);
+    expect(proposeTests(meta({ CheckID: 'x_soft_delete' }))).toEqual([]);
+    expect(proposeTests(meta({ CheckID: 'x_container_scanning' }))).toEqual([]);
+  });
+});
+
 describe('requirementsByTest', () => {
   it('recorre prueba → control → requisito', () => expect([...requirementsByTest(soc2).get('T-CLD-001')!]).toEqual(['CC6.3']));
 });
@@ -78,5 +106,16 @@ describe('buildCloudDataset', () => {
   });
   it('informa si el motor no trae un marco ofrecido', () => {
     expect(buildCloudDataset('5.44.0', metas, [], soc2).errors.join()).toMatch(/SOC2/);
+  });
+  it('en AWS un marco ausente es error', () => {
+    expect(buildCloudDataset('5.44.0', metas, allFrameworks([]).filter((f) => f.Framework !== 'GDPR'), soc2).errors.join()).toMatch(/GDPR/);
+  });
+  it('en GCP la ausencia de GDPR y NIST-CSF es un aviso, no un error; otro marco ausente sigue siendo error', () => {
+    const fws = allFrameworks([]).filter((f) => f.Framework !== 'GDPR' && f.Framework !== 'NIST-CSF');
+    const r = buildCloudDataset('5.44.0', metas, fws, soc2, 'gcp');
+    expect(r.errors).toEqual([]);
+    expect(r.warnings).toHaveLength(2);
+    expect(r.dataset.checks.every((c) => c.platform === 'gcp' && c.mappingProvenance === 'engine:gcp:5.44.0')).toBe(true);
+    expect(buildCloudDataset('5.44.0', metas, fws.filter((f) => f.Framework !== 'HIPAA'), soc2, 'gcp').errors.join()).toMatch(/HIPAA/);
   });
 });
