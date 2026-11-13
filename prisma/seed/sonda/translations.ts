@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { namesProvider } from '../../../src/common/text/provider-names';
 
-// D112 · La guía de corrección en español de los checks de la sonda de servidores. La escribe Monkey (traducción automática, sin revisar: `translation_origin = 'machine'`) y una
+// D113 · La guía de corrección en español de los checks de la sonda de servidores. La escribe Monkey (traducción automática, sin revisar: `translation_origin = 'machine'`) y una
 // persona la puede revisar después. Vive en un archivo POR POLÍTICA (`data/sonda-es/<policyId>.json`): se agrega una política sin tocar las demás y cada archivo se revisa solo.
 //
 // Formato del texto: párrafos separados por salto de línea, viñetas con «- », y los COMANDOS en un bloque con tres comillas invertidas (```) o, si son cortos, entre comillas

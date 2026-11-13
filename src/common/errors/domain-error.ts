@@ -113,7 +113,7 @@ export type DomainErrorCode =
   | 'CONNECTION_UNAVAILABLE'
   // D110 · La integración no existe o, para el auditor, la empresa no la tiene conectada.
   | 'INTEGRATION_NOT_FOUND'
-  // La instalación de la sonda en un servidor (D112).
+  // La instalación de la sonda en un servidor (D113).
   | 'ASSET_NOT_AGENT'
   | 'AGENT_INSTALL_NOT_READY'
   | 'AGENT_ALREADY_LINKED'

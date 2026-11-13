@@ -27,7 +27,7 @@ export type PlatformRule = PlatformView & {
   regionCodes: string[];
 };
 
-// Una versión de un sistema operativo que el catálogo ofrece y la sonda entrega (D112). `id` es la política del catálogo; `code` es el código de la API.
+// Una versión de un sistema operativo que el catálogo ofrece y la sonda entrega (D113). `id` es la política del catálogo; `code` es el código de la API.
 export type OsVersionRule = {
   id: string;
   osCode: string;
@@ -58,6 +58,8 @@ export type AssetProvisioningView = {
   regions: string[];
   externalId: string | null;
   roleArn: string | null;
+  // GCP (D112): el número del proyecto que el cliente entregó. No es un secreto.
+  projectNumber: string | null;
   automatedCapabilityCode: ConnectionCategory;
   connectionStatus: string;
   lastValidatedAt: Date | null;
@@ -65,7 +67,7 @@ export type AssetProvisioningView = {
   scheduleFrequency: ScheduleFrequencyValue | null;
 };
 
-// El agente de la sonda de un servidor (D112). Hasta que Monkey lo crea, `status` es `pending`. No lleva la clave ni el nombre/grupo del agente en la sonda
+// El agente de la sonda de un servidor (D113). Hasta que Monkey lo crea, `status` es `pending`. No lleva la clave ni el nombre/grupo del agente en la sonda
 // (son derivados del activo y de la empresa): esto es solo lo que la pantalla necesita.
 export type AssetAgentView = {
   status: 'pending' | 'connected' | 'disconnected' | 'removed';
@@ -98,7 +100,7 @@ export type Asset = {
   externalAccountId: string | null;
   services: { id: string; name: string }[];
   provisioning: AssetProvisioningView;
-  // Solo un servidor o equipo con agente (D112); null en los demás.
+  // Solo un servidor o equipo con agente (D113); null en los demás.
   agent: AssetAgentView | null;
 };
 
@@ -121,7 +123,7 @@ export type NewAsset = {
   externalAccountId: string | null;
   regions: string[];
   externalId: string | null;
-  // La versión del sistema que el cliente declaró (D112): la política del catálogo. Con ella nace la fila de agente del activo, en la misma transacción.
+  // La versión del sistema que el cliente declaró (D113): la política del catálogo. Con ella nace la fila de agente del activo, en la misma transacción.
   agentScaPolicyId: string | null;
 };
 
@@ -150,6 +152,7 @@ export type AssetEdit = {
   externalAccountId?: string;
   regions?: string[];
   roleArn?: string | null;
+  projectNumber?: string | null;
   encryptedCredentials?: string;
   // Una cuenta nueva exige un ExternalId nuevo: el anterior se entregó para otra cuenta.
   externalId?: string;

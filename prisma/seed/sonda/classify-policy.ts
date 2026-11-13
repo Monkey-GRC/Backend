@@ -1,4 +1,4 @@
-// Clasifica una política de configuración del catálogo del comité (hoja «Checks») en sistema operativo, distribución y versión (D112).
+// Clasifica una política de configuración del catálogo del comité (hoja «Checks») en sistema operativo, distribución y versión (D113).
 // Dominio puro: sin base de datos ni Excel. Es lo que permite que el cliente elija «Ubuntu → 22.04 LTS» y que Monkey sepa qué política esperar.
 //
 // El comité nombra cada política por su NOMBRE («CIS Ubuntu Linux 22.04 LTS Benchmark v2.0.0.») y la sonda por su id (`cis_ubuntu22-04`): de ahí que esta

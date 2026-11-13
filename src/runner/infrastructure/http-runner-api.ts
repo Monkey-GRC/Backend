@@ -5,6 +5,12 @@ import { SondaSnapshot } from '../domain/sonda';
 
 type Fetch = typeof fetch;
 
+function toConnection(c: Record<string, any>): RunnerJob['connection'] {
+  if (c['method'] === 'readonly_role') return { method: 'readonly_role', roleArn: c['role_arn'], externalId: c['external_id'] ?? null };
+  if (c['method'] === 'identity_federation') return { method: 'identity_federation', externalId: c['external_id'], projectNumber: c['project_number'] };
+  return { method: 'access_keys', accessKeyId: c['access_key_id'], secretAccessKey: c['secret_access_key'] };
+}
+
 // Habla con `/internal/runner` (contracts/modules/control-tecnico.md). La llamada va por la red interna de Docker, sin pasar por el proxy.
 export class HttpRunnerApi extends RunnerApi {
   constructor(
@@ -30,14 +36,9 @@ export class HttpRunnerApi extends RunnerApi {
       platform: data['platform'],
       externalAccountId: data['external_account_id'] ?? null,
       regions: data['regions'],
-      // Crear el agente de un servidor (D112): el backend dice cómo se llama en la sonda y a qué grupo va.
+      // Crear el agente de un servidor (D113): el backend dice cómo se llama en la sonda y a qué grupo va.
       ...(data['kind'] === 'enrollment' ? { enrollment: { name: String(data['agent']?.name ?? ''), group: String(data['agent']?.group ?? ''), ...(data['agent']?.remove === true ? { remove: true } : {}) } } : {}),
-      connection:
-        c.method === 'agent'
-          ? { method: 'agent', agentId: String(data['agent']?.agent_id ?? ''), group: String(data['agent']?.group ?? '') }
-          : c.method === 'readonly_role'
-            ? { method: 'readonly_role', roleArn: c.role_arn, externalId: c.external_id ?? null }
-            : { method: 'access_keys', accessKeyId: c.access_key_id, secretAccessKey: c.secret_access_key },
+      connection: c['method'] === 'agent' ? { method: 'agent', agentId: String(data['agent']?.agent_id ?? ''), group: String(data['agent']?.group ?? '') } : toConnection(c),
     };
   }
 

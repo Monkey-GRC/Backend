@@ -23,7 +23,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 
 const TEMPLATES = { linuxScript: AGENT_INSTALL_SH, windowsScript: AGENT_INSTALL_PS1, windowsParamsBlock: AGENT_INSTALL_PS1_PARAMS };
 
-// Instalar la sonda en un servidor con agente (D112). El estado se consulta (GET) las veces que haga falta y no lleva ningún secreto; el comando, que lleva la clave del
+// Instalar la sonda en un servidor con agente (D113). El estado se consulta (GET) las veces que haga falta y no lleva ningún secreto; el comando, que lleva la clave del
 // servidor, se pide aparte (POST) y se entrega UNA sola vez.
 @ApiTags(API_TAGS.assets)
 @Roles('admin_empresa')

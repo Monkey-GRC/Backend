@@ -30,12 +30,15 @@ if [ -f "$ENV" ] && [ "$(value "$ENV" PROBE_MODE)" = "runner" ]; then
   need "$RUNNER" RUNNER_TOKEN ENGINE_IMAGE AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION
   if [ -f "$RUNNER" ]; then
     [ "$(value "$ENV" RUNNER_TOKEN)" = "$(value "$RUNNER" RUNNER_TOKEN)" ] || fail "RUNNER_TOKEN distinto en .env y runner.env: el trabajador no podría reclamar nada"
+    # GCP (D112): opcional, pero si se define debe ser el mismo rol en los dos lados (el backend lo hornea en el script de alta; el trabajador lo asume).
+    [ "$(value "$ENV" MONKEY_GCP_FEDERATION_ROLE_ARN)" = "$(value "$RUNNER" MONKEY_GCP_FEDERATION_ROLE_ARN)" ] || fail "MONKEY_GCP_FEDERATION_ROLE_ARN distinto en .env y runner.env: el trabajador no asumiría el rol que el script de alta de GCP acepta"
+    ! grep -qE '^PREVIEW_PLATFORMS=.+' "$ENV" || fail "PREVIEW_PLATFORMS está definida en $ENV: es solo de desarrollo y el backend no arranca así en producción (DT-104)"
     # El trabajador solo recibe lo suyo: nunca los secretos del backend.
     ! grep -qE '^(JWT_SECRET|APP_DATABASE_URL|CREDENTIALS_ENCRYPTION_KEY|TOKEN_HASH_PEPPER)=' "$RUNNER" || fail "runner.env trae secretos del backend: quítalos"
   fi
 fi
 
-# Servidores con agente (D112): es OPCIONAL, pero si el trabajador trae SONDA_API_URL tiene que venir completo (el trabajador tampoco arranca incompleto).
+# Servidores con agente (D113): es OPCIONAL, pero si el trabajador trae SONDA_API_URL tiene que venir completo (el trabajador tampoco arranca incompleto).
 if [ -f "$RUNNER" ] && [ -n "$(value "$RUNNER" SONDA_API_URL)" ]; then
   need "$RUNNER" SONDA_API_USER SONDA_API_PASSWORD SONDA_ENROLL_USER SONDA_ENROLL_PASSWORD SONDA_SUPPORTED_VERSIONS SONDA_CA_FILE
   [ "$(value "$RUNNER" SONDA_API_USER)" != "$(value "$RUNNER" SONDA_ENROLL_USER)" ] || fail "$RUNNER: SONDA_API_USER y SONDA_ENROLL_USER tienen que ser distintos (uno lee, otro da de alta)"
@@ -43,6 +46,12 @@ if [ -f "$RUNNER" ] && [ -n "$(value "$RUNNER" SONDA_API_URL)" ]; then
   # El certificado se guarda en $ROOT/runner-secrets/ y el compose lo monta en /run/secrets/.
   [ -z "$ca" ] || [ -f "$ROOT/runner-secrets/$(basename "$ca")" ] || fail "Falta el certificado de la sonda: $ROOT/runner-secrets/$(basename "$ca")"
   need "$ENV" SONDA_MANAGER_HOST SONDA_MANAGER_PORT SONDA_AGENT_VERSION
+fi
+
+# D112: el grupo de trabajadores es opcional (queda «default»), pero con un formato inválido el backend se niega a arrancar.
+if [ -f "$ENV" ]; then
+  pool="$(value "$ENV" RUNNER_POOL)"
+  [ -z "$pool" ] || [[ "$pool" =~ ^[a-z0-9][a-z0-9-]{0,39}$ ]] || fail "$ENV: RUNNER_POOL inválido (minúsculas, dígitos y guiones, máx. 40): el backend no arrancaría"
 fi
 
 # Almacenamiento privado de archivos (MD-110). Es una ADVERTENCIA y no detiene el despliegue: sin él la app arranca, pero subir un archivo responde 503.

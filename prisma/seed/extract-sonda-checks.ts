@@ -1,4 +1,4 @@
-// Catálogo de políticas y checks de servidores (D112): Excel del comité + conjunto de reglas de la sonda → `prisma/seed/data/sonda-checks.json.gz`.
+// Catálogo de políticas y checks de servidores (D113): Excel del comité + conjunto de reglas de la sonda → `prisma/seed/data/sonda-checks.json.gz`.
 //
 //   npm run sonda:extract -- <carpeta ruleset/sca de la sonda> [referencia]
 //

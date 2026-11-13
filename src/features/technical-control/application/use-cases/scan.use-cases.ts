@@ -2,6 +2,7 @@ import { Inventory } from '../../domain/entities/technical-control.entities';
 import { Injectable } from '@nestjs/common';
 import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
+import { CLOUD_PLATFORM_AWS, CLOUD_PLATFORM_GCP, CLOUD_PLATFORMS, CloudPlatform } from '../../../../common/catalogs/technical-catalogs';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { Page, PageRequest } from '../../../../common/pagination/page';
@@ -19,7 +20,6 @@ import { buildCatalogLookup } from '../../domain/sonda/catalog-lookup';
 import { interpretSca } from '../../domain/sonda/interpret-sca';
 import { ScaPolicyInput } from '../../domain/sonda/sonda.types';
 
-const PLATFORM = 'aws';
 const MAX_CLAIM_ATTEMPTS = 10;
 
 const scopeOf = (p: Principal): TenantScope => ({ companyId: p.companyId, userId: p.userId, role: p.role });
@@ -41,9 +41,9 @@ const entry = (scope: TenantScope, actorUserId: string | null, action: string, a
 // y el catálogo no conoce se registran en la bitácora, no se descartan en silencio.
 async function buildOutcome(
   repo: ScanRepository,
-  input: { findings: readonly EngineFinding[]; finishedAt: Date; engineVersion: string; regions: string[] },
+  input: { platform: string; findings: readonly EngineFinding[]; finishedAt: Date; engineVersion: string; regions: string[] },
 ): Promise<ScanOutcome> {
-  const catalog = await repo.catalogChecks(PLATFORM);
+  const catalog = await repo.catalogChecks(input.platform.trim().toLowerCase());
   const { results, unexpectedChecks } = interpretScan({ executedCheckIds: [...catalog.keys()], findings: input.findings });
   const logs: ScanOutcome['logs'] = [{ level: 'info', message: `Corrida completada: ${input.findings.length} filas del motor sobre ${catalog.size} comprobaciones.` }];
   if (unexpectedChecks.length > 0) logs.push({ level: 'warn', message: `Comprobaciones fuera del catálogo (ignoradas): ${unexpectedChecks.join(', ')}` });
@@ -113,7 +113,9 @@ export class ImportScanUseCase {
     scope: TenantScope,
     input: { assetId: string; origin: 'scheduled' | 'manual'; actorUserId: string | null; startedAt: Date; finishedAt: Date; engineVersion: string; regions: string[]; raw: unknown },
   ): Promise<RecordedScan> {
-    const outcome = await buildOutcome(this.repo, { findings: this.parser.parse(input.raw), finishedAt: input.finishedAt, engineVersion: input.engineVersion, regions: input.regions });
+    const platform = await this.repo.assetPlatform(scope, input.assetId);
+    if (!platform) throw new DomainError('NOT_FOUND');
+    const outcome = await buildOutcome(this.repo, { platform, findings: this.parser.parse(input.raw), finishedAt: input.finishedAt, engineVersion: input.engineVersion, regions: input.regions });
     return this.repo.recordCompletedScan(scope, { ...outcome, assetId: input.assetId, origin: input.origin, startedAt: input.startedAt }, (r) =>
       entry(scope, input.actorUserId, 'execution.complete', recordedState(r.executionId, input.assetId, { origin: input.origin, engine_version: input.engineVersion, regions: input.regions, results: r.resultCount, resources: r.resourceCount, imported: true })),
     );
@@ -128,17 +130,19 @@ export type RunnerJob = {
   tenantId: string;
   assetId: string;
   origin: 'scheduled' | 'manual';
-  // `aws` para la nube; para crear el agente de un servidor (D112), la plataforma del activo.
+  // `aws` o `gcp` para la nube; para crear el agente de un servidor (D113), la plataforma del activo.
   platform: string;
   externalAccountId: string | null;
   regions: string[];
   connection:
     | { method: 'readonly_role'; roleArn: string; externalId: string | null }
+    // GCP (D112): el proyecto confía en la sesión de Monkey con este `externalId` como nombre; el número de proyecto arma la audiencia de la federación.
+    | { method: 'identity_federation'; externalId: string; projectNumber: string }
     // Las llaves descifradas viajan SOLO en esta respuesta, por la red interna, y no se registran nunca.
     | { method: 'access_keys'; accessKeyId: string; secretAccessKey: string }
-    // Un servidor con agente (D112): no hay credenciales del cliente.
+    // Un servidor con agente (D113): no hay credenciales del cliente.
     | { method: 'agent' };
-  // De un servidor con agente (D112). Al crearlo: cómo debe llamarse en la sonda y a qué grupo pertenece, los dos derivados del activo y de la empresa (nombre = `asset_id`,
+  // De un servidor con agente (D113). Al crearlo: cómo debe llamarse en la sonda y a qué grupo pertenece, los dos derivados del activo y de la empresa (nombre = `asset_id`,
   // grupo = `tenant_id`): el trabajador no los inventa. Al evaluarlo, además, `agentId`: el agente que Monkey enlazó a ESTE activo.
   agent?: { name: string; group: string; agentId?: string; remove?: boolean };
 };
@@ -151,7 +155,21 @@ const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() ?
 // formulario provisional del paso 3 (`account_id`, `read_only_role`, `external_id` dentro de las credenciales cifradas) también se entiende: se retira
 // cuando la pantalla migre. Una VALIDACIÓN solo comprueba el acceso a la cuenta: no necesita regiones (una evaluación sí).
 export function buildConnection(ctx: RunContext, creds: Credentials | null): { ok: true; job: Pick<RunnerJob, 'platform' | 'externalAccountId' | 'connection'> } | { ok: false; reason: string } {
-  if (ctx.platform.trim().toLowerCase() !== PLATFORM) return { ok: false, reason: 'connection.provider_not_supported' };
+  const platform = ctx.platform.trim().toLowerCase();
+  if (!(CLOUD_PLATFORMS as readonly string[]).includes(platform)) return { ok: false, reason: 'connection.provider_not_supported' };
+  if (platform === CLOUD_PLATFORM_GCP) return buildGcpConnection(ctx);
+  return buildAwsConnection(ctx, creds);
+}
+
+// GCP evalúa el proyecto completo: sin regiones. Sin el número de proyecto (o sin el identificador externo) todavía no se configuró.
+function buildGcpConnection(ctx: RunContext): ReturnType<typeof buildConnection> {
+  if (ctx.connectionMethod !== 'identity_federation') return { ok: false, reason: 'connection.method_not_supported_by_runner' };
+  if (!ctx.projectNumber || !ctx.externalId) return { ok: false, reason: 'connection.not_configured' };
+  return { ok: true, job: { platform: CLOUD_PLATFORM_GCP, externalAccountId: ctx.externalAccountId, connection: { method: 'identity_federation', externalId: ctx.externalId, projectNumber: ctx.projectNumber } } };
+}
+
+function buildAwsConnection(ctx: RunContext, creds: Credentials | null): ReturnType<typeof buildConnection> {
+  const PLATFORM = CLOUD_PLATFORM_AWS;
   if (ctx.kind === 'assessment' && ctx.regions.length === 0) return { ok: false, reason: 'connection.regions_missing' };
   const externalAccountId = ctx.externalAccountId ?? text(creds?.['account_id']);
   const accessKeyId = text(creds?.['access_key_id']);
@@ -167,7 +185,7 @@ export function buildConnection(ctx: RunContext, creds: Credentials | null): { o
     if (!roleArn) return { ok: false, reason: creds ? 'connection.role_not_found' : 'connection.not_configured' };
     return { ok: true, job: { platform: PLATFORM, externalAccountId, connection: { method: 'readonly_role', roleArn, externalId: ctx.externalId ?? text(creds?.['external_id']) } } };
   }
-  // `agent`: no lo ejecuta el trabajador de la nube (lo lee la sonda de servidores).
+  // `agent` (o un canal de otra plataforma): no lo ejecuta el trabajador de la nube (lo lee la sonda de servidores).
   return { ok: false, reason: 'connection.method_not_supported_by_runner' };
 }
 
@@ -186,18 +204,18 @@ export class ClaimExecutionUseCase {
       const claimed = await this.repo.claimNext(kind);
       if (!claimed) return null;
       const scope: TenantScope = { companyId: claimed.tenantId };
-      // Crear el agente de un servidor (D112) no tiene credenciales del cliente ni regiones: el trabajador necesita saber cómo se llama el agente y a qué grupo va.
+      // Crear el agente de un servidor (D113) no tiene credenciales del cliente ni regiones: el trabajador necesita saber cómo se llama el agente y a qué grupo va.
       if (claimed.kind === 'enrollment') {
         const target = await this.agents.loadEnrollmentTarget(scope, claimed.executionId);
         return {
           executionId: claimed.executionId, kind: claimed.kind, tenantId: claimed.tenantId, assetId: claimed.assetId, origin: claimed.origin, platform: target.platform,
           externalAccountId: null, regions: [], connection: { method: 'agent' },
-          // Un servidor ya dado de baja: la ejecución no crea el agente, lo retira de la sonda (D112 punto 8).
+          // Un servidor ya dado de baja: la ejecución no crea el agente, lo retira de la sonda (D113 punto 8).
           agent: { name: claimed.assetId, group: claimed.tenantId, ...(target.retired ? { remove: true } : {}) },
         };
       }
       const ctx = await this.repo.loadRunContext(scope, claimed.executionId);
-      // Evaluar un servidor con agente (D112): no hay credenciales del cliente ni regiones. El trabajador lee la sonda con la suya; aquí solo se le dice QUÉ agente leer.
+      // Evaluar un servidor con agente (D113): no hay credenciales del cliente ni regiones. El trabajador lee la sonda con la suya; aquí solo se le dice QUÉ agente leer.
       if (claimed.kind === 'assessment' && ctx.connectionMethod === 'agent') {
         const link = await this.repo.loadAgentLink(scope, claimed.executionId);
         if (!link?.agentId) {
@@ -234,7 +252,10 @@ export class CompleteExecutionUseCase {
   // `tenantId` lo da el trabajador (lo recibió al reclamar). Si miente, RLS no encuentra la ejecución: EXECUTION_NOT_RUNNING.
   async execute(tenantId: string, executionId: string, input: { engineVersion: string; regions: string[]; finishedAt: Date; raw: unknown }): Promise<RecordedScan> {
     const scope: TenantScope = { companyId: tenantId };
-    const outcome = await buildOutcome(this.repo, { findings: this.parser.parse(input.raw), finishedAt: input.finishedAt, engineVersion: input.engineVersion, regions: input.regions });
+    // Una ejecución de otra empresa (o inexistente) es EXECUTION_NOT_RUNNING, como en el cierre: no se distingue.
+    const platform = await this.repo.executionPlatform(scope, executionId);
+    if (!platform) throw new DomainError('EXECUTION_NOT_RUNNING');
+    const outcome = await buildOutcome(this.repo, { platform, findings: this.parser.parse(input.raw), finishedAt: input.finishedAt, engineVersion: input.engineVersion, regions: input.regions });
     return this.repo.completeExecution(scope, executionId, outcome, (r) =>
       entry(scope, null, 'execution.complete', recordedState(r.executionId, null, { engine_version: input.engineVersion, regions: input.regions, results: r.resultCount, resources: r.resourceCount })),
     );
@@ -248,7 +269,7 @@ export type ScaReading = {
   policies: ScaPolicyInput[];
 };
 
-// El trabajador leyó la sonda de un servidor con agente y entrega lo que vio (D112). Monkey NO le cree a ciegas: comprueba que el agente es el que enlazó a ESTE activo de ESTA
+// El trabajador leyó la sonda de un servidor con agente y entrega lo que vio (D113). Monkey NO le cree a ciegas: comprueba que el agente es el que enlazó a ESTE activo de ESTA
 // empresa (SEG-45), reconoce cada check en el catálogo del comité y guarda solo lo que reconoce; el resto se informa como «no mapeado», nunca se inventa.
 @Injectable()
 export class CompleteScaExecutionUseCase {
@@ -271,7 +292,7 @@ export class CompleteScaExecutionUseCase {
 
     const total = input.policies.reduce((n, p) => n + p.checks.length, 0);
     const logs: ScaOutcome['logs'] = [{ level: 'info', message: `Lectura completada: ${total} checks de ${input.policies.length} política(s) de la sonda ${input.sondaVersion}; ${sca.rows.length} reconocidos en el catálogo.` }];
-    // Cobertura no alcanzada (D56, D112): lo que la sonda entregó y el comité aún no tiene catalogado se ve en la bitácora, no se descarta en silencio.
+    // Cobertura no alcanzada (D56, D113): lo que la sonda entregó y el comité aún no tiene catalogado se ve en la bitácora, no se descarta en silencio.
     for (const u of sca.unmapped) logs.push({ level: 'warn', message: `Política fuera del catálogo (${u.checks} checks sin guardar): ${u.policyName} [${u.policyId}]` });
     if (sca.duplicates > 0) logs.push({ level: 'warn', message: `Checks repetidos en la entrega: ${sca.duplicates} (se guardó el peor resultado de cada uno).` });
 
@@ -287,7 +308,7 @@ export class FailExecutionUseCase {
 
   async execute(tenantId: string, executionId: string, reason: string) {
     const scope: TenantScope = { companyId: tenantId };
-    // Una lectura AUTOMÁTICA de un servidor que «todavía no estaba listo» (D112) no es un fallo del cliente: se cierra sin ruido (sin historial ni auditoría de cada espera) y, si el
+    // Una lectura AUTOMÁTICA de un servidor que «todavía no estaba listo» (D113) no es un fallo del cliente: se cierra sin ruido (sin historial ni auditoría de cada espera) y, si el
     // servidor estaba conectado y ya no, pasa a «desconectado». Lo demás (otra razón, o una lectura que pidió una persona) se cierra como fallo, con su razón a la vista.
     const settled = await this.repo.settleAgentReading(scope, executionId, reason, (s) => ({
       tenantId: tenantId,

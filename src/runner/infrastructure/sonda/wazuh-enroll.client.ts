@@ -2,7 +2,7 @@ import { FAILURE, RunnerFailure } from '../../domain/runner.types';
 import { SondaEnrollApi } from '../../domain/sonda';
 import { HttpTransport, WazuhApiOptions, WazuhSession } from './wazuh-session';
 
-// Cliente de ALTA de agentes de la sonda (D112). Documento interno: aquí sí se nombra al proveedor (rule 1 de CLAUDE.md).
+// Cliente de ALTA de agentes de la sonda (D113). Documento interno: aquí sí se nombra al proveedor (rule 1 de CLAUDE.md).
 //
 // Usa la credencial `monkey_enroll`, que solo puede crear y retirar agentes y grupos de la sonda (políticas propias de mínimos permisos: no reinicia ni actualiza agentes, no lee SCA, no
 // toca usuarios de la API). Vive SOLO en el trabajador. Todo lo que se envía a una ruta de la API se valida antes con una forma estricta: un nombre de servidor raro no puede

@@ -1,4 +1,4 @@
-// En qué punto está la instalación de la sonda en un servidor (D112). Dominio puro: sin Nest, sin Prisma, sin reloj propio (se le pasa `now`).
+// En qué punto está la instalación de la sonda en un servidor (D113). Dominio puro: sin Nest, sin Prisma, sin reloj propio (se le pasa `now`).
 //
 // Es lo que la pantalla consulta una y otra vez mientras el trabajador crea el agente: no lleva ningún secreto. El comando (con la clave) se pide aparte, una
 // sola vez (`reveal`), para que un reintento del navegador o de un proxy no la gaste.

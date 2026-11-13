@@ -11,6 +11,7 @@ import { connect, testDatabaseUrl } from './db';
 
 export const PASSWORD = 'UnaClaveLarga123!';
 export const MONKEY_PRINCIPAL_ARN = 'arn:aws:iam::210987654321:user/monkey-prueba';
+export const MONKEY_GCP_FEDERATION_ROLE_ARN = 'arn:aws:iam::210987654321:role/monkey-gcp-federation';
 export const RUNNER_TOKEN = 'token-de-prueba-del-trabajador-0123456789';
 
 // La app de las pruebas e2e usa el rol REAL de runtime (monkey_app, sujeto a RLS) contra el Postgres desechable. Se
@@ -41,6 +42,9 @@ export async function bootApp(env: Record<string, string> = {}, configure?: (bui
     RUNNER_TOKEN: RUNNER_TOKEN,
     READINESS_INCLUDE_PROPOSED: 'true',
     MONKEY_AWS_PRINCIPAL_ARN: MONKEY_PRINCIPAL_ARN,
+    MONKEY_GCP_FEDERATION_ROLE_ARN,
+    // DT-104 · Solo las pruebas de GCP declaran una plataforma `coming_soon`; el valor no debe pasar de una app a la siguiente.
+    PREVIEW_PLATFORMS: '',
     VALIDATION_WAIT_SECONDS: '25',
     NODE_ENV: 'test',
     // SEG-19 · Las pruebas de siempre disparan muchas peticiones seguidas con el mismo usuario; solo test/autenticacion/limite-peticiones.e2e-spec.ts baja estos topes.

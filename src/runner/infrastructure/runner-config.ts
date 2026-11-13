@@ -6,13 +6,15 @@ export type RunnerConfig = {
   backendUrl: string;
   runnerToken: string;
   engineImage: string;
+  // El rol de AWS de Monkey que GCP acepta como identidad de origen (D112). Sin él, este trabajador no evalúa GCP.
+  gcpFederationRoleArn: string | null;
   engineTimeoutMs: number;
   engineMemoryBytes: number;
   engineCpus: number;
   pollIntervalMs: number;
   // Las validaciones las espera un cliente en pantalla: se miran más seguido que las evaluaciones.
   validationPollIntervalMs: number;
-  // La lectura de la sonda de servidores (D112). null = este trabajador no la lee.
+  // La lectura de la sonda de servidores (D113). null = este trabajador no la lee.
   sonda: SondaConfig | null;
 };
 
@@ -53,10 +55,13 @@ export function loadRunnerConfig(env: Record<string, string | undefined>, readFi
   // `latest` o una imagen sin versión haría que dos corridas del mismo cliente usaran motores distintos sin que nadie lo notara.
   if (!/[:@]/.test(engineImage) || /:latest$/.test(engineImage)) throw new Error('ENGINE_IMAGE debe fijar una versión o un digest, no `latest`.');
   const backendUrl = (env['BACKEND_INTERNAL_URL']?.trim() || 'http://backend:3000').replace(/\/+$/, '');
+  const gcpFederationRoleArn = env['MONKEY_GCP_FEDERATION_ROLE_ARN']?.trim() || null;
+  if (gcpFederationRoleArn && !/^arn:aws:iam::\d{12}:role\/[\w+=,.@-]{1,64}$/.test(gcpFederationRoleArn)) throw new Error('MONKEY_GCP_FEDERATION_ROLE_ARN debe ser arn:aws:iam::<12 dígitos>:role/<nombre>.');
   return {
     backendUrl,
     runnerToken,
     engineImage,
+    gcpFederationRoleArn,
     engineTimeoutMs: int(env, 'ENGINE_TIMEOUT_SECONDS', MAX_ENGINE_TIMEOUT_SECONDS, 60, MAX_ENGINE_TIMEOUT_SECONDS) * 1000,
     engineMemoryBytes: int(env, 'ENGINE_MEMORY_MB', 2048, 512, 16384) * 1024 * 1024,
     engineCpus: int(env, 'ENGINE_CPUS', 2, 1, 16),
@@ -76,7 +81,7 @@ function loadSondaConfig(env: Record<string, string | undefined>, readFile: (pat
   if (!username || !password) throw new Error('Faltan SONDA_API_USER y SONDA_API_PASSWORD (el usuario de SOLO lectura de la sonda).');
   const supportedVersions = (env['SONDA_SUPPORTED_VERSIONS'] ?? '').split(',').map((v) => v.trim()).filter(Boolean);
   if (supportedVersions.length === 0 || supportedVersions.some((v) => !/^\d+(\.\d+){1,2}$/.test(v))) {
-    // Sin lista no hay forma de saber si una actualización de la sonda cambió algo que leemos: se exige decirlo (D112).
+    // Sin lista no hay forma de saber si una actualización de la sonda cambió algo que leemos: se exige decirlo (D113).
     throw new Error('SONDA_SUPPORTED_VERSIONS debe listar las versiones que sabemos leer, por prefijo (p. ej. 4.14).');
   }
   const tlsInsecure = env['SONDA_TLS_INSECURE']?.trim().toLowerCase() === 'true';

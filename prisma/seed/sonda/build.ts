@@ -1,8 +1,8 @@
-// Construye, a partir de la hoja «Checks» del Excel del comité y del conjunto de reglas de la sonda, el catálogo de políticas y checks de servidores (D112).
+// Construye, a partir de la hoja «Checks» del Excel del comité y del conjunto de reglas de la sonda, el catálogo de políticas y checks de servidores (D113).
 // Dominio puro: sin Excel, sin archivos y sin base de datos (los scripts de extracción y de carga se los pasan). Así se prueba con datos chicos.
 //
 // Reglas que no se rompen:
-//  - Una política del catálogo SIN su par en la sonda (o al revés) es un error: no se ofrece nada que la sonda no entregue (D112).
+//  - Una política del catálogo SIN su par en la sonda (o al revés) es un error: no se ofrece nada que la sonda no entregue (D113).
 //  - Una política que no se reconoce como sistema operativo ni como base de datos/aplicación es un error: no se adivina su etiqueta.
 //  - La asignación check → prueba entra como `monkey_proposed`: la hoja del comité no es la versión final (Carlos, 2026-11-11).
 import { classifyPolicy, compareNewestFirst, PolicyClass, versionCode } from './classify-policy';

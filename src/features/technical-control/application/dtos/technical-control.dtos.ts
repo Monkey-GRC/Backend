@@ -107,21 +107,21 @@ export class CreateAssetDto {
   @IsIn(CONNECTION_METHOD_VALUES)
   connection_method!: (typeof CONNECTION_METHOD_VALUES)[number];
 
-  @ApiPropertyOptional({ nullable: true, example: '123456789012', maxLength: 20, description: 'Cuenta de AWS a la que apunta la conexión (12 dígitos).' })
+  @ApiPropertyOptional({ nullable: true, example: '123456789012', maxLength: 30, description: 'Cuenta de AWS a la que apunta la conexión (12 dígitos) o, en GCP, el ID del proyecto.' })
   @IsOptional()
   @Transform(trimOrNull)
   @IsString()
-  @MaxLength(20)
+  @MaxLength(30)
   external_account_id?: string | null;
 
-  @ApiPropertyOptional({ isArray: true, type: String, example: ['us-east-1'], maxItems: 50, description: 'Regiones a evaluar: las únicas que se miran (D53). Opciones en `GET /v1/catalogs/aws_region`.' })
+  @ApiPropertyOptional({ isArray: true, type: String, example: ['us-east-1'], maxItems: 50, description: 'Regiones a evaluar: las únicas que se miran (D53). Opciones en `GET /v1/catalogs/aws_region`. No van en GCP (`identity_federation`): se evalúa el proyecto completo.' })
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(50)
   @IsString({ each: true })
   regions?: string[];
 
-  @ApiPropertyOptional({ nullable: true, example: 'ubuntu_22_04_lts', maxLength: 80, description: 'La versión del sistema del servidor o equipo (D112). **Obligatoria con el canal `agent` en `ac_02`, `ac_04` y `ac_06`; no se acepta en las demás.** Es un `value` de `GET /v1/catalogs/<sistema>_version` (`linux_version`, `windows_version`…): de ella salen el comando de instalación correcto y qué evaluación se espera.' })
+  @ApiPropertyOptional({ nullable: true, example: 'ubuntu_22_04_lts', maxLength: 80, description: 'La versión del sistema del servidor o equipo (D113). **Obligatoria con el canal `agent` en `ac_02`, `ac_04` y `ac_06`; no se acepta en las demás.** Es un `value` de `GET /v1/catalogs/<sistema>_version` (`linux_version`, `windows_version`…): de ella salen el comando de instalación correcto y qué evaluación se espera.' })
   @IsOptional()
   @Transform(trimOrNull)
   @IsString()
@@ -154,11 +154,11 @@ export class UpdateAssetDto {
   @MaxLength(50, { each: true })
   tags?: string[];
 
-  @ApiPropertyOptional({ example: '123456789012', maxLength: 20, description: 'Cuenta nueva. **Reinicia la conexión** a `pending` y genera un identificador externo nuevo.' })
+  @ApiPropertyOptional({ example: '123456789012', maxLength: 30, description: 'Cuenta nueva. **Reinicia la conexión** a `pending` y genera un identificador externo nuevo.' })
   @IsOptional()
   @Transform(trim)
   @IsString()
-  @MaxLength(20)
+  @MaxLength(30)
   external_account_id?: string;
 
   @ApiPropertyOptional({ isArray: true, type: String, example: ['us-east-1'], maxItems: 50, description: 'Regiones nuevas. Reinicia la conexión a `pending`.' })
@@ -182,14 +182,23 @@ export class UpdateAssetDto {
   credentials?: Record<string, unknown>;
 }
 
-// PATCH /v1/assets/{id}/connection — el cliente entrega el rol que creó con la plantilla.
+// PATCH /v1/assets/{id}/connection — el cliente entrega el rol (AWS) o el número de proyecto (GCP). Cuál es obligatorio lo decide el canal del activo.
 export class SetConnectionDto {
-  @ApiProperty({ example: 'arn:aws:iam::123456789012:role/MonkeyReadOnly', maxLength: 700, description: '`RoleArn` del rol de solo lectura que el cliente creó con la plantilla.' })
+  @ApiPropertyOptional({ example: 'arn:aws:iam::123456789012:role/MonkeyReadOnly', maxLength: 700, description: '`RoleArn` del rol de solo lectura que el cliente creó con la plantilla. Obligatorio en `readonly_role`; no va en `identity_federation`.' })
+  @IsOptional()
   @Transform(trim)
   @IsString()
   @IsNotEmpty()
   @MaxLength(700)
-  role_arn!: string;
+  role_arn?: string;
+
+  @ApiPropertyOptional({ example: '407295138461', maxLength: 19, description: 'Número del proyecto de GCP que imprime el script de alta (6 a 19 dígitos). Obligatorio en `identity_federation`; no va en `readonly_role`. No es un secreto.' })
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(19)
+  project_number?: string;
 }
 
 // PUT /v1/assets/{id}/schedule

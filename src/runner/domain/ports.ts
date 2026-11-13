@@ -9,11 +9,11 @@ export abstract class RunnerApi {
   // Una validación salió bien: el rol se asumió y la cuenta es la declarada.
   abstract validated(job: RunnerJob, inventory?: Inventory | null): Promise<void>;
   abstract submitResults(job: RunnerJob, run: EngineRun, regions: string[]): Promise<void>;
-  // Un servidor con agente (D112): entrega lo leído de la sonda. El backend lo valida (agente enlazado, grupo = empresa) y lo guarda.
+  // Un servidor con agente (D113): entrega lo leído de la sonda. El backend lo valida (agente enlazado, grupo = empresa) y lo guarda.
   abstract submitSca(job: RunnerJob, snapshot: SondaSnapshot): Promise<void>;
-  // Se creó el agente de un servidor (D112): entrega su id y su clave. La clave viaja SOLO aquí, por la red interna; el backend la guarda cifrada pocos minutos.
+  // Se creó el agente de un servidor (D113): entrega su id y su clave. La clave viaja SOLO aquí, por la red interna; el backend la guarda cifrada pocos minutos.
   abstract enrolled(job: RunnerJob, agent: { agentId: string; key: string }): Promise<void>;
-  // Se retiró de la sonda el agente de un servidor dado de baja (D112 punto 8).
+  // Se retiró de la sonda el agente de un servidor dado de baja (D113 punto 8).
   abstract removed(job: RunnerJob): Promise<void>;
   abstract fail(job: RunnerJob, reason: string): Promise<void>;
 }
@@ -33,7 +33,8 @@ export abstract class ScanEngine {
 
 // Quién mira qué hay dentro de la cuenta del cliente al validar la conexión (D59). Nunca lanza por un servicio que no se pueda leer: lo anota en `warnings`.
 export abstract class InventoryScanner {
-  abstract discover(input: { accountId: string | null; regions: string[]; credentials: TemporaryCredentials }): Promise<Inventory>;
+  // null si esa nube aún no descubre recursos (GCP, DT-102): no es «cuenta vacía».
+  abstract discover(input: { accountId: string | null; regions: string[]; credentials: TemporaryCredentials }): Promise<Inventory | null>;
 }
 
 export abstract class RunnerLogger {

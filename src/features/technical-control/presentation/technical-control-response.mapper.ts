@@ -26,10 +26,24 @@ export function toTechnicalControlResponse(state: TechnicalControlState, probeMo
 // asume el rol del cliente (configuración, no secreto). Las llaves, si las hay, nunca salen.
 type Translate = (key: string) => string;
 const identity: Translate = (k) => k;
+// Arma el comando de alta de GCP para un proyecto y un identificador externo; nulo si el servidor no tiene la identidad de Monkey configurada.
+export type GcpSetupCommand = (projectId: string, externalId: string) => string;
 
-function toConnectionSetup(a: Asset, monkeyPrincipalArn: string | null, t: Translate) {
-  const setup = buildConnectionSetup(a.provisioning, monkeyPrincipalArn);
+function toConnectionSetup(a: Asset, monkeyPrincipalArn: string | null, t: Translate, gcpSetupCommand: GcpSetupCommand | null) {
+  const setup = buildConnectionSetup({ ...a.provisioning, externalAccountId: a.externalAccountId }, monkeyPrincipalArn);
   if (!setup) return null;
+  if (setup.method === 'identity_federation') {
+    return {
+      method: setup.method,
+      external_id: setup.externalId,
+      project_id: setup.projectId,
+      project_number: setup.projectNumber,
+      // El script completo va dentro del comando (no se publica en ninguna URL). Sin la identidad de Monkey configurada no hay nada que armar.
+      setup_command: gcpSetupCommand ? gcpSetupCommand(setup.projectId, setup.externalId) : null,
+      template_path: setup.templatePath,
+      steps: setup.steps.map(t),
+    };
+  }
   if (setup.method === 'readonly_role') {
     return {
       method: setup.method,
@@ -46,7 +60,7 @@ function toConnectionSetup(a: Asset, monkeyPrincipalArn: string | null, t: Trans
 }
 
 // `t` traduce los pasos de instrucciones: la plataforma del cliente no tiene i18n propio (DT-21), así que el texto llega ya en su idioma.
-export function toAssetResponse(a: Asset, monkeyPrincipalArn: string | null = null, t: Translate = identity) {
+export function toAssetResponse(a: Asset, monkeyPrincipalArn: string | null = null, t: Translate = identity, gcpSetupCommand: GcpSetupCommand | null = null) {
   return {
     id: a.id,
     code: a.code,
@@ -74,8 +88,8 @@ export function toAssetResponse(a: Asset, monkeyPrincipalArn: string | null = nu
       is_active: a.provisioning.isActive,
       schedule_frequency: a.provisioning.scheduleFrequency,
     },
-    connection_setup: toConnectionSetup(a, monkeyPrincipalArn, t),
-    // Solo un servidor o equipo con agente (D112). `os_version` lleva el mismo texto que el catálogo (`<sistema>_version`).
+    connection_setup: toConnectionSetup(a, monkeyPrincipalArn, t, gcpSetupCommand),
+    // Solo un servidor o equipo con agente (D113). `os_version` lleva el mismo texto que el catálogo (`<sistema>_version`).
     agent: a.agent
       ? { status: a.agent.status, os: a.agent.os, os_version: { value: a.agent.osVersion.code, label: osVersionLabel(a.agent.osVersion, t) }, last_sync_at: a.agent.lastSyncAt?.toISOString() ?? null }
       : null,

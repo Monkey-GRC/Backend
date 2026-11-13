@@ -1,4 +1,4 @@
-// D112 · Completa `data/sonda-es/<política>.json` con lo que se puede traducir SIN escribirlo a mano. Solo lee y escribe archivos (no toca la base).
+// D113 · Completa `data/sonda-es/<política>.json` con lo que se puede traducir SIN escribirlo a mano. Solo lee y escribe archivos (no toca la base).
 //
 //   npm run sonda:generate -- --gpo --reuse                     # todas las políticas ofrecidas
 //   npm run sonda:generate -- --gpo cis_win2022                 # solo esa política

@@ -1,4 +1,4 @@
-// D112 · Las guías de las políticas de Windows (CIS) tienen casi todas el MISMO formato: «To establish the recommended configuration via GP, set the following UI path to <valor>:
+// D113 · Las guías de las políticas de Windows (CIS) tienen casi todas el MISMO formato: «To establish the recommended configuration via GP, set the following UI path to <valor>:
 // <ruta>», a veces seguido de una «Note:» sobre la plantilla administrativa que provee esa ruta. En vez de traducirlas una por una, se generan con una regla determinista: la ruta va en
 // un bloque de código EXACTO (nunca traducida: es lo que la persona busca en la consola) y el valor, tal como aparece en la interfaz, con su explicación en español. Lo que no encaja en
 // el formato se deja para traducir a mano.

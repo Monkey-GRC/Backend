@@ -19,7 +19,7 @@ describe('codeSegments', () => {
   });
 });
 
-describe('validateSondaTranslations (D112)', () => {
+describe('validateSondaTranslations (D113)', () => {
   it('acepta una traducción cuyos comandos aparecen igual en el original', () => {
     expect(validateSondaTranslations(file([{ checkId: '1', remediationEs: 'Ejecute el siguiente comando:\n```\nsystemctl unmask tmp.mount\n```\nY reinicie.' }, { checkId: '2', remediationEs: 'Edite `/etc/fstab` y agregue la opción nodev.' }]), source)).toEqual([]);
   });

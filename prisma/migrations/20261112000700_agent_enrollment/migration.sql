@@ -1,4 +1,4 @@
--- La clave del agente, cifrada y por pocos minutos (D112 punto 4), y el reclamo de las ejecuciones de tipo `enrollment`. Aditiva.
+-- La clave del agente, cifrada y por pocos minutos (D113 punto 4), y el reclamo de las ejecuciones de tipo `enrollment`. Aditiva.
 
 -- AlterTable
 ALTER TABLE "tenant"."asset_agents" ADD COLUMN     "install_key_cipher" TEXT,

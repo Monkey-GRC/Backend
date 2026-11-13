@@ -6,11 +6,12 @@ import { nodeTransport, WazuhApiClient } from './infrastructure/sonda/wazuh-api.
 import { WazuhEnrollClient } from './infrastructure/sonda/wazuh-enroll.client';
 import { RunnerLogger } from './domain/ports';
 import { describeError } from './infrastructure/describe-error';
-import { DockerScanEngine, prowlerAwsProfile } from './infrastructure/docker-scan-engine';
+import { DockerScanEngine } from './infrastructure/docker-scan-engine';
 import { HttpRunnerApi } from './infrastructure/http-runner-api';
 import { loadRunnerConfig } from './infrastructure/runner-config';
-import { AwsInventoryScanner } from './infrastructure/inventory/aws-inventory-scanner';
-import { StsCredentialBroker } from './infrastructure/sts-credential-broker';
+import { createAwsAdapter } from './infrastructure/providers/aws/aws-adapter';
+import { CloudAdapters, engineProfileFor, RoutingCredentialBroker, RoutingInventoryScanner } from './infrastructure/providers/cloud-adapters';
+import { createGcpAdapter } from './infrastructure/providers/gcp/gcp-adapter';
 
 // Punto de entrada del trabajador (D57): `node dist/runner/main.js`. Es la raíz de composición: aquí, y solo aquí, se eligen los adaptadores.
 // Para correr el motor en la nube bastaría otro `ScanEngine`; el bucle y el backend no cambian.
@@ -30,14 +31,16 @@ async function main() {
   const config = loadRunnerConfig(process.env);
   const log = new StdoutLogger();
   // DOCKER_HOST apunta al proxy de Docker (solo las rutas de contenedores), nunca al socket del servidor.
-  const engine = new DockerScanEngine(new Docker(), prowlerAwsProfile(config.engineImage), {
+  // Un adaptador por nube (credencial, motor, inventario); el trabajo elige el suyo por su plataforma. GCP solo existe si este trabajador tiene la identidad de Monkey.
+  const adapters: CloudAdapters = { aws: createAwsAdapter(config.engineImage), ...(config.gcpFederationRoleArn ? { gcp: createGcpAdapter(config.engineImage, config.gcpFederationRoleArn) } : {}) };
+  const engine = new DockerScanEngine(new Docker(), engineProfileFor(adapters), {
     timeoutMs: config.engineTimeoutMs,
     memoryBytes: config.engineMemoryBytes,
     cpus: config.engineCpus,
   });
   const api = new HttpRunnerApi(config.backendUrl, config.runnerToken);
-  const broker = new StsCredentialBroker();
-  // La lectura de la sonda de servidores es opcional (D112): sin SONDA_API_URL este trabajador solo evalúa la nube.
+  const broker = new RoutingCredentialBroker(adapters);
+  // La lectura de la sonda de servidores es opcional (D113): sin SONDA_API_URL este trabajador solo evalúa la nube.
   const sonda = config.sonda
     ? new RunSondaExecution(
         api,
@@ -49,7 +52,7 @@ async function main() {
         config.sonda.supportedVersions,
       )
     : undefined;
-  // Crear el agente de un servidor (D112): otra credencial de la sonda (de ALTA), otro carril. Sin SONDA_ENROLL_USER este trabajador no crea agentes.
+  // Crear el agente de un servidor (D113): otra credencial de la sonda (de ALTA), otro carril. Sin SONDA_ENROLL_USER este trabajador no crea agentes.
   const enrollment = config.sonda?.enroll
     ? new RunEnrollment(
         api,
@@ -63,14 +66,14 @@ async function main() {
     : undefined;
   // Carriles independientes (D58): una evaluación de minutos no puede hacer esperar la validación (ni el alta de un servidor) de un cliente que mira la pantalla.
   const lanes = [
-    { name: 'validación', step: new RunNextExecution(api, broker, engine, log, 'validation', new AwsInventoryScanner(), sonda), pollMs: config.validationPollIntervalMs },
+    { name: 'validación', step: new RunNextExecution(api, broker, engine, log, 'validation', new RoutingInventoryScanner(adapters), sonda), pollMs: config.validationPollIntervalMs },
     { name: 'evaluación', step: new RunNextExecution(api, broker, engine, log, 'assessment', undefined, sonda), pollMs: config.pollIntervalMs },
     ...(enrollment ? [{ name: 'alta de servidores', step: new RunNextExecution(api, broker, engine, log, 'enrollment', undefined, undefined, enrollment), pollMs: config.validationPollIntervalMs }] : []),
   ];
 
   const orphans = await engine.cleanupOrphans();
   log.info(
-    `Trabajador listo (carriles: ${lanes.map((l) => l.name).join(', ')}). Motor: ${config.engineImage}. Contenedores huérfanos retirados: ${orphans}. ` +
+    `Trabajador listo (carriles: ${lanes.map((l) => l.name).join(', ')}). Motor: ${config.engineImage}. Nubes: ${Object.keys(adapters).join(', ')}. Contenedores huérfanos retirados: ${orphans}. ` +
       `Sonda de servidores: ${config.sonda ? `sí (versiones ${config.sonda.supportedVersions.join(', ')})` : 'no'}.`,
   );
 

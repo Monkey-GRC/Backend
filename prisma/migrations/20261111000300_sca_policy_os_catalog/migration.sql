@@ -1,4 +1,4 @@
--- El catálogo de políticas de la sonda se vuelve la fuente de las versiones que se ofrecen al cliente (D112). Aditiva: columnas nuevas y anulables (o con valor
+-- El catálogo de políticas de la sonda se vuelve la fuente de las versiones que se ofrecen al cliente (D113). Aditiva: columnas nuevas y anulables (o con valor
 -- por defecto) sobre `catalog.sca_policies`, que hoy está vacía.
 
 -- AlterTable

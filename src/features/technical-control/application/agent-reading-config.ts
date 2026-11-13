@@ -7,7 +7,7 @@ export type AgentReadingSettings = ReadingConfig & {
   enabled: boolean;
 };
 
-// Cada cuánto, hasta cuándo y con qué frecuencia lee Monkey la sonda de un servidor (D112). Todo sale de la configuración de esta instalación, con los valores que aprobó Carlos
+// Cada cuánto, hasta cuándo y con qué frecuencia lee Monkey la sonda de un servidor (D113). Todo sale de la configuración de esta instalación, con los valores que aprobó Carlos
 // (2026-11-12) por omisión: el tope de frecuencia y la retención siguen siendo una pregunta abierta del comité, y cambiarlos no debe exigir tocar el código.
 @Injectable()
 export class AgentReadingConfig {

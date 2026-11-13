@@ -5,7 +5,7 @@ const ok = { RUNNER_TOKEN: 'tok', ENGINE_IMAGE: 'toniblyx/prowler:5.44.0' };
 describe('loadRunnerConfig', () => {
   it('toma valores por defecto seguros', () => {
     expect(loadRunnerConfig(ok)).toEqual({
-      backendUrl: 'http://backend:3000', runnerToken: 'tok', engineImage: 'toniblyx/prowler:5.44.0',
+      backendUrl: 'http://backend:3000', runnerToken: 'tok', engineImage: 'toniblyx/prowler:5.44.0', gcpFederationRoleArn: null,
       engineTimeoutMs: MAX_ENGINE_TIMEOUT_SECONDS * 1000, engineMemoryBytes: 2048 * 1024 * 1024, engineCpus: 2, pollIntervalMs: 5000, validationPollIntervalMs: 1000, sonda: null,
     });
   });
@@ -23,11 +23,16 @@ describe('loadRunnerConfig', () => {
   ])('rechaza %s', (_n, env, msg) => {
     expect(() => loadRunnerConfig(env)).toThrow(msg);
   });
+  it('GCP: toma el rol de federación de Monkey y rechaza uno con mala forma', () => {
+    const arn = 'arn:aws:iam::210987654321:role/monkey-gcp-federation';
+    expect(loadRunnerConfig({ ...ok, MONKEY_GCP_FEDERATION_ROLE_ARN: arn }).gcpFederationRoleArn).toBe(arn);
+    expect(() => loadRunnerConfig({ ...ok, MONKEY_GCP_FEDERATION_ROLE_ARN: 'monkey-gcp-federation' })).toThrow(/MONKEY_GCP_FEDERATION_ROLE_ARN/);
+  });
   it('quita la barra final de la URL del backend', () => {
     expect(loadRunnerConfig({ ...ok, BACKEND_INTERNAL_URL: 'http://backend:3000//' }).backendUrl).toBe('http://backend:3000');
   });
 
-  // La lectura de la sonda de servidores es opcional, pero si se configura queda COMPLETA o el trabajador no arranca (D112).
+  // La lectura de la sonda de servidores es opcional, pero si se configura queda COMPLETA o el trabajador no arranca (D113).
   describe('sonda de servidores', () => {
     const sonda = { SONDA_API_URL: 'https://sonda:55000', SONDA_API_USER: 'monkey_sync', SONDA_API_PASSWORD: 'clave', SONDA_SUPPORTED_VERSIONS: '4.14' };
 

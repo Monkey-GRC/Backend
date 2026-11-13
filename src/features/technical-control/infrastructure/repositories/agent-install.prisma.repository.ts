@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
@@ -6,10 +6,14 @@ import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.inser
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { EnrollmentExecutionStatus } from '../../domain/agent-install/install-state';
 import { AgentInstallFacts, AgentInstallRepository } from '../../domain/repositories/agent-install.repository';
+import { RUNNER_POOL } from '../../application/runner-pool';
 
 @Injectable()
 export class AgentInstallPrismaRepository extends AgentInstallRepository {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(RUNNER_POOL) private readonly runnerPool: string,
+  ) {
     super();
   }
 
@@ -25,7 +29,7 @@ export class AgentInstallPrismaRepository extends AgentInstallRepository {
       });
       if (!asset) return null;
       const last = await tx.execution.findFirst({ where: { assetId, kind: 'enrollment' }, orderBy: { queuedAt: 'desc' }, select: { status: true, failureReason: true } });
-      // Cuándo terminó Monkey de crear el agente: desde ahí corre el plazo en que lo busca solo (D112).
+      // Cuándo terminó Monkey de crear el agente: desde ahí corre el plazo en que lo busca solo (D113).
       const enrolled = await tx.execution.findFirst({ where: { assetId, kind: 'enrollment', status: 'completed' }, orderBy: { finishedAt: 'desc' }, select: { finishedAt: true } });
       const a = asset.agent;
       const sp = a?.scaPolicy;
@@ -56,7 +60,7 @@ export class AgentInstallPrismaRepository extends AgentInstallRepository {
       let executionId: string;
       try {
         // El índice único parcial `executions_one_open_per_asset` decide: un activo no tiene dos ejecuciones abiertas.
-        executionId = (await tx.execution.create({ data: { tenantId: scope.companyId, assetId, status: 'queued', origin: 'manual', kind: 'enrollment' }, select: { id: true } })).id;
+        executionId = (await tx.execution.create({ data: { tenantId: scope.companyId, assetId, status: 'queued', origin: 'manual', kind: 'enrollment', runnerPool: this.runnerPool }, select: { id: true } })).id;
       } catch (e) {
         if ((e as { code?: string }).code === 'P2002') throw new DomainError('EXECUTION_IN_PROGRESS');
         throw e;

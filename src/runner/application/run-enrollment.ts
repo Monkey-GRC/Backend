@@ -5,7 +5,7 @@ import type { StepResult } from './run-next-execution';
 
 type EnrollJob = RunnerJob & { enrollment: { name: string; group: string; remove?: boolean } };
 
-// Crear el agente de un servidor en la sonda (D112). Lo espera un cliente en pantalla: son segundos, en su propio carril.
+// Crear el agente de un servidor en la sonda (D113). Lo espera un cliente en pantalla: son segundos, en su propio carril.
 //
 // Qué hace, en orden: comprueba la versión de la sonda, asegura el grupo de la empresa, retira un agente anterior con ese nombre (un reintento, o «generar de nuevo»: el nombre es el id del
 // activo y la sonda exige nombres únicos), crea el agente con su grupo y entrega su id y su clave al backend. NUNCA toca la clave más que para entregarla: no la registra.
@@ -14,7 +14,7 @@ export class RunEnrollment {
     private readonly api: RunnerApi,
     private readonly sonda: SondaEnrollApi,
     private readonly log: RunnerLogger,
-    // Prefijos de versión que sabemos manejar (`4.14`): con una versión desconocida no se crea nada (D112).
+    // Prefijos de versión que sabemos manejar (`4.14`): con una versión desconocida no se crea nada (D113).
     private readonly supportedVersions: readonly string[],
   ) {}
 
@@ -54,7 +54,7 @@ export class RunEnrollment {
     }
   }
 
-  // El servidor se dio de baja (D112 punto 8): se retira su agente de la sonda por su nombre (el id del activo). Si ya no estaba, también está bien: el objetivo es que no exista.
+  // El servidor se dio de baja (D113 punto 8): se retira su agente de la sonda por su nombre (el id del activo). Si ya no estaba, también está bien: el objetivo es que no exista.
   private async remove(job: EnrollJob): Promise<StepResult> {
     this.log.info(`Ejecución ${job.executionId}: retirar de la sonda el agente de un servidor dado de baja.`);
     try {

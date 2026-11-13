@@ -19,7 +19,7 @@ const none = { findAll: () => Promise.resolve([]) };
 const use = (osVersions: OsVersionCatalogRepository) =>
   new GetCatalogUseCase(none as unknown as RegulationCatalogRepository, none as unknown as FrameworkCatalogRepository, none as unknown as CapabilityCatalogRepository, { findByPlatform: () => Promise.resolve([]) } as unknown as RegionCatalogRepository, osVersions);
 
-describe('GetCatalogUseCase · <sistema>_version (D112)', () => {
+describe('GetCatalogUseCase · <sistema>_version (D113)', () => {
   it('`linux_version` devuelve las versiones que la sonda entrega para Linux, leídas de la base', async () => {
     const repo = new FakeOsVersions({ linux: [UBUNTU] });
     expect(await use(repo).execute('linux_version')).toEqual({ kind: 'os_versions', items: [UBUNTU] });

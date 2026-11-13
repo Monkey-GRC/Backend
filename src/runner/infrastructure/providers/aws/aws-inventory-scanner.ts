@@ -2,9 +2,9 @@ import { DescribeImagesCommand, DescribeInstancesCommand, EC2Client, Instance } 
 import { LambdaClient, ListFunctionsCommand } from '@aws-sdk/client-lambda';
 import { DescribeDBInstancesCommand, RDSClient } from '@aws-sdk/client-rds';
 import { ListBucketsCommand, S3Client } from '@aws-sdk/client-s3';
-import { InventoryScanner } from '../../domain/ports';
-import { DiscoveredResource, Inventory } from '../../domain/inventory';
-import { TemporaryCredentials } from '../../domain/runner.types';
+import { InventoryScanner } from '../../../domain/ports';
+import { DiscoveredResource, Inventory } from '../../../domain/inventory';
+import { AwsCredentials, TemporaryCredentials } from '../../../domain/runner.types';
 import { osFromImage } from './os-from-image';
 
 // Descubre los activos de una cuenta de AWS con las credenciales de SOLO LECTURA de la conexión (D59): servidores (EC2), bases de datos (RDS),
@@ -20,7 +20,7 @@ type Sdk = {
   s3: (region: string) => Pick<S3Client, 'send'>;
 };
 
-const sdkFor = (credentials: TemporaryCredentials): Sdk => {
+const sdkFor = (credentials: AwsCredentials): Sdk => {
   const creds = { accessKeyId: credentials.accessKeyId, secretAccessKey: credentials.secretAccessKey, ...(credentials.sessionToken ? { sessionToken: credentials.sessionToken } : {}) };
   const config = (region: string) => ({ region, credentials: creds, maxAttempts: 2 });
   return { ec2: (r) => new EC2Client(config(r)), rds: (r) => new RDSClient(config(r)), lambda: (r) => new LambdaClient(config(r)), s3: (r) => new S3Client(config(r)) };
@@ -36,11 +36,12 @@ const tagList = (tags: { Key?: string; Value?: string }[] | undefined): string[]
     .map((t) => `${t.Key}=${t.Value ?? ''}`.slice(0, 120));
 
 export class AwsInventoryScanner extends InventoryScanner {
-  constructor(private readonly sdk?: (credentials: TemporaryCredentials) => Sdk) {
+  constructor(private readonly sdk?: (credentials: AwsCredentials) => Sdk) {
     super();
   }
 
   async discover(input: { accountId: string | null; regions: string[]; credentials: TemporaryCredentials }): Promise<Inventory> {
+    if (input.credentials.provider !== 'aws') throw new Error('credenciales de otra nube');
     const sdk = (this.sdk ?? sdkFor)(input.credentials);
     const resources: DiscoveredResource[] = [];
     const warnings = new Set<string>();

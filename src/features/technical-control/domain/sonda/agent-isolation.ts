@@ -1,4 +1,4 @@
-// Aislamiento entre empresas en la sonda de servidores (SEG-45, D112). Dominio puro.
+// Aislamiento entre empresas en la sonda de servidores (SEG-45, D113). Dominio puro.
 //
 // La sonda NO aísla a las empresas entre sí: un agente puede declarar el grupo que quiera (DT-33). Lo impone Monkey, con tres comprobaciones que se
 // hacen SIEMPRE en el backend, aunque el trabajador ya haya hecho la suya: el trabajador es un proceso aparte y no se le cree a ciegas.
@@ -17,7 +17,7 @@ export function checkAgentIsolation(input: { link: AgentLink | null; reported: R
   // 1. El agente tiene que estar enlazado a ESTE activo de ESTA empresa. El agente se identifica por su `agent_id` (la clave que Monkey pre-registró), no
   //    por el nombre ni por el grupo que él diga.
   if (!link || link.tenantId !== tenantId || link.assetId !== assetId || link.agentId !== reported.agentId) return { ok: false, code: 'AGENT_NOT_LINKED' };
-  // 2. Su nombre en la sonda es el ID del activo (D112) y su grupo es el de la empresa, sin ser además el de otra.
+  // 2. Su nombre en la sonda es el ID del activo (D113) y su grupo es el de la empresa, sin ser además el de otra.
   if (reported.name !== assetId || !agentGroupsMatchTenant(reported.groups, tenantId)) return { ok: false, code: 'AGENT_GROUP_MISMATCH' };
   return { ok: true };
 }

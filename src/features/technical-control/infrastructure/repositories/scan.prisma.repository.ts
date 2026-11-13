@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ConnectionCategory, DEFAULT_CRITICALITY, NO_COVERAGE, ResourceKindValue } from '../../../../common/catalogs/technical-catalogs';
 import { DiscoveredResource, Inventory } from '../../domain/entities/technical-control.entities';
@@ -9,6 +9,7 @@ import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { captureControlStates, recordControlStateChanges } from '../../../compliance/infrastructure/shared/control-state-events';
+import { RUNNER_POOL } from '../../application/runner-pool';
 import { FailedRow } from '../../domain/scan/findings';
 import { interpretTestResult } from '../../domain/scan/interpret-evaluations';
 import { TestCheckLink } from '../../domain/scan/readiness';
@@ -29,7 +30,6 @@ import { AgentReadingFacts, attemptOutcome, isNotReadyReason, NOT_READY_REASONS 
 import { CatalogPolicy } from '../../domain/sonda/catalog-lookup';
 
 // El motor de nube no tiene «política» como la sonda: una constante conserva la clave de tres partes (D56).
-const PLATFORM = 'aws';
 const POLICY_ID = 'cloud_configuration';
 const CHUNK = 1000;
 const ASSET_PREFIX = 'AST-';
@@ -70,8 +70,23 @@ export class ScanPrismaRepository extends ScanRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    @Inject(RUNNER_POOL) private readonly runnerPool: string,
   ) {
     super();
+  }
+
+  executionPlatform(scope: TenantScope, executionId: string): Promise<string | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const execution = await tx.execution.findFirst({ where: { id: executionId }, select: { asset: { select: { platform: true } } } });
+      return execution?.asset.platform ?? null;
+    });
+  }
+
+  assetPlatform(scope: TenantScope, assetId: string): Promise<string | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const asset = await tx.asset.findFirst({ where: { id: assetId }, select: { platform: true } });
+      return asset?.platform ?? null;
+    });
   }
 
   async catalogChecks(platform: string): Promise<Map<string, string>> {
@@ -89,13 +104,13 @@ export class ScanPrismaRepository extends ScanRepository {
       const provisioning = await tx.assetProvisioning.findFirst({ where: { assetId: input.assetId }, select: { connectionStatus: true, connectionMethod: true } });
       if (!provisioning) throw new DomainError('ASSET_NOT_VALIDATED');
       if (provisioning.connectionMethod === 'agent') {
-        // Un servidor con agente se puede evaluar en cuanto su agente existe en la sonda (D112): no hay una «validación» previa que hacer, la lectura misma es la prueba.
+        // Un servidor con agente se puede evaluar en cuanto su agente existe en la sonda (D113): no hay una «validación» previa que hacer, la lectura misma es la prueba.
         const agent = await tx.assetAgent.findFirst({ where: { assetId: input.assetId }, select: { agentId: true } });
         if (!agent?.agentId) throw new DomainError('ASSET_NOT_VALIDATED');
       } else if (!['validated', 'active', 'scheduled'].includes(provisioning.connectionStatus)) throw new DomainError('ASSET_NOT_VALIDATED');
       let executionId: string;
       try {
-        const created = await tx.execution.create({ data: { tenantId: scope.companyId, assetId: input.assetId, status: 'queued', origin: input.origin }, select: { id: true } });
+        const created = await tx.execution.create({ data: { tenantId: scope.companyId, assetId: input.assetId, status: 'queued', origin: input.origin, runnerPool: this.runnerPool }, select: { id: true } });
         executionId = created.id;
       } catch (e) {
         // El índice único parcial `executions_one_open_per_asset` decide: dos peticiones a la vez no pueden abrir dos.
@@ -111,7 +126,7 @@ export class ScanPrismaRepository extends ScanRepository {
   listExecutions(scope: TenantScope, assetId: string, page: PageRequest): Promise<Page<ExecutionSummary>> {
     return this.prisma.withScope(scope, async (tx) => {
       // El historial es de evaluaciones: las validaciones (comprobar la conexión) no son «una evaluación» para el cliente.
-      // Tampoco lo son las lecturas automáticas de un servidor que «todavía no estaba listo» (D112): son esperas, no evaluaciones, y cada 3 minutos serían cientos de filas.
+      // Tampoco lo son las lecturas automáticas de un servidor que «todavía no estaba listo» (D113): son esperas, no evaluaciones, y cada 3 minutos serían cientos de filas.
       const visible = { assetId, kind: 'assessment' as const, NOT: { status: 'cancelled' as const, failureReason: { in: [...NOT_READY_REASONS] } } };
       const total = await tx.execution.count({ where: visible });
       const rows = await tx.execution.findMany({
@@ -126,11 +141,11 @@ export class ScanPrismaRepository extends ScanRepository {
   }
 
   async claimNext(kind?: ExecutionKindValue): Promise<ClaimedExecution | null> {
-    // Sin empresa: la función SECURITY DEFINER busca entre todas y solo toca el estado de UNA ejecución (SEG-47).
+    // Solo del grupo de este backend (D112). Sin empresa: la función SECURITY DEFINER busca entre todas y solo toca el estado de UNA ejecución (SEG-47).
     type Row = { out_execution_id: string; out_tenant_id: string; out_asset_id: string; out_origin: string; out_kind: string };
     const rows = kind
-      ? await this.prisma.$queryRaw<Row[]>`SELECT * FROM tenant.claim_next_execution(${kind}::tenant.execution_kind)`
-      : await this.prisma.$queryRaw<Row[]>`SELECT * FROM tenant.claim_next_execution()`;
+      ? await this.prisma.$queryRaw<Row[]>`SELECT * FROM tenant.claim_next_execution(${kind}::tenant.execution_kind, ${this.runnerPool})`
+      : await this.prisma.$queryRaw<Row[]>`SELECT * FROM tenant.claim_next_execution(NULL::tenant.execution_kind, ${this.runnerPool})`;
     if (rows.length === 0) return null;
     const r = rows[0];
     return { executionId: r.out_execution_id, tenantId: r.out_tenant_id, assetId: r.out_asset_id, origin: r.out_origin as 'scheduled' | 'manual', kind: r.out_kind as ExecutionKindValue };
@@ -142,7 +157,7 @@ export class ScanPrismaRepository extends ScanRepository {
       if (!asset) throw new DomainError('NOT_FOUND');
       let executionId: string;
       try {
-        const created = await tx.execution.create({ data: { tenantId: scope.companyId, assetId, status: 'queued', origin: 'manual', kind: 'validation' }, select: { id: true } });
+        const created = await tx.execution.create({ data: { tenantId: scope.companyId, assetId, status: 'queued', origin: 'manual', kind: 'validation', runnerPool: this.runnerPool }, select: { id: true } });
         executionId = created.id;
       } catch (e) {
         // El índice único parcial `executions_one_open_per_asset` decide: un activo no tiene dos ejecuciones abiertas.
@@ -196,7 +211,7 @@ export class ScanPrismaRepository extends ScanRepository {
       if (!execution) throw new DomainError('NOT_FOUND');
       const asset = await tx.asset.findFirst({
         where: { id: execution.assetId },
-        select: { platform: true, externalAccountId: true, provisionings: { take: 1, select: { regions: true, connectionMethod: true, roleArn: true, externalId: true, encryptedCredentials: true } } },
+        select: { platform: true, externalAccountId: true, provisionings: { take: 1, select: { regions: true, connectionMethod: true, roleArn: true, externalId: true, projectNumber: true, encryptedCredentials: true } } },
       });
       if (!asset) throw new DomainError('NOT_FOUND');
       const prov = asset.provisionings[0];
@@ -211,6 +226,7 @@ export class ScanPrismaRepository extends ScanRepository {
         connectionMethod: prov?.connectionMethod ?? null,
         roleArn: prov?.roleArn ?? null,
         externalId: prov?.externalId ?? null,
+        projectNumber: prov?.projectNumber ?? null,
         encryptedCredentials: prov?.encryptedCredentials ?? null,
       };
     });
@@ -264,6 +280,7 @@ export class ScanPrismaRepository extends ScanRepository {
             status: 'completed',
             progressPercentage: 100,
             origin: run.origin,
+            runnerPool: this.runnerPool,
             engineVersion: run.engineVersion,
             regions: run.regions,
             checksExecuted: run.checksExecuted,
@@ -374,6 +391,8 @@ export class ScanPrismaRepository extends ScanRepository {
 
   // Recursos, resultados y bitácora de UNA corrida, dentro de la transacción que ya abrió quien llama.
   private async writeResults(tx: TransactionClient, scope: TenantScope, executionId: string, assetId: string, run: ScanOutcome): Promise<RecordedScan> {
+    const { platform: assetPlatform } = await tx.asset.findFirstOrThrow({ where: { id: assetId }, select: { platform: true } });
+    const PLATFORM = assetPlatform.trim().toLowerCase();
     const catalog = await tx.check.findMany({ where: { platform: PLATFORM, policyId: POLICY_ID }, select: { id: true, checkId: true } });
     const checkIds = new Map(catalog.map((c) => [c.checkId, c.id]));
     const missing = [...new Set(run.results.map((r) => r.checkId))].filter((c) => !checkIds.has(c));
@@ -546,7 +565,7 @@ export class ScanPrismaRepository extends ScanRepository {
     });
   }
 
-  // ---- la lectura automática de la sonda (D112) ----
+  // ---- la lectura automática de la sonda (D113) ----
 
   async listAgentReadingCandidates(input: { windowSeconds: number; refreshSeconds: number }): Promise<AgentReadingFacts[]> {
     // Sin empresa: la función SECURITY DEFINER mira todas, solo lee y devuelve lo mínimo para decidir (SEG-47).
@@ -568,7 +587,7 @@ export class ScanPrismaRepository extends ScanRepository {
         const agent = await tx.assetAgent.findFirst({ where: { assetId, agentId: { not: null }, status: { not: 'removed' }, asset: { status: 'active', parentAssetId: null } }, select: { id: true } });
         if (!agent) return null;
         try {
-          const created = await tx.execution.create({ data: { tenantId: scope.companyId, assetId, status: 'queued', origin: 'scheduled', kind: 'assessment' }, select: { id: true } });
+          const created = await tx.execution.create({ data: { tenantId: scope.companyId, assetId, status: 'queued', origin: 'scheduled', kind: 'assessment', runnerPool: this.runnerPool }, select: { id: true } });
           return { executionId: created.id };
         } catch (e) {
           // El índice único parcial `executions_one_open_per_asset` decide: otra pasada (u otra instancia del backend) ya la dejó en cola.
@@ -600,7 +619,7 @@ export class ScanPrismaRepository extends ScanRepository {
     });
   }
 
-  // ---- servidores con agente de la sonda (D112) ----
+  // ---- servidores con agente de la sonda (D113) ----
 
   loadAgentLink(scope: TenantScope, executionId: string): Promise<{ tenantId: string; assetId: string; agentId: string | null } | null> {
     return this.prisma.withScope(scope, async (tx) => {

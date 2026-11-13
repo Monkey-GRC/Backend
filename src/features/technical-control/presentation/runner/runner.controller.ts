@@ -6,6 +6,7 @@ import { Public } from '../../../../common/decorators/public.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { RunnerClaimDto, RunnerEnrolledDto, RunnerFailDto, RunnerResultsDto, RunnerValidatedDto } from '../../application/dtos/runner.dtos';
 import { CompleteAgentRemovalUseCase, CompleteEnrollmentUseCase } from '../../application/use-cases/agent-install.use-cases';
+import type { RunnerJob } from '../../application/use-cases/scan.use-cases';
 import { ClaimExecutionUseCase, CompleteExecutionUseCase, CompleteScaExecutionUseCase, CompleteValidationUseCase, FailExecutionUseCase } from '../../application/use-cases/scan.use-cases';
 import type { Inventory } from '../../domain/entities/technical-control.entities';
 import { RunnerTokenGuard } from './runner-token.guard';
@@ -14,6 +15,13 @@ const t = (key: string): string => (I18nContext.current()?.t(key) as string | un
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 
 // El cuerpo del trabajador → el inventario del dominio. Los atributos se limpian: solo valores simples y cortos (lo demás no es un dato del cliente, es ruido).
+function toConnection(c: RunnerJob['connection']) {
+  if (c.method === 'agent') return { method: c.method };
+  if (c.method === 'readonly_role') return { method: c.method, role_arn: c.roleArn, external_id: c.externalId };
+  if (c.method === 'identity_federation') return { method: c.method, external_id: c.externalId, project_number: c.projectNumber };
+  return { method: c.method, access_key_id: c.accessKeyId, secret_access_key: c.secretAccessKey };
+}
+
 function toInventory(dto: RunnerValidatedDto['inventory']): Inventory | null {
   if (!dto) return null;
   return {
@@ -71,19 +79,14 @@ export class RunnerController {
       platform: job.platform,
       external_account_id: job.externalAccountId,
       regions: job.regions,
-      connection:
-        c.method === 'agent'
-          ? { method: c.method }
-          : c.method === 'readonly_role'
-            ? { method: c.method, role_arn: c.roleArn, external_id: c.externalId }
-            : { method: c.method, access_key_id: c.accessKeyId, secret_access_key: c.secretAccessKey },
-      // Solo al crear el agente de un servidor (D112): cómo se llama en la sonda y a qué grupo va.
+      connection: toConnection(c),
+      // Solo al crear el agente de un servidor (D113): cómo se llama en la sonda y a qué grupo va.
       // Al evaluarlo, además, el agente que Monkey enlazó a este activo (`agent_id`).
       ...(job.agent ? { agent: { name: job.agent.name, group: job.agent.group, ...(job.agent.agentId ? { agent_id: job.agent.agentId } : {}), ...(job.agent.remove ? { remove: true } : {}) } } : {}),
     });
   }
 
-  // El trabajador creó el agente de un servidor (D112). La clave se cifra y se guarda solo unos minutos: nunca se devuelve ni se registra.
+  // El trabajador creó el agente de un servidor (D113). La clave se cifra y se guarda solo unos minutos: nunca se devuelve ni se registra.
   @Post('executions/:id/enrolled')
   @HttpCode(HttpStatus.OK)
   async enrolled(@Param('id', idPipe) id: string, @Body() dto: RunnerEnrolledDto) {
@@ -91,7 +94,7 @@ export class RunnerController {
     return new ResponseDto(HttpStatus.OK, t('execution.completed'), { execution_id: out.executionId, status: 'completed' });
   }
 
-  // El trabajador retiró de la sonda el agente de un servidor dado de baja (D112 punto 8).
+  // El trabajador retiró de la sonda el agente de un servidor dado de baja (D113 punto 8).
   @Post('executions/:id/removed')
   @HttpCode(HttpStatus.OK)
   async removed(@Param('id', idPipe) id: string, @Body() dto: RunnerValidatedDto) {
@@ -102,7 +105,7 @@ export class RunnerController {
   @Post('executions/:id/results')
   @HttpCode(HttpStatus.OK)
   async results(@Param('id', idPipe) id: string, @Body() dto: RunnerResultsDto) {
-    // La lectura de la sonda de un servidor (D112): otra forma de cuerpo, otro cierre. La de nube sigue exactamente igual.
+    // La lectura de la sonda de un servidor (D113): otra forma de cuerpo, otro cierre. La de nube sigue exactamente igual.
     if (dto.source === 'sca') {
       const sca = await this.completeSca.execute(dto.tenant_id, id, {
         sondaVersion: dto.sonda_version,

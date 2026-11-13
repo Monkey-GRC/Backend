@@ -76,7 +76,7 @@ describe('CompleteScaExecutionUseCase', () => {
 
 describe('ClaimExecutionUseCase · servidor con agente', () => {
   const claimed = (): ClaimedExecution => ({ executionId: EXEC, tenantId: TENANT, assetId: ASSET, origin: 'manual', kind: 'assessment' });
-  const ctx = (): RunContext => ({ executionId: EXEC, assetId: ASSET, origin: 'manual', kind: 'assessment', platform: 'Ubuntu', externalAccountId: null, regions: [], connectionMethod: 'agent', roleArn: null, externalId: null, encryptedCredentials: null });
+  const ctx = (): RunContext => ({ executionId: EXEC, assetId: ASSET, origin: 'manual', kind: 'assessment', platform: 'Ubuntu', externalAccountId: null, regions: [], connectionMethod: 'agent', roleArn: null, externalId: null, projectNumber: null, encryptedCredentials: null });
 
   it('entrega el agente enlazado al activo, sin credenciales ni regiones', async () => {
     const repo = { claimNext: jest.fn().mockResolvedValueOnce(claimed()), loadRunContext: jest.fn().mockResolvedValue(ctx()), loadAgentLink: jest.fn().mockResolvedValue({ tenantId: TENANT, assetId: ASSET, agentId: '007' }) } as unknown as ScanRepository;

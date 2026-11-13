@@ -1,4 +1,4 @@
-// Tipos de una lectura de la sonda de servidores, ya validada (D112). Dominio puro: sin Nest, sin Prisma.
+// Tipos de una lectura de la sonda de servidores, ya validada (D113). Dominio puro: sin Nest, sin Prisma.
 // Los textos que traiga la sonda son internos: nunca salen al cliente (D70).
 import { CheckResultValue } from '../scan/scan.types';
 
@@ -39,7 +39,7 @@ export type UnmappedPolicy = { policyId: string; policyName: string; checks: num
 
 export type InterpretedSca = {
   rows: InterpretedScaRow[];
-  // Checks que la sonda devolvió y que el catálogo no conoce: se informan, no se descartan en silencio ni se inventan (D56, D112).
+  // Checks que la sonda devolvió y que el catálogo no conoce: se informan, no se descartan en silencio ni se inventan (D56, D113).
   unmapped: UnmappedPolicy[];
   // Un mismo check repetido en la entrega: se guarda una vez, el peor resultado.
   duplicates: number;

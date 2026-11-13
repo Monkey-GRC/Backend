@@ -1,6 +1,6 @@
 import { Inventory } from '../domain/inventory';
 import { CredentialBroker, InventoryScanner, RunnerApi, RunnerLogger, ScanEngine } from '../domain/ports';
-import { EngineInput, EngineRun, FAILURE, RunnerApiError, RunnerFailure, RunnerJob, TemporaryCredentials } from '../domain/runner.types';
+import { AwsCredentials, EngineInput, EngineRun, FAILURE, RunnerApiError, RunnerFailure, RunnerJob, TemporaryCredentials } from '../domain/runner.types';
 import { RunNextExecution } from './run-next-execution';
 import { RunEnrollment } from './run-enrollment';
 import { RunSondaExecution } from './run-sonda-execution';
@@ -9,7 +9,7 @@ const job: RunnerJob = {
   executionId: 'e1', kind: 'assessment', tenantId: 't1', assetId: 'a1', origin: 'manual', platform: 'aws', externalAccountId: '123456789012', regions: ['us-east-1'],
   connection: { method: 'readonly_role', roleArn: 'arn:aws:iam::123456789012:role/R', externalId: 'mk-1' },
 };
-const creds: TemporaryCredentials = { accessKeyId: 'ASIATEMP', secretAccessKey: 'SECRETO-NO-DEBE-SALIR', sessionToken: 'TOKEN-NO-DEBE-SALIR' };
+const creds: AwsCredentials = { provider: 'aws', accessKeyId: 'ASIATEMP', secretAccessKey: 'SECRETO-NO-DEBE-SALIR', sessionToken: 'TOKEN-NO-DEBE-SALIR' };
 const run: EngineRun = { engineVersion: '5.44.0', startedAt: new Date(), finishedAt: new Date(), findings: [{ a: 1 }, { b: 2 }] };
 
 class FakeApi extends RunnerApi {
@@ -45,7 +45,7 @@ describe('RunNextExecution', () => {
     let seen: EngineInput | null = null;
     const out = await step(api, broker(() => Promise.resolve(creds)), engine((i) => { seen = i; return Promise.resolve(run); })).result;
     expect(out).toBe('completed');
-    expect(seen).toEqual({ executionId: 'e1', regions: ['us-east-1'], credentials: creds });
+    expect(seen).toEqual({ executionId: 'e1', accountId: '123456789012', regions: ['us-east-1'], credentials: creds });
     expect(api.submitted).toHaveLength(1);
     expect(api.failed).toHaveLength(0);
   });
@@ -150,7 +150,7 @@ describe('RunNextExecution', () => {
     });
   });
 
-  describe('crear el agente de un servidor (D112)', () => {
+  describe('crear el agente de un servidor (D113)', () => {
     const enrollJob: RunnerJob = { ...job, kind: 'enrollment', platform: 'linux', externalAccountId: null, regions: [], connection: { method: 'agent', agentId: '', group: 't1' }, enrollment: { name: 'a1', group: 't1' } };
     const noBroker = broker(() => Promise.reject(new Error('crear un agente no pide credenciales del cliente')));
     const noEngine = engine(() => Promise.reject(new Error('crear un agente no corre el motor de nube')));
@@ -172,7 +172,7 @@ describe('RunNextExecution', () => {
     });
   });
 
-  // Servidores con agente (D112): no hay credenciales del cliente ni motor; otro camino.
+  // Servidores con agente (D113): no hay credenciales del cliente ni motor; otro camino.
   describe('servidor con agente', () => {
     const agentJob: RunnerJob = { ...job, platform: 'ubuntu', externalAccountId: null, regions: [], connection: { method: 'agent', agentId: '001', group: 't1' } };
     const noBroker = broker(() => Promise.reject(new Error('un servidor con agente no pide credenciales del cliente')));

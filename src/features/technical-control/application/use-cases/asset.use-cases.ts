@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
 import {
@@ -6,6 +6,7 @@ import {
   ConnectionCategory,
   ConnectionMethodValue,
   DEFAULT_CRITICALITY,
+  GCP_PROJECT_NUMBER,
   ResourceKindValue,
   ScheduleFrequencyValue,
 } from '../../../../common/catalogs/technical-catalogs';
@@ -19,8 +20,9 @@ import { Asset, AssetEdit, AssetFilters, NewAsset, ResourceListing } from '../..
 import { ConnectionProbe } from '../../domain/ports/connection-probe';
 import { ConnectionCatalogRepository } from '../../domain/repositories/connection-catalog.repository';
 import { TechnicalControlRepository } from '../../domain/repositories/technical-control.repository';
-import { checkCloudTarget, newExternalId, planConnection } from '../cloud-connection';
+import { checkCloudTarget, checkGcpProject, newExternalId, planConnection } from '../cloud-connection';
 import { checkOsVersion, needsOsVersion } from '../os-version';
+import { PREVIEW_PLATFORMS } from '../preview-platforms';
 
 const scopeOf = (p: Principal): TenantScope => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 
@@ -42,6 +44,7 @@ const snapshot = (a: Asset): Record<string, unknown> => ({
   external_account_id: a.externalAccountId,
   regions: a.provisioning.regions,
   role_arn: a.provisioning.roleArn,
+  project_number: a.provisioning.projectNumber,
 });
 
 type Audited = { principal: Principal; meta: RequestMeta; action: string; before: Asset | null; after: Asset | null; result?: 'success' | 'error' };
@@ -76,7 +79,7 @@ export type NewAssetRequest = {
   connectionMethod?: ConnectionMethodValue;
   externalAccountId?: string | null;
   regions?: string[];
-  // La versión del sistema que el cliente declara para un servidor o equipo con agente (D112): un `value` de `GET /v1/catalogs/<sistema>_version`.
+  // La versión del sistema que el cliente declara para un servidor o equipo con agente (D113): un `value` de `GET /v1/catalogs/<sistema>_version`.
   osVersion?: string | null;
 };
 
@@ -86,13 +89,15 @@ export class CreateAssetUseCase {
     private readonly repo: TechnicalControlRepository,
     private readonly catalog: ConnectionCatalogRepository,
     private readonly cipher: CredentialCipher,
+    // Plataformas `coming_soon` que se pueden declarar por la API (solo desarrollo, DT-104).
+    @Inject(PREVIEW_PLATFORMS) private readonly previewPlatforms: readonly string[],
   ) {}
 
   async execute(principal: Principal, request: NewAssetRequest, meta: RequestMeta): Promise<Asset> {
     // La plataforma sale del catálogo (D67): tiene que existir dentro de esa conexión y estar disponible. Una bloqueada se muestra pero no se conecta.
     const platform = await this.catalog.findPlatform(request.connectionCategory, request.platform.trim().toLowerCase());
     if (!platform) throw new ValidationException([{ field: 'platform', code: 'platform.not_in_category' }]);
-    if (platform.availability !== 'available') throw new ValidationException([{ field: 'platform', code: 'connection.provider_not_supported' }]);
+    if (platform.availability !== 'available' && !this.previewPlatforms.includes(platform.code)) throw new ValidationException([{ field: 'platform', code: 'connection.provider_not_supported' }]);
     if (!request.connectionMethod) throw new ValidationException([{ field: 'connection_method', code: 'required' }]);
 
     // Cuenta y regiones declaradas, ExternalId que genera Monkey y llaves cifradas solo en el canal de llaves.
@@ -105,7 +110,7 @@ export class CreateAssetUseCase {
       },
       platform,
     );
-    // La versión del sistema que declara el cliente (D112): solo un servidor o equipo con agente. Se busca en el catálogo SOLO si hace falta.
+    // La versión del sistema que declara el cliente (D113): solo un servidor o equipo con agente. Se busca en el catálogo SOLO si hace falta.
     const wanted = request.osVersion?.trim();
     const osVersion = needsOsVersion(request.connectionCategory, request.connectionMethod) && wanted ? await this.catalog.findOsVersion(wanted) : null;
     const allErrors = [
@@ -129,7 +134,7 @@ export class CreateAssetUseCase {
       externalAccountId: plan.externalAccountId,
       regions: plan.regions,
       externalId: plan.externalId,
-      // Un servidor con agente nace con su fila de agente, con la versión declarada (D112).
+      // Un servidor con agente nace con su fila de agente, con la versión declarada (D113).
       agentScaPolicyId: osVersion?.id ?? null,
     };
 
@@ -240,22 +245,33 @@ export class ScheduleAssetUseCase {
   }
 }
 
-// El cliente entrega el ARN del rol de solo lectura que creó con la plantilla. No es un secreto, pero se valida: forma de ARN y que sea de la cuenta
-// declarada (un rol de otra cuenta jamás se evalúa).
+// El cliente entrega el ARN del rol de solo lectura que creó con la plantilla (AWS) o el número de proyecto que imprimió el script de alta (GCP). Ninguno es
+// secreto, pero se valida: forma de ARN y que sea de la cuenta declarada (un rol de otra cuenta jamás se evalúa); número de 6 a 19 dígitos.
 @Injectable()
 export class SetAssetConnectionUseCase {
   constructor(private readonly repo: TechnicalControlRepository) {}
 
-  async execute(principal: Principal, id: string, roleArn: string, meta: RequestMeta): Promise<Asset> {
+  async execute(principal: Principal, id: string, input: { roleArn?: string; projectNumber?: string }, meta: RequestMeta): Promise<Asset> {
     const scope = scopeOf(principal);
     const asset = await this.repo.findAsset(scope, id);
     if (!asset) throw new DomainError('NOT_FOUND');
-    const arn = roleArn.trim();
+    const audit = (c: { before: Asset; after: Asset }) => assetEntry({ principal, meta, action: 'asset.connection_set', before: c.before, after: c.after });
+
+    if (asset.provisioning.connectionMethod === 'identity_federation') {
+      if (input.roleArn !== undefined) throw new ValidationException([{ field: 'role_arn', code: 'field.not_allowed' }]);
+      const number = input.projectNumber?.trim();
+      if (!number) throw new ValidationException([{ field: 'project_number', code: 'required' }]);
+      if (!GCP_PROJECT_NUMBER.test(number)) throw new ValidationException([{ field: 'project_number', code: 'invalid' }]);
+      return (await this.repo.setConnection(scope, id, { projectNumber: number }, audit)).after;
+    }
+
+    if (input.projectNumber !== undefined) throw new ValidationException([{ field: 'project_number', code: 'field.not_allowed' }]);
+    if (input.roleArn === undefined) throw new ValidationException([{ field: 'role_arn', code: 'required' }]);
+    const arn = input.roleArn.trim();
     const match = AWS_ROLE_ARN.exec(arn);
     if (!match) throw new ValidationException([{ field: 'role_arn', code: 'invalid' }]);
     if (asset.externalAccountId && match[1] !== asset.externalAccountId) throw new ValidationException([{ field: 'role_arn', code: 'connection.account_mismatch' }]);
-    const { after } = await this.repo.setConnection(scope, id, arn, (c) => assetEntry({ principal, meta, action: 'asset.connection_set', before: c.before, after: c.after }));
-    return after;
+    return (await this.repo.setConnection(scope, id, { roleArn: arn }, audit)).after;
   }
 }
 
@@ -295,6 +311,24 @@ export class UpdateAssetUseCase {
       const method = asset.provisioning.connectionMethod;
       if (asset.connectionCategory !== 'ac_01' || !method || method === 'agent') {
         throw new ValidationException([{ field: 'connection', code: 'field.not_allowed' }]);
+      }
+      if (method === 'identity_federation') {
+        // GCP (D112): solo se edita el proyecto. Sin regiones, rol ni llaves; un proyecto nuevo exige identificador externo nuevo y un número de proyecto nuevo.
+        const errors = [
+          ...(request.regions !== undefined ? [{ field: 'regions', code: 'field.not_allowed' }] : []),
+          ...(request.roleArn !== undefined ? [{ field: 'role_arn', code: 'field.not_allowed' }] : []),
+          ...(request.credentials !== undefined ? [{ field: 'credentials', code: 'field.not_allowed' }] : []),
+          ...(request.externalAccountId !== undefined ? checkGcpProject(request.externalAccountId).errors : []),
+        ];
+        if (errors.length > 0) throw new ValidationException(errors);
+        if (request.externalAccountId !== undefined && request.externalAccountId !== asset.externalAccountId) {
+          edit.externalAccountId = request.externalAccountId;
+          edit.externalId = newExternalId();
+          edit.projectNumber = null;
+          edit.resetsConnection = true;
+        }
+        const { after } = await this.repo.updateAsset(scope, id, edit, (c) => assetEntry({ principal, meta, action: 'asset.update', before: c.before, after: c.after }));
+        return after;
       }
       const account = request.externalAccountId ?? asset.externalAccountId;
       const regions = request.regions ?? asset.provisioning.regions;

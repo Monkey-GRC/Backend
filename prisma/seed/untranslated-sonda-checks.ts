@@ -1,4 +1,4 @@
-// D112 · Qué guías de la sonda faltan por traducir. Solo lee archivos (no toca la base).
+// D113 · Qué guías de la sonda faltan por traducir. Solo lee archivos (no toca la base).
 //
 //   npm run sonda:untranslated                                 # cuántas faltan por política ofrecida
 //   npm run sonda:untranslated -- cis_ubuntu22-04              # las pendientes de esa política, en JSON (checkId, título, original)

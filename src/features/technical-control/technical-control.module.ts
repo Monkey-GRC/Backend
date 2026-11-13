@@ -32,6 +32,10 @@ import {
 import { ListFindingsUseCase } from './application/use-cases/findings.use-cases';
 import { EngineOutputParser } from './domain/ports/engine-output-parser';
 import { OcsfEngineOutputParser } from './infrastructure/engine/ocsf-parser';
+import { RUNNER_POOL, readRunnerPool } from './application/runner-pool';
+import { PREVIEW_PLATFORMS, readPreviewPlatforms } from './application/preview-platforms';
+import { ConnectionTemplates } from './application/connection-templates';
+import { StaticConnectionTemplates } from './infrastructure/templates/connection-templates.provider';
 import { createConnectionProbe } from './infrastructure/probes/connection-probe.factory';
 import { ConnectionCatalogPrismaRepository } from './infrastructure/repositories/connection-catalog.prisma.repository';
 import { ScanPrismaRepository } from './infrastructure/repositories/scan.prisma.repository';
@@ -63,8 +67,10 @@ import { AgentReadingScheduler } from './infrastructure/agent-reading.scheduler'
   controllers: [TechnicalControlController, AssetsController, ConnectionTemplatesController, ExecutionsController, FindingsController, RunnerController, AgentInstallController, InstallScriptsController],
   providers: [
     { provide: TechnicalControlRepository, useClass: TechnicalControlPrismaRepository },
+    // Se evalúa al arrancar: un RUNNER_POOL inválido impide levantar el servidor (D112).
+    { provide: RUNNER_POOL, useFactory: (config: ConfigService) => readRunnerPool(config.get<string>('RUNNER_POOL')), inject: [ConfigService] },
     { provide: ScanRepository, useClass: ScanPrismaRepository },
-    // Instalar la sonda en un servidor (D112).
+    // Instalar la sonda en un servidor (D113).
     { provide: AgentInstallRepository, useClass: AgentInstallPrismaRepository },
     AgentInstallConfig,
     GetAgentInstallStateUseCase,
@@ -76,6 +82,9 @@ import { AgentReadingScheduler } from './infrastructure/agent-reading.scheduler'
     { provide: ConnectionCatalogRepository, useClass: ConnectionCatalogPrismaRepository },
     // La sonda la decide PROBE_MODE (por defecto «unavailable»; «simulated» solo fuera de producción).
     { provide: ConnectionProbe, useFactory: createConnectionProbe, inject: [ConfigService, ScanRepository] },
+    // Se evalúa al arrancar: con PREVIEW_PLATFORMS en producción el servidor no levanta.
+    { provide: PREVIEW_PLATFORMS, useFactory: (config: ConfigService) => readPreviewPlatforms(config.get<string>('PREVIEW_PLATFORMS'), config.get<string>('NODE_ENV')), inject: [ConfigService] },
+    { provide: ConnectionTemplates, useClass: StaticConnectionTemplates },
     GetTechnicalControlUseCase,
     CreateAssetUseCase,
     ListAssetsUseCase,
@@ -100,7 +109,7 @@ import { AgentReadingScheduler } from './infrastructure/agent-reading.scheduler'
     CompleteScaExecutionUseCase,
     CompleteValidationUseCase,
     FailExecutionUseCase,
-    // La lectura automática de la sonda de un servidor (D112): qué servidores tocan, quién los encola y la tarea que lo hace cada minuto.
+    // La lectura automática de la sonda de un servidor (D113): qué servidores tocan, quién los encola y la tarea que lo hace cada minuto.
     AgentReadingConfig,
     QueueAgentReadingsUseCase,
     AgentReadingScheduler,

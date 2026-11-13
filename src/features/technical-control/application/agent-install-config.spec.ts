@@ -4,7 +4,7 @@ import { AgentInstallConfig } from './agent-install-config';
 const base = { SONDA_MANAGER_HOST: 'sonda.monkey.example', SONDA_AGENT_VERSION: '4.14.6', AGENT_INSTALLER_BASE_URL: 'https://api.monkey.example/v1/install' };
 const config = (env: Record<string, string | undefined>) => new AgentInstallConfig(new ConfigService(env));
 
-describe('AgentInstallConfig (D112)', () => {
+describe('AgentInstallConfig (D113)', () => {
   it('configurada: puerto 1514 y 15 minutos por defecto, y la dirección sin barra final', () => {
     expect(config({ ...base, AGENT_INSTALLER_BASE_URL: 'https://api.monkey.example/v1/install///' }).get()).toEqual({
       managerHost: 'sonda.monkey.example', managerPort: 1514, agentVersion: '4.14.6', installerBaseUrl: 'https://api.monkey.example/v1/install', keyTtlMinutes: 15,

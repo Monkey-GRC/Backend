@@ -1,4 +1,4 @@
--- El vínculo servidor ↔ agente de la sonda (D112, cierra DT-32 al construirse). Solo cambio de schema; el RLS va en la migración siguiente
+-- El vínculo servidor ↔ agente de la sonda (D113, cierra DT-32 al construirse). Solo cambio de schema; el RLS va en la migración siguiente
 -- (schema-implementacion.md §7). Aditiva: no toca ninguna tabla existente.
 
 -- CreateEnum

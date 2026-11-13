@@ -2,7 +2,7 @@ import { RunContext } from '../../domain/repositories/scan.repository';
 import { buildConnection } from './scan.use-cases';
 
 const ctx = (over: Partial<RunContext> = {}): RunContext => ({
-  executionId: 'e', assetId: 'a', origin: 'manual', kind: 'assessment', roleArn: null, externalId: null, platform: 'AWS', externalAccountId: '123456789012', regions: ['us-east-1'], connectionMethod: null, encryptedCredentials: 'x', ...over,
+  executionId: 'e', assetId: 'a', origin: 'manual', kind: 'assessment', roleArn: null, externalId: null, projectNumber: null, platform: 'AWS', externalAccountId: '123456789012', regions: ['us-east-1'], connectionMethod: null, encryptedCredentials: 'x', ...over,
 });
 
 describe('buildConnection', () => {
@@ -28,5 +28,28 @@ describe('buildConnection', () => {
     ['canal de agente (no es del trabajador de nube)', ctx({ connectionMethod: 'agent' }), { x: 'y' }, 'connection.method_not_supported_by_runner'],
   ])('%s → falla con su razón', (_n, c, creds, reason) => {
     expect(buildConnection(c, creds as Record<string, unknown> | null)).toEqual({ ok: false, reason });
+  });
+});
+
+describe('buildConnection · GCP (D112)', () => {
+  const gcp = (over: Partial<RunContext> = {}) =>
+    ctx({ platform: 'gcp', externalAccountId: 'acme-prod-421905', regions: [], connectionMethod: 'identity_federation', externalId: 'mk-3f9a1c7e2b', projectNumber: '407295138461', encryptedCredentials: null, ...over });
+
+  it('entrega la federación con external_id y número de proyecto, sin regiones, también en una evaluación', () => {
+    expect(buildConnection(gcp(), null)).toEqual({
+      ok: true,
+      job: { platform: 'gcp', externalAccountId: 'acme-prod-421905', connection: { method: 'identity_federation', externalId: 'mk-3f9a1c7e2b', projectNumber: '407295138461' } },
+    });
+  });
+  it.each([
+    ['sin número de proyecto', gcp({ projectNumber: null }), 'connection.not_configured'],
+    ['sin identificador externo', gcp({ externalId: null }), 'connection.not_configured'],
+    ['otro canal', gcp({ connectionMethod: 'readonly_role' }), 'connection.method_not_supported_by_runner'],
+  ])('%s → falla con su razón', (_n, c, reason) => {
+    expect(buildConnection(c, null)).toEqual({ ok: false, reason });
+  });
+  it('AWS sigue pidiendo regiones y GCP no', () => {
+    expect(buildConnection(ctx({ regions: [] }), { read_only_role: 'x' })).toEqual({ ok: false, reason: 'connection.regions_missing' });
+    expect(buildConnection(gcp({ kind: 'assessment' }), null)).toMatchObject({ ok: true });
   });
 });

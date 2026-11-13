@@ -3,7 +3,7 @@ import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { OsVersionRule } from '../entities/technical-control.entities';
 import { EnrollmentExecutionStatus } from '../agent-install/install-state';
 
-// El agente de la sonda de un servidor y lo que hace falta para instalarlo (D112). Todo se lee y escribe dentro de la empresa (RLS): un activo de otra empresa no existe.
+// El agente de la sonda de un servidor y lo que hace falta para instalarlo (D113). Todo se lee y escribe dentro de la empresa (RLS): un activo de otra empresa no existe.
 export type AgentInstallFacts = {
   assetId: string;
   // null: el activo existe pero no se conecta con un agente.
@@ -14,7 +14,7 @@ export type AgentInstallFacts = {
     // El sistema (`linux`, `windows`…) y la versión que el cliente declaró.
     os: string;
     osVersion: Pick<OsVersionRule, 'code' | 'distribution' | 'distributionName' | 'versionLabel'>;
-    // Cómo va la conexión del servidor con la sonda (D112): lo último que Monkey vio, y cuándo terminó de crear su agente (desde ahí corre el plazo de búsqueda).
+    // Cómo va la conexión del servidor con la sonda (D113): lo último que Monkey vio, y cuándo terminó de crear su agente (desde ahí corre el plazo de búsqueda).
     status: 'pending' | 'connected' | 'disconnected' | 'removed';
     lastSyncAt: Date | null;
     enrolledAt: Date | null;

@@ -78,7 +78,7 @@ Si el Excel cambia, el cambio **no** entra por recarga: `catalog:load` aborta co
 que el comité las ratifique. Los textos del motor son internos: no salen al cliente. **Licencia del motor sin verificar (`P14` E1):** el
 JSON incluye sus metadatos; revísalo antes de abrir el repo.
 
-## Políticas y checks de la sonda de servidores (D112)
+## Políticas y checks de la sonda de servidores (D113)
 
 | Comando | Qué hace |
 |---|---|

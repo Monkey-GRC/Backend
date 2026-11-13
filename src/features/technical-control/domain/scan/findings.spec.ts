@@ -74,8 +74,8 @@ describe('buildFindings (D90)', () => {
   });
 });
 
-// D112 · Los servidores: la sonda no califica sus checks, y el recurso afectado es el propio servidor.
-describe('buildFindings · servidores (D112)', () => {
+// D113 · Los servidores: la sonda no califica sus checks, y el recurso afectado es el propio servidor.
+describe('buildFindings · servidores (D113)', () => {
   const server = (patch: Partial<FailedRow> = {}): FailedRow =>
     row({ checkUuid: 's1', severity: null, titleEn: 'Ensure /tmp is a separate partition.', titleEs: 'Asegurar que /tmp es una partición separada.', remediation: 'Create a separate /tmp partition.', resourceName: 'srv-prod-01', resourceUid: null, region: null, ...patch });
 

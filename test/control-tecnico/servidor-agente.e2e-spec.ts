@@ -3,7 +3,7 @@ import { bootApp, owner, RUN } from '../support/app';
 import { asApp, failure, withRollback } from '../support/db';
 import { dosEmpresas, Tenant } from '../support/escenario';
 
-// D112: declarar un servidor con agente desde el marketplace. El cliente declara la VERSIÓN de su sistema (de un catálogo que sirve el backend) y de ella salen
+// D113: declarar un servidor con agente desde el marketplace. El cliente declara la VERSIÓN de su sistema (de un catálogo que sirve el backend) y de ella salen
 // el comando correcto y qué evaluación se espera. El activo nace con su fila de agente, SIN agente todavía (Monkey lo crea al entregar el comando).
 // Las reglas son datos: la prueba pone en el catálogo lo que necesita y lo restaura al terminar (como las regiones en conexion.e2e-spec.ts).
 let app: INestApplication;
@@ -57,7 +57,7 @@ afterAll(async () => {
   await app?.close();
 });
 
-describe('Declarar un servidor con agente (D112)', () => {
+describe('Declarar un servidor con agente (D113)', () => {
   it('Linux on-premise: el activo nace con su fila de agente, con la versión declarada y SIN agente todavía', async () => {
     const res = await create(a, linux(a)).expect(201);
     const d = res.body.data;

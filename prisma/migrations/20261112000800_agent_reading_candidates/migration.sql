@@ -1,4 +1,4 @@
--- La lectura automática de la sonda de un servidor (D112). Aditiva: solo agrega una función de lectura.
+-- La lectura automática de la sonda de un servidor (D113). Aditiva: solo agrega una función de lectura.
 --
 -- El planificador necesita ver los servidores de TODAS las empresas para saber a cuáles les toca una lectura. Ninguna política de RLS lo permite (con razón: es el aislamiento entre
 -- empresas), así que, igual que `claim_next_execution` (SEG-47), lo hace una función SECURITY DEFINER angosta: solo LEE, solo devuelve los datos mínimos para decidir (identificadores,

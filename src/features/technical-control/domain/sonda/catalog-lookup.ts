@@ -1,6 +1,6 @@
 import { CatalogCheckRef, CatalogLookup } from './sonda.types';
 
-// Una política del catálogo del comité con los checks que contiene (D112). La clave natural de un check es de tres partes (`platform` + `policy_id` + `check_id`, D6);
+// Una política del catálogo del comité con los checks que contiene (D113). La clave natural de un check es de tres partes (`platform` + `policy_id` + `check_id`, D6);
 // en la sonda, `policy_id` es el id oficial de la política (`scaId`).
 export type CatalogPolicy = { scaId: string; benchmark: string; checks: { id: string; platform: string; checkId: string }[] };
 

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   ConnectionCategory,
   ConnectionMethodValue,
@@ -14,6 +14,7 @@ import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
+import { RUNNER_POOL } from '../../application/runner-pool';
 import {
   Asset,
   AssetEdit,
@@ -40,7 +41,7 @@ const ASSET_CREATION_TRANSACTION = { timeoutMs: 30_000 };
 const ASSET_INCLUDE = {
   serviceAssets: { include: { service: { select: { id: true, name: true } } } },
   provisionings: { include: { automatedCapability: { select: { catalogCode: true } } } },
-  // El agente de la sonda y la versión del sistema que el cliente declaró (D112). Selección explícita: el id de la política en la sonda y su nombre en el
+  // El agente de la sonda y la versión del sistema que el cliente declaró (D113). Selección explícita: el id de la política en la sonda y su nombre en el
   // catálogo del comité son internos y no se piden nunca.
   agent: { select: { status: true, lastSyncAt: true, scaPolicy: { select: { osCode: true, versionCode: true, distribution: true, distributionName: true, versionLabel: true } } } },
 } as const;
@@ -71,7 +72,10 @@ const asStrings = (value: unknown): string[] =>
 
 @Injectable()
 export class TechnicalControlPrismaRepository extends TechnicalControlRepository {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(RUNNER_POOL) private readonly runnerPool: string,
+  ) {
     super();
   }
 
@@ -157,7 +161,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
           externalId: input.externalId,
         },
       });
-      // Un servidor con agente (D112): su fila nace con el activo, con la versión declarada y SIN agente todavía (`agent_id` nulo: Monkey lo crea al entregar el comando).
+      // Un servidor con agente (D113): su fila nace con el activo, con la versión declarada y SIN agente todavía (`agent_id` nulo: Monkey lo crea al entregar el comando).
       if (input.agentScaPolicyId) {
         await tx.assetAgent.create({ data: { tenantId: scope.companyId, assetId: asset.id, scaPolicyId: input.agentScaPolicyId } });
       }
@@ -343,14 +347,14 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
     });
   }
 
-  // El cliente entrega el ARN del rol que creó en su cuenta. Un cambio de rol invalida la validación anterior (hay que comprobar de nuevo).
-  setConnection(scope: TenantScope, id: string, roleArn: string, audit: AuditIntent<AssetChange>) {
+  // El cliente entrega el ARN del rol que creó en su cuenta (AWS) o el número de su proyecto (GCP). Un cambio invalida la validación anterior (hay que comprobar de nuevo).
+  setConnection(scope: TenantScope, id: string, connection: { roleArn: string } | { projectNumber: string }, audit: AuditIntent<AssetChange>) {
     return this.prisma.withScope(scope, async (tx) => {
       const before = await this.readAsset(tx, id);
-      if (before.provisioning.connectionMethod !== 'readonly_role') throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
+      if (before.provisioning.connectionMethod !== ('roleArn' in connection ? 'readonly_role' : 'identity_federation')) throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
       // Una conexión activa no se reconfigura en caliente: sería cambiar lo que se evalúa sin dejar constancia de una nueva comprobación.
       if (before.provisioning.isActive) throw new DomainError('ASSET_ALREADY_ACTIVE');
-      await tx.assetProvisioning.update({ where: { id: before.provisioning.id }, data: { roleArn, connectionStatus: 'pending', lastValidatedAt: null } });
+      await tx.assetProvisioning.update({ where: { id: before.provisioning.id }, data: { ...connection, connectionStatus: 'pending', lastValidatedAt: null } });
       const change = { before, after: await this.readAsset(tx, id) };
       await insertAuditLog(tx, audit(change));
       return change;
@@ -377,6 +381,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
         data: {
           ...(edit.regions !== undefined ? { regions: edit.regions } : {}),
           ...(edit.roleArn !== undefined ? { roleArn: edit.roleArn } : {}),
+          ...(edit.projectNumber !== undefined ? { projectNumber: edit.projectNumber } : {}),
           ...(edit.encryptedCredentials !== undefined ? { encryptedCredentials: edit.encryptedCredentials } : {}),
           ...(edit.externalId !== undefined ? { externalId: edit.externalId } : {}),
           ...(edit.resetsConnection ? { connectionStatus: 'pending' as const, isActive: false, scheduleFrequency: null, lastValidatedAt: null, technicalCoverage: NO_COVERAGE } : {}),
@@ -406,12 +411,12 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
         where: { id: before.provisioning.id },
         data: { connectionStatus: 'pending', isActive: false, scheduleFrequency: null, lastValidatedAt: null, encryptedCredentials: null },
       });
-      // Un servidor con agente (D112 punto 8): se suelta el vínculo y la clave guardada, y se deja en cola retirar el agente de la sonda. Sin esto el agente seguiría enviando datos de un
+      // Un servidor con agente (D113 punto 8): se suelta el vínculo y la clave guardada, y se deja en cola retirar el agente de la sonda. Sin esto el agente seguiría enviando datos de un
       // servidor que ya no es de nadie, y su id seguiría ocupado. El vínculo se suelta aquí mismo (no depende de que el trabajador responda); retirar el agente lo hace el trabajador.
       const link = await tx.assetAgent.findFirst({ where: { assetId: id }, select: { id: true, agentId: true } });
       if (link) {
         await tx.assetAgent.update({ where: { id: link.id }, data: { agentId: null, status: 'removed', installKeyCipher: null, installKeyExpiresAt: null } });
-        if (link.agentId) await tx.execution.create({ data: { tenantId: scope.companyId, assetId: id, status: 'queued', origin: 'manual', kind: 'enrollment' } });
+        if (link.agentId) await tx.execution.create({ data: { tenantId: scope.companyId, assetId: id, status: 'queued', origin: 'manual', kind: 'enrollment', runnerPool: this.runnerPool } });
       }
       const change = { before, after: await this.readAsset(tx, id, { allowInactive: true }) };
       await insertAuditLog(tx, audit(change));
@@ -480,6 +485,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
       regions: string[];
       externalId: string | null;
       roleArn: string | null;
+      projectNumber: string | null;
       connectionStatus: string;
       lastValidatedAt: Date | null;
       isActive: boolean;
@@ -518,6 +524,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
         regions: p.regions,
         externalId: p.externalId,
         roleArn: p.roleArn,
+        projectNumber: p.projectNumber,
         automatedCapabilityCode: p.automatedCapability.catalogCode as ConnectionCategory,
         connectionStatus: p.connectionStatus,
         lastValidatedAt: p.lastValidatedAt,

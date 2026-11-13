@@ -42,6 +42,14 @@ describe('HttpRunnerApi', () => {
     expect(seen[0]).toMatchObject({ url: '/internal/runner/executions/e1/validated', body: { tenant_id: 't1' } });
   });
 
+  it('claim: traduce el trabajo de GCP (federación, sin regiones)', async () => {
+    reply = { status: 200, body: { data: { execution_id: 'e1', kind: 'validation', tenant_id: 't1', asset_id: 'a1', origin: 'manual', platform: 'gcp', external_account_id: 'acme-prod-421905', regions: [], connection: { method: 'identity_federation', external_id: 'mk-3f9a1c7e2b', project_number: '407295138461' } } } };
+    expect(await api().claim()).toEqual({
+      executionId: 'e1', kind: 'validation', tenantId: 't1', assetId: 'a1', origin: 'manual', platform: 'gcp', externalAccountId: 'acme-prod-421905', regions: [],
+      connection: { method: 'identity_federation', externalId: 'mk-3f9a1c7e2b', projectNumber: '407295138461' },
+    });
+  });
+
   it('claim: traduce el trabajo del contrato (rol y llaves)', async () => {
     reply = { status: 200, body: { data: { execution_id: 'e1', kind: 'assessment', tenant_id: 't1', asset_id: 'a1', origin: 'manual', platform: 'aws', external_account_id: '123', regions: ['us-east-1'], connection: { method: 'readonly_role', role_arn: 'arn:r', external_id: 'mk-1' } } } };
     expect(await api().claim()).toEqual({ ...job, externalAccountId: '123', connection: { method: 'readonly_role', roleArn: 'arn:r', externalId: 'mk-1' } });
@@ -49,14 +57,14 @@ describe('HttpRunnerApi', () => {
     expect((await api().claim())!.connection).toEqual({ method: 'access_keys', accessKeyId: 'AKIA', secretAccessKey: 's' });
   });
 
-  it('claim: un servidor con agente trae SU agente y el grupo esperado, y ninguna credencial (D112)', async () => {
+  it('claim: un servidor con agente trae SU agente y el grupo esperado, y ninguna credencial (D113)', async () => {
     reply = { status: 200, body: { data: { execution_id: 'e3', kind: 'assessment', tenant_id: 't1', asset_id: 'a1', origin: 'scheduled', platform: 'ubuntu', external_account_id: null, regions: [], connection: { method: 'agent' }, agent: { agent_id: '001', group: 't1' } } } };
     const j = (await api().claim())!;
     expect(j).toMatchObject({ executionId: 'e3', platform: 'ubuntu', connection: { method: 'agent', agentId: '001', group: 't1' } });
     expect(JSON.stringify(j.connection)).not.toMatch(/secret|password|key/i);
   });
 
-  it('claim: crear el agente de un servidor trae su nombre y su grupo, y ninguna credencial (D112)', async () => {
+  it('claim: crear el agente de un servidor trae su nombre y su grupo, y ninguna credencial (D113)', async () => {
     reply = { status: 200, body: { data: { execution_id: 'e4', kind: 'enrollment', tenant_id: 't1', asset_id: 'a1', origin: 'manual', platform: 'linux', external_account_id: null, regions: [], connection: { method: 'agent' }, agent: { name: 'a1', group: 't1' } } } };
     const j = (await api().claim('enrollment'))!;
     expect(seen[0].body).toEqual({ kind: 'enrollment' });
@@ -64,7 +72,7 @@ describe('HttpRunnerApi', () => {
     expect(JSON.stringify(j)).not.toMatch(/secret|password|key/i);
   });
 
-  it('claim: un servidor dado de baja trae la orden de retirar su agente (D112 punto 8)', async () => {
+  it('claim: un servidor dado de baja trae la orden de retirar su agente (D113 punto 8)', async () => {
     reply = { status: 200, body: { data: { execution_id: 'e5', kind: 'enrollment', tenant_id: 't1', asset_id: 'a1', origin: 'manual', platform: 'linux', external_account_id: null, regions: [], connection: { method: 'agent' }, agent: { name: 'a1', group: 't1', remove: true } } } };
     expect((await api().claim('enrollment'))!.enrollment).toEqual({ name: 'a1', group: 't1', remove: true });
   });

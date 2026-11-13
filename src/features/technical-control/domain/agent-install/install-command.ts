@@ -1,4 +1,4 @@
-// El comando (o el archivo) con el que el cliente instala la sonda en su servidor (D112). Dominio puro: las plantillas de los instaladores se le pasan.
+// El comando (o el archivo) con el que el cliente instala la sonda en su servidor (D113). Dominio puro: las plantillas de los instaladores se le pasan.
 //
 // Cada valor se valida con una forma ESTRICTA antes de entrar a un comando: ninguno puede traer una comilla, un espacio ni un punto y coma. Es lo que impide que un dato raro
 // (un nombre de servidor, una configuración equivocada) se convierta en una orden en la máquina del cliente.

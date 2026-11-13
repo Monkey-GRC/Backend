@@ -1,6 +1,6 @@
 import { AwsInventoryScanner } from './aws-inventory-scanner';
 
-const CREDS = { accessKeyId: 'ASIA', secretAccessKey: 's', sessionToken: 't' };
+const CREDS = { provider: 'aws' as const, accessKeyId: 'ASIA', secretAccessKey: 's', sessionToken: 't' };
 type Cmd = { constructor: { name: string }; input: Record<string, unknown> };
 
 // Un SDK falso: responde según el nombre del comando y la región; `deny` lista los servicios que dan «acceso denegado».

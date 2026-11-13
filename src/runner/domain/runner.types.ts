@@ -5,8 +5,11 @@
 
 // Lo que el backend entrega al reclamar una ejecución.
 // Qué se pide (D58): una validación comprueba el acceso a la cuenta (segundos, el cliente espera); una evaluación corre el motor (minutos).
-// `enrollment` (D112): crear el agente de un servidor en la sonda. Lo espera un cliente en pantalla (segundos), así que tiene su propio carril, como la validación.
+// `enrollment` (D113): crear el agente de un servidor en la sonda. Lo espera un cliente en pantalla (segundos), así que tiene su propio carril, como la validación.
 export type RunnerJobKind = 'assessment' | 'validation' | 'enrollment';
+
+// Las nubes que el trabajador sabe evaluar. Cada una tiene su adaptador (credencial, motor, inventario) en `infrastructure/providers/<nube>/`.
+export type RunnerPlatform = 'aws' | 'gcp';
 
 export type RunnerJob = {
   executionId: string;
@@ -14,32 +17,45 @@ export type RunnerJob = {
   tenantId: string;
   assetId: string;
   origin: 'scheduled' | 'manual';
-  // `aws` para la nube; para un servidor, la plataforma del activo (D112).
-  platform: string;
+  // `aws` o `gcp` para la nube; para un servidor, la plataforma del activo (D113).
+  platform: RunnerPlatform | string;
   externalAccountId: string | null;
   regions: string[];
   connection:
     | { method: 'readonly_role'; roleArn: string; externalId: string | null }
+    // GCP (D112): `externalId` es el nombre de la sesión de AWS con la que Monkey entra; el número de proyecto arma la audiencia de la federación.
+    | { method: 'identity_federation'; externalId: string; projectNumber: string }
     // Las llaves viajan SOLO en esta respuesta, por la red interna. Nunca se registran.
     | { method: 'access_keys'; accessKeyId: string; secretAccessKey: string }
-    // Un servidor con agente de la sonda (D112). NO hay credenciales del cliente: el trabajador lee la sonda con la suya, que nunca viaja por esta
+    // Un servidor con agente de la sonda (D113). NO hay credenciales del cliente: el trabajador lee la sonda con la suya, que nunca viaja por esta
     // API. `agentId` es el agente enlazado al activo y `group` el grupo esperado (el `tenant_id`): el trabajador lo comprueba y el backend lo vuelve a comprobar.
     | { method: 'agent'; agentId: string; group: string };
-  // Solo en `enrollment` (D112): cómo se llama el agente en la sonda (= el id del activo) y a qué grupo va (= el id de la empresa). Los dos los fija el backend: el trabajador no
+  // Solo en `enrollment` (D113): cómo se llama el agente en la sonda (= el id del activo) y a qué grupo va (= el id de la empresa). Los dos los fija el backend: el trabajador no
   // los inventa ni los deduce del servidor.
-  // `remove`: el servidor se dio de baja; no se crea el agente, se retira de la sonda (D112 punto 8).
+  // `remove`: el servidor se dio de baja; no se crea el agente, se retira de la sonda (D113 punto 8).
   enrollment?: { name: string; group: string; remove?: boolean };
 };
 
-// Credenciales con las que el motor mira la cuenta del cliente. Con un rol son TEMPORALES (SEG-46): el motor nunca ve llaves de larga vida.
-export type TemporaryCredentials = {
+// Credenciales con las que el motor mira la cuenta del cliente. Siempre TEMPORALES (SEG-46): con un rol son de 1 hora; el motor nunca ve llaves de larga vida
+// de Monkey. Una unión discriminada: cada nube tiene la suya y solo su adaptador la lee.
+export type AwsCredentials = {
+  provider: 'aws';
   accessKeyId: string;
   secretAccessKey: string;
   sessionToken: string | null;
 };
+// GCP (D112): un token de acceso de 1 h de la cuenta de servicio de solo lectura del proyecto.
+export type GcpCredentials = {
+  provider: 'gcp';
+  accessToken: string;
+  expiresAt: Date;
+};
+export type TemporaryCredentials = AwsCredentials | GcpCredentials;
 
 export type EngineInput = {
   executionId: string;
+  // La cuenta (AWS) o el ID del proyecto (GCP) que se evalúa.
+  accountId: string | null;
   regions: string[];
   credentials: TemporaryCredentials;
 };
@@ -58,16 +74,18 @@ export const FAILURE = {
   roleNotFound: 'connection.role_not_found',
   accountMismatch: 'connection.account_mismatch',
   credentialsInvalid: 'connection.credentials_invalid',
+  federationRejected: 'connection.federation_rejected',
+  methodNotSupportedByRunner: 'connection.method_not_supported_by_runner',
   engineFailed: 'execution.engine_failed',
   engineTimeout: 'execution.engine_timeout',
   outputInvalid: 'execution.output_invalid',
-  // La sonda de servidores (D112). Un servidor que no responde es un problema de CONEXIÓN, no un incumplimiento.
+  // La sonda de servidores (D113). Un servidor que no responde es un problema de CONEXIÓN, no un incumplimiento.
   methodNotSupported: 'connection.method_not_supported_by_runner',
   agentNotFound: 'connection.agent_not_found',
   agentNoScanYet: 'connection.agent_no_scan_yet',
   agentDisconnected: 'connection.agent_disconnected',
   agentGroupMismatch: 'connection.agent_group_mismatch',
-  // Crear el agente de un servidor en la sonda no se pudo (D112).
+  // Crear el agente de un servidor en la sonda no se pudo (D113).
   agentEnrollFailed: 'connection.agent_enroll_failed',
   probeUnreachable: 'connection.probe_unreachable',
   probeUnauthorized: 'connection.probe_unauthorized',

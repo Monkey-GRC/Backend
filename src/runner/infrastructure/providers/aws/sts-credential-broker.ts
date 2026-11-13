@@ -1,27 +1,26 @@
 import { GetCallerIdentityCommand, AssumeRoleCommand, STSClient } from '@aws-sdk/client-sts';
-import { CredentialBroker } from '../domain/ports';
-import { FAILURE, RunnerFailure, RunnerJob, TemporaryCredentials } from '../domain/runner.types';
+import { createBaseSts, errName, SESSION_SECONDS, StsLike } from '../sts-base';
+import { CredentialBroker } from '../../../domain/ports';
+import { FAILURE, RunnerFailure, RunnerJob, TemporaryCredentials } from '../../../domain/runner.types';
 
 // Quien mira la cuenta del cliente es SIEMPRE una credencial temporal (SEG-46):
 //  - rol de solo lectura: se asume con el ExternalId de la conexión → credenciales de 1 hora;
 //  - llaves (canal menos seguro): se comprueban y se pasan tal cual.
 // La identidad base con la que se asume el rol sale del entorno del trabajador (en desarrollo, llaves de una cuenta de pruebas; en producción,
 // una identidad propia de Monkey sin llaves guardadas, DT-43).
-const SESSION_SECONDS = 3600;
-
-type StsLike = Pick<STSClient, 'send'>;
 const accountOf = (arn: string | undefined) => arn?.split(':')[4] ?? null;
-const errName = (e: unknown) => (e as { name?: string })?.name ?? '';
 
 export class StsCredentialBroker extends CredentialBroker {
-  constructor(private readonly base: StsLike = new STSClient({ region: process.env['AWS_REGION'] ?? 'us-east-1' })) {
+  constructor(private readonly base: StsLike = createBaseSts()) {
     super();
   }
 
   async obtain(job: RunnerJob): Promise<TemporaryCredentials> {
-    // Un servidor con agente (D112) no tiene credenciales del cliente: lo lee la sonda, no este corredor. Aquí no debería llegar (RunNextExecution lo desvía).
-    if (job.connection.method === 'agent') throw new RunnerFailure(FAILURE.methodNotSupported);
-    return job.connection.method === 'readonly_role' ? this.assume(job, job.connection) : this.verifyKeys(job, job.connection);
+    const c = job.connection;
+    if (c.method === 'readonly_role') return this.assume(job, c);
+    if (c.method === 'access_keys') return this.verifyKeys(job, c);
+    // Un servidor con agente (D112) tampoco llega aquí: RunNextExecution lo desvía a la sonda.
+    throw new RunnerFailure(FAILURE.methodNotSupportedByRunner);
   }
 
   private async assume(job: RunnerJob, c: { roleArn: string; externalId: string | null }): Promise<TemporaryCredentials> {
@@ -40,7 +39,7 @@ export class StsCredentialBroker extends CredentialBroker {
     // Cuenta equivocada: nunca se evalúa una cuenta distinta de la declarada.
     const assumed = accountOf(out.AssumedRoleUser?.Arn);
     if (job.externalAccountId && assumed && assumed !== job.externalAccountId) throw new RunnerFailure(FAILURE.accountMismatch);
-    return { accessKeyId: cr.AccessKeyId, secretAccessKey: cr.SecretAccessKey, sessionToken: cr.SessionToken };
+    return { provider: 'aws', accessKeyId: cr.AccessKeyId, secretAccessKey: cr.SecretAccessKey, sessionToken: cr.SessionToken };
   }
 
   private async verifyKeys(job: RunnerJob, c: { accessKeyId: string; secretAccessKey: string }): Promise<TemporaryCredentials> {
@@ -52,6 +51,6 @@ export class StsCredentialBroker extends CredentialBroker {
       if (e instanceof RunnerFailure) throw e;
       throw new RunnerFailure(FAILURE.credentialsInvalid, errName(e));
     }
-    return { accessKeyId: c.accessKeyId, secretAccessKey: c.secretAccessKey, sessionToken: null };
+    return { provider: 'aws', accessKeyId: c.accessKeyId, secretAccessKey: c.secretAccessKey, sessionToken: null };
   }
 }

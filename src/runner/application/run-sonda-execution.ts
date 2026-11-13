@@ -5,7 +5,7 @@ import type { StepResult } from './run-next-execution';
 
 type AgentJob = RunnerJob & { connection: { method: 'agent'; agentId: string; group: string } };
 
-// Una ejecución de un servidor con agente (D112): lee la configuración (SCA) de SU agente en la sonda y la entrega al backend.
+// Una ejecución de un servidor con agente (D113): lee la configuración (SCA) de SU agente en la sonda y la entrega al backend.
 // Solo lee. No interpreta ni decide qué cuenta: eso es del backend con el catálogo del comité.
 //
 // Por qué comprueba el grupo AQUÍ además del backend: es barato y evita bajar cientos de checks de un agente que no es de la empresa. Pero el
@@ -15,7 +15,7 @@ export class RunSondaExecution {
     private readonly api: RunnerApi,
     private readonly sonda: SondaApi,
     private readonly log: RunnerLogger,
-    // Prefijos de versión que sabemos leer (`4.14`). Una versión fuera de esta lista no se lee (D112).
+    // Prefijos de versión que sabemos leer (`4.14`). Una versión fuera de esta lista no se lee (D113).
     private readonly supportedVersions: readonly string[],
     private readonly now: () => Date = () => new Date(),
   ) {}
@@ -59,7 +59,7 @@ export class RunSondaExecution {
 
     const agent = await this.sonda.agent(agentId);
     if (!agent) throw new RunnerFailure(FAILURE.agentNotFound);
-    // El nombre del agente es el ID del activo (D112): si no coincide, el vínculo está mal y no se lee. Igual si el grupo no es el de la empresa.
+    // El nombre del agente es el ID del activo (D113): si no coincide, el vínculo está mal y no se lee. Igual si el grupo no es el de la empresa.
     if (agent.name !== job.assetId || !agentGroupsMatchTenant(agent.groups, group)) throw new RunnerFailure(FAILURE.agentGroupMismatch);
     if (agent.status === 'never_connected' || agent.status === 'pending') throw new RunnerFailure(FAILURE.agentNoScanYet);
     // Un agente desconectado conserva su último estado en la sonda, pero eso NO es una medición de hoy: no se presenta como una.

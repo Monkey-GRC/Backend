@@ -16,7 +16,7 @@ describe('needsOsVersion', () => {
   });
 });
 
-describe('checkOsVersion (D112)', () => {
+describe('checkOsVersion (D113)', () => {
   it('una versión que el catálogo ofrece y es de ese sistema: sin errores', () => {
     expect(check()).toEqual([]);
     expect(check({ platformCode: 'windows', osVersion: 'windows_server_2022', found: WIN })).toEqual([]);

@@ -6,7 +6,7 @@ import { ScanRepository } from '../../domain/repositories/scan.repository';
 import { buildFindings, Finding, FindingLanguage } from '../../domain/scan/findings';
 import { isScopedRole } from '../../../../common/enums/user-role.enum';
 
-// D90 · Qué falló y cómo corregirlo, para una prueba automática de un control (de nube o de servidores, D112). Lo calcula de la última evaluación completada (nunca se guarda) y
+// D90 · Qué falló y cómo corregirlo, para una prueba automática de un control (de nube o de servidores, D113). Lo calcula de la última evaluación completada (nunca se guarda) y
 // deja fuera lo que no es del cliente: ni el nombre del proveedor de la sonda ni el texto crudo de cada recurso.
 @Injectable()
 export class ListFindingsUseCase {

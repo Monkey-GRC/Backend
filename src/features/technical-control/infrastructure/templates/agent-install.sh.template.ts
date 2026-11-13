@@ -1,4 +1,4 @@
-// Instalador de la sonda para servidores Linux (D112). Lo sirve el backend en `GET /v1/install/agent.sh` (público: no lleva ningún secreto; la clave llega como argumento).
+// Instalador de la sonda para servidores Linux (D113). Lo sirve el backend en `GET /v1/install/agent.sh` (público: no lleva ningún secreto; la clave llega como argumento).
 //
 // Reglas del archivo (porque es una plantilla de TypeScript): sin acentos graves y sin la secuencia de dólar y llave, que TypeScript interpolaría. Por eso el script usa
 // `$VAR` y `$(...)`, nunca la forma con llaves.

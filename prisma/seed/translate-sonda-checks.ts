@@ -1,4 +1,4 @@
-// D112 · Guía de corrección de los checks de la sonda de servidores en español → base de datos.
+// D113 · Guía de corrección de los checks de la sonda de servidores en español → base de datos.
 //
 //   npm run sonda:translate              # dry-run
 //   npm run sonda:translate -- --apply   # escribe, en UNA transacción

@@ -1,4 +1,4 @@
-// Instalador de la sonda para servidores Windows (D112). Lo sirve el backend en `GET /v1/install/agent.ps1` (público: no lleva ningún secreto) y, para quien prefiere un
+// Instalador de la sonda para servidores Windows (D113). Lo sirve el backend en `GET /v1/install/agent.ps1` (público: no lleva ningún secreto) y, para quien prefiere un
 // archivo, se entrega con los datos de ESE servidor ya escritos dentro (la clave sale una sola vez, junto con el comando).
 //
 // Reglas del archivo (plantilla de TypeScript): sin acentos graves y sin la secuencia de dólar y llave. Por eso el script usa `$(...)` y evaluadores de bloque en vez de

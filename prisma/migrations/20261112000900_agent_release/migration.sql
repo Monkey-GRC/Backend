@@ -1,4 +1,4 @@
--- Un identificador de agente de la sonda se puede reciclar (D112). Aditiva: solo agrega una función.
+-- Un identificador de agente de la sonda se puede reciclar (D113). Aditiva: solo agrega una función.
 --
 -- La sonda reparte los ids de agente por su cuenta (`001`, `002`…) y reutiliza el de uno que se borró. `asset_agents.agent_id` es único en TODA la base, así que un vínculo viejo (de un
 -- servidor dado de baja, de otra empresa o de un agente que ya no existe en la sonda) impedía enlazar el agente nuevo (`AGENT_ALREADY_LINKED`) aunque la sonda ya lo hubiera creado.

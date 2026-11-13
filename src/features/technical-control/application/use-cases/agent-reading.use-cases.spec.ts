@@ -66,7 +66,7 @@ describe('AgentReadingConfig', () => {
   });
 });
 
-describe('FailExecutionUseCase · lectura automática que no estaba lista (D112)', () => {
+describe('FailExecutionUseCase · lectura automática que no estaba lista (D113)', () => {
   const T = '11111111-1111-4111-8111-111111111111';
   const E = '44444444-4444-4444-8444-444444444444';
 

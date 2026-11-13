@@ -86,7 +86,7 @@ else
   echo "AVISO: no se pudieron cargar o verificar los catálogos de referencia (¿una fila difiere de la fuente?). El despliegue sigue; hasta que se carguen, el catálogo de conexiones o de integraciones puede estar incompleto." >&2
 fi
 
-# Los checks de la sonda (políticas SCA de servidores con agente, D112) y sus guías de corrección en español. Misma regla: IDEMPOTENTE, NO bloquea. Si falla, los servidores
+# Los checks de la sonda (políticas SCA de servidores con agente, D113) y sus guías de corrección en español. Misma regla: IDEMPOTENTE, NO bloquea. Si falla, los servidores
 # se conectan pero no se pueden traducir los resultados hasta que se cargue.
 echo "==> 6/6 Catálogo de checks de la sonda y sus traducciones (solo inserta lo que falta)"
 if docker run --rm --network "$NETWORK" -e DATABASE_URL "$IMAGE" npm run sonda:load -- --apply \

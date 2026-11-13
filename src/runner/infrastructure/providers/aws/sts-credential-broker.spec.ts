@@ -1,5 +1,5 @@
 import { AssumeRoleCommand } from '@aws-sdk/client-sts';
-import { RunnerJob } from '../domain/runner.types';
+import { RunnerJob } from '../../../domain/runner.types';
 import { StsCredentialBroker } from './sts-credential-broker';
 
 const job = (over: Partial<RunnerJob> = {}): RunnerJob => ({
@@ -13,7 +13,7 @@ describe('StsCredentialBroker', () => {
   it('asume el rol con su ExternalId y entrega credenciales TEMPORALES (con token de sesión)', async () => {
     const sent: unknown[] = [];
     const broker = new StsCredentialBroker({ send: (c: unknown) => { sent.push(c); return Promise.resolve(assumed()); } } as never);
-    expect(await broker.obtain(job())).toEqual({ accessKeyId: 'ASIA', secretAccessKey: 's', sessionToken: 't' });
+    expect(await broker.obtain(job())).toEqual({ provider: 'aws', accessKeyId: 'ASIA', secretAccessKey: 's', sessionToken: 't' });
     const input = (sent[0] as AssumeRoleCommand).input;
     expect(input).toMatchObject({ RoleArn: 'arn:aws:iam::123456789012:role/MonkeyReadOnly', ExternalId: 'mk-1', DurationSeconds: 3600, RoleSessionName: 'monkey-abcdef12' });
   });

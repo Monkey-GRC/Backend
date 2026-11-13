@@ -39,7 +39,7 @@ export class GetCatalogUseCase {
       if (items.length === 0) throw new DomainError('NOT_FOUND');
       return { kind: 'regions', items };
     }
-    // `<sistema>_version` (p. ej. `linux_version`, `windows_version`): las versiones que el cliente puede declarar para un servidor salen de la base (D112),
+    // `<sistema>_version` (p. ej. `linux_version`, `windows_version`): las versiones que el cliente puede declarar para un servidor salen de la base (D113),
     // solo las que la sonda entrega. Ninguna lista vive en el código ni en la pantalla.
     const version = /^([a-z0-9_]+)_version$/.exec(name);
     if (version) {

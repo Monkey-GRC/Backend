@@ -115,7 +115,7 @@ export const DOMAIN_ERROR_CATALOG: Record<
   // Esta instalación aún no puede comprobar conexiones (sin sonda). No es un fallo del cliente.
   CONNECTION_UNAVAILABLE: { status: HttpStatus.SERVICE_UNAVAILABLE, messageKey: 'connection.unavailable' },
   INTEGRATION_NOT_FOUND: { status: HttpStatus.NOT_FOUND, messageKey: 'integration.not_found' },
-  // La instalación de la sonda en un servidor (D112).
+  // La instalación de la sonda en un servidor (D113).
   ASSET_NOT_AGENT: { status: HttpStatus.CONFLICT, messageKey: 'agent_install.not_agent' },
   AGENT_INSTALL_NOT_READY: { status: HttpStatus.CONFLICT, messageKey: 'agent_install.not_ready' },
   AGENT_ALREADY_LINKED: { status: HttpStatus.CONFLICT, messageKey: 'agent_install.already_linked' },

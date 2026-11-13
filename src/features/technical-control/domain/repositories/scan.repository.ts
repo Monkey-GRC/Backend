@@ -30,7 +30,7 @@ export type ScanRun = ScanOutcome & {
 
 export type RecordedScan = { executionId: string; resultCount: number; resourceCount: number };
 
-// Lo que una lectura de la sonda de un servidor entrega al terminar, ya interpretado (D112).
+// Lo que una lectura de la sonda de un servidor entrega al terminar, ya interpretado (D113).
 export type ScaOutcome = {
   agentId: string;
   finishedAt: Date;
@@ -54,10 +54,12 @@ export type RunContext = {
   platform: string;
   externalAccountId: string | null;
   regions: string[];
-  connectionMethod: 'agent' | 'readonly_role' | 'access_keys' | null;
+  connectionMethod: 'agent' | 'readonly_role' | 'access_keys' | 'identity_federation' | null;
   // Lo que el cliente configuró para el rol (no son secretos). Las llaves, si las hay, siguen cifradas en `encryptedCredentials`.
   roleArn: string | null;
   externalId: string | null;
+  // GCP (D112): el número del proyecto que el cliente entregó.
+  projectNumber: string | null;
   encryptedCredentials: string | null;
 };
 
@@ -89,6 +91,9 @@ export type ExecutionSummary = {
 export abstract class ScanRepository {
   // El catálogo de checks de nube vigente: código del motor → id. Es lo que define el conjunto «ejecutado».
   abstract catalogChecks(platform: string): Promise<Map<string, string>>;
+  // La plataforma del activo de una ejecución o de un activo (decide qué catálogo de checks vale). null si no existe para esta empresa.
+  abstract executionPlatform(scope: TenantScope, executionId: string): Promise<string | null>;
+  abstract assetPlatform(scope: TenantScope, assetId: string): Promise<string | null>;
 
   // «Evaluar ahora»: crea una ejecución en cola. NOT_FOUND si el activo no existe para esta empresa; ASSET_NOT_VALIDATED si su
   // conexión aún no se comprobó; EXECUTION_IN_PROGRESS si ya hay una abierta.
@@ -138,7 +143,7 @@ export abstract class ScanRepository {
   // los vínculos que el comité aún no ratificó (igual que `writeEvaluations`). `measuredAt` es la fecha de la evaluación más reciente; null si ninguna conexión se evaluó.
   abstract loadFailedRows(scope: TenantScope, input: { serviceId: string; testId: string; includeProposed: boolean }): Promise<{ measuredAt: Date | null; rows: FailedRow[] }>;
 
-  // ---- servidores con agente de la sonda (D112) ----
+  // ---- servidores con agente de la sonda (D113) ----
 
   // El agente enlazado al activo de esta ejecución, tal como Monkey lo pre-registró: el hecho contra el que se comprueba lo que entrega el trabajador (SEG-45).
   // null si la ejecución no existe para esta empresa o su activo no tiene agente; `agentId` es null mientras no se haya creado en la sonda.
@@ -151,7 +156,7 @@ export abstract class ScanRepository {
   // transacción. EXECUTION_NOT_RUNNING si la ejecución no está en curso.
   abstract completeSca(scope: TenantScope, executionId: string, outcome: ScaOutcome, audit: AuditIntent<{ executionId: string; resultCount: number }>): Promise<{ executionId: string; resultCount: number }>;
 
-  // ---- la lectura automática de la sonda (D112) ----
+  // ---- la lectura automática de la sonda (D113) ----
 
   // Los servidores de TODAS las empresas a los que podría tocarles una lectura (función SQL angosta que solo lee, SEG-47). Ya viene sin lo que no puede tocar (con una lectura abierta,
   // empresa archivada, conectado hace poco); la decisión final es de `isReadingDue`.

@@ -9,7 +9,7 @@ const HOUR_SECONDS = 3600;
 
 export type ReadingPass = { considered: number; due: number; queued: number };
 
-// Una pasada de la lectura automática (D112): mira los servidores de todas las empresas, decide a cuáles les toca (`isReadingDue`) y deja en cola una lectura de cada uno. El trabajador la
+// Una pasada de la lectura automática (D113): mira los servidores de todas las empresas, decide a cuáles les toca (`isReadingDue`) y deja en cola una lectura de cada uno. El trabajador la
 // reclama como cualquier otra y entrega lo que lee la sonda. Esta pasada NO lee la sonda ni espera al trabajador: solo encola.
 //
 // Es segura de repetir y de correr en dos instancias del backend a la vez: un servidor no puede tener dos lecturas abiertas (índice único), así que la segunda pasada simplemente no encola.

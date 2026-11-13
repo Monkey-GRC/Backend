@@ -2,7 +2,7 @@ import { Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } fro
 import { AgentReadingConfig } from '../application/agent-reading-config';
 import { QueueAgentReadingsUseCase } from '../application/use-cases/agent-reading.use-cases';
 
-// D112 · La tarea programada de la lectura de la sonda: cada minuto revisa qué servidores con agente necesitan una lectura (los que aún no se conectan, los desconectados y los
+// D113 · La tarea programada de la lectura de la sonda: cada minuto revisa qué servidores con agente necesitan una lectura (los que aún no se conectan, los desconectados y los
 // conectados que ya toca releer) y las deja en cola. Los intervalos reales (3 minutos, 24 horas…) los decide `reading-plan.ts` con `AgentReadingConfig`; el minuto de esta tarea solo es
 // la resolución con la que se evalúan. `AGENT_WATCH_INTERVAL_MINUTES=0` la apaga (las pruebas y los scripts).
 const TICK_MS = 60_000;

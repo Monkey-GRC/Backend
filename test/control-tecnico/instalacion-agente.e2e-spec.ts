@@ -10,7 +10,7 @@ import { HttpRunnerApi } from '../../src/runner/infrastructure/http-runner-api';
 import { bootApp, owner, RUN, RUNNER_TOKEN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
 
-// D112: instalar la sonda en un servidor con agente, de punta a punta por HTTP. El backend es el REAL y el trabajador es el REAL (su bucle y su cliente HTTP); solo la API de la
+// D113: instalar la sonda en un servidor con agente, de punta a punta por HTTP. El backend es el REAL y el trabajador es el REAL (su bucle y su cliente HTTP); solo la API de la
 // sonda es simulada. Es lo que se presenta: el cliente declara su servidor, pide la instalación, el trabajador crea el agente, y el cliente ve el comando UNA sola vez.
 const HOST = 'sonda.monkey.test';
 const INSTALLER = 'https://api.monkey.test/v1/install';
@@ -99,7 +99,7 @@ afterAll(async () => {
 });
 beforeEach(async () => { await drainQueue(); sonda = new FakeSonda(); });
 
-describe('Instalar la sonda en un servidor (D112)', () => {
+describe('Instalar la sonda en un servidor (D113)', () => {
   it('antes de empezar: no_started, con el sistema, la versión declarada y lo que el firewall debe permitir DE SALIDA', async () => {
     const id = await declare(a);
     const d = (await state(a, id).expect(200)).body.data;

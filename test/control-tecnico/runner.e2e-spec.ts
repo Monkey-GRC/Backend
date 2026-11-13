@@ -16,7 +16,7 @@ const CHECKS = [
   { id: 'ec2_securitygroup_allow_ingress_from_internet_to_tcp_port_22', test: 'T-CLD-002' },
   { id: 'cloudtrail_multi_region_enabled', test: 'T-CLD-003' },
 ];
-const TEMP: TemporaryCredentials = { accessKeyId: 'ASIATEMP', secretAccessKey: 'secreto-temporal', sessionToken: 'token' };
+const TEMP: TemporaryCredentials = { provider: 'aws' as const, accessKeyId: 'ASIATEMP', secretAccessKey: 'secreto-temporal', sessionToken: 'token' };
 
 let app: INestApplication;
 let a: Tenant;
@@ -106,7 +106,7 @@ describe('El trabajador contra el backend real', () => {
 
     // lo que recibió el motor: las regiones declaradas y credenciales temporales, nunca el formulario del cliente
     expect(broker.jobs[0]).toMatchObject({ executionId, tenantId: a.companyId, externalAccountId: ACCOUNT, regions: ['us-east-1'], connection: { method: 'readonly_role', roleArn: ROLE_ARN, externalId: `mk-${RUN}` } });
-    expect(engine.inputs[0]).toEqual({ executionId, regions: ['us-east-1'], credentials: TEMP });
+    expect(engine.inputs[0]).toEqual({ executionId, accountId: ACCOUNT, regions: ['us-east-1'], credentials: TEMP });
 
     expect((await history(a, assetId))[0]).toMatchObject({ id: executionId, status: 'completed' });
     const ready = await a.agent.get(`/v1/assets/${assetId}/readiness`).expect(200);

@@ -1,4 +1,4 @@
-// La lectura automática de la sonda de un servidor (D112). Dominio puro: sin Nest, sin Prisma, sin reloj propio (se le pasa `now`).
+// La lectura automática de la sonda de un servidor (D113). Dominio puro: sin Nest, sin Prisma, sin reloj propio (se le pasa `now`).
 //
 // La sonda no avisa a Monkey cuando un servidor se conecta: Monkey tiene que ir a leerla. Este archivo decide A QUÉ servidores les toca, y es lo único que decide. Así el
 // cliente instala y la pantalla pasa sola de «Esperando» a «Conectado», y un servidor conectado se relee cada cierto tiempo para que el cumplimiento no envejezca.

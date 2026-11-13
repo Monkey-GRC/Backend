@@ -2,7 +2,7 @@ import { FAILURE, RunnerFailure } from '../../domain/runner.types';
 import { SondaAgent, SondaAgentStatus, SondaApi, SondaScaCheck, SondaScaPolicySummary } from '../../domain/sonda';
 import { HttpTransport, WazuhApiOptions, WazuhSession } from './wazuh-session';
 
-// Cliente de SOLO LECTURA de la API del manager de la sonda (D112). Documento interno: aquí sí se nombra al proveedor (rule 1 de CLAUDE.md).
+// Cliente de SOLO LECTURA de la API del manager de la sonda (D113). Documento interno: aquí sí se nombra al proveedor (rule 1 de CLAUDE.md).
 //
 // Qué hace y qué no:
 //  - Autentica con el usuario de lectura (`monkey_sync`) por una sesión que SE NIEGA a enviar cualquier cosa que no sea un GET (y el POST de autenticación): no existe

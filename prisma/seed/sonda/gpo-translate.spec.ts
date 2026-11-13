@@ -4,7 +4,7 @@ import { SourcePolicy, validateSondaTranslations } from './translations';
 const PATH = 'Computer Configuration\\Policies\\Windows Settings\\Security Settings\\Account Policies\\Password Policy\\Enforce password history';
 const original = (value: string) => `To establish the recommended configuration via GP, set the following UI path to ${value}: ${PATH}.`;
 
-describe('translateGpoRemediation (D112)', () => {
+describe('translateGpoRemediation (D113)', () => {
   it('traduce el formato estándar: la ruta va exacta en un bloque de código y el valor se explica en español', () => {
     const es = translateGpoRemediation(original('24 or more password(s)'))!;
     expect(es).toContain('fije la siguiente ruta de la interfaz en `24 or more password(s)` (24 o más contraseña(s)):');

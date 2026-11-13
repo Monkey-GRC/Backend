@@ -193,7 +193,8 @@
   "connection_method": {
     "readonly_role": "Rol de solo lectura (recomendado)",
     "access_keys": "Llaves de acceso (menos seguro)",
-    "agent": "Agente instalado"
+    "agent": "Agente instalado",
+    "identity_federation": "Federación de identidad, sin claves (GCP)"
   },
   "os_version": {
     "linux_generic": "Linux (pruebas generales)"

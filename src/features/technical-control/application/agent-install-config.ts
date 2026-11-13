@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { invalidInstallParams } from '../domain/agent-install/install-command';
 
-// Lo que hace falta para armar el comando de instalación (D112). Todo sale de la configuración de esta instalación de Monkey: nada de esto vive en el código.
+// Lo que hace falta para armar el comando de instalación (D113). Todo sale de la configuración de esta instalación de Monkey: nada de esto vive en el código.
 export type InstallConfig = {
   // A dónde se conecta cada servidor del cliente (de SALIDA, puerto 1514 por defecto). Es la dirección de Monkey, no la del cliente.
   managerHost: string;

@@ -18,9 +18,9 @@ export class RunNextExecution {
     private readonly kind?: RunnerJobKind,
     // Opcional: sin él, la validación solo comprueba el acceso (no descubre activos).
     private readonly inventory?: InventoryScanner,
-    // Servidores con agente (D112). Sin él, el trabajador no lee la sonda y esas ejecuciones se cierran con una razón clara, sin tocarlas a mano.
+    // Servidores con agente (D113). Sin él, el trabajador no lee la sonda y esas ejecuciones se cierran con una razón clara, sin tocarlas a mano.
     private readonly sonda?: RunSondaExecution,
-    // Crear el agente de un servidor en la sonda (D112). Lleva la credencial de ALTA, aparte de la de lectura: sin ella, el trabajador no crea agentes.
+    // Crear el agente de un servidor en la sonda (D113). Lleva la credencial de ALTA, aparte de la de lectura: sin ella, el trabajador no crea agentes.
     private readonly enrollment?: RunEnrollment,
   ) {}
 
@@ -33,7 +33,7 @@ export class RunNextExecution {
       this.log.error(`Ejecución ${job.executionId}: este trabajador no tiene configurada la creación de agentes.`);
       return this.reportFailure(job, FAILURE.methodNotSupported);
     }
-    // Un servidor con agente no tiene credenciales del cliente ni motor en contenedor: otro camino (D112).
+    // Un servidor con agente no tiene credenciales del cliente ni motor en contenedor: otro camino (D113).
     if (job.connection.method === 'agent') {
       if (this.sonda) return this.sonda.execute(job as RunnerJob & { connection: { method: 'agent'; agentId: string; group: string } });
       this.log.error(`Ejecución ${job.executionId}: este trabajador no tiene configurada la lectura de la sonda.`);
@@ -51,7 +51,7 @@ export class RunNextExecution {
         this.log.info(`Ejecución ${job.executionId}: conexión validada${inventory ? ` (${inventory.resources.length} activos encontrados)` : ''}.`);
         return 'completed';
       }
-      const run = await this.engine.run({ executionId: job.executionId, regions: job.regions, credentials });
+      const run = await this.engine.run({ executionId: job.executionId, accountId: job.externalAccountId, regions: job.regions, credentials });
       try {
         await this.api.submitResults(job, run, job.regions);
         this.log.info(`Ejecución ${job.executionId}: entregada (${run.findings.length} filas).`);

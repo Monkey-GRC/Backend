@@ -1,4 +1,4 @@
-// Políticas, checks, su mapeo a SOC 2 y su asignación PROPUESTA a las pruebas de servidores (D112) → base de datos.
+// Políticas, checks, su mapeo a SOC 2 y su asignación PROPUESTA a las pruebas de servidores (D113) → base de datos.
 //
 //   npm run sonda:load              # dry-run
 //   npm run sonda:load -- --apply   # escribe, en UNA transacción

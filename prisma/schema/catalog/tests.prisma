@@ -210,7 +210,7 @@ model CheckMapping {
   @@schema("catalog")
 }
 
-// Una política de configuración de la sonda (D112). Es la fuente única de TRES cosas: la traducción nombre ↔ id (el comité nombra la política por su
+// Una política de configuración de la sonda (D113). Es la fuente única de TRES cosas: la traducción nombre ↔ id (el comité nombra la política por su
 // nombre y la sonda por su id), qué versiones de qué sistema se ofrecen al cliente, y cuántos checks tiene cada una.
 model ScaPolicy {
   id         String @id @default(uuid()) @db.Uuid

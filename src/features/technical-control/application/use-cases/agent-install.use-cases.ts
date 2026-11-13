@@ -41,7 +41,7 @@ export type InstallView = {
   expiresAt: Date | null;
   // Lo que el firewall del cliente debe permitir de SALIDA.
   requiresOutbound: { host: string; port: number };
-  // Cómo va el servidor con la sonda (D112): `watching` es verdad mientras Monkey lo busca solo; cuando deja de serlo sin haberse conectado, la pantalla ofrece «Comprobar ahora».
+  // Cómo va el servidor con la sonda (D113): `watching` es verdad mientras Monkey lo busca solo; cuando deja de serlo sin haberse conectado, la pantalla ofrece «Comprobar ahora».
   connection: { status: NonNullable<AgentInstallFacts['agent']>['status']; watching: boolean; lastSyncAt: Date | null };
 };
 
@@ -184,7 +184,7 @@ export class CompleteEnrollmentUseCase {
   }
 }
 
-// El trabajador retiró de la sonda el agente de un servidor dado de baja (D112 punto 8). El vínculo ya se soltó al darlo de baja: aquí solo se cierra la ejecución.
+// El trabajador retiró de la sonda el agente de un servidor dado de baja (D113 punto 8). El vínculo ya se soltó al darlo de baja: aquí solo se cierra la ejecución.
 @Injectable()
 export class CompleteAgentRemovalUseCase {
   constructor(private readonly repo: AgentInstallRepository) {}

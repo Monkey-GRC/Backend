@@ -6,7 +6,7 @@ const earlier = new Date(NOW.getTime() - 1);
 const facts = (over: Partial<InstallFacts> = {}): InstallFacts => ({ agentId: null, hasKey: false, keyExpiresAt: null, latestEnrollment: null, ...over });
 const run = (over: Partial<InstallFacts>) => installState(facts(over), NOW);
 
-describe('installState (D112)', () => {
+describe('installState (D113)', () => {
   it('sin nada empezado', () => {
     expect(run({})).toEqual({ status: 'not_started', failureReason: null });
   });

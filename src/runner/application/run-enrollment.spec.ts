@@ -40,7 +40,7 @@ class Log extends RunnerLogger { lines: string[] = []; info(m: string) { this.li
 
 const run = (sonda: FakeSonda, api = new FakeApi(), log = new Log()) => ({ api, sonda, log, result: new RunEnrollment(api, sonda, log, ['4.14']).execute(job) });
 
-describe('RunEnrollment (D112)', () => {
+describe('RunEnrollment (D113)', () => {
   it('camino feliz: versión → grupo → retirar un agente anterior → crear → entregar id y clave al backend', async () => {
     const { api, sonda, result } = run(new FakeSonda());
     expect(await result).toBe('completed');
@@ -115,7 +115,7 @@ describe('RunEnrollment (D112)', () => {
     });
   });
 
-  describe('servidor dado de baja (D112 punto 8): se retira su agente de la sonda y no se crea otro', () => {
+  describe('servidor dado de baja (D113 punto 8): se retira su agente de la sonda y no se crea otro', () => {
     const retired = { ...job, enrollment: { name: NAME, group: GROUP, remove: true } } as RunnerJob & { enrollment: { name: string; group: string; remove: boolean } };
 
     it('retira el agente por su nombre y cierra la ejecución, sin tocar grupos ni crear nada', async () => {

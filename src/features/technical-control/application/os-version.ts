@@ -2,7 +2,7 @@ import { ConnectionMethodValue, OS_CONNECTION_CATEGORIES } from '../../../common
 import { FieldError } from '../../../common/errors/validation.exception';
 import { OsVersionRule } from '../domain/entities/technical-control.entities';
 
-// La versión del sistema que el cliente declara para un servidor o un equipo con agente (D112). Funciones puras: sin Nest ni base de datos.
+// La versión del sistema que el cliente declara para un servidor o un equipo con agente (D113). Funciones puras: sin Nest ni base de datos.
 //
 // Por qué se pide: de ella salen el comando de instalación correcto (Linux, Windows o macOS) y qué evaluación se espera. Y por qué solo aquí: una cuenta de
 // nube (`ac_01`) o una base de datos no tienen un sistema operativo que declarar.

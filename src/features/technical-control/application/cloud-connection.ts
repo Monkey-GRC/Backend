@@ -2,6 +2,8 @@ import { randomBytes } from 'node:crypto';
 import {
   AWS_ACCOUNT_ID,
   CLOUD_PLATFORM_AWS,
+  CLOUD_PLATFORM_GCP,
+  GCP_PROJECT_ID,
   ConnectionMethodValue,
   MAX_REGIONS,
 } from '../../../common/catalogs/technical-catalogs';
@@ -57,6 +59,23 @@ export function checkCloudTarget(
   return { errors, account, regions };
 }
 
+// El ID de un proyecto de GCP declarado (alta y edición).
+export function checkGcpProject(externalAccountId: string | null | undefined): { errors: FieldError[]; project: string | null } {
+  const project = text(externalAccountId);
+  if (!project) return { errors: [{ field: 'external_account_id', code: 'required' }], project: null };
+  if (!GCP_PROJECT_ID.test(project)) return { errors: [{ field: 'external_account_id', code: 'invalid' }], project: null };
+  return { errors: [], project };
+}
+
+function planGcpFederation(req: ConnectionRequest, platform: PlatformRule): { errors: FieldError[]; plan: ConnectionPlan | null } {
+  if (platform.code !== CLOUD_PLATFORM_GCP) throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
+  const { errors, project } = checkGcpProject(req.externalAccountId);
+  if (req.regions !== undefined) errors.push({ field: 'regions', code: 'field.not_allowed' });
+  if (req.credentials !== undefined) errors.push({ field: 'credentials', code: 'field.not_allowed' });
+  if (errors.length > 0) return { errors, plan: null };
+  return { errors, plan: { method: 'identity_federation', platformId: platform.id, platform: platform.code, externalAccountId: project, regions: [], secretToStore: null, externalId: newExternalId() } };
+}
+
 // `platform` es la plataforma elegida, ya comprobada contra el catálogo: existe en la conexión y está disponible. Aquí se valida lo que sigue: el canal y los datos de la conexión.
 export function planConnection(req: ConnectionRequest, platform: PlatformRule): { errors: FieldError[]; plan: ConnectionPlan | null } {
   // Un canal que la plataforma no tiene no es un error de formulario: es una combinación imposible (409).
@@ -71,7 +90,10 @@ export function planConnection(req: ConnectionRequest, platform: PlatformRule): 
     };
   }
 
-  // Nube: hoy solo el flujo de AWS (D58). Una plataforma con canal de nube que aún no tiene su flujo no llega aquí: se queda bloqueada en el catálogo.
+  // GCP (D112): el activo es el proyecto, sin regiones ni llaves.
+  if (req.connectionMethod === 'identity_federation') return planGcpFederation(req, platform);
+
+  // Nube: el flujo de AWS (D58). Una plataforma con canal de nube que aún no tiene su flujo no llega aquí: se queda bloqueada en el catálogo.
   const errors: FieldError[] = [];
   if (platform.code !== CLOUD_PLATFORM_AWS) throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
   // Cuenta y regiones declaradas, y solo se evalúan esas regiones (D53).
@@ -120,6 +142,14 @@ export type ConnectionSetup =
       steps: string[];
       roleArn: string | null;
     }
+  | {
+      method: 'identity_federation';
+      externalId: string;
+      projectId: string;
+      projectNumber: string | null;
+      templatePath: string;
+      steps: string[];
+    }
   | { method: 'access_keys'; warning: string; steps: string[] }
   | { method: 'agent'; steps: string[] };
 
@@ -128,10 +158,24 @@ export const ROLE_NAME = 'MonkeyReadOnly';
 export const TEMPLATE_FILE_NAME = 'RoleMonkeyReadOnly.yaml';
 export const ROLE_TEMPLATE_PATH = '/v1/connection-templates/aws-readonly-role';
 
+// Cómo se llama el script de alta de GCP que el cliente descarga.
+export const GCP_SETUP_FILE_NAME = 'monkey-gcp-setup.sh';
+export const GCP_TEMPLATE_PATH = '/v1/connection-templates/gcp-identity-federation';
+
 export function buildConnectionSetup(
-  p: { connectionMethod: ConnectionMethodValue | null; externalId: string | null; roleArn: string | null },
+  p: { connectionMethod: ConnectionMethodValue | null; externalId: string | null; roleArn: string | null; projectNumber?: string | null; externalAccountId?: string | null },
   monkeyPrincipalArn: string | null,
 ): ConnectionSetup | null {
+  if (p.connectionMethod === 'identity_federation' && p.externalId && p.externalAccountId) {
+    return {
+      method: 'identity_federation',
+      externalId: p.externalId,
+      projectId: p.externalAccountId,
+      projectNumber: p.projectNumber ?? null,
+      templatePath: GCP_TEMPLATE_PATH,
+      steps: ['connection.gcp_federation.step_1', 'connection.gcp_federation.step_2', 'connection.gcp_federation.step_3'],
+    };
+  }
   if (p.connectionMethod === 'readonly_role' && p.externalId) {
     return {
       method: 'readonly_role',

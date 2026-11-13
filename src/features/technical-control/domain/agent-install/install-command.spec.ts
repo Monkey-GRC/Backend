@@ -11,7 +11,7 @@ const params = (over: Partial<InstallParams> = {}): InstallParams => ({
   os: 'linux', assetId: ASSET, key: KEY, managerHost: 'sonda.monkey.example', managerPort: 1514, agentVersion: '4.14.6', installerBaseUrl: 'https://api.monkey.example/v1/install', ...over,
 });
 
-describe('buildInstallOptions (D112)', () => {
+describe('buildInstallOptions (D113)', () => {
   it('Linux: UN comando, que baja el instalador de Monkey y le pasa los datos de ESTE servidor', () => {
     const [cmd, ...rest] = buildInstallOptions(params(), TEMPLATES);
     expect(rest).toEqual([]);

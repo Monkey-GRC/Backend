@@ -228,7 +228,9 @@ describe('GET /v1/integrations/{code}', () => {
   it('admin_empresa: una coming_soon (con o sin plataforma) llega con prerequisitos, permisos, seguridad y recursos vacíos, y coverage null', async () => {
     for (const code of ['azure', 'gcp', 'microsoft_365', 'google_workspace', 'github', 'jira']) {
       const d = (await detail(a.agent, code).expect(200)).body.data;
-      expect(d).toMatchObject({ availability: 'coming_soon', status: null, connections: [], prerequisites: [], permissions: [], resource_types: [], security: [], coverage: null });
+      expect(d).toMatchObject({ availability: 'coming_soon', status: null, connections: [], prerequisites: [], permissions: [], resource_types: [], security: [] });
+      // La cobertura sale del catálogo de checks de la plataforma: GCP ya lo tiene cargado (MD-213) o lo trae otra prueba (MD-214), así que no es nula.
+      if (code !== 'gcp') expect(d.coverage).toBeNull();
       expect(d.overview.length).toBeGreaterThan(20);
       expect(d.features.length).toBeGreaterThan(0);
       expect(d.capabilities.length).toBeGreaterThan(0);

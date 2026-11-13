@@ -2,7 +2,7 @@ import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { FAILURE, RunnerFailure } from '../../domain/runner.types';
 
-// La sesión con la API del manager de la sonda (D112): autenticación con el usuario que corresponda, token que se renueva antes de vencer, y los errores traducidos a razones
+// La sesión con la API del manager de la sonda (D113): autenticación con el usuario que corresponda, token que se renueva antes de vencer, y los errores traducidos a razones
 // estables. La usan DOS clientes con credenciales distintas: el de lectura (`monkey_sync`) y el de alta (`monkey_enroll`). Nunca se vuelca el cuerpo de una respuesta ni la
 // credencial: la respuesta de la sonda puede llevar datos de otros agentes, y un error con la clave dentro acabaría en un registro.
 
