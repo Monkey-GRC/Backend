@@ -32,7 +32,6 @@ import { ListFindingsUseCase } from './application/use-cases/findings.use-cases'
 import { EngineOutputParser } from './domain/ports/engine-output-parser';
 import { OcsfEngineOutputParser } from './infrastructure/engine/ocsf-parser';
 import { RUNNER_POOL, readRunnerPool } from './application/runner-pool';
-import { PREVIEW_PLATFORMS, readPreviewPlatforms } from './application/preview-platforms';
 import { ConnectionTemplates } from './application/connection-templates';
 import { StaticConnectionTemplates } from './infrastructure/templates/connection-templates.provider';
 import { createConnectionProbe } from './infrastructure/probes/connection-probe.factory';
@@ -57,8 +56,6 @@ import { TechnicalControlController } from './presentation/technical-control.con
     { provide: ConnectionCatalogRepository, useClass: ConnectionCatalogPrismaRepository },
     // La sonda la decide PROBE_MODE (por defecto «unavailable»; «simulated» solo fuera de producción).
     { provide: ConnectionProbe, useFactory: createConnectionProbe, inject: [ConfigService, ScanRepository] },
-    // Se evalúa al arrancar: con PREVIEW_PLATFORMS en producción el servidor no levanta.
-    { provide: PREVIEW_PLATFORMS, useFactory: (config: ConfigService) => readPreviewPlatforms(config.get<string>('PREVIEW_PLATFORMS'), config.get<string>('NODE_ENV')), inject: [ConfigService] },
     { provide: ConnectionTemplates, useClass: StaticConnectionTemplates },
     GetTechnicalControlUseCase,
     CreateAssetUseCase,

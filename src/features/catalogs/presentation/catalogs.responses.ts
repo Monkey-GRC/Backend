@@ -8,6 +8,14 @@ export class CatalogOptionResponse {
   @ApiPropertyOptional({ enum: ['country', 'region', 'other'], description: 'Solo en listas de países: permite agrupar (`region` = agrupaciones como UE o LATAM).' }) group?: string;
 }
 
+export class ConnectionOptionResponse {
+  @ApiProperty({ example: 'cloud_shell', description: 'Valor `snake_case` que viaja por el cable.' }) value!: string;
+  @ApiProperty({ example: 'Cloud Shell', description: 'Nombre traducido al idioma de `Accept-Language`.' }) label!: string;
+  @ApiProperty({ description: 'Explicación corta, en el idioma de `Accept-Language`.' }) description!: string;
+  @ApiProperty({ enum: ['available', 'coming_soon'], description: 'Solo se puede elegir la `available`; la otra se muestra bloqueada.' }) availability!: string;
+  @ApiProperty({ isArray: true, enum: ['recommended', 'fastest', 'advanced', 'less_secure'], description: 'Etiquetas de la tarjeta; puede ir vacío.' }) tags!: string[];
+}
+
 export class RegulationOptionResponse {
   @ApiProperty({ example: 'lgpd_br' }) code!: string;
   @ApiProperty({ example: 'LGPD' }) name!: string;

@@ -2,7 +2,7 @@ import { DomainError } from '../../../common/errors/domain-error';
 import { PlatformRule } from '../domain/entities/technical-control.entities';
 import { buildConnectionSetup, planConnection } from './cloud-connection';
 
-const gcp: PlatformRule = { id: 'p-gcp', capabilityCode: 'ac_01', code: 'gcp', name: 'GCP', logoKey: 'gcp', availability: 'coming_soon', connectionMethods: ['identity_federation'], regionCodes: [] };
+const gcp: PlatformRule = { id: 'p-gcp', capabilityCode: 'ac_01', code: 'gcp', name: 'GCP', logoKey: 'gcp', availability: 'available', connectionMethods: ['identity_federation'], regionCodes: [] };
 const aws: PlatformRule = { id: 'p-aws', capabilityCode: 'ac_01', code: 'aws', name: 'AWS', logoKey: 'aws', availability: 'available', connectionMethods: ['readonly_role', 'access_keys'], regionCodes: ['us-east-1'] };
 const fed = (over = {}) => ({ connectionMethod: 'identity_federation' as const, externalAccountId: 'acme-prod-421905', ...over });
 

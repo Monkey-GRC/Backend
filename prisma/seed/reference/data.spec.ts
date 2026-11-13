@@ -1,4 +1,4 @@
-import { CAPABILITIES, CAPABILITIES_BY_SCENARIO, FRAMEWORK_OFFERS, FREQUENCIES_BY_CAPABILITY, INTEGRATIONS, PLATFORMS, PLATFORM_REGIONS, REGULATIONS } from './data';
+import { CAPABILITIES, CAPABILITIES_BY_SCENARIO, CONNECTION_OPTIONS, FRAMEWORK_OFFERS, FREQUENCIES_BY_CAPABILITY, INTEGRATIONS, PLATFORMS, PLATFORM_REGIONS, REGULATIONS } from './data';
 
 describe('catálogos de referencia (MD-75, MD-83)', () => {
   it('trae las 18 regulaciones del contrato, sin códigos ni nombres repetidos y con jurisdicción', () => {
@@ -72,14 +72,15 @@ describe('catálogos de referencia (MD-75, MD-83)', () => {
       expect(all).not.toMatch(/EC2|RDS|Cloud SQL|Atlas|VPS|Azure VM/i);
     });
 
-    it('solo AWS está disponible: es el único flujo construido', () => {
-      expect(PLATFORMS.filter((p) => p.availability === 'available').map((p) => `${p.capability}/${p.code}`)).toEqual(['ac_01/aws']);
+    it('solo AWS y GCP están disponibles: son los flujos construidos', () => {
+      expect(PLATFORMS.filter((p) => p.availability === 'available').map((p) => `${p.capability}/${p.code}`)).toEqual(['ac_01/aws', 'ac_01/gcp']);
     });
 
     it('una plataforma disponible tiene canal y regiones; una bloqueada no se puede conectar todavía', () => {
       for (const p of PLATFORMS.filter((x) => x.availability === 'available')) {
         expect(p.methods.length).toBeGreaterThan(0);
-        expect(PLATFORM_REGIONS[`${p.capability}/${p.code}`]?.length).toBeGreaterThan(0);
+        // GCP se conecta por proyecto, sin regiones (D112).
+        if (p.code !== 'gcp') expect(PLATFORM_REGIONS[`${p.capability}/${p.code}`]?.length).toBeGreaterThan(0);
       }
       expect(PLATFORMS.find((p) => p.code === 'aws')?.methods[0]).toBe('readonly_role');
     });
@@ -100,6 +101,24 @@ describe('catálogos de referencia (MD-75, MD-83)', () => {
 
     it('las regiones son de plataformas que existen', () => {
       for (const key of Object.keys(PLATFORM_REGIONS)) expect(PLATFORMS.some((p) => `${p.capability}/${p.code}` === key)).toBe(true);
+    });
+  });
+
+  describe('opciones de conexión (D114)', () => {
+    const of = (catalog: string) => CONNECTION_OPTIONS.filter((o) => o.catalog === catalog);
+
+    it('el alcance y el método de GCP: solo el combo construido está disponible', () => {
+      expect(of('gcp_connection_scope').map((o) => [o.code, o.availability])).toEqual([['project', 'available'], ['organization', 'coming_soon']]);
+      expect(of('gcp_setup_method').map((o) => [o.code, o.availability, o.tags])).toEqual([
+        ['cloud_shell', 'available', ['recommended', 'fastest']],
+        ['terraform', 'coming_soon', ['advanced']],
+      ]);
+    });
+
+    it('connection_method lleva las etiquetas del contrato y cubre los canales de las plataformas', () => {
+      expect(of('connection_method').map((o) => [o.code, o.tags])).toEqual([['readonly_role', ['recommended']], ['access_keys', ['less_secure']], ['agent', []], ['identity_federation', ['recommended']]]);
+      const used = new Set(PLATFORMS.flatMap((p) => p.methods));
+      for (const m of used) expect(of('connection_method').some((o) => o.code === m)).toBe(true);
     });
   });
 

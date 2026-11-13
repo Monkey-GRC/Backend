@@ -330,5 +330,29 @@
     "active": "Activa",
     "pending": "Pendiente de activar",
     "needs_attention": "Necesita atención"
+  },
+  "gcp_connection_scope": {
+    "project": "Un proyecto",
+    "organization": "Una organización"
+  },
+  "gcp_setup_method": {
+    "cloud_shell": "Cloud Shell",
+    "terraform": "Terraform"
+  },
+  "option_description": {
+    "connection_method": {
+      "readonly_role": "Monkey asume un rol de solo lectura que creas en tu cuenta. No guarda llaves y puedes revocarlo cuando quieras.",
+      "access_keys": "Pegas una llave de acceso de solo lectura. Funciona, pero exige custodiar un secreto de larga duración.",
+      "identity_federation": "Tu proyecto confía en la identidad de Monkey. No se crean ni se guardan claves.",
+      "agent": "Instalas un agente ligero en el equipo, que reporta su estado a Monkey."
+    },
+    "gcp_connection_scope": {
+      "project": "Conecta un proyecto, o unos pocos, de Google Cloud. Es el alcance con el que empezar.",
+      "organization": "Conecta de una vez todos los proyectos de una organización de Google Cloud."
+    },
+    "gcp_setup_method": {
+      "cloud_shell": "Pegas un comando en Cloud Shell, dentro de la consola de Google Cloud. Es lo más rápido y no instalas nada.",
+      "terraform": "Aplicas la configuración como código en tu propia infraestructura. Para equipos que ya usan Terraform."
+    }
   }
 }
