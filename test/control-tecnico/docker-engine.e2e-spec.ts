@@ -1,6 +1,7 @@
 import Docker from 'dockerode';
 import { FAILURE, RunnerFailure } from '../../src/runner/domain/runner.types';
-import { DockerScanEngine, EngineProfile, prowlerAwsProfile } from '../../src/runner/infrastructure/docker-scan-engine';
+import { DockerScanEngine, EngineProfile } from '../../src/runner/infrastructure/docker-scan-engine';
+import { prowlerAwsProfile } from '../../src/runner/infrastructure/providers/aws/aws-engine-profile';
 
 // D57, SEG-46: el adaptador de Docker contra Docker de verdad, con una imagen mínima (no el motor real): lo que se comprueba es el
 // ENVOLTORIO (aislamiento, límites, limpieza, lectura del resultado), no el análisis. Si Docker no está, la prueba FALLA: una prueba de seguridad
@@ -8,12 +9,12 @@ import { DockerScanEngine, EngineProfile, prowlerAwsProfile } from '../../src/ru
 const IMAGE = 'alpine:3.20';
 const docker = new Docker();
 const LIMITS = { timeoutMs: 20_000, memoryBytes: 256 * 1024 * 1024, cpus: 1 };
-const creds = { accessKeyId: 'ASIATEMPORAL', secretAccessKey: 'secreto-temporal', sessionToken: 'token-de-sesion' };
-const input = { executionId: 'exec-test-1', regions: ['us-east-1'], credentials: creds };
+const creds = { provider: 'aws' as const, accessKeyId: 'ASIATEMPORAL', secretAccessKey: 'secreto-temporal', sessionToken: 'token-de-sesion' };
+const input = { executionId: 'exec-test-1', accountId: '123456789012', regions: ['us-east-1'], credentials: creds };
 
 // Una «imagen del motor» de mentira: el script recibido como argumento escribe su resultado donde el adaptador lo espera.
-const profile = (script: string): EngineProfile => ({ image: IMAGE, entrypoint: ['sh', '-c'], outputPath: '/out/scan.ocsf.json', command: () => [`mkdir -p /out && ${script}`] });
-const engine = (script: string, limits = LIMITS) => new DockerScanEngine(docker, profile(script), limits);
+const profile = (script: string): EngineProfile => ({ image: IMAGE, entrypoint: ['sh', '-c'], outputPath: '/out/scan.ocsf.json', command: () => [`mkdir -p /out && ${script}`], env: prowlerAwsProfile(IMAGE).env });
+const engine = (script: string, limits = LIMITS) => new DockerScanEngine(docker, (provider) => (provider === 'aws' ? profile(script) : undefined), limits);
 const leftovers = () => docker.listContainers({ all: true, filters: { label: ['monkey.runner=1'] } });
 
 const dockerUp = docker.ping().then(() => true, () => false);

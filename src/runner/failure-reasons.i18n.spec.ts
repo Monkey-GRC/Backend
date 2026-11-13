@@ -8,7 +8,9 @@ import { FAILURE } from './domain/runner.types';
 const SOURCES = [
   'src/runner/domain/runner.types.ts',
   'src/runner/application/run-next-execution.ts',
-  'src/runner/infrastructure/sts-credential-broker.ts',
+  'src/runner/infrastructure/providers/aws/sts-credential-broker.ts',
+  'src/runner/infrastructure/providers/gcp/gcp-credential-broker.ts',
+  'src/features/technical-control/infrastructure/probes/runner-connection.probe.ts',
   'src/features/technical-control/application/use-cases/scan.use-cases.ts',
 ];
 // Las acciones del audit trail comparten el prefijo `execution.` pero no son razones de fallo ni llevan texto para el cliente.
@@ -24,6 +26,7 @@ describe('las razones de fallo tienen texto para el cliente', () => {
     expect(keys.size).toBeGreaterThanOrEqual(9);
     expect(keys).toContain('connection.role_not_found');
     expect(keys).toContain('execution.engine_timeout');
+    expect(keys).toContain('connection.federation_rejected');
   });
 
   it.each(['es', 'en'])('todas existen en %s y no son vacías', (lang) => {
