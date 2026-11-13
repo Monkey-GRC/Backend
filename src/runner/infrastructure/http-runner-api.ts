@@ -4,6 +4,12 @@ import { EngineRun, RunnerApiError, RunnerJob, RunnerJobKind } from '../domain/r
 
 type Fetch = typeof fetch;
 
+function toConnection(c: Record<string, any>): RunnerJob['connection'] {
+  if (c['method'] === 'readonly_role') return { method: 'readonly_role', roleArn: c['role_arn'], externalId: c['external_id'] ?? null };
+  if (c['method'] === 'identity_federation') return { method: 'identity_federation', externalId: c['external_id'], projectNumber: c['project_number'] };
+  return { method: 'access_keys', accessKeyId: c['access_key_id'], secretAccessKey: c['secret_access_key'] };
+}
+
 // Habla con `/internal/runner` (contracts/modules/control-tecnico.md). La llamada va por la red interna de Docker, sin pasar por el proxy.
 export class HttpRunnerApi extends RunnerApi {
   constructor(
@@ -29,10 +35,7 @@ export class HttpRunnerApi extends RunnerApi {
       platform: data['platform'],
       externalAccountId: data['external_account_id'] ?? null,
       regions: data['regions'],
-      connection:
-        c.method === 'readonly_role'
-          ? { method: 'readonly_role', roleArn: c.role_arn, externalId: c.external_id ?? null }
-          : { method: 'access_keys', accessKeyId: c.access_key_id, secretAccessKey: c.secret_access_key },
+      connection: toConnection(c),
     };
   }
 

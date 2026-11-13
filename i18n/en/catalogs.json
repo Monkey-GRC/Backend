@@ -193,7 +193,8 @@
   "connection_method": {
     "readonly_role": "Read-only role (recommended)",
     "access_keys": "Access keys (less secure)",
-    "agent": "Installed agent"
+    "agent": "Installed agent",
+    "identity_federation": "Identity federation, no keys (GCP)"
   },
   "aws_region": {
     "us-east-1": "N. Virginia (us-east-1)",

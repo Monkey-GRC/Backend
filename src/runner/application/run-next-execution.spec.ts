@@ -1,13 +1,13 @@
 import { Inventory } from '../domain/inventory';
 import { CredentialBroker, InventoryScanner, RunnerApi, RunnerLogger, ScanEngine } from '../domain/ports';
-import { EngineInput, EngineRun, FAILURE, RunnerApiError, RunnerFailure, RunnerJob, TemporaryCredentials } from '../domain/runner.types';
+import { AwsCredentials, EngineInput, EngineRun, FAILURE, RunnerApiError, RunnerFailure, RunnerJob, TemporaryCredentials } from '../domain/runner.types';
 import { RunNextExecution } from './run-next-execution';
 
 const job: RunnerJob = {
   executionId: 'e1', kind: 'assessment', tenantId: 't1', assetId: 'a1', origin: 'manual', platform: 'aws', externalAccountId: '123456789012', regions: ['us-east-1'],
   connection: { method: 'readonly_role', roleArn: 'arn:aws:iam::123456789012:role/R', externalId: 'mk-1' },
 };
-const creds: TemporaryCredentials = { accessKeyId: 'ASIATEMP', secretAccessKey: 'SECRETO-NO-DEBE-SALIR', sessionToken: 'TOKEN-NO-DEBE-SALIR' };
+const creds: AwsCredentials = { provider: 'aws', accessKeyId: 'ASIATEMP', secretAccessKey: 'SECRETO-NO-DEBE-SALIR', sessionToken: 'TOKEN-NO-DEBE-SALIR' };
 const run: EngineRun = { engineVersion: '5.44.0', startedAt: new Date(), finishedAt: new Date(), findings: [{ a: 1 }, { b: 2 }] };
 
 class FakeApi extends RunnerApi {
@@ -38,7 +38,7 @@ describe('RunNextExecution', () => {
     let seen: EngineInput | null = null;
     const out = await step(api, broker(() => Promise.resolve(creds)), engine((i) => { seen = i; return Promise.resolve(run); })).result;
     expect(out).toBe('completed');
-    expect(seen).toEqual({ executionId: 'e1', regions: ['us-east-1'], credentials: creds });
+    expect(seen).toEqual({ executionId: 'e1', accountId: '123456789012', regions: ['us-east-1'], credentials: creds });
     expect(api.submitted).toHaveLength(1);
     expect(api.failed).toHaveLength(0);
   });

@@ -26,7 +26,8 @@ export abstract class ScanEngine {
 
 // Quién mira qué hay dentro de la cuenta del cliente al validar la conexión (D59). Nunca lanza por un servicio que no se pueda leer: lo anota en `warnings`.
 export abstract class InventoryScanner {
-  abstract discover(input: { accountId: string | null; regions: string[]; credentials: TemporaryCredentials }): Promise<Inventory>;
+  // null si esa nube aún no descubre recursos (GCP, DT-102): no es «cuenta vacía».
+  abstract discover(input: { accountId: string | null; regions: string[]; credentials: TemporaryCredentials }): Promise<Inventory | null>;
 }
 
 export abstract class RunnerLogger {

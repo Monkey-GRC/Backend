@@ -42,6 +42,14 @@ describe('HttpRunnerApi', () => {
     expect(seen[0]).toMatchObject({ url: '/internal/runner/executions/e1/validated', body: { tenant_id: 't1' } });
   });
 
+  it('claim: traduce el trabajo de GCP (federación, sin regiones)', async () => {
+    reply = { status: 200, body: { data: { execution_id: 'e1', kind: 'validation', tenant_id: 't1', asset_id: 'a1', origin: 'manual', platform: 'gcp', external_account_id: 'acme-prod-421905', regions: [], connection: { method: 'identity_federation', external_id: 'mk-3f9a1c7e2b', project_number: '407295138461' } } } };
+    expect(await api().claim()).toEqual({
+      executionId: 'e1', kind: 'validation', tenantId: 't1', assetId: 'a1', origin: 'manual', platform: 'gcp', externalAccountId: 'acme-prod-421905', regions: [],
+      connection: { method: 'identity_federation', externalId: 'mk-3f9a1c7e2b', projectNumber: '407295138461' },
+    });
+  });
+
   it('claim: traduce el trabajo del contrato (rol y llaves)', async () => {
     reply = { status: 200, body: { data: { execution_id: 'e1', kind: 'assessment', tenant_id: 't1', asset_id: 'a1', origin: 'manual', platform: 'aws', external_account_id: '123', regions: ['us-east-1'], connection: { method: 'readonly_role', role_arn: 'arn:r', external_id: 'mk-1' } } } };
     expect(await api().claim()).toEqual({ ...job, externalAccountId: '123', connection: { method: 'readonly_role', roleArn: 'arn:r', externalId: 'mk-1' } });

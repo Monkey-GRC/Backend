@@ -30,6 +30,9 @@ if [ -f "$ENV" ] && [ "$(value "$ENV" PROBE_MODE)" = "runner" ]; then
   need "$RUNNER" RUNNER_TOKEN ENGINE_IMAGE AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION
   if [ -f "$RUNNER" ]; then
     [ "$(value "$ENV" RUNNER_TOKEN)" = "$(value "$RUNNER" RUNNER_TOKEN)" ] || fail "RUNNER_TOKEN distinto en .env y runner.env: el trabajador no podría reclamar nada"
+    # GCP (D112): opcional, pero si se define debe ser el mismo rol en los dos lados (el backend lo hornea en el script de alta; el trabajador lo asume).
+    [ "$(value "$ENV" MONKEY_GCP_FEDERATION_ROLE_ARN)" = "$(value "$RUNNER" MONKEY_GCP_FEDERATION_ROLE_ARN)" ] || fail "MONKEY_GCP_FEDERATION_ROLE_ARN distinto en .env y runner.env: el trabajador no asumiría el rol que el script de alta de GCP acepta"
+    ! grep -qE '^PREVIEW_PLATFORMS=.+' "$ENV" || fail "PREVIEW_PLATFORMS está definida en $ENV: es solo de desarrollo y el backend no arranca así en producción (DT-104)"
     # El trabajador solo recibe lo suyo: nunca los secretos del backend.
     ! grep -qE '^(JWT_SECRET|APP_DATABASE_URL|CREDENTIALS_ENCRYPTION_KEY|TOKEN_HASH_PEPPER)=' "$RUNNER" || fail "runner.env trae secretos del backend: quítalos"
   fi

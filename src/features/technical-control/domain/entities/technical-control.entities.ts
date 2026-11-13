@@ -48,6 +48,8 @@ export type AssetProvisioningView = {
   regions: string[];
   externalId: string | null;
   roleArn: string | null;
+  // GCP (D112): el número del proyecto que el cliente entregó. No es un secreto.
+  projectNumber: string | null;
   automatedCapabilityCode: ConnectionCategory;
   connectionStatus: string;
   lastValidatedAt: Date | null;
@@ -125,6 +127,7 @@ export type AssetEdit = {
   externalAccountId?: string;
   regions?: string[];
   roleArn?: string | null;
+  projectNumber?: string | null;
   encryptedCredentials?: string;
   // Una cuenta nueva exige un ExternalId nuevo: el anterior se entregó para otra cuenta.
   externalId?: string;

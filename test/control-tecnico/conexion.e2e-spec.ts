@@ -14,7 +14,7 @@ import { dosEmpresas, Tenant } from '../support/escenario';
 const ACCOUNT = '123456789012';
 const ROLE_ARN = `arn:aws:iam::${ACCOUNT}:role/MonkeyReadOnly`;
 const SECRET = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY-no-debe-salir';
-const TEMP: TemporaryCredentials = { accessKeyId: 'ASIATEMP', secretAccessKey: 'secreto-temporal', sessionToken: 'token' };
+const TEMP: TemporaryCredentials = { provider: 'aws', accessKeyId: 'ASIATEMP', secretAccessKey: 'secreto-temporal', sessionToken: 'token' };
 
 let app: INestApplication;
 let a: Tenant;
@@ -135,7 +135,7 @@ describe('Las opciones de la pantalla vienen del backend, con su texto', () => {
     expect(regions.find((r) => r.value === 'us-east-1')).toEqual({ value: 'us-east-1', label: 'Virginia del Norte (us-east-1)' });
     expect(regions.length).toBeGreaterThanOrEqual(15);
     const methods = (await a.agent.get('/v1/catalogs/connection_method').expect(200)).body.data.items as { value: string; label: string }[];
-    expect(methods.map((m) => m.value)).toEqual(['readonly_role', 'access_keys', 'agent']);
+    expect(methods.map((m) => m.value)).toEqual(['readonly_role', 'access_keys', 'agent', 'identity_federation']);
     expect(methods[0].label).toMatch(/recomendado/i);
   });
   it('el alta solo acepta las regiones que se ofrecen', async () => {

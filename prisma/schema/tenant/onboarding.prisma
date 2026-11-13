@@ -691,6 +691,8 @@ enum ConnectionMethod {
   agent
   readonly_role
   access_keys
+  // GCP (D112): el proyecto del cliente confía en la sesión de AWS de Monkey; sin llaves.
+  identity_federation
 
   @@map("connection_method")
   @@schema("tenant")
@@ -718,6 +720,8 @@ model AssetProvisioning {
   // cliente use el rol de este; el ARN del rol lo pega el cliente. Las llaves (canal alternativo) siguen cifradas en `encryptedCredentials`.
   externalId            String?            @map("external_id")
   roleArn               String?            @map("role_arn")
+  // GCP (D112): el número del proyecto que imprime el script de alta. No es un secreto; el trabajador arma la audiencia de la federación con él.
+  projectNumber         String?            @map("project_number")
   // Cuándo se descubrieron por última vez los recursos de la cuenta. Lo que no se vio desde entonces ya no se muestra.
   inventoryAt           DateTime?          @map("inventory_at")
   // Servicios que no se pudieron leer en ese descubrimiento: el cliente ve «incompleto», no «vacío».

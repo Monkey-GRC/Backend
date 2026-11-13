@@ -33,7 +33,7 @@ export class RunNextExecution {
         this.log.info(`Ejecución ${job.executionId}: conexión validada${inventory ? ` (${inventory.resources.length} activos encontrados)` : ''}.`);
         return 'completed';
       }
-      const run = await this.engine.run({ executionId: job.executionId, regions: job.regions, credentials });
+      const run = await this.engine.run({ executionId: job.executionId, accountId: job.externalAccountId, regions: job.regions, credentials });
       try {
         await this.api.submitResults(job, run, job.regions);
         this.log.info(`Ejecución ${job.executionId}: entregada (${run.findings.length} filas).`);

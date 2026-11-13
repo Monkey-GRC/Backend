@@ -38,8 +38,11 @@ export class ConnectionSetupResponse {
   @ApiProperty({ required: false, description: '`readonly_role`: identificador externo que Monkey generó; el cliente lo pega al crear el rol.' }) external_id?: string;
   @ApiProperty({ required: false, nullable: true, description: '`readonly_role`: identidad de Monkey a la que el rol del cliente da confianza.' }) monkey_principal_arn?: string | null;
   @ApiProperty({ required: false, example: 'MonkeyReadOnly', description: '`readonly_role`: nombre sugerido del rol.' }) role_name?: string;
-  @ApiProperty({ required: false, example: '/v1/connection-templates/aws-readonly-role', description: '`readonly_role`: ruta de la plantilla que el cliente descarga.' }) template_path?: string;
+  @ApiProperty({ required: false, example: '/v1/connection-templates/aws-readonly-role', description: '`readonly_role` e `identity_federation`: ruta de la plantilla o del script que el cliente descarga.' }) template_path?: string;
   @ApiProperty({ required: false, nullable: true, example: 'arn:aws:iam::123456789012:role/MonkeyReadOnly', description: '`readonly_role`: rol que el cliente ya entregó, si lo hizo.' }) role_arn?: string | null;
+  @ApiProperty({ required: false, example: 'acme-prod-421905', description: '`identity_federation` (GCP): el ID del proyecto declarado.' }) project_id?: string;
+  @ApiProperty({ required: false, nullable: true, example: '407295138461', description: '`identity_federation`: número de proyecto que el cliente entregó; `null` hasta entonces.' }) project_number?: string | null;
+  @ApiProperty({ required: false, nullable: true, description: '`identity_federation`: comando listo para pegar en Cloud Shell, con el script completo dentro. `null` si el servidor no tiene configurada la identidad de Monkey.' }) setup_command?: string | null;
   @ApiProperty({ required: false, description: '`access_keys`: advertencia de que las llaves de larga duración son menos seguras que un rol.' }) warning?: string;
   @ApiProperty({ isArray: true, type: String, description: 'Pasos de instrucciones ya traducidos al idioma de la petición.' }) steps!: string[];
 }
