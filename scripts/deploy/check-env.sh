@@ -38,6 +38,12 @@ if [ -f "$ENV" ] && [ "$(value "$ENV" PROBE_MODE)" = "runner" ]; then
   fi
 fi
 
+# D112: el grupo de trabajadores es opcional (queda «default»), pero con un formato inválido el backend se niega a arrancar.
+if [ -f "$ENV" ]; then
+  pool="$(value "$ENV" RUNNER_POOL)"
+  [ -z "$pool" ] || [[ "$pool" =~ ^[a-z0-9][a-z0-9-]{0,39}$ ]] || fail "$ENV: RUNNER_POOL inválido (minúsculas, dígitos y guiones, máx. 40): el backend no arrancaría"
+fi
+
 # Almacenamiento privado de archivos (MD-110). Es una ADVERTENCIA y no detiene el despliegue: sin él la app arranca, pero subir un archivo responde 503.
 if [ -f "$ENV" ]; then
   missing_s3=""
