@@ -207,7 +207,7 @@ export const FREQUENCIES_BY_CAPABILITY: Record<string, string[]> = {
   ac_06: ['continuous'],
 };
 
-export type ConnectionMethodSeed = 'readonly_role' | 'access_keys' | 'agent';
+export type ConnectionMethodSeed = 'readonly_role' | 'access_keys' | 'agent' | 'identity_federation';
 
 export interface PlatformSeed {
   capability: string;
@@ -244,7 +244,7 @@ const OS_SERVER = (capability: string): PlatformSeed[] => [
 export const PLATFORMS: PlatformSeed[] = [
   platform('ac_01', 'aws', 'Amazon Web Services', ['readonly_role', 'access_keys'], 'aws', 'available'),
   platform('ac_01', 'azure', 'Azure'),
-  platform('ac_01', 'gcp', 'GCP'),
+  platform('ac_01', 'gcp', 'GCP', ['identity_federation']),
   platform('ac_01', 'microsoft_365', 'Microsoft 365'),
   platform('ac_01', 'google_workspace', 'Google Workspace'),
   ...OS_SERVER('ac_02'),
