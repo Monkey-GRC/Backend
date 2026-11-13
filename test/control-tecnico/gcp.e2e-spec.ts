@@ -74,7 +74,7 @@ async function validatedProject(): Promise<string> {
 }
 
 beforeAll(async () => {
-  app = await bootApp({ PROBE_MODE: 'runner', VALIDATION_WAIT_SECONDS: '3', PREVIEW_PLATFORMS: 'gcp' });
+  app = await bootApp({ PROBE_MODE: 'runner', VALIDATION_WAIT_SECONDS: '3' });
   await app.listen(0, '127.0.0.1');
   baseUrl = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
   ({ a, b, monkey } = await dosEmpresas(app));
@@ -138,14 +138,14 @@ describe('Alta de un proyecto de GCP (variante D)', () => {
     expect((await create(a, gcpBody({ connection_method: 'readonly_role' })).expect(409)).body.error.code).toBe('CONNECTION_METHOD_NOT_APPLICABLE');
   });
 
-  it('con PREVIEW_PLATFORMS=gcp no se abre ninguna otra plataforma bloqueada', async () => {
+  it('una plataforma «Próximamente» sigue sin poder declararse', async () => {
     const res = await create(a, gcpBody({ platform: 'azure', connection_method: 'readonly_role', external_account_id: '123456789012', regions: ['us-east-1'] })).expect(422);
     expect(res.body.error.fields[0]).toMatchObject({ field: 'platform', code: 'connection.provider_not_supported' });
   });
 
-  it('en el catálogo GCP sigue «Próximamente» aunque tenga su canal', async () => {
+  it('en el catálogo GCP está disponible con su canal', async () => {
     const caps = (await a.agent.get('/v1/catalogs/automated-capabilities').expect(200)).body.data.items as { catalog_code: string; platforms: { code: string; availability: string; connection_methods: string[] }[] }[];
-    expect(caps.find((c) => c.catalog_code === 'ac_01')!.platforms.find((p) => p.code === 'gcp')).toMatchObject({ availability: 'coming_soon', connection_methods: ['identity_federation'] });
+    expect(caps.find((c) => c.catalog_code === 'ac_01')!.platforms.find((p) => p.code === 'gcp')).toMatchObject({ availability: 'available', connection_methods: ['identity_federation'] });
   });
 });
 

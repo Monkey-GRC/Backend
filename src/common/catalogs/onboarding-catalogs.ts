@@ -21,7 +21,6 @@ import {
 import {
   ASSET_CRITICALITY_VALUES,
   SCHEDULE_FREQUENCY_VALUES,
-  CONNECTION_METHOD_VALUES,
   RESOURCE_KIND_VALUES,
 } from './technical-catalogs';
 
@@ -156,8 +155,7 @@ export const ENUM_CATALOGS = {
   // Componente 3 — el control técnico
   asset_criticality: ASSET_CRITICALITY_VALUES,
   schedule_frequency: SCHEDULE_FREQUENCY_VALUES,
-  // Conexión de nube (D53, D58). Las regiones (`aws_region`) salen de la base (D67).
-  connection_method: CONNECTION_METHOD_VALUES,
+  // Conexión de nube (D53, D58). Las regiones (`aws_region`) salen de la base (D67); las opciones del asistente (`connection_method`, `gcp_*`, D114), también.
   resource_kind: RESOURCE_KIND_VALUES,
   // Cumplimiento: criterios, categorías, niveles, decisiones, cargos, dimensiones… leídos de los enums de Postgres (compliance-catalogs.ts).
   ...COMPLIANCE_ENUM_CATALOGS,

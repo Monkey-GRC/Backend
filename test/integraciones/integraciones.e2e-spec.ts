@@ -39,6 +39,7 @@ describe('GET /v1/integrations/catalog', () => {
     expect(items.map((i) => i.code)).toEqual(['aws', 'azure', 'gcp', 'microsoft_365', 'google_workspace', 'github', 'jira']);
     expect(items.map((i) => i.purpose)).toEqual([...Array(6).fill('measurement'), 'workflow']);
     expect(items[0]).toMatchObject({ code: 'aws', name: 'Amazon Web Services', logo_key: 'aws', availability: 'available', connection: { category: 'ac_01', platform: 'aws' } });
+    expect(items.find((i) => i.code === 'gcp')).toMatchObject({ availability: 'available', connection: { category: 'ac_01', platform: 'gcp' } });
     expect(items[5]).toMatchObject({ code: 'github', name: 'GitHub', logo_key: 'github', availability: 'coming_soon', connection: null, connected: false });
     expect(items[6]).toMatchObject({ code: 'jira', name: 'Jira', logo_key: 'jira', availability: 'coming_soon', connection: null });
     expect(res.body.data).not.toHaveProperty('total');
@@ -226,11 +227,10 @@ describe('GET /v1/integrations/{code}', () => {
   });
 
   it('admin_empresa: una coming_soon (con o sin plataforma) llega con prerequisitos, permisos, seguridad y recursos vacíos, y coverage null', async () => {
-    for (const code of ['azure', 'gcp', 'microsoft_365', 'google_workspace', 'github', 'jira']) {
+    for (const code of ['azure', 'microsoft_365', 'google_workspace', 'github', 'jira']) {
       const d = (await detail(a.agent, code).expect(200)).body.data;
       expect(d).toMatchObject({ availability: 'coming_soon', status: null, connections: [], prerequisites: [], permissions: [], resource_types: [], security: [] });
-      // La cobertura sale del catálogo de checks de la plataforma: GCP ya lo tiene cargado (MD-213) o lo trae otra prueba (MD-214), así que no es nula.
-      if (code !== 'gcp') expect(d.coverage).toBeNull();
+      expect(d.coverage).toBeNull();
       expect(d.overview.length).toBeGreaterThan(20);
       expect(d.features.length).toBeGreaterThan(0);
       expect(d.capabilities.length).toBeGreaterThan(0);

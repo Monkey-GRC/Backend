@@ -44,7 +44,6 @@ export async function bootApp(env: Record<string, string> = {}, configure?: (bui
     MONKEY_AWS_PRINCIPAL_ARN: MONKEY_PRINCIPAL_ARN,
     MONKEY_GCP_FEDERATION_ROLE_ARN,
     // DT-104 · Solo las pruebas de GCP declaran una plataforma `coming_soon`; el valor no debe pasar de una app a la siguiente.
-    PREVIEW_PLATFORMS: '',
     VALIDATION_WAIT_SECONDS: '25',
     NODE_ENV: 'test',
     // SEG-19 · Las pruebas de siempre disparan muchas peticiones seguidas con el mismo usuario; solo test/autenticacion/limite-peticiones.e2e-spec.ts baja estos topes.

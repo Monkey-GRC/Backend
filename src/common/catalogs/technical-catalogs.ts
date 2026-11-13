@@ -40,6 +40,8 @@ export type ResourceKindValue = (typeof RESOURCE_KIND_VALUES)[number];
 
 export const CONNECTION_METHOD_VALUES = ['readonly_role', 'access_keys', 'agent', 'identity_federation'] as const;
 export type ConnectionMethodValue = (typeof CONNECTION_METHOD_VALUES)[number];
+// Los catálogos que se sirven desde `catalog.connection_options` con `description`, `availability` y `tags` (D114).
+export const CONNECTION_OPTION_CATALOGS: string[] = ['connection_method', 'gcp_connection_scope', 'gcp_setup_method'];
 export const CLOUD_PLATFORM_AWS = 'aws';
 export const CLOUD_PLATFORM_GCP = 'gcp';
 // Las nubes que el trabajador sabe evaluar (D56: un catálogo de checks por plataforma).

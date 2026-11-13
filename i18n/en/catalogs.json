@@ -330,5 +330,29 @@
     "active": "Active",
     "pending": "Pending activation",
     "needs_attention": "Needs attention"
+  },
+  "gcp_connection_scope": {
+    "project": "A project",
+    "organization": "An organization"
+  },
+  "gcp_setup_method": {
+    "cloud_shell": "Cloud Shell",
+    "terraform": "Terraform"
+  },
+  "option_description": {
+    "connection_method": {
+      "readonly_role": "Monkey assumes a read-only role that you create in your account. It stores no keys and you can revoke it at any time.",
+      "access_keys": "You paste a read-only access key. It works, but you have to safeguard a long-lived secret.",
+      "identity_federation": "Your project trusts the Monkey identity. No keys are created or stored.",
+      "agent": "You install a lightweight agent on the machine, which reports its status to Monkey."
+    },
+    "gcp_connection_scope": {
+      "project": "Connect one Google Cloud project, or a few. This is the scope to start with.",
+      "organization": "Connect every project of a Google Cloud organization at once."
+    },
+    "gcp_setup_method": {
+      "cloud_shell": "You paste a command into Cloud Shell, inside the Google Cloud console. It is the fastest way and installs nothing.",
+      "terraform": "You apply the configuration as code in your own infrastructure. For teams that already use Terraform."
+    }
   }
 }

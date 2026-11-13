@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
 import {
@@ -21,7 +21,6 @@ import { ConnectionProbe } from '../../domain/ports/connection-probe';
 import { ConnectionCatalogRepository } from '../../domain/repositories/connection-catalog.repository';
 import { TechnicalControlRepository } from '../../domain/repositories/technical-control.repository';
 import { checkCloudTarget, checkGcpProject, newExternalId, planConnection } from '../cloud-connection';
-import { PREVIEW_PLATFORMS } from '../preview-platforms';
 
 const scopeOf = (p: Principal): TenantScope => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 
@@ -86,15 +85,13 @@ export class CreateAssetUseCase {
     private readonly repo: TechnicalControlRepository,
     private readonly catalog: ConnectionCatalogRepository,
     private readonly cipher: CredentialCipher,
-    // Plataformas `coming_soon` que se pueden declarar por la API (solo desarrollo, DT-104).
-    @Inject(PREVIEW_PLATFORMS) private readonly previewPlatforms: readonly string[],
   ) {}
 
   async execute(principal: Principal, request: NewAssetRequest, meta: RequestMeta): Promise<Asset> {
     // La plataforma sale del catálogo (D67): tiene que existir dentro de esa conexión y estar disponible. Una bloqueada se muestra pero no se conecta.
     const platform = await this.catalog.findPlatform(request.connectionCategory, request.platform.trim().toLowerCase());
     if (!platform) throw new ValidationException([{ field: 'platform', code: 'platform.not_in_category' }]);
-    if (platform.availability !== 'available' && !this.previewPlatforms.includes(platform.code)) throw new ValidationException([{ field: 'platform', code: 'connection.provider_not_supported' }]);
+    if (platform.availability !== 'available') throw new ValidationException([{ field: 'platform', code: 'connection.provider_not_supported' }]);
     if (!request.connectionMethod) throw new ValidationException([{ field: 'connection_method', code: 'required' }]);
 
     // Cuenta y regiones declaradas, ExternalId que genera Monkey y llaves cifradas solo en el canal de llaves.
