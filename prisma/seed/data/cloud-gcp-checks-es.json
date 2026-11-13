@@ -1,0 +1,552 @@
+[
+    {
+        "checkId":  "apikeys_api_restricted_with_gemini_api",
+        "titleEs":  "La clave de API está restringida a APIs de Google específicas cuando la API de Gemini (Generative Language) está habilitada",
+        "remediationEs":  "Aplica **restricciones de API** para que cada clave solo acceda a APIs concretas. En particular, *no* permitas el acceso a la «Generative Language API».\nSi ese acceso es necesario, ten presentes las consecuencias: usa la clave solo para ese fin y garantiza un **almacenamiento seguro de secretos**.\n\nComo alternativa, deshabilita por completo la API de Gemini (también llamada Generative Language API, `generativelanguage.googleapis.com`) en los servicios habilitados del proyecto."
+    },
+    {
+        "checkId":  "apikeys_api_restrictions_configured",
+        "titleEs":  "La clave de API está restringida a APIs de Google específicas",
+        "remediationEs":  "Aplica **mínimo privilegio**: restringe cada clave de API solo a las APIs que debe usar y nunca incluyas `cloudapis.googleapis.com`. Añade **restricciones de aplicación** (referentes, IPs, IDs de app), rota las claves y monitorea su uso. En producción, prefiere **cuentas de servicio** o tokens de corta vida como parte de la **defensa en profundidad**."
+    },
+    {
+        "checkId":  "apikeys_key_exists",
+        "titleEs":  "El proyecto no tiene claves de API activas",
+        "remediationEs":  "Prefiere **cuentas de servicio** con credenciales de corta vida u **OAuth 2.0**, con **mínimo privilegio**. *Si las claves son necesarias*, restríngelas por API y por aplicación, guárdalas en un gestor de secretos, rótalas y revócalas sin demora, monitoréalas con alertas como **defensa en profundidad** y elimina las que no uses."
+    },
+    {
+        "checkId":  "apikeys_key_rotated_in_90_days",
+        "titleEs":  "La clave de API se creó en los últimos 90 días",
+        "remediationEs":  "Rota las claves de API al menos cada `90` días. Prefiere **cuentas de servicio** u OAuth con credenciales de corta vida. Aplica restricciones de **API** y de **aplicación/IP**. Guarda las claves en un **gestor de secretos**, evita incrustarlas en el cliente y monitorea su uso. Aplica **mínimo privilegio** y **defensa en profundidad**."
+    },
+    {
+        "checkId":  "artifacts_container_analysis_enabled",
+        "titleEs":  "El proyecto de GCP tiene habilitada la API Container Analysis de Artifact Registry",
+        "remediationEs":  "Habilita **Artifact Analysis** (`containeranalysis.googleapis.com`) en los proyectos que alojan imágenes de contenedor. Integra los resultados del escaneo en las puertas de políticas de CI/CD, aplica **mínimo privilegio** al acceso a los hallazgos y reconstruye las imágenes con prontitud para mantener la **defensa en profundidad**."
+    },
+    {
+        "checkId":  "bigquery_dataset_cmk_encryption",
+        "titleEs":  "El dataset de BigQuery está cifrado con claves administradas por el cliente (CMK)",
+        "remediationEs":  "Protege los datasets con **CMEK** mediante Cloud KMS:\n- Define una clave predeterminada de dataset o de proyecto\n- Alinea la ubicación de la clave con la región del dataset\n- Aplica **mínimo privilegio** y separación de funciones en el uso de la clave\n- Rota las claves y define procedimientos de revocación\n- Audita el uso de las claves y usa políticas de organización para exigir CMEK"
+    },
+    {
+        "checkId":  "bigquery_dataset_public_access",
+        "titleEs":  "El dataset de BigQuery no es de acceso público",
+        "remediationEs":  "Aplica **mínimo privilegio** en los datasets:\n- Elimina `allUsers` y `allAuthenticatedUsers`\n- Concede acceso solo a los grupos o cuentas de servicio necesarios\n- Usa **vistas autorizadas** o listados controlados para compartir\n- Revisa los accesos con regularidad y aplica políticas de organización que bloqueen identidades públicas como **defensa en profundidad**"
+    },
+    {
+        "checkId":  "bigquery_table_cmk_encryption",
+        "titleEs":  "La tabla de BigQuery está cifrada con una clave administrada por el cliente (CMK)",
+        "remediationEs":  "Protege las tablas de BigQuery con **CMEK de Cloud KMS** para conservar la propiedad y el control de la clave.\n- Define claves predeterminadas de dataset o proyecto\n- Haz coincidir la ubicación de la clave con la región del dataset\n- Aplica mínimo privilegio en KMS y monitorea su uso\n- Rota las claves y define procedimientos de revocación\n- Aplica políticas de organización que exijan CMEK y limiten los proyectos de claves permitidos"
+    },
+    {
+        "checkId":  "cloudfunction_function_inside_vpc",
+        "titleEs":  "La Cloud Function está conectada a una red VPC",
+        "remediationEs":  "Aplica **defensa en profundidad** enrutando la salida de la Cloud Function por un **conector de Serverless VPC Access** cuando deba alcanzar recursos internos.\n\nAcota cada conector a subredes de **mínimo privilegio** para que las funciones no lleguen a destinos no previstos."
+    },
+    {
+        "checkId":  "cloudfunction_function_not_publicly_accessible",
+        "titleEs":  "La Cloud Function no se puede invocar públicamente",
+        "remediationEs":  "Aplica **mínimo privilegio** a la invocación de Cloud Functions: concede `roles/cloudfunctions.invoker` solo a cuentas de servicio o grupos concretos.\n\nPara las funciones expuestas externamente, colócalas detrás de **API Gateway** o **Cloud Endpoints**, que exijan autenticación y limiten la tasa de solicitudes."
+    },
+    {
+        "checkId":  "cloudsql_instance_automated_backups",
+        "titleEs":  "La instancia de base de datos de Cloud SQL tiene respaldos automáticos configurados",
+        "remediationEs":  "Habilita los **respaldos automáticos** en todas las instancias de Cloud SQL con datos importantes. Define la retención y los horarios según tus `RPO`/`RTO` y activa la recuperación a un punto en el tiempo. Aplica **mínimo privilegio** al acceso a los respaldos, usa **separación de funciones**, considera la resiliencia entre regiones y prueba las restauraciones con regularidad, con monitoreo y alertas ante fallos."
+    },
+    {
+        "checkId":  "cloudsql_instance_cmek_encryption_enabled",
+        "titleEs":  "La instancia de Cloud SQL está cifrada con una clave administrada por el cliente (CMEK)",
+        "remediationEs":  "Para las instancias con datos personales o sensibles, crea instancias nuevas de Cloud SQL con CMEK usando una clave de Cloud KMS de la misma región. Asegúrate de que la cuenta de servicio de Cloud SQL tenga el rol roles/cloudkms.cryptoKeyEncrypterDecrypter sobre la clave y habilita la rotación de claves según tu política."
+    },
+    {
+        "checkId":  "cloudsql_instance_high_availability_enabled",
+        "titleEs":  "La instancia de Cloud SQL tiene alta disponibilidad (REGIONAL) configurada",
+        "remediationEs":  "Establece availabilityType en REGIONAL en todas las instancias de Cloud SQL de producción. Esto crea una réplica en espera en otra zona y habilita la conmutación automática por error, lo que reduce el RTO ante una caída de zona."
+    },
+    {
+        "checkId":  "cloudsql_instance_mysql_local_infile_flag",
+        "titleEs":  "La instancia de Cloud SQL para MySQL tiene el indicador de base de datos local_infile en off",
+        "remediationEs":  "Mantén `local_infile` en `off`. Usa canales de importación gobernados (p. ej., importaciones controladas desde almacenamiento de objetos) y aplica **mínimo privilegio** a las cargas masivas. Aplica **separación de funciones** entre los roles de ingesta y de administración, valida el origen y el formato de los archivos y monitorea las cargas de gran volumen. *Si alguna vez es necesario, habilítalo solo por poco tiempo para tareas validadas.*"
+    },
+    {
+        "checkId":  "cloudsql_instance_mysql_skip_show_database_flag",
+        "titleEs":  "La instancia de Cloud SQL para MySQL tiene el indicador skip_show_database en on",
+        "remediationEs":  "Establece `skip_show_database` en `on` en todas las instancias de Cloud SQL para MySQL. Aplica **mínimo privilegio** concediendo `SHOW DATABASES` solo cuando sea necesario y revisando los roles con regularidad. Usa **defensa en profundidad**: monitorea los accesos y las acciones de administración, y planifica los cambios en ventanas de mantenimiento, ya que actualizar indicadores puede provocar reinicios."
+    },
+    {
+        "checkId":  "cloudsql_instance_postgres_enable_pgaudit_flag",
+        "titleEs":  "La instancia de Cloud SQL para PostgreSQL tiene el indicador cloudsql.enable_pgaudit en on",
+        "remediationEs":  "Habilita `cloudsql.enable_pgaudit` y configura **pgAudit** para registrar las clases necesarias (p. ej., `read`, `write`, `ddl`) con mínimo privilegio. Centraliza los registros, aplica retención y RBAC, y monitorea con alertas. *Limita la auditoría a los datos sensibles para reducir el ruido y la sobrecarga, y revisa la cobertura con regularidad.*"
+    },
+    {
+        "checkId":  "cloudsql_instance_postgres_log_connections_flag",
+        "titleEs":  "La instancia de Cloud SQL para PostgreSQL tiene el indicador log_connections en on",
+        "remediationEs":  "Habilita `log_connections`=`on` en todas las instancias de PostgreSQL.\n- Aplica **defensa en profundidad**: captura también las desconexiones y los eventos de auditoría\n- Centraliza los registros, conserva su retención y alerta ante anomalías\n- Aplica **mínimo privilegio** y autenticación fuerte para reducir la exposición y mejorar la detección"
+    },
+    {
+        "checkId":  "cloudsql_instance_postgres_log_disconnections_flag",
+        "titleEs":  "La instancia de Cloud SQL para PostgreSQL tiene el indicador log_disconnections en on",
+        "remediationEs":  "Habilita `log_disconnections=on` para garantizar una auditoría completa de las sesiones.\n- Combínalo con `log_connections` y un `log_line_prefix` consistente\n- Centraliza y conserva los registros; alerta ante anomalías\n- Aplica **defensa en profundidad** con una revisión rutinaria de los accesos y los eventos de auditoría"
+    },
+    {
+        "checkId":  "cloudsql_instance_postgres_log_error_verbosity_flag",
+        "titleEs":  "La instancia de Cloud SQL para PostgreSQL tiene el indicador log_error_verbosity en default",
+        "remediationEs":  "Establece `log_error_verbosity` en `default` para equilibrar la **minimización de datos** y la **observabilidad**.\n\n- Evita `verbose` en producción; restringe el acceso a los registros (mínimo privilegio)\n- Evita `terse`, salvo brevemente para reducir el ruido\n- Centraliza los registros con retención y protección contra manipulación como **defensa en profundidad**"
+    },
+    {
+        "checkId":  "cloudsql_instance_postgres_log_min_duration_statement_flag",
+        "titleEs":  "La instancia de Cloud SQL para PostgreSQL tiene el indicador log_min_duration_statement en -1",
+        "remediationEs":  "Mantén `log_min_duration_statement` en `-1` en producción para no escribir en los registros el texto de consultas sensibles. Aplica **mínimo privilegio** al acceso a los registros y **minimización de datos** con redacción y retención corta. *Si se requiere diagnóstico*, habilítalo de forma acotada y temporal, prefiere entornos que no sean de producción y monitorea el acceso."
+    },
+    {
+        "checkId":  "cloudsql_instance_postgres_log_min_error_statement_flag",
+        "titleEs":  "La instancia de Cloud SQL para PostgreSQL tiene log_min_error_statement en error",
+        "remediationEs":  "Establece `log_min_error_statement` en `error` para equilibrar la visibilidad y la exposición. Aplica una **política de registro** que limite los datos sensibles en las consultas y respalde la **defensa en profundidad**. Revisa periódicamente la severidad y la retención para ajustarlas a la carga de trabajo y a las necesidades de cumplimiento, y mantener una preparación forense confiable."
+    },
+    {
+        "checkId":  "cloudsql_instance_postgres_log_min_messages_flag",
+        "titleEs":  "La instancia de Cloud SQL para PostgreSQL tiene el indicador log_min_messages en WARNING o superior",
+        "remediationEs":  "Establece `log_min_messages` en **ERROR o más estricto** para que las sentencias con error se capturen con su contexto. Alinéalo con el registro centralizado, la retención y los procesos de revisión. Prefiere la **defensa en profundidad** conservando telemetría de errores accionable, y equilibra el nivel de detalle y el costo según tu política de registro."
+    },
+    {
+        "checkId":  "cloudsql_instance_postgres_log_statement_flag",
+        "titleEs":  "La instancia de Cloud SQL para PostgreSQL tiene el indicador log_statement en ddl",
+        "remediationEs":  "Configura `log_statement` en `ddl` para capturar los cambios de esquema sin ruido excesivo. Aplica **defensa en profundidad**: usa auditoría dirigida para el acceso a datos, restringe y monitorea el acceso a los registros con **mínimo privilegio**, y aplica retención y rotación de registros para proteger la disponibilidad."
+    },
+    {
+        "checkId":  "cloudsql_instance_private_ip_assignment",
+        "titleEs":  "La instancia de Cloud SQL no tiene direcciones IP públicas",
+        "remediationEs":  "Usa conectividad **solo por IP privada** para las bases de datos. Elimina las IP públicas, segmenta el acceso a las VPC/subredes necesarias y aplica **mínimo privilegio** con autenticación fuerte y TLS. Para el acceso externo, usa canales privados seguros (VPN/Interconnect) o un bastión reforzado. Monitorea las conexiones como parte de la **defensa en profundidad**."
+    },
+    {
+        "checkId":  "cloudsql_instance_public_access",
+        "titleEs":  "La instancia de Cloud SQL no permite 0.0.0.0/0 en las redes autorizadas",
+        "remediationEs":  "Aplica acceso de red con **mínimo privilegio**:\n- Elimina `0.0.0.0/0`; permite solo rangos de IP fijos y de confianza\n- Prefiere **IP privada** o **Private Service Connect** con controles de VPC\n- Usa acceso mediante proxy (Cloud SQL Auth Proxy) en lugar de conexiones públicas directas\n- Aplica políticas de organización que impidan listas de permitidos amplias"
+    },
+    {
+        "checkId":  "cloudsql_instance_public_ip",
+        "titleEs":  "La instancia de base de datos de Cloud SQL no tiene una dirección IP pública",
+        "remediationEs":  "Prefiere la **IP privada** y deshabilita los puntos de acceso públicos. Accede a las bases de datos por la VPC, VPN/Interconnect o **Private Service Connect**. Si necesitas `authorized networks`, restríngelas a orígenes concretos, nunca `0.0.0.0/0`. Aplica IAM con **mínimo privilegio**, usa los conectores o el proxy de Cloud SQL, y suma **defensa en profundidad** con controles de red y monitoreo."
+    },
+    {
+        "checkId":  "cloudsql_instance_sqlserver_contained_database_authentication_flag",
+        "titleEs":  "La instancia de Cloud SQL para SQL Server tiene el indicador contained database authentication en off",
+        "remediationEs":  "Mantén `contained database authentication` en `off`. Centraliza la autenticación y la auditoría en la capa del servidor o mediante integración con un directorio, y aplica **mínimo privilegio**. Evita los usuarios contenidos con `USER WITH PASSWORD`. Si la contención es inevitable, acota estrictamente su uso, exige credenciales fuertes y monitorea los inicios de sesión."
+    },
+    {
+        "checkId":  "cloudsql_instance_sqlserver_cross_db_ownership_chaining_flag",
+        "titleEs":  "La instancia de Cloud SQL para SQL Server tiene el indicador cross db ownership chaining en off",
+        "remediationEs":  "Mantén `cross db ownership chaining` en `off` para conservar el aislamiento entre bases de datos. Aplica **mínimo privilegio** con permisos explícitos por base de datos y **separación de funciones**. Prefiere patrones de ejecución controlados (p. ej., módulos firmados) a las confianzas implícitas, y revisa periódicamente los indicadores y los accesos. *Este indicador está obsoleto: no lo habilites.*"
+    },
+    {
+        "checkId":  "cloudsql_instance_sqlserver_external_scripts_enabled_flag",
+        "titleEs":  "La instancia de Cloud SQL para SQL Server tiene el indicador external scripts enabled en off",
+        "remediationEs":  "Mantén `external scripts enabled` en `off`. Aplica **mínimo privilegio** y **defensa en profundidad** deshabilitando las funciones de ejecución de código en la base de datos. Si necesitas analítica, usa instancias aisladas, restringe el acceso de red saliente y aplica control de cambios y auditoría para evitar abusos."
+    },
+    {
+        "checkId":  "cloudsql_instance_sqlserver_remote_access_flag",
+        "titleEs":  "La instancia de Cloud SQL para SQL Server tiene el indicador de base de datos remote access en off",
+        "remediationEs":  "Establece `remote access` en `off` para reducir la superficie de ataque. Aplica **mínimo privilegio** y **defensa en profundidad**: evita los procedimientos almacenados remotos; si el negocio lo exige, permite solo pares de confianza, exige autenticación fuerte, audita las llamadas y monitorea posibles abusos."
+    },
+    {
+        "checkId":  "cloudsql_instance_sqlserver_trace_flag",
+        "titleEs":  "La instancia de Cloud SQL para SQL Server tiene la marca de seguimiento 3625 en on",
+        "remediationEs":  "Establece la marca de seguimiento `3625` en `on` en todas las instancias de SQL Server de Cloud SQL para limitar el detalle de los errores que ven los usuarios sin privilegios de administración. Aplica **mínimo privilegio**, practica **defensa en profundidad** con manejo de errores en la aplicación y centraliza los diagnósticos en los registros en lugar de devolver mensajes detallados a los clientes."
+    },
+    {
+        "checkId":  "cloudsql_instance_sqlserver_user_connections_flag",
+        "titleEs":  "La instancia de Cloud SQL para SQL Server tiene el indicador de base de datos user connections en 0",
+        "remediationEs":  "Establece `user connections` en `0` para evitar límites artificiales. Preserva la **disponibilidad** con **agrupación de conexiones**, reintentos controlados y **planificación de capacidad** basada en el pico de uso. *Si se requiere un tope*, dimensiónalo con holgura amplia, monitorea el número de conexiones y revísalo con regularidad."
+    },
+    {
+        "checkId":  "cloudsql_instance_sqlserver_user_options_flag",
+        "titleEs":  "La instancia de Cloud SQL para SQL Server no tiene configurado el indicador user options",
+        "remediationEs":  "Deja `user options` sin definir a nivel de instancia y conserva el comportamiento predeterminado. Controla las opciones `SET` de forma explícita en el ámbito de sesión o de base de datos.\n\n- Aplica **mínimo privilegio** a la administración de indicadores\n- Usa **control de cambios** y pruebas antes del despliegue\n- Monitorea la deriva de configuración como parte de la **defensa en profundidad**"
+    },
+    {
+        "checkId":  "cloudsql_instance_ssl_connections",
+        "titleEs":  "La instancia de base de datos de Cloud SQL exige SSL en todas las conexiones entrantes",
+        "remediationEs":  "Exige **TLS en todas las conexiones**. Prefiere `TRUSTED_CLIENT_CERTIFICATE_REQUIRED` o usa Cloud SQL Auth Proxy/Connectors para canales cifrados y autenticados.\n- No permitas modos mixtos de texto plano y SSL\n- Rota y monitorea los certificados\n- Combínalo con **mínimo privilegio** y acceso privado"
+    },
+    {
+        "checkId":  "cloudstorage_audit_logs_enabled",
+        "titleEs":  "Los registros de auditoría de acceso a datos están habilitados para Cloud Storage",
+        "remediationEs":  "Habilita los registros de auditoría de acceso a datos (DATA_READ y DATA_WRITE) de Cloud Storage a nivel de proyecto para rastrear todas las operaciones de lectura y escritura sobre los objetos de almacenamiento, con fines de monitoreo de seguridad y cumplimiento."
+    },
+    {
+        "checkId":  "cloudstorage_bucket_lifecycle_management_enabled",
+        "titleEs":  "El bucket de Cloud Storage tiene la gestión del ciclo de vida habilitada con al menos una regla válida",
+        "remediationEs":  "Define políticas de ciclo de vida según la clasificación de los datos para aplicar la **mínima retención de datos**. Usa `Delete` para TTL/antigüedad y `SetStorageClass` para archivado, con condiciones sensibles a las versiones como `isLive=false` o `numNewerVersions`. Prueba con un conjunto limitado de datos, revisa con regularidad y alinéalo con la **defensa en profundidad**."
+    },
+    {
+        "checkId":  "cloudstorage_bucket_log_retention_policy_lock",
+        "titleEs":  "El bucket de Cloud Storage que recibe registros tiene una política de retención con Bucket Lock habilitado",
+        "remediationEs":  "Define una **política de retención** en cada bucket que reciba registros y habilita **Bucket Lock**. Elige duraciones que cubran las necesidades de investigación y regulatorias. Aplica **mínimo privilegio** y **separación de funciones** en la administración del bucket y del registro, y aplica **defensa en profundidad** para que ningún actor por sí solo pueda debilitar la retención de registros."
+    },
+    {
+        "checkId":  "cloudstorage_bucket_logging_enabled",
+        "titleEs":  "Los buckets de Cloud Storage tienen habilitados los registros de uso y de almacenamiento",
+        "remediationEs":  "Habilita los registros de uso y de almacenamiento en todos los buckets de Cloud Storage para rastrear los accesos, detectar anomalías y mantener la visibilidad de auditoría sobre las operaciones con datos."
+    },
+    {
+        "checkId":  "cloudstorage_bucket_public_access",
+        "titleEs":  "El bucket de Cloud Storage no es de acceso público",
+        "remediationEs":  "Adopta el **mínimo privilegio**: elimina `allUsers`/`allAuthenticatedUsers` y concede acceso solo a las identidades necesarias. Aplica **Public Access Prevention** y usa acceso uniforme a nivel de bucket. *Si se necesita compartir externamente*, emite **URL firmadas** o usa un proxy/CDN autenticado, y revisa los permisos con regularidad."
+    },
+    {
+        "checkId":  "cloudstorage_bucket_soft_delete_enabled",
+        "titleEs":  "El bucket de Cloud Storage tiene Soft Delete habilitado",
+        "remediationEs":  "Habilita **Soft Delete** con una ventana de retención alineada con tus RPO/RTO. Aplica **mínimo privilegio** a las acciones de eliminar y restaurar, y usa **defensa en profundidad** con control de versiones de objetos y políticas de retención. Monitorea los eventos de eliminación y prueba con regularidad los procedimientos de restauración para asegurar la recuperabilidad."
+    },
+    {
+        "checkId":  "cloudstorage_bucket_sufficient_retention_period",
+        "titleEs":  "El bucket de Cloud Storage tiene un período de política de retención suficiente",
+        "remediationEs":  "Define y aplica una política de retención a nivel de bucket que cumpla tu requisito mínimo de retención (p. ej., 90 o 365 días) para garantizar la recuperabilidad de los datos y el cumplimiento."
+    },
+    {
+        "checkId":  "cloudstorage_bucket_uniform_bucket_level_access",
+        "titleEs":  "El bucket de Cloud Storage tiene habilitado el acceso uniforme a nivel de bucket",
+        "remediationEs":  "Habilita **UBLA** en todos los buckets para centralizar la autorización y aplicar **mínimo privilegio** con IAM. Elimina la dependencia de las ACL de objetos; usa **Public Access Prevention** y **políticas de organización** para imponer valores predeterminados no públicos. Monitorea el acceso con registros y revisiones periódicas como parte de la **defensa en profundidad**."
+    },
+    {
+        "checkId":  "cloudstorage_bucket_versioning_enabled",
+        "titleEs":  "El bucket de Cloud Storage tiene habilitado el control de versiones de objetos",
+        "remediationEs":  "Habilita el **control de versiones de objetos** en los buckets con datos importantes. Combínalo con reglas de `lifecycle` para expirar las versiones no vigentes y controlar el costo. Aplica **mínimo privilegio** a las acciones de eliminar y sobrescribir, y añade políticas de `retention` del bucket o retenciones de objetos para lograr defensa en profundidad y trazabilidad."
+    },
+    {
+        "checkId":  "cloudstorage_uses_vpc_service_controls",
+        "titleEs":  "Los servicios de Cloud Storage están protegidos con VPC Service Controls",
+        "remediationEs":  "Habilita VPC Service Controls para todos los buckets de Cloud Storage añadiendo sus proyectos a un perímetro de servicio con storage.googleapis.com como servicio restringido. Esto evita la exfiltración de datos y asegura que las llamadas a la API solo se permitan desde redes autorizadas."
+    },
+    {
+        "checkId":  "compute_firewall_rdp_access_from_the_internet_allowed",
+        "titleEs":  "La regla de firewall no permite tráfico entrante desde 0.0.0.0/0 al puerto TCP 3389 (RDP)",
+        "remediationEs":  "Restringe **RDP** a rangos de IP de confianza o a un proxy **bastión/IAP** reforzado; prefiere el acceso privado sin IP públicas. Aplica **mínimo privilegio** y segmentación de red, usa acceso justo a tiempo y autenticación fuerte, y monitorea los registros. Busca la **defensa en profundidad** para minimizar la exposición."
+    },
+    {
+        "checkId":  "compute_firewall_ssh_access_from_the_internet_allowed",
+        "titleEs":  "El firewall no expone el puerto TCP 22 (SSH) a Internet",
+        "remediationEs":  "Restringe **SSH** a orígenes de confianza; evita `0.0.0.0/0`. Prefiere **hosts bastión**, el **reenvío TCP de IAP** o **VPN/peering**. Aplica **mínimo privilegio** y **defensa en profundidad**: limita a los CIDR necesarios, usa **autenticación por clave**, deshabilita `PasswordAuthentication` y monitorea y alerta sobre los intentos de acceso."
+    },
+    {
+        "checkId":  "compute_image_not_publicly_shared",
+        "titleEs":  "La imagen de disco de Compute Engine no está compartida públicamente",
+        "remediationEs":  "Restringe el acceso a las imágenes de disco personalizadas eliminando el vínculo IAM de **allAuthenticatedUsers**. Aplica el principio de mínimo privilegio concediendo acceso solo a los usuarios, grupos o cuentas de servicio específicos que lo necesiten."
+    },
+    {
+        "checkId":  "compute_instance_automatic_restart_enabled",
+        "titleEs":  "Las instancias de VM de Compute Engine tienen habilitado el reinicio automático",
+        "remediationEs":  "Habilita el reinicio automático en las instancias de VM de Compute Engine para mejorar la confiabilidad del sistema, recuperándolas automáticamente ante fallos o terminaciones iniciadas por el sistema. Este ajuste no interfiere con los apagados o detenciones iniciados por el usuario."
+    },
+    {
+        "checkId":  "compute_instance_block_project_wide_ssh_keys_disabled",
+        "titleEs":  "La instancia de VM tiene habilitado el bloqueo de claves SSH de todo el proyecto",
+        "remediationEs":  "Establece `block-project-ssh-keys=true` para evitar la herencia de claves compartidas. Prefiere **OS Login** o claves específicas de la instancia, aplica **mínimo privilegio** y **separación de funciones** a los cambios de metadatos, usa **credenciales de corta vida** con rotación, limita el SSH directo y monitorea los accesos en busca de anomalías."
+    },
+    {
+        "checkId":  "compute_instance_confidential_computing_enabled",
+        "titleEs":  "La instancia de Compute tiene habilitado Confidential Computing",
+        "remediationEs":  "Habilita las **Confidential VMs** para las cargas de trabajo que procesan datos sensibles y proteger así los datos en uso. Aplica **defensa en profundidad**: aplica **mínimo privilegio** al acceso administrativo, usa cifrado de disco con `CMEK` y exige atestación de la carga de trabajo o imágenes de confianza. *Si no es compatible*, aísla o refactoriza las cargas hacia opciones compatibles."
+    },
+    {
+        "checkId":  "compute_instance_default_service_account_in_use",
+        "titleEs":  "La instancia de Compute Engine no usa la cuenta de servicio predeterminada",
+        "remediationEs":  "Evita la cuenta de servicio predeterminada. Crea cuentas de servicio por carga de trabajo y concede solo los roles necesarios con **mínimo privilegio** y **separación de funciones**. Elimina roles amplios como `roles/editor`. Prefiere credenciales de corta vida y monitorea el uso de las cuentas de servicio para reforzar la **defensa en profundidad**."
+    },
+    {
+        "checkId":  "compute_instance_default_service_account_in_use_with_full_api_access",
+        "titleEs":  "La instancia de Compute Engine no usa la cuenta de servicio predeterminada con acceso total a todas las API de Cloud",
+        "remediationEs":  "Usa una **cuenta de servicio personalizada de mínimo privilegio** por VM y evita la cuenta predeterminada. Restringe los alcances de las API de Cloud: prefiere alcances mínimos o por API, no `Allow full access to all Cloud APIs`. Aplica **mínimo privilegio** y **separación de funciones**, y revisa los roles con regularidad para eliminar permisos excesivos."
+    },
+    {
+        "checkId":  "compute_instance_deletion_protection_enabled",
+        "titleEs":  "La instancia de VM tiene habilitada la protección contra eliminación",
+        "remediationEs":  "Habilita la protección contra eliminación en todas las instancias de VM de producción y críticas para el negocio para evitar terminaciones accidentales. Revisa las instancias con regularidad para asegurar que las cargas críticas estén protegidas."
+    },
+    {
+        "checkId":  "compute_instance_disk_auto_delete_disabled",
+        "titleEs":  "Los discos adjuntos de la instancia de VM tienen la eliminación automática deshabilitada",
+        "remediationEs":  "Deshabilita `auto-delete` en todos los discos persistentes adjuntos a instancias de VM de **producción** y **críticas para el negocio** para evitar la **pérdida accidental de datos**. Revisa con regularidad la configuración de los discos para asegurar que se cumplan los requisitos de retención de datos."
+    },
+    {
+        "checkId":  "compute_instance_encryption_with_csek_enabled",
+        "titleEs":  "La instancia de VM tiene todos sus discos cifrados con claves suministradas por el cliente (CSEK)",
+        "remediationEs":  "Usa **CSEK** en los discos de VM que requieran control total sobre las claves de los datos en reposo. Aplica **mínimo privilegio** a los custodios de claves, guarda las claves en bóvedas/HSM reforzados, aplica rotación y revocación rápida, y documenta los procedimientos de recuperación. Combínalo con **defensa en profundidad** (controles de red e IAM) para limitar el alcance de un incidente."
+    },
+    {
+        "checkId":  "compute_instance_group_autohealing_enabled",
+        "titleEs":  "El grupo de instancias administrado tiene el autohealing habilitado con una verificación de estado válida",
+        "remediationEs":  "Habilita el autohealing en todos los grupos de instancias administrados configurando una verificación de estado que valide la salud a nivel de aplicación. Define un retraso inicial adecuado para que las instancias tengan tiempo de arrancar antes de que comiencen las verificaciones."
+    },
+    {
+        "checkId":  "compute_instance_group_load_balancer_attached",
+        "titleEs":  "El grupo de instancias administrado está conectado a un balanceador de carga",
+        "remediationEs":  "Conecta los grupos de instancias administrados a balanceadores de carga mediante servicios de backend para habilitar la distribución del tráfico, las verificaciones de estado y el autoescalado sin interrupciones. Esto asegura alta disponibilidad y un rendimiento óptimo en las cargas de producción."
+    },
+    {
+        "checkId":  "compute_instance_group_multiple_zones",
+        "titleEs":  "Los grupos de instancias administrados abarcan varias zonas para alta disponibilidad",
+        "remediationEs":  "Usa grupos de instancias administrados regionales en lugar de MIG zonales para distribuir las instancias en varias zonas. Esto ofrece conmutación automática por error y distribución de la carga, y asegura alta disponibilidad en las cargas de producción."
+    },
+    {
+        "checkId":  "compute_instance_ip_forwarding_is_enabled",
+        "titleEs":  "La instancia de VM de Compute Engine tiene el reenvío de IP deshabilitado",
+        "remediationEs":  "Deshabilita el **reenvío de IP** en las VM de propósito general y permítelo solo en **dispositivos de red** validados, siguiendo el **mínimo privilegio**.\n\nAplica **segmentación de red**, restringe las rutas, revisa las excepciones con regularidad y monitorea la salida para sostener la **defensa en profundidad**. *Excluye los nodos administrados por la plataforma que requieren reenvío.*"
+    },
+    {
+        "checkId":  "compute_instance_on_host_maintenance_migrate",
+        "titleEs":  "La instancia de VM de Compute Engine tiene On Host Maintenance en MIGRATE",
+        "remediationEs":  "Configura las instancias de VM para usar la **migración en vivo** durante los eventos de mantenimiento del host y asegurar la disponibilidad continua. Es el ajuste recomendado para las cargas de producción que requieren alta disponibilidad."
+    },
+    {
+        "checkId":  "compute_instance_preemptible_vm_disabled",
+        "titleEs":  "La instancia de VM no está configurada como VM preemptible o Spot",
+        "remediationEs":  "Usa el modelo de aprovisionamiento estándar en las instancias de VM de producción y críticas para el negocio. Las VM preemptible y Spot solo deben usarse para cargas tolerantes a fallos, de procesamiento por lotes o no críticas que puedan soportar interrupciones."
+    },
+    {
+        "checkId":  "compute_instance_public_ip",
+        "titleEs":  "La instancia de VM no tiene una dirección IP pública",
+        "remediationEs":  "Adopta **VM solo privadas** y elimina las IP externas.\n- Coloca las cargas de trabajo detrás de **balanceadores de carga** o **proxies inversos**\n- Usa **Cloud NAT** para la salida; el acceso administrativo, por **IAP**, **VPN** o un **bastión** reforzado\n- Aplica reglas de firewall de **mínimo privilegio** y segmentación de red para lograr **defensa en profundidad**"
+    },
+    {
+        "checkId":  "compute_instance_serial_ports_in_use",
+        "titleEs":  "La instancia de VM tiene deshabilitada la opción «Enable Connecting to Serial Ports»",
+        "remediationEs":  "Deshabilita la **consola serie interactiva** en las VM de producción (`serial-port-enable=false`). Úsala solo en casos de emergencia (*break-glass*). Aplica **mínimo privilegio** a los roles de la consola, prefiere rutas de acceso controladas (IAP/SSH o herramientas de sesión) y monitorea el acceso. Aplica **defensa en profundidad** para reducir las vías de entrada alternativas."
+    },
+    {
+        "checkId":  "compute_instance_shielded_vm_enabled",
+        "titleEs":  "La instancia de Compute tiene habilitados vTPM y Integrity Monitoring",
+        "remediationEs":  "Habilita **Shielded VM** con `vTPM` e **Integrity Monitoring** en `enabled` en todas las VM. Prefiere **Secure Boot** donde sea compatible. Aplícalo mediante imágenes/plantillas reforzadas, aplica **mínimo privilegio** a los ajustes de Shielded VM y monitorea los resultados de integridad: así respaldas la **defensa en profundidad** y el arranque de confianza."
+    },
+    {
+        "checkId":  "compute_instance_single_network_interface",
+        "titleEs":  "La instancia de VM tiene una sola interfaz de red",
+        "remediationEs":  "Configura las instancias de VM solo con la **conectividad de red mínima** necesaria para su fin. Revisa las instancias con varias interfaces de red y consolídalas en una sola, salvo que se requiera explícitamente una configuración multi-NIC para dispositivos de red o de enrutamiento."
+    },
+    {
+        "checkId":  "compute_instance_suspended_without_persistent_disks",
+        "titleEs":  "La instancia de VM suspendida no tiene discos persistentes adjuntos",
+        "remediationEs":  "Revisa con regularidad las instancias de VM suspendidas para reducir tu superficie de ataque. **Reanuda** las instancias si aún se necesitan, o **elimínalas** junto con sus discos adjuntos para evitar posibles exposiciones de datos. Implementa políticas automáticas que detecten y alerten sobre instancias suspendidas por mucho tiempo, como parte de tu monitoreo de seguridad."
+    },
+    {
+        "checkId":  "compute_loadbalancer_logging_enabled",
+        "titleEs":  "El balanceador de carga HTTP(S) tiene el registro habilitado",
+        "remediationEs":  "Habilita el **registro de solicitudes** en los servicios de backend con un `sampleRate` acorde al riesgo; incluye los campos opcionales clave cuando haga falta. Exporta los registros al monitoreo para alertas y paneles, aplica controles de retención e integridad, y restringe el acceso con **mínimo privilegio** y **defensa en profundidad**."
+    },
+    {
+        "checkId":  "compute_network_default_in_use",
+        "titleEs":  "El proyecto no tiene una red VPC predeterminada",
+        "remediationEs":  "Prefiere **VPC personalizadas** en lugar de `default`. Elimina las redes predeterminadas sin uso y aplica **mínimo privilegio** con reglas de firewall explícitas, conectividad privada y segmentación por carga de trabajo. Aplica controles de creación (p. ej., política de organización para omitir la red predeterminada) y usa **defensa en profundidad** con registro y monitoreo."
+    },
+    {
+        "checkId":  "compute_network_dns_logging_enabled",
+        "titleEs":  "La red VPC tiene habilitado el registro de Cloud DNS",
+        "remediationEs":  "Habilita el **registro de consultas de Cloud DNS** en todas las redes VPC mediante **políticas de DNS** y envía los registros a un análisis centralizado. Aplica **mínimo privilegio** al acceso a los registros, define retención y muestreo para controlar el costo, y añade detecciones de dominios maliciosos. Aplica **defensa en profundidad** con políticas de respuesta DNS y controles de salida."
+    },
+    {
+        "checkId":  "compute_network_not_legacy",
+        "titleEs":  "La red VPC no es de tipo legacy",
+        "remediationEs":  "Da de baja las redes legacy. Migra a **VPC en modo personalizado** con subredes regionales y políticas de firewall granulares. Aplica segmentación de **mínimo privilegio**, habilita el acceso privado y **Cloud NAT** para evitar la exposición pública, y usa peering o conectividad privada para las dependencias. *Planifica y prueba la migración para limitar el tiempo de inactividad.*"
+    },
+    {
+        "checkId":  "compute_project_os_login_2fa_enabled",
+        "titleEs":  "El proyecto de GCP tiene OS Login con 2FA habilitado",
+        "remediationEs":  "Habilita OS Login con 2FA a nivel de proyecto para exigir autenticación multifactor en todas las conexiones SSH. Esto añade una capa de seguridad crítica al requerir que los usuarios completen un segundo paso de verificación, y protege contra el robo de credenciales y el acceso no autorizado."
+    },
+    {
+        "checkId":  "compute_project_os_login_enabled",
+        "titleEs":  "El proyecto tiene OS Login habilitado",
+        "remediationEs":  "Habilita **OS Login** a nivel de proyecto para centralizar el SSH mediante **IAM**.\n- Aplica **mínimo privilegio** a los roles de OS Login\n- Elimina las claves SSH de los metadatos\n- Exige MFA y credenciales de corta vida\n- Monitorea la actividad de inicio de sesión y añade restricciones de red como **defensa en profundidad**"
+    },
+    {
+        "checkId":  "compute_public_address_shodan",
+        "titleEs":  "La dirección IP pública no figura en Shodan",
+        "remediationEs":  "Minimiza la exposición a Internet:\n- Elimina las IP públicas sin uso; prefiere el direccionamiento privado con salida controlada\n- Evita `0.0.0.0/0`; restringe con listas de permitidos y políticas de firewall\n- Coloca los servicios detrás de proxies/VPN/bastiones; cierra los puertos sin uso\n\nAplica **mínimo privilegio** y **defensa en profundidad**; monitorea de forma continua tu huella externa."
+    },
+    {
+        "checkId":  "compute_snapshot_not_outdated",
+        "titleEs":  "La instantánea de disco de Compute Engine no está desactualizada",
+        "remediationEs":  "Implementa una política de ciclo de vida de instantáneas que elimine automáticamente las anteriores a los requisitos de retención de tu organización. Revisa y limpia con regularidad las instantáneas desactualizadas para reducir los costos de almacenamiento y minimizar los riesgos de exposición de datos. Considera usar instantáneas programadas con políticas de eliminación automática."
+    },
+    {
+        "checkId":  "compute_subnet_flow_logs_enabled",
+        "titleEs":  "La subred tiene habilitados los VPC Flow Logs",
+        "remediationEs":  "Habilita **VPC Flow Logs** en todas las subredes de producción. Ajusta la agregación, el muestreo y los metadatos para equilibrar la visibilidad y el costo.\n\nExporta a un registro centralizado para análisis y alertas, aplica **mínimo privilegio** al acceso a los registros y usa barreras de protección de la organización para imponer una cobertura consistente como parte de la **defensa en profundidad**."
+    },
+    {
+        "checkId":  "dataproc_encrypted_with_cmks_disabled",
+        "titleEs":  "El clúster de Dataproc está cifrado con una clave de cifrado administrada por el cliente (CMEK)",
+        "remediationEs":  "Habilita **CMEK** para el cifrado de los discos, los argumentos de trabajos y el bucket de staging de Dataproc.\n- Concede acceso a KMS con **mínimo privilegio** a las cuentas de servicio necesarias\n- Aplica **rotación periódica** y procedimientos de **revocación/deshabilitación**\n- Mantén las claves en la misma ubicación que los datos y monitorea el uso de KMS\n- Considera **Cloud EKM** para el control de claves externo"
+    },
+    {
+        "checkId":  "dns_dnssec_disabled",
+        "titleEs":  "La zona administrada de Cloud DNS tiene DNSSEC habilitado",
+        "remediationEs":  "Habilita **DNSSEC** en las zonas públicas y completa la cadena de confianza publicando un registro `DS` en tu registrador. Usa resolvedores que validen DNSSEC, aplica **mínimo privilegio** a la administración de DNS y monitorea los eventos del ciclo de vida de las claves. *Las zonas privadas no se firman con DNSSEC.*"
+    },
+    {
+        "checkId":  "dns_rsasha1_in_use_to_key_sign_in_dnssec",
+        "titleEs":  "La clave de firma de claves (KSK) de DNSSEC de la zona administrada de Cloud DNS no usa RSASHA1",
+        "remediationEs":  "Adopta **algoritmos DNSSEC fuertes y compatibles** para las KSK (p. ej., `ECDSAP256SHA256` o `RSASHA256`) y retira `rsasha1`. Rota las claves y valida los cambios antes de desplegarlos. Mantén consistentes los algoritmos de KSK y ZSK, documenta la política de rotación de claves y aplica **mínimo privilegio** a la administración de DNS/DNSSEC."
+    },
+    {
+        "checkId":  "dns_rsasha1_in_use_to_zone_sign_in_dnssec",
+        "titleEs":  "La zona administrada de Cloud DNS no usa el algoritmo RSASHA1 en la clave de firma de zona de DNSSEC",
+        "remediationEs":  "Usa **algoritmos DNSSEC fuertes** para firmar la zona (p. ej., `rsasha256`, `ecdsa-p256-sha256`, `ed25519`) y evita `rsasha1`. Practica la **agilidad criptográfica**: estandariza valores predeterminados seguros, rota las claves y valida periódicamente las firmas con resolvedores modernos. Aplica **defensa en profundidad** monitoreando la salud de DNSSEC y limitando quién puede cambiar la configuración."
+    },
+    {
+        "checkId":  "gcr_container_scanning_enabled",
+        "titleEs":  "El proyecto tiene habilitada la API de escaneo de contenedores de GCR",
+        "remediationEs":  "Habilita `containerscanning.googleapis.com` e integra los resultados en las puertas de CI/CD. Aplica **defensa en profundidad**:\n- Usa **Binary Authorization** para bloquear las imágenes que no cumplan\n- Aplica **mínimo privilegio** sobre quién puede deshabilitar el escaneo\n- Reconstruye y aplica parches con frecuencia; prefiere imágenes base de confianza y firmadas"
+    },
+    {
+        "checkId":  "gemini_api_disabled",
+        "titleEs":  "La API de Gemini (Generative Language) está deshabilitada",
+        "remediationEs":  "No uses la API de Gemini. En su lugar, considera usar Gemini mediante la API de Vertex AI, que no presenta los problemas descritos."
+    },
+    {
+        "checkId":  "gke_cluster_no_default_service_account",
+        "titleEs":  "El clúster de GKE no usa la cuenta de servicio predeterminada de Compute Engine",
+        "remediationEs":  "Asigna una **cuenta de servicio de IAM personalizada y de mínimo privilegio** a cada grupo de nodos en lugar de `default`.\n- Concede solo los permisos necesarios para el registro, el monitoreo y la operación de los nodos\n- Aplica **separación de funciones** y restringe la suplantación de identidad\n- Revisa periódicamente los roles y audita el uso como **defensa en profundidad**"
+    },
+    {
+        "checkId":  "iam_account_access_approval_enabled",
+        "titleEs":  "El proyecto tiene Access Approval habilitado",
+        "remediationEs":  "Habilita **Access Approval** en los proyectos y, *donde sea viable*, en un nivel superior de la jerarquía para mayor consistencia. Asigna **aprobadores de mínimo privilegio** con **separación de funciones**, integra notificaciones oportunas y monitorea los registros de **Access Transparency** para mantener la **defensa en profundidad**."
+    },
+    {
+        "checkId":  "iam_audit_logs_enabled",
+        "titleEs":  "El proyecto de GCP tiene habilitados los registros de auditoría de Cloud",
+        "remediationEs":  "Habilita **Cloud Audit Logs** completos para todos los servicios y entidades, incluidos `ADMIN_READ`, `DATA_READ`, `DATA_WRITE`. *Evita las exenciones.* Define valores predeterminados a nivel de organización/carpeta, centraliza y conserva los registros, aplica mínimo privilegio al acceso a ellos, protégelos contra alteraciones y alerta ante accesos anómalos."
+    },
+    {
+        "checkId":  "iam_cloud_asset_inventory_enabled",
+        "titleEs":  "El proyecto tiene habilitada la API de Cloud Asset Inventory",
+        "remediationEs":  "Habilita **Cloud Asset Inventory** en todos los proyectos *y, si aplica, a nivel de organización* para mantener historiales fiables de activos e IAM. Centraliza el análisis, conserva los registros según la política y usa los datos para aplicar **mínimo privilegio** y **defensa en profundidad**."
+    },
+    {
+        "checkId":  "iam_no_service_roles_at_project_level",
+        "titleEs":  "El proyecto no tiene usuarios de IAM con los roles Service Account User o Service Account Token Creator a nivel de proyecto",
+        "remediationEs":  "Asigna `roles/iam.serviceAccountUser` y `roles/iam.serviceAccountTokenCreator` solo sobre la cuenta de servicio específica, no a nivel de proyecto. Aplica **mínimo privilegio** y **separación de funciones** con concesiones por cuenta de servicio, vínculos condicionales y acceso con límite de tiempo. Prefiere la **suplantación de corta vida** y revisa las concesiones con regularidad."
+    },
+    {
+        "checkId":  "iam_organization_essential_contacts_configured",
+        "titleEs":  "La organización tiene Essential Contacts configurados",
+        "remediationEs":  "Configura **Essential Contacts** a nivel de organización (y heredados por carpetas y proyectos) con alias de grupo para `SECURITY`, `BILLING`, `LEGAL`, `SUSPENSION`, `TECHNICAL` y `PRODUCT_UPDATES`.\n\nAplica **mínimo privilegio** y **separación de funciones**. Revisa trimestralmente, verifica la entrega y restringe los contactos a dominios aprobados."
+    },
+    {
+        "checkId":  "iam_role_kms_enforce_separation_of_duties",
+        "titleEs":  "Los miembros del proyecto no tienen asignados a la vez los roles Cloud KMS Admin y CryptoKey Encrypter/Decrypter",
+        "remediationEs":  "Aplica **mínimo privilegio** y **separación de funciones**:\n- Nunca combines `roles/cloudkms.admin` con ningún `roles/cloudkms.cryptoKey*`\n- Aísla la gestión y el uso de las claves en proyectos dedicados\n- Exige aprobaciones, registra todo acceso a las claves y monitorea\n- Evita `roles/owner` amplio en los ámbitos de las claves"
+    },
+    {
+        "checkId":  "iam_role_sa_enforce_separation_of_duties",
+        "titleEs":  "El proyecto aplica separación de funciones entre los roles Service Account Admin y Service Account User",
+        "remediationEs":  "Aplica la separación de funciones: asigna `roles/iam.serviceAccountAdmin` para las tareas de ciclo de vida y `roles/iam.serviceAccountUser` para asociar o suplantar, y nunca ambos a una misma entidad.\n- Aplica **mínimo privilegio** con alcance estrecho y condiciones\n- Usa elevación temporal y aprobaciones\n- Audita con regularidad los vínculos de IAM y los registros"
+    },
+    {
+        "checkId":  "iam_sa_no_administrative_privileges",
+        "titleEs":  "La cuenta de servicio no tiene privilegios administrativos",
+        "remediationEs":  "Aplica **mínimo privilegio**: sustituye `roles/owner`, `roles/editor` y los roles que contengan `admin` por roles predefinidos o personalizados de alcance estrecho. Usa **separación de funciones**, **elevación temporal** y **IAM Conditions** para limitar el alcance y el tiempo. Prefiere la **suplantación** a las claves de larga vida y monitorea el uso de las cuentas de servicio."
+    },
+    {
+        "checkId":  "iam_sa_no_user_managed_keys",
+        "titleEs":  "La cuenta de servicio no tiene claves administradas por el usuario",
+        "remediationEs":  "Evita las **claves administradas por el usuario**. Usa la **suplantación de cuentas de servicio** o **Workload Identity Federation** para obtener credenciales de corta vida y **mínimo privilegio**. Aplica `iam.disableServiceAccountKeyCreation`, restringe quién puede crear claves y monitorea su uso. *Si las excepciones son inevitables*, acótalas estrictamente, rota con frecuencia y guarda las claves de forma segura."
+    },
+    {
+        "checkId":  "iam_sa_user_managed_key_rotate_90_days",
+        "titleEs":  "La clave administrada por el usuario de la cuenta de servicio se rotó en los últimos 90 días",
+        "remediationEs":  "Rota las **claves administradas por el usuario** al menos cada `90` días y prefiere **Workload Identity Federation** u otras credenciales de corta vida en lugar de claves estáticas.\n- Minimiza el número de claves; elimina las que no uses\n- Aplica **mínimo privilegio** a las cuentas de servicio\n- Automatiza la rotación y alerta sobre claves antiguas\n- Define la expiración de las claves como **defensa en profundidad**"
+    },
+    {
+        "checkId":  "iam_sa_user_managed_key_unused",
+        "titleEs":  "La clave administrada por el usuario de la cuenta de servicio se usó dentro del período de inactividad permitido",
+        "remediationEs":  "Prefiere las **identidades de carga de trabajo administradas** y la **suplantación de cuentas de servicio** a las claves administradas por el usuario. Aplica `iam.disableServiceAccountKeyCreation`, elimina las claves sin uso y, cuando sean inevitables, usa vidas cortas con rotación. Aplica **mínimo privilegio**, monitorea el uso de las claves y aplica **separación de funciones** para limitar el alcance de un incidente."
+    },
+    {
+        "checkId":  "iam_service_account_unused",
+        "titleEs":  "La cuenta de servicio se usó dentro del período máximo de inactividad configurado",
+        "remediationEs":  "Aplica **mínimo privilegio** y **reduce la superficie de ataque**:\n- Verifica la inactividad, luego *deshabilita* y más adelante elimina las cuentas sin uso\n- Revoca los vínculos de roles y las claves; prefiere la suplantación de corta vida a las claves\n- Evita valores predeterminados con muchos privilegios; aplica separación de funciones\n- Monitorea el uso de forma continua y alerta ante cuentas inactivas"
+    },
+    {
+        "checkId":  "iam_workload_identity_pool_provider_attribute_condition",
+        "titleEs":  "Los proveedores de Workload Identity Federation que confían en un emisor multiinquilino aplican una condición de atributos",
+        "remediationEs":  "Define una condición de atributos en todo proveedor activo de Workload Identity Federation que confíe en un emisor multiinquilino, para que solo las identidades externas previstas puedan suplantar entidades de Google Cloud, y combina los proveedores OIDC con una audiencia restringida. Los proveedores que confían en un emisor dedicado de un solo inquilino también deberían añadir una condición como defensa en profundidad. Audita con regularidad los pools y proveedores en busca de entradas inesperadas."
+    },
+    {
+        "checkId":  "kms_key_not_publicly_accessible",
+        "titleEs":  "La clave de Cloud KMS no tiene acceso público por IAM",
+        "remediationEs":  "Elimina `allUsers` y `allAuthenticatedUsers` del IAM de la clave. Concede acceso solo a grupos o cuentas de servicio específicos con **mínimo privilegio** en el ámbito de la clave. Aplica **separación de funciones** entre administradores y usuarios, y revisa con regularidad los vínculos heredados y los registros de auditoría."
+    },
+    {
+        "checkId":  "kms_key_rotation_enabled",
+        "titleEs":  "La clave de KMS tiene la rotación automática habilitada",
+        "remediationEs":  "Habilita la **rotación automática** de las claves administradas por el cliente configurando un período de rotación.\n\nAdopta una política de **ciclo de vida de claves**: aplica **mínimo privilegio** al uso de las claves, aplica **separación de funciones** entre administradores y usuarios de claves, monitorea el acceso a ellas y ensaya la rotación de emergencia para minimizar el alcance de un incidente."
+    },
+    {
+        "checkId":  "kms_key_rotation_max_90_days",
+        "titleEs":  "La clave de KMS se rota cada 90 días o menos",
+        "remediationEs":  "Habilita la **rotación automática** de las claves administradas por el cliente con un intervalo de `90` días o menos.\n\nAdopta una política de **ciclo de vida de claves**: aplica **mínimo privilegio** al uso de las claves, aplica **separación de funciones** entre administradores y usuarios de claves, monitorea el acceso a ellas y ensaya la rotación de emergencia para minimizar el alcance de un incidente."
+    },
+    {
+        "checkId":  "logging_log_metric_filter_and_alert_for_audit_configuration_changes_enabled",
+        "titleEs":  "El filtro de métrica de registro para cambios en la configuración de auditoría tiene una política de alertas asociada",
+        "remediationEs":  "Crea una métrica basada en registros para los **cambios en la configuración de auditoría** y combínala con una **política de alertas basada en registros** que notifique a los responsables.\n- Aplica **mínimo privilegio** a los cambios de registro e IAM\n- Aplica **control de cambios** y **separación de funciones**\n- Dirige las alertas a canales duraderos e incluye guías de respuesta para lograr **defensa en profundidad**"
+    },
+    {
+        "checkId":  "logging_log_metric_filter_and_alert_for_bucket_permission_changes_enabled",
+        "titleEs":  "El filtro de métrica de registro para cambios de permisos IAM de Cloud Storage tiene una política de alertas asociada",
+        "remediationEs":  "Establece una **métrica basada en registros** para los cambios de permisos IAM de buckets con el filtro `resource.type=\"gcs_bucket\" AND protoPayload.methodName=\"storage.setIamPermissions\"` y vincúlala a una **política de alertas basada en registros** con notificaciones claras. Aplica **mínimo privilegio** y **separación de funciones**, y revisa de forma rutinaria las alertas y los registros de auditoría para prevenir y contener accesos no autorizados."
+    },
+    {
+        "checkId":  "logging_log_metric_filter_and_alert_for_compute_configuration_changes_enabled",
+        "titleEs":  "Los cambios de configuración de Compute Engine se monitorean con filtros de métricas de registro y alertas",
+        "remediationEs":  "Configura filtros de métricas basados en registros para detectar los cambios de configuración de Compute Engine y crea políticas de alertas que envíen notificaciones cuando esas métricas se incrementen. Aplica el **principio de mínimo privilegio** para limitar quién puede modificar los recursos de cómputo y establece **procesos de gestión de cambios** para revisar y aprobar las modificaciones de infraestructura."
+    },
+    {
+        "checkId":  "logging_log_metric_filter_and_alert_for_custom_role_changes_enabled",
+        "titleEs":  "El filtro de métrica de registro para cambios en roles personalizados de IAM tiene una política de alertas asociada",
+        "remediationEs":  "Define métricas basadas en registros que capturen los eventos `resource.type=\"iam_role\"` de `CreateRole`, `DeleteRole` y `UpdateRole`, y asocia **políticas de alertas** que notifiquen a los responsables.\n\nAplica **mínimo privilegio**, **separación de funciones** y **control de cambios** a la gestión de roles, y conserva los **registros de auditoría** para las investigaciones."
+    },
+    {
+        "checkId":  "logging_log_metric_filter_and_alert_for_project_ownership_changes_enabled",
+        "titleEs":  "El filtro de métrica de registro para asignaciones o cambios de propiedad del proyecto tiene una política de alertas asociada",
+        "remediationEs":  "Crea una métrica basada en registros para los eventos de asignación o retiro de propiedad y vincúlala a una política de alertas que notifique a un canal monitoreado. Minimiza el uso de `roles/owner` según el **mínimo privilegio**, exige aprobaciones y separación de funciones, y aplica **defensa en profundidad** con monitoreo centralizado de los cambios de IAM en todos los proyectos."
+    },
+    {
+        "checkId":  "logging_log_metric_filter_and_alert_for_sql_instance_configuration_changes_enabled",
+        "titleEs":  "El filtro de métrica de registro para cambios de configuración de instancias de Cloud SQL tiene una política de alertas asociada",
+        "remediationEs":  "Implementa una **métrica basada en registros** para los eventos de actualización de Cloud SQL y asocia una **política de alertas de Monitoring** que envíe notificaciones oportunas. Aplica **mínimo privilegio** a las acciones de administración, aplica **gestión de cambios** y **separación de funciones**, e integra las alertas con los flujos de guardia para acelerar el triaje y prevenir errores de configuración."
+    },
+    {
+        "checkId":  "logging_log_metric_filter_and_alert_for_vpc_firewall_rule_changes_enabled",
+        "titleEs":  "El filtro de métrica de registro para cambios en las reglas de firewall de la red VPC tiene una política de alertas asociada",
+        "remediationEs":  "Establece una métrica basada en registros para los eventos de inserción, modificación y eliminación de `gce_firewall_rule` y vincúlala a una política de alertas que notifique a los responsables.\n\nAplica **mínimo privilegio** y control de cambios a las actualizaciones del firewall, aplica **separación de funciones** y monitorea todos los proyectos para detectar de forma rápida y auditable los cambios en los controles de red."
+    },
+    {
+        "checkId":  "logging_log_metric_filter_and_alert_for_vpc_network_changes_enabled",
+        "titleEs":  "El filtro de métrica de registro para cambios en la red VPC tiene una política de alertas asociada",
+        "remediationEs":  "Implementa una **métrica basada en registros** para los eventos de auditoría de cambios en la VPC y asocia una **política de alertas** que notifique a los equipos responsables.\n\nAplica **mínimo privilegio** a los administradores de red, exige la **aprobación de cambios** y adopta **defensa en profundidad** para prevenir y detectar con rapidez los cambios de red no previstos."
+    },
+    {
+        "checkId":  "logging_log_metric_filter_and_alert_for_vpc_network_route_changes_enabled",
+        "titleEs":  "El filtro de métrica de registro para cambios en las rutas de la red VPC tiene una política de alertas asociada",
+        "remediationEs":  "Crea una **métrica basada en registros** para `compute.routes.insert` y `compute.routes.delete`, y asocia una **alerta basada en registros** con notificaciones confiables.\n\nAplica **mínimo privilegio** a la gestión de rutas, exige la **aprobación de cambios** y usa **defensa en profundidad** (filtrado de salida, enrutamiento privado, registros de auditoría duraderos)."
+    },
+    {
+        "checkId":  "logging_sink_created",
+        "titleEs":  "El proyecto tiene al menos un sumidero de registros que exporta copias de todas las entradas de registro",
+        "remediationEs":  "Crea un **sumidero de exportación centralizado** que dirija todos los registros a un destino seguro, duradero y, de preferencia, **inmutable**, con retención extendida. Aplica **mínimo privilegio** a las identidades de los sumideros, separa funciones aislando los destinos, usa **defensa en profundidad** (cifrado, controles de acceso) y monitorea la salud del sumidero para asegurar la continuidad."
+    },
+    {
+        "checkId":  "secretmanager_secret_not_publicly_accessible",
+        "titleEs":  "El secreto de Secret Manager no es de acceso público",
+        "remediationEs":  "Aplica **mínimo privilegio** a Secret Manager: concede `roles/secretmanager.secretAccessor` solo a las cuentas de servicio o grupos específicos que necesiten leer cada secreto.\n\nUsa **workload identity** en las cargas de GKE y rota las credenciales con regularidad para limitar el alcance de un incidente si un vínculo se configura mal."
+    },
+    {
+        "checkId":  "secretmanager_secret_rotation_enabled",
+        "titleEs":  "El secreto de Secret Manager se rota cada 90 días o menos",
+        "remediationEs":  "Habilita la **rotación automática** de cada secreto de Secret Manager con un período de `90` días o menos.\n\nConecta las **notificaciones de Pub/Sub** para activar la lógica de rotación y aplica **defensa en profundidad** versionando cada actualización del secreto para que los consumidores puedan volver atrás sin perder disponibilidad."
+    }
+]

@@ -4,7 +4,8 @@
 // el eslabón check → prueba es del comité. Aquí se PROPONE (`monkey_proposed`) desde las categorías del motor y los atributos
 // de cada prueba T-CLD; el mapeo propio del motor se guarda con su procedencia (`engine_native`). Gana siempre el del comité.
 
-export const PLATFORM = 'aws';
+export type Platform = 'aws' | 'gcp';
+export const PLATFORMS: Platform[] = ['aws', 'gcp'];
 // El motor de nube no tiene «política» como la sonda (que agrupa checks en un benchmark): una constante mantiene la clave
 // de tres partes (platform + policy_id + check_id) sin inventar una agrupación.
 export const POLICY_ID = 'cloud_configuration';
@@ -41,6 +42,9 @@ export type SeedCheck = {
 };
 export type SeedMapping = { checkId: string; frameworkCode: string; frameworkVersion: string; requirementCode: string; provenance: 'engine_native' };
 export type SeedTestCheck = { testCode: string; checkId: string; provenance: 'monkey_proposed'; confidence: 'high' | 'medium' | 'low'; rationale: string };
+
+// Marcos que el motor no trae para una plataforma: su ausencia es un aviso, no un error. En AWS el motor trae todos.
+export const ABSENT_FRAMEWORKS: Record<Platform, string[]> = { aws: [], gcp: ['gdpr', 'nist_csf'] };
 
 // Los marcos que Monkey ofrece (D50) y que el motor mapea. Los demás (43 en total) se descartan: se agregan cuando se activen.
 export const OFFERED_FRAMEWORKS: { engineName: string; version: string; code: string; codeVersion: string }[] = [
@@ -91,15 +95,24 @@ type Rule = { tests: string[]; confidence: 'medium' | 'low'; rationale: string }
  * Propone a qué pruebas T-CLD alimenta un check, por orden: nombre (los casos que la categoría no distingue) y luego
  * categoría del motor. Devuelve vacío si ninguna prueba de nube aplica: el check queda sin prueba (cobertura no alcanzada).
  */
-export function proposeTests(c: EngineCheckMeta): Rule[] {
+export function proposeTests(c: EngineCheckMeta, platform: Platform = 'aws'): Rule[] {
   const id = c.CheckID;
   const cats = new Set(c.Categories ?? []);
   const out: Rule[] = [];
   const add = (r: Rule) => out.push(r);
 
-  if (id.startsWith('iam_password_policy')) add({ tests: ['T-CLD-011'], confidence: 'medium', rationale: 'Parámetro de la política de contraseñas (longitud, complejidad, historial, expiración) → T-CLD-011.' });
-  if (/^iam_(root_)?(hardware_)?mfa|mfa_enabled|administrator_access_with_mfa/.test(id)) {
+  if (platform === 'aws' && id.startsWith('iam_password_policy')) add({ tests: ['T-CLD-011'], confidence: 'medium', rationale: 'Parámetro de la política de contraseñas (longitud, complejidad, historial, expiración) → T-CLD-011.' });
+  if (platform === 'aws' && /^iam_(root_)?(hardware_)?mfa|mfa_enabled|administrator_access_with_mfa/.test(id)) {
     add({ tests: ['T-CLD-001', 'T-CLD-011'], confidence: 'medium', rationale: 'MFA en cuentas: «MFA en cuentas privilegiadas» (T-CLD-001) y «exigencia de MFA» (T-CLD-011).' });
+  }
+  if (platform === 'gcp') {
+    if (/2fa/.test(id)) add({ tests: ['T-CLD-001', 'T-CLD-011'], confidence: 'medium', rationale: 'Verificación en dos pasos (2FA) en cuentas: «MFA en cuentas privilegiadas» (T-CLD-001) y «exigencia de MFA» (T-CLD-011).' });
+    else if (/subnet_flow_logs/.test(id)) add({ tests: ['T-CLD-010'], confidence: 'medium', rationale: 'Registros de flujo de la red → monitoreo de red de T-CLD-010.' });
+    else if (/log_metric_filter_and_alert/.test(id)) add({ tests: ['T-CLD-003'], confidence: 'medium', rationale: 'Filtro de métrica y alerta sobre el registro de actividad → T-CLD-003.' });
+    else if (/multiple_zones|high_availability|load_balancer_attached|autohealing/.test(id)) add({ tests: ['T-CLD-009'], confidence: 'medium', rationale: 'Distribución multi-zona / alta disponibilidad de recursos críticos → T-CLD-009.' });
+    else if (/soft_delete|auto_delete_disabled/.test(id)) add({ tests: ['T-CLD-003'], confidence: 'medium', rationale: 'Retención ante borrado (soft delete) de datos y respaldos → T-CLD-003.' });
+    else if (/container_scanning|container_analysis/.test(id)) add({ tests: ['T-CLD-010'], confidence: 'low', rationale: 'Escaneo de vulnerabilidades de contenedores → detección de T-CLD-010, a revisar.' });
+    else if (/rsasha1/.test(id)) add({ tests: ['T-CLD-002'], confidence: 'medium', rationale: 'Algoritmo de firma DNSSEC débil (RSASHA1) → cifrado de T-CLD-002.' });
   }
   if (out.length === 0) {
     if (/backup|snapshot|replica|versioning|retention|deletion_protection|point_in_time/.test(id)) {
@@ -128,8 +141,10 @@ export function buildCloudDataset(
   metas: EngineCheckMeta[],
   frameworks: EngineFramework[],
   soc2: Soc2Source,
-): { dataset: CloudDataset; errors: string[] } {
+  platform: Platform = 'aws',
+): { dataset: CloudDataset; errors: string[]; warnings: string[] } {
   const errors: string[] = [];
+  const warnings: string[] = [];
   const ids = new Set<string>();
   for (const m of metas) {
     if (ids.has(m.CheckID)) errors.push(`check duplicado en el motor: ${m.CheckID}`);
@@ -142,7 +157,9 @@ export function buildCloudDataset(
   for (const offered of OFFERED_FRAMEWORKS) {
     const fw = frameworks.find((f) => f.Framework === offered.engineName && (f.Version || '') === offered.version);
     if (!fw) {
-      errors.push(`el motor no trae el marco ${offered.engineName} ${offered.version}`.trim());
+      const msg = `el motor no trae el marco ${offered.engineName} ${offered.version}`.trim();
+      if (ABSENT_FRAMEWORKS[platform].includes(offered.code)) warnings.push(`${msg} para ${platform}`);
+      else errors.push(msg);
       continue;
     }
     for (const r of fw.Requirements) {
@@ -170,7 +187,7 @@ export function buildCloudDataset(
 
   const checks: SeedCheck[] = metas
     .map((m) => ({
-      platform: PLATFORM,
+      platform,
       policyId: POLICY_ID,
       checkId: m.CheckID,
       titleEn: m.CheckTitle,
@@ -179,7 +196,7 @@ export function buildCloudDataset(
       remediation: m.Remediation?.Recommendation?.Text ?? '',
       verificationRule: null,
       origin: 'engine_native' as const,
-      mappingProvenance: `engine:${PLATFORM}:${engineVersion}`,
+      mappingProvenance: `engine:${platform}:${engineVersion}`,
       mappingConfidence: (nativeSoc2.has(m.CheckID) ? 'high' : 'low') as 'high' | 'low',
       serviceName: m.ServiceName,
       resourceType: m.ResourceType,
@@ -194,7 +211,7 @@ export function buildCloudDataset(
   const testChecks: SeedTestCheck[] = [];
   for (const m of metas) {
     const seenTests = new Set<string>();
-    for (const rule of proposeTests(m)) {
+    for (const rule of proposeTests(m, platform)) {
       for (const testCode of rule.tests) {
         if (seenTests.has(testCode)) continue;
         seenTests.add(testCode);
@@ -211,5 +228,5 @@ export function buildCloudDataset(
   testChecks.sort((a, b) => a.testCode.localeCompare(b.testCode) || a.checkId.localeCompare(b.checkId));
 
   mappings.sort((a, b) => a.frameworkCode.localeCompare(b.frameworkCode) || a.requirementCode.localeCompare(b.requirementCode) || a.checkId.localeCompare(b.checkId));
-  return { dataset: { checks, mappings, testChecks, engineVersion }, errors };
+  return { dataset: { checks, mappings, testChecks, engineVersion }, errors, warnings };
 }

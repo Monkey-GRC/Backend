@@ -70,10 +70,10 @@ Si el Excel cambia, el cambio **no** entra por recarga: `catalog:load` aborta co
 
 | Comando | Qué hace |
 |---|---|
-| `npm run cloud:extract -- <carpeta-del-motor> [versión]` | Lee los metadatos y los marcos del motor de AWS y escribe `data/cloud-aws-checks.json` (662 checks, 3.413 mapeos a los marcos ofrecidos, 569 asignaciones propuestas a las pruebas `T-CLD`). Si algo no cuadra, **no escribe** |
-| `npm run cloud:load` · `-- --apply` | Dry-run / carga en una transacción. Mismas garantías que los otros seeds; **no pisa una asignación `committee_ratified`** |
+| `npm run cloud:extract -- <carpeta-del-motor> [versión] [--platform gcp]` | Lee los metadatos y los marcos del motor y escribe `data/cloud-<plataforma>-checks.json` (por defecto `aws`: 662 checks, 3.413 mapeos a los marcos ofrecidos, 569 asignaciones propuestas a las pruebas `T-CLD`; `gcp`: 110 checks, 1.899 mapeos, 99 asignaciones: T-CLD-001 24, 002 35, 003 32, 009 4, 010 3, 011 1; 12 checks sin prueba, P15). Si algo no cuadra, **no escribe**. En GCP el motor no trae GDPR ni NIST-CSF 2.0: sale como aviso, no como error. Las reglas de asignación propias de GCP están en `proposeTests` y solo corren con `gcp` |
+| `npm run cloud:load` · `-- --apply` · `-- --platform gcp` | Dry-run / carga en una transacción, de todas las plataformas con dataset (o de la indicada); la clave del check es (plataforma, `cloud_configuration`, check). Mismas garantías que los otros seeds; **no pisa una asignación `committee_ratified`** |
 | `npm run cloud:verify` | Solo lectura; sale con código 1 si la base no coincide |
 
-Requiere el catálogo de SOC 2 ya cargado (las pruebas `T-CLD`). Las asignaciones check → prueba son **propuestas** (`monkey_proposed`) hasta
+`cloud:translate` (guía en español, D90) lee `data/cloud-checks-es.json` para AWS y `data/cloud-gcp-checks-es.json` para GCP (un mismo `checkId` puede existir en las dos nubes). Requiere el catálogo de SOC 2 ya cargado (las pruebas `T-CLD`). Las asignaciones check → prueba son **propuestas** (`monkey_proposed`) hasta
 que el comité las ratifique. Los textos del motor son internos: no salen al cliente. **Licencia del motor sin verificar (`P14` E1):** el
 JSON incluye sus metadatos; revísalo antes de abrir el repo.
