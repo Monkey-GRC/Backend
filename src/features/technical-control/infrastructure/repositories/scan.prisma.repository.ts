@@ -26,7 +26,6 @@ import {
 } from '../../domain/repositories/scan.repository';
 
 // El motor de nube no tiene «política» como la sonda: una constante conserva la clave de tres partes (D56).
-const PLATFORM = 'aws';
 const POLICY_ID = 'cloud_configuration';
 const CHUNK = 1000;
 const ASSET_PREFIX = 'AST-';
@@ -69,6 +68,20 @@ export class ScanPrismaRepository extends ScanRepository {
     private readonly config: ConfigService,
   ) {
     super();
+  }
+
+  executionPlatform(scope: TenantScope, executionId: string): Promise<string | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const execution = await tx.execution.findFirst({ where: { id: executionId }, select: { asset: { select: { platform: true } } } });
+      return execution?.asset.platform ?? null;
+    });
+  }
+
+  assetPlatform(scope: TenantScope, assetId: string): Promise<string | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const asset = await tx.asset.findFirst({ where: { id: assetId }, select: { platform: true } });
+      return asset?.platform ?? null;
+    });
   }
 
   async catalogChecks(platform: string): Promise<Map<string, string>> {
@@ -186,7 +199,7 @@ export class ScanPrismaRepository extends ScanRepository {
       if (!execution) throw new DomainError('NOT_FOUND');
       const asset = await tx.asset.findFirst({
         where: { id: execution.assetId },
-        select: { platform: true, externalAccountId: true, provisionings: { take: 1, select: { regions: true, connectionMethod: true, roleArn: true, externalId: true, encryptedCredentials: true } } },
+        select: { platform: true, externalAccountId: true, provisionings: { take: 1, select: { regions: true, connectionMethod: true, roleArn: true, externalId: true, projectNumber: true, encryptedCredentials: true } } },
       });
       if (!asset) throw new DomainError('NOT_FOUND');
       const prov = asset.provisionings[0];
@@ -201,6 +214,7 @@ export class ScanPrismaRepository extends ScanRepository {
         connectionMethod: prov?.connectionMethod ?? null,
         roleArn: prov?.roleArn ?? null,
         externalId: prov?.externalId ?? null,
+        projectNumber: prov?.projectNumber ?? null,
         encryptedCredentials: prov?.encryptedCredentials ?? null,
       };
     });
@@ -364,6 +378,8 @@ export class ScanPrismaRepository extends ScanRepository {
 
   // Recursos, resultados y bitácora de UNA corrida, dentro de la transacción que ya abrió quien llama.
   private async writeResults(tx: TransactionClient, scope: TenantScope, executionId: string, assetId: string, run: ScanOutcome): Promise<RecordedScan> {
+    const { platform: assetPlatform } = await tx.asset.findFirstOrThrow({ where: { id: assetId }, select: { platform: true } });
+    const PLATFORM = assetPlatform.trim().toLowerCase();
     const catalog = await tx.check.findMany({ where: { platform: PLATFORM, policyId: POLICY_ID }, select: { id: true, checkId: true } });
     const checkIds = new Map(catalog.map((c) => [c.checkId, c.id]));
     const missing = [...new Set(run.results.map((r) => r.checkId))].filter((c) => !checkIds.has(c));

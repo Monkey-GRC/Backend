@@ -7,30 +7,46 @@
 // Qué se pide (D58): una validación comprueba el acceso a la cuenta (segundos, el cliente espera); una evaluación corre el motor (minutos).
 export type RunnerJobKind = 'assessment' | 'validation';
 
+// Las nubes que el trabajador sabe evaluar. Cada una tiene su adaptador (credencial, motor, inventario) en `infrastructure/providers/<nube>/`.
+export type RunnerPlatform = 'aws' | 'gcp';
+
 export type RunnerJob = {
   executionId: string;
   kind: RunnerJobKind;
   tenantId: string;
   assetId: string;
   origin: 'scheduled' | 'manual';
-  platform: 'aws';
+  platform: RunnerPlatform;
   externalAccountId: string | null;
   regions: string[];
   connection:
     | { method: 'readonly_role'; roleArn: string; externalId: string | null }
+    // GCP (D112): `externalId` es el nombre de la sesión de AWS con la que Monkey entra; el número de proyecto arma la audiencia de la federación.
+    | { method: 'identity_federation'; externalId: string; projectNumber: string }
     // Las llaves viajan SOLO en esta respuesta, por la red interna. Nunca se registran.
     | { method: 'access_keys'; accessKeyId: string; secretAccessKey: string };
 };
 
-// Credenciales con las que el motor mira la cuenta del cliente. Con un rol son TEMPORALES (SEG-46): el motor nunca ve llaves de larga vida.
-export type TemporaryCredentials = {
+// Credenciales con las que el motor mira la cuenta del cliente. Siempre TEMPORALES (SEG-46): con un rol son de 1 hora; el motor nunca ve llaves de larga vida
+// de Monkey. Una unión discriminada: cada nube tiene la suya y solo su adaptador la lee.
+export type AwsCredentials = {
+  provider: 'aws';
   accessKeyId: string;
   secretAccessKey: string;
   sessionToken: string | null;
 };
+// GCP (D112): un token de acceso de 1 h de la cuenta de servicio de solo lectura del proyecto.
+export type GcpCredentials = {
+  provider: 'gcp';
+  accessToken: string;
+  expiresAt: Date;
+};
+export type TemporaryCredentials = AwsCredentials | GcpCredentials;
 
 export type EngineInput = {
   executionId: string;
+  // La cuenta (AWS) o el ID del proyecto (GCP) que se evalúa.
+  accountId: string | null;
   regions: string[];
   credentials: TemporaryCredentials;
 };
@@ -49,6 +65,8 @@ export const FAILURE = {
   roleNotFound: 'connection.role_not_found',
   accountMismatch: 'connection.account_mismatch',
   credentialsInvalid: 'connection.credentials_invalid',
+  federationRejected: 'connection.federation_rejected',
+  methodNotSupportedByRunner: 'connection.method_not_supported_by_runner',
   engineFailed: 'execution.engine_failed',
   engineTimeout: 'execution.engine_timeout',
   outputInvalid: 'execution.output_invalid',

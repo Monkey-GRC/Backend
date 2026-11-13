@@ -4,6 +4,8 @@ export type RunnerConfig = {
   backendUrl: string;
   runnerToken: string;
   engineImage: string;
+  // El rol de AWS de Monkey que GCP acepta como identidad de origen (D112). Sin él, este trabajador no evalúa GCP.
+  gcpFederationRoleArn: string | null;
   engineTimeoutMs: number;
   engineMemoryBytes: number;
   engineCpus: number;
@@ -31,10 +33,13 @@ export function loadRunnerConfig(env: Record<string, string | undefined>): Runne
   // `latest` o una imagen sin versión haría que dos corridas del mismo cliente usaran motores distintos sin que nadie lo notara.
   if (!/[:@]/.test(engineImage) || /:latest$/.test(engineImage)) throw new Error('ENGINE_IMAGE debe fijar una versión o un digest, no `latest`.');
   const backendUrl = (env['BACKEND_INTERNAL_URL']?.trim() || 'http://backend:3000').replace(/\/+$/, '');
+  const gcpFederationRoleArn = env['MONKEY_GCP_FEDERATION_ROLE_ARN']?.trim() || null;
+  if (gcpFederationRoleArn && !/^arn:aws:iam::\d{12}:role\/[\w+=,.@-]{1,64}$/.test(gcpFederationRoleArn)) throw new Error('MONKEY_GCP_FEDERATION_ROLE_ARN debe ser arn:aws:iam::<12 dígitos>:role/<nombre>.');
   return {
     backendUrl,
     runnerToken,
     engineImage,
+    gcpFederationRoleArn,
     engineTimeoutMs: int(env, 'ENGINE_TIMEOUT_SECONDS', MAX_ENGINE_TIMEOUT_SECONDS, 60, MAX_ENGINE_TIMEOUT_SECONDS) * 1000,
     engineMemoryBytes: int(env, 'ENGINE_MEMORY_MB', 2048, 512, 16384) * 1024 * 1024,
     engineCpus: int(env, 'ENGINE_CPUS', 2, 1, 16),

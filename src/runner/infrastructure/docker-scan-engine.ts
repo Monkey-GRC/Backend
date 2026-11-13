@@ -2,13 +2,15 @@ import Docker from 'dockerode';
 import { extract } from 'tar-stream';
 import type { Readable } from 'node:stream';
 import { ScanEngine } from '../domain/ports';
-import { EngineInput, EngineRun, FAILURE, RunnerFailure } from '../domain/runner.types';
+import { EngineInput, EngineRun, FAILURE, RunnerFailure, TemporaryCredentials } from '../domain/runner.types';
 
 // Cómo se invoca el motor dentro de su imagen. Es lo único que sabe de él: el resto del trabajador lo trata como una caja negra.
 export type EngineProfile = {
   image: string;
   // Argumentos que van DESPUÉS del entrypoint de la imagen.
   command: (input: EngineInput) => string[];
+  // El entorno del contenedor: aquí van las credenciales temporales de SU nube. Lanza RunnerFailure si las credenciales no son de esa nube.
+  env: (input: EngineInput) => string[];
   // Dónde deja su resultado dentro del contenedor.
   outputPath: string;
   // Solo para pruebas con una imagen mínima; en producción se usa el entrypoint propio de la imagen del motor.
@@ -16,23 +18,6 @@ export type EngineProfile = {
 };
 
 export type EngineLimits = { timeoutMs: number; memoryBytes: number; cpus: number };
-
-// Las regiones llegan del backend, pero se validan aquí también: ningún valor llega a la línea de comandos del motor sin revisar.
-const REGION = /^[a-z]{2,4}(-[a-z]+){1,2}-\d$/;
-const MAX_REGIONS = 20;
-const OUTPUT_DIR = '/home/prowler/output';
-
-export function prowlerAwsProfile(image: string): EngineProfile {
-  return {
-    image,
-    outputPath: `${OUTPUT_DIR}/scan.ocsf.json`,
-    command: ({ regions }) => {
-      if (regions.length === 0 || regions.length > MAX_REGIONS || !regions.every((r) => REGION.test(r))) throw new RunnerFailure(FAILURE.engineFailed, 'regiones inválidas');
-      // -z: el motor sale con código 3 cuando hay hallazgos; eso no es un fallo de la corrida.
-      return ['aws', '-f', ...regions, '-M', 'json-ocsf', '-F', 'scan', '-o', OUTPUT_DIR, '--no-banner', '--ignore-exit-code-3', '--log-level', 'ERROR'];
-    },
-  };
-}
 
 const MAX_OUTPUT_BYTES = 200 * 1024 * 1024;
 const LABEL = 'monkey.runner';
@@ -43,26 +28,30 @@ const LABEL = 'monkey.runner';
 //  - sin capacidades, sin escalada de privilegios, con memoria, CPU y procesos acotados;
 //  - SIEMPRE se elimina, incluso si falla o vence el tiempo.
 export class DockerScanEngine extends ScanEngine {
-  private imageReady = false;
+  private readonly readyImages = new Set<string>();
 
   constructor(
     private readonly docker: Docker,
-    private readonly profile: EngineProfile,
+    // Un perfil por nube (`providers/<nube>/`): se elige por las credenciales de la corrida. El aislamiento del contenedor es el mismo para todas (SEG-48).
+    private readonly profileFor: (provider: TemporaryCredentials['provider']) => EngineProfile | undefined,
     private readonly limits: EngineLimits,
   ) {
     super();
   }
 
   async run(input: EngineInput): Promise<EngineRun> {
-    const cmd = this.profile.command(input); // valida antes de crear nada
-    await this.ensureImage();
+    const profile = this.profileFor(input.credentials.provider);
+    if (!profile) throw new RunnerFailure(FAILURE.methodNotSupportedByRunner);
+    // Valida antes de crear nada.
+    const cmd = profile.command(input);
+    const env = profile.env(input);
+    await this.ensureImage(profile.image);
     const startedAt = new Date();
-    const { accessKeyId, secretAccessKey, sessionToken } = input.credentials;
     const container = await this.docker.createContainer({
-      Image: this.profile.image,
-      ...(this.profile.entrypoint ? { Entrypoint: this.profile.entrypoint } : {}),
+      Image: profile.image,
+      ...(profile.entrypoint ? { Entrypoint: profile.entrypoint } : {}),
       Cmd: cmd,
-      Env: ['AWS_DEFAULT_REGION=us-east-1', `AWS_ACCESS_KEY_ID=${accessKeyId}`, `AWS_SECRET_ACCESS_KEY=${secretAccessKey}`, ...(sessionToken ? [`AWS_SESSION_TOKEN=${sessionToken}`] : [])],
+      Env: env,
       Labels: { [LABEL]: '1', 'monkey.execution': input.executionId },
       HostConfig: {
         Memory: this.limits.memoryBytes,
@@ -81,7 +70,7 @@ export class DockerScanEngine extends ScanEngine {
       const status = await this.waitWithTimeout(container);
       if (status === 'timeout') throw new RunnerFailure(FAILURE.engineTimeout);
       if (status !== 0) throw new RunnerFailure(FAILURE.engineFailed, `el motor terminó con código ${status}`);
-      const findings = await this.readFindings(container);
+      const findings = await this.readFindings(container, profile.outputPath);
       return { engineVersion: versionOf(findings), startedAt, finishedAt: new Date(), findings };
     } finally {
       await container.remove({ force: true, v: true }).catch(() => undefined);
@@ -94,16 +83,16 @@ export class DockerScanEngine extends ScanEngine {
     return orphans.length;
   }
 
-  private async ensureImage(): Promise<void> {
-    if (this.imageReady) return;
+  private async ensureImage(image: string): Promise<void> {
+    if (this.readyImages.has(image)) return;
     try {
-      await this.docker.getImage(this.profile.image).inspect();
+      await this.docker.getImage(image).inspect();
     } catch {
       // No está en el servidor: se descarga una vez. (En producción conviene bajarla en el despliegue.)
-      const stream = await this.docker.pull(this.profile.image);
+      const stream = await this.docker.pull(image);
       await new Promise<void>((resolve, reject) => this.docker.modem.followProgress(stream, (err: Error | null) => (err ? reject(err) : resolve())));
     }
-    this.imageReady = true;
+    this.readyImages.add(image);
   }
 
   private async waitWithTimeout(container: Docker.Container): Promise<number | 'timeout'> {
@@ -120,10 +109,10 @@ export class DockerScanEngine extends ScanEngine {
     }
   }
 
-  private async readFindings(container: Docker.Container): Promise<unknown[]> {
+  private async readFindings(container: Docker.Container, outputPath: string): Promise<unknown[]> {
     let raw: Buffer;
     try {
-      raw = await readSingleFile((await container.getArchive({ path: this.profile.outputPath })) as unknown as Readable, MAX_OUTPUT_BYTES);
+      raw = await readSingleFile((await container.getArchive({ path: outputPath })) as unknown as Readable, MAX_OUTPUT_BYTES);
     } catch {
       throw new RunnerFailure(FAILURE.engineFailed, 'el motor no dejó resultado');
     }

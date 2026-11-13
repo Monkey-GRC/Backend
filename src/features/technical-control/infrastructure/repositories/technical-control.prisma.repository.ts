@@ -336,14 +336,14 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
     });
   }
 
-  // El cliente entrega el ARN del rol que creó en su cuenta. Un cambio de rol invalida la validación anterior (hay que comprobar de nuevo).
-  setConnection(scope: TenantScope, id: string, roleArn: string, audit: AuditIntent<AssetChange>) {
+  // El cliente entrega el ARN del rol que creó en su cuenta (AWS) o el número de su proyecto (GCP). Un cambio invalida la validación anterior (hay que comprobar de nuevo).
+  setConnection(scope: TenantScope, id: string, connection: { roleArn: string } | { projectNumber: string }, audit: AuditIntent<AssetChange>) {
     return this.prisma.withScope(scope, async (tx) => {
       const before = await this.readAsset(tx, id);
-      if (before.provisioning.connectionMethod !== 'readonly_role') throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
+      if (before.provisioning.connectionMethod !== ('roleArn' in connection ? 'readonly_role' : 'identity_federation')) throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
       // Una conexión activa no se reconfigura en caliente: sería cambiar lo que se evalúa sin dejar constancia de una nueva comprobación.
       if (before.provisioning.isActive) throw new DomainError('ASSET_ALREADY_ACTIVE');
-      await tx.assetProvisioning.update({ where: { id: before.provisioning.id }, data: { roleArn, connectionStatus: 'pending', lastValidatedAt: null } });
+      await tx.assetProvisioning.update({ where: { id: before.provisioning.id }, data: { ...connection, connectionStatus: 'pending', lastValidatedAt: null } });
       const change = { before, after: await this.readAsset(tx, id) };
       await insertAuditLog(tx, audit(change));
       return change;
@@ -370,6 +370,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
         data: {
           ...(edit.regions !== undefined ? { regions: edit.regions } : {}),
           ...(edit.roleArn !== undefined ? { roleArn: edit.roleArn } : {}),
+          ...(edit.projectNumber !== undefined ? { projectNumber: edit.projectNumber } : {}),
           ...(edit.encryptedCredentials !== undefined ? { encryptedCredentials: edit.encryptedCredentials } : {}),
           ...(edit.externalId !== undefined ? { externalId: edit.externalId } : {}),
           ...(edit.resetsConnection ? { connectionStatus: 'pending' as const, isActive: false, scheduleFrequency: null, lastValidatedAt: null, technicalCoverage: NO_COVERAGE } : {}),
@@ -466,6 +467,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
       regions: string[];
       externalId: string | null;
       roleArn: string | null;
+      projectNumber: string | null;
       connectionStatus: string;
       lastValidatedAt: Date | null;
       isActive: boolean;
@@ -498,6 +500,7 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
         regions: p.regions,
         externalId: p.externalId,
         roleArn: p.roleArn,
+        projectNumber: p.projectNumber,
         automatedCapabilityCode: p.automatedCapability.catalogCode as ConnectionCategory,
         connectionStatus: p.connectionStatus,
         lastValidatedAt: p.lastValidatedAt,

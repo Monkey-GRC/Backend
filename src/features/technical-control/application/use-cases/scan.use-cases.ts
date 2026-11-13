@@ -2,6 +2,7 @@ import { Inventory } from '../../domain/entities/technical-control.entities';
 import { Injectable } from '@nestjs/common';
 import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
+import { CLOUD_PLATFORM_AWS, CLOUD_PLATFORM_GCP, CLOUD_PLATFORMS, CloudPlatform } from '../../../../common/catalogs/technical-catalogs';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { Page, PageRequest } from '../../../../common/pagination/page';
@@ -14,7 +15,6 @@ import { interpretScan } from '../../domain/scan/interpret-scan';
 import { AssetReadiness, computeReadiness } from '../../domain/scan/readiness';
 import { EngineFinding } from '../../domain/scan/scan.types';
 
-const PLATFORM = 'aws';
 const MAX_CLAIM_ATTEMPTS = 10;
 
 const scopeOf = (p: Principal): TenantScope => ({ companyId: p.companyId, userId: p.userId, role: p.role });
@@ -36,9 +36,9 @@ const entry = (scope: TenantScope, actorUserId: string | null, action: string, a
 // y el catálogo no conoce se registran en la bitácora, no se descartan en silencio.
 async function buildOutcome(
   repo: ScanRepository,
-  input: { findings: readonly EngineFinding[]; finishedAt: Date; engineVersion: string; regions: string[] },
+  input: { platform: string; findings: readonly EngineFinding[]; finishedAt: Date; engineVersion: string; regions: string[] },
 ): Promise<ScanOutcome> {
-  const catalog = await repo.catalogChecks(PLATFORM);
+  const catalog = await repo.catalogChecks(input.platform.trim().toLowerCase());
   const { results, unexpectedChecks } = interpretScan({ executedCheckIds: [...catalog.keys()], findings: input.findings });
   const logs: ScanOutcome['logs'] = [{ level: 'info', message: `Corrida completada: ${input.findings.length} filas del motor sobre ${catalog.size} comprobaciones.` }];
   if (unexpectedChecks.length > 0) logs.push({ level: 'warn', message: `Comprobaciones fuera del catálogo (ignoradas): ${unexpectedChecks.join(', ')}` });
@@ -108,7 +108,9 @@ export class ImportScanUseCase {
     scope: TenantScope,
     input: { assetId: string; origin: 'scheduled' | 'manual'; actorUserId: string | null; startedAt: Date; finishedAt: Date; engineVersion: string; regions: string[]; raw: unknown },
   ): Promise<RecordedScan> {
-    const outcome = await buildOutcome(this.repo, { findings: this.parser.parse(input.raw), finishedAt: input.finishedAt, engineVersion: input.engineVersion, regions: input.regions });
+    const platform = await this.repo.assetPlatform(scope, input.assetId);
+    if (!platform) throw new DomainError('NOT_FOUND');
+    const outcome = await buildOutcome(this.repo, { platform, findings: this.parser.parse(input.raw), finishedAt: input.finishedAt, engineVersion: input.engineVersion, regions: input.regions });
     return this.repo.recordCompletedScan(scope, { ...outcome, assetId: input.assetId, origin: input.origin, startedAt: input.startedAt }, (r) =>
       entry(scope, input.actorUserId, 'execution.complete', recordedState(r.executionId, input.assetId, { origin: input.origin, engine_version: input.engineVersion, regions: input.regions, results: r.resultCount, resources: r.resourceCount, imported: true })),
     );
@@ -123,11 +125,13 @@ export type RunnerJob = {
   tenantId: string;
   assetId: string;
   origin: 'scheduled' | 'manual';
-  platform: 'aws';
+  platform: CloudPlatform;
   externalAccountId: string | null;
   regions: string[];
   connection:
     | { method: 'readonly_role'; roleArn: string; externalId: string | null }
+    // GCP (D112): el proyecto confía en la sesión de Monkey con este `externalId` como nombre; el número de proyecto arma la audiencia de la federación.
+    | { method: 'identity_federation'; externalId: string; projectNumber: string }
     // Las llaves descifradas viajan SOLO en esta respuesta, por la red interna, y no se registran nunca.
     | { method: 'access_keys'; accessKeyId: string; secretAccessKey: string };
 };
@@ -140,7 +144,21 @@ const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() ?
 // formulario provisional del paso 3 (`account_id`, `read_only_role`, `external_id` dentro de las credenciales cifradas) también se entiende: se retira
 // cuando la pantalla migre. Una VALIDACIÓN solo comprueba el acceso a la cuenta: no necesita regiones (una evaluación sí).
 export function buildConnection(ctx: RunContext, creds: Credentials | null): { ok: true; job: Pick<RunnerJob, 'platform' | 'externalAccountId' | 'connection'> } | { ok: false; reason: string } {
-  if (ctx.platform.trim().toLowerCase() !== PLATFORM) return { ok: false, reason: 'connection.provider_not_supported' };
+  const platform = ctx.platform.trim().toLowerCase();
+  if (!(CLOUD_PLATFORMS as readonly string[]).includes(platform)) return { ok: false, reason: 'connection.provider_not_supported' };
+  if (platform === CLOUD_PLATFORM_GCP) return buildGcpConnection(ctx);
+  return buildAwsConnection(ctx, creds);
+}
+
+// GCP evalúa el proyecto completo: sin regiones. Sin el número de proyecto (o sin el identificador externo) todavía no se configuró.
+function buildGcpConnection(ctx: RunContext): ReturnType<typeof buildConnection> {
+  if (ctx.connectionMethod !== 'identity_federation') return { ok: false, reason: 'connection.method_not_supported_by_runner' };
+  if (!ctx.projectNumber || !ctx.externalId) return { ok: false, reason: 'connection.not_configured' };
+  return { ok: true, job: { platform: CLOUD_PLATFORM_GCP, externalAccountId: ctx.externalAccountId, connection: { method: 'identity_federation', externalId: ctx.externalId, projectNumber: ctx.projectNumber } } };
+}
+
+function buildAwsConnection(ctx: RunContext, creds: Credentials | null): ReturnType<typeof buildConnection> {
+  const PLATFORM = CLOUD_PLATFORM_AWS;
   if (ctx.kind === 'assessment' && ctx.regions.length === 0) return { ok: false, reason: 'connection.regions_missing' };
   const externalAccountId = ctx.externalAccountId ?? text(creds?.['account_id']);
   const accessKeyId = text(creds?.['access_key_id']);
@@ -156,7 +174,7 @@ export function buildConnection(ctx: RunContext, creds: Credentials | null): { o
     if (!roleArn) return { ok: false, reason: creds ? 'connection.role_not_found' : 'connection.not_configured' };
     return { ok: true, job: { platform: PLATFORM, externalAccountId, connection: { method: 'readonly_role', roleArn, externalId: ctx.externalId ?? text(creds?.['external_id']) } } };
   }
-  // `agent`: no lo ejecuta el trabajador de la nube (lo lee la sonda de servidores).
+  // `agent` (o un canal de otra plataforma): no lo ejecuta el trabajador de la nube (lo lee la sonda de servidores).
   return { ok: false, reason: 'connection.method_not_supported_by_runner' };
 }
 
@@ -199,7 +217,10 @@ export class CompleteExecutionUseCase {
   // `tenantId` lo da el trabajador (lo recibió al reclamar). Si miente, RLS no encuentra la ejecución: EXECUTION_NOT_RUNNING.
   async execute(tenantId: string, executionId: string, input: { engineVersion: string; regions: string[]; finishedAt: Date; raw: unknown }): Promise<RecordedScan> {
     const scope: TenantScope = { companyId: tenantId };
-    const outcome = await buildOutcome(this.repo, { findings: this.parser.parse(input.raw), finishedAt: input.finishedAt, engineVersion: input.engineVersion, regions: input.regions });
+    // Una ejecución de otra empresa (o inexistente) es EXECUTION_NOT_RUNNING, como en el cierre: no se distingue.
+    const platform = await this.repo.executionPlatform(scope, executionId);
+    if (!platform) throw new DomainError('EXECUTION_NOT_RUNNING');
+    const outcome = await buildOutcome(this.repo, { platform, findings: this.parser.parse(input.raw), finishedAt: input.finishedAt, engineVersion: input.engineVersion, regions: input.regions });
     return this.repo.completeExecution(scope, executionId, outcome, (r) =>
       entry(scope, null, 'execution.complete', recordedState(r.executionId, null, { engine_version: input.engineVersion, regions: input.regions, results: r.resultCount, resources: r.resourceCount })),
     );

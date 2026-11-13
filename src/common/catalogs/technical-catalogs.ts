@@ -38,9 +38,16 @@ export const PROBE_MODES: readonly ProbeMode[] = ['simulated', 'unavailable', 'r
 export const RESOURCE_KIND_VALUES = ['server', 'database', 'storage', 'function', 'other'] as const;
 export type ResourceKindValue = (typeof RESOURCE_KIND_VALUES)[number];
 
-export const CONNECTION_METHOD_VALUES = ['readonly_role', 'access_keys', 'agent'] as const;
+export const CONNECTION_METHOD_VALUES = ['readonly_role', 'access_keys', 'agent', 'identity_federation'] as const;
 export type ConnectionMethodValue = (typeof CONNECTION_METHOD_VALUES)[number];
 export const CLOUD_PLATFORM_AWS = 'aws';
+export const CLOUD_PLATFORM_GCP = 'gcp';
+// Las nubes que el trabajador sabe evaluar (D56: un catálogo de checks por plataforma).
+export const CLOUD_PLATFORMS = [CLOUD_PLATFORM_AWS, CLOUD_PLATFORM_GCP] as const;
+export type CloudPlatform = (typeof CLOUD_PLATFORMS)[number];
+// GCP (D112): el activo es el proyecto. El ID lo declara el cliente; el número lo imprime el script de alta.
+export const GCP_PROJECT_ID = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
+export const GCP_PROJECT_NUMBER = /^\d{6,19}$/;
 export const AWS_ACCOUNT_ID = /^\d{12}$/;
 export const AWS_ROLE_ARN = /^arn:aws:iam::(\d{12}):role\/[\w+=,.@/-]{1,512}$/;
 // Mismas reglas que el trabajador: nada llega a la línea de comandos del motor sin revisar.

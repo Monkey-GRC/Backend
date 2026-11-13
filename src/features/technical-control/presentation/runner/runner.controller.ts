@@ -5,6 +5,7 @@ import { I18nContext } from 'nestjs-i18n';
 import { Public } from '../../../../common/decorators/public.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { RunnerClaimDto, RunnerFailDto, RunnerResultsDto, RunnerValidatedDto } from '../../application/dtos/runner.dtos';
+import type { RunnerJob } from '../../application/use-cases/scan.use-cases';
 import { ClaimExecutionUseCase, CompleteExecutionUseCase, CompleteValidationUseCase, FailExecutionUseCase } from '../../application/use-cases/scan.use-cases';
 import type { Inventory } from '../../domain/entities/technical-control.entities';
 import { RunnerTokenGuard } from './runner-token.guard';
@@ -13,6 +14,12 @@ const t = (key: string): string => (I18nContext.current()?.t(key) as string | un
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 
 // El cuerpo del trabajador → el inventario del dominio. Los atributos se limpian: solo valores simples y cortos (lo demás no es un dato del cliente, es ruido).
+function toConnection(c: RunnerJob['connection']) {
+  if (c.method === 'readonly_role') return { method: c.method, role_arn: c.roleArn, external_id: c.externalId };
+  if (c.method === 'identity_federation') return { method: c.method, external_id: c.externalId, project_number: c.projectNumber };
+  return { method: c.method, access_key_id: c.accessKeyId, secret_access_key: c.secretAccessKey };
+}
+
 function toInventory(dto: RunnerValidatedDto['inventory']): Inventory | null {
   if (!dto) return null;
   return {
@@ -67,7 +74,7 @@ export class RunnerController {
       platform: job.platform,
       external_account_id: job.externalAccountId,
       regions: job.regions,
-      connection: c.method === 'readonly_role' ? { method: c.method, role_arn: c.roleArn, external_id: c.externalId } : { method: c.method, access_key_id: c.accessKeyId, secret_access_key: c.secretAccessKey },
+      connection: toConnection(c),
     });
   }
 

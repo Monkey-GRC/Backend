@@ -1,4 +1,4 @@
-import { NO_COVERAGE } from '../../../../common/catalogs/technical-catalogs';
+import { CLOUD_PLATFORM_AWS, CLOUD_PLATFORM_GCP, NO_COVERAGE } from '../../../../common/catalogs/technical-catalogs';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { ConnectionProbe, ProbeFieldError, ProbeInput, ProbeResult } from '../../domain/ports/connection-probe';
 import { ScanRepository } from '../../domain/repositories/scan.repository';
@@ -9,13 +9,22 @@ import { ScanRepository } from '../../domain/repositories/scan.repository';
 //
 // Cada razón de fallo se traduce al campo que el cliente tiene que corregir; lo que es culpa nuestra (trabajador caído, llaves base vencidas)
 // NO se le achaca al cliente: es «no disponible» (503) y la conexión queda como estaba.
-const FIELD_BY_REASON: Record<string, string> = {
-  'connection.role_not_found': 'role_arn',
-  'connection.account_mismatch': 'role_arn',
-  'connection.not_configured': 'role_arn',
-  'connection.credentials_invalid': 'credentials',
-  'connection.provider_not_supported': 'platform',
-  'connection.regions_missing': 'regions',
+const FIELD_BY_PLATFORM: Record<string, Record<string, string>> = {
+  [CLOUD_PLATFORM_AWS]: {
+    'connection.role_not_found': 'role_arn',
+    'connection.account_mismatch': 'role_arn',
+    'connection.not_configured': 'role_arn',
+    'connection.credentials_invalid': 'credentials',
+    'connection.provider_not_supported': 'platform',
+    'connection.regions_missing': 'regions',
+  },
+  // GCP (D112): lo que el cliente corrige es el proyecto o su número, no un rol.
+  [CLOUD_PLATFORM_GCP]: {
+    'connection.federation_rejected': 'project_number',
+    'connection.account_mismatch': 'external_account_id',
+    'connection.not_configured': 'project_number',
+    'connection.provider_not_supported': 'platform',
+  },
 };
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -53,9 +62,9 @@ export class RunnerConnectionProbe extends ConnectionProbe {
       const state = await this.scans.executionStatus(scope, executionId);
       if (!state || state.status === 'cancelled') throw new DomainError('CONNECTION_UNAVAILABLE');
       if (state.status === 'completed') {
-        return { ok: true, technicalCoverage: NO_COVERAGE, checksAvailable: (await this.scans.catalogChecks('aws')).size };
+        return { ok: true, technicalCoverage: NO_COVERAGE, checksAvailable: (await this.scans.catalogChecks(input.platform.trim().toLowerCase())).size };
       }
-      if (state.status === 'failed') return this.failure(state.failureReason);
+      if (state.status === 'failed') return this.failure(state.failureReason, input.platform.trim().toLowerCase());
       await sleep(this.options.pollMs);
     }
     // Nadie la tomó a tiempo: se retira para no dejar el activo bloqueado (un activo no tiene dos ejecuciones abiertas) y se dice la verdad.
@@ -63,8 +72,8 @@ export class RunnerConnectionProbe extends ConnectionProbe {
     throw new DomainError('CONNECTION_UNAVAILABLE');
   }
 
-  private failure(reason: string | null): ProbeResult {
-    const field = reason ? FIELD_BY_REASON[reason] : undefined;
+  private failure(reason: string | null, platform: string): ProbeResult {
+    const field = reason ? FIELD_BY_PLATFORM[platform]?.[reason] : undefined;
     // Una razón que no es del cliente (el motor falló, venció el tiempo) es un problema nuestro, no de su conexión.
     if (!reason || !field) throw new DomainError('CONNECTION_UNAVAILABLE');
     const fields: ProbeFieldError[] = [{ field, code: reason }];

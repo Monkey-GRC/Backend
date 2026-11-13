@@ -40,10 +40,12 @@ export type RunContext = {
   platform: string;
   externalAccountId: string | null;
   regions: string[];
-  connectionMethod: 'agent' | 'readonly_role' | 'access_keys' | null;
+  connectionMethod: 'agent' | 'readonly_role' | 'access_keys' | 'identity_federation' | null;
   // Lo que el cliente configuró para el rol (no son secretos). Las llaves, si las hay, siguen cifradas en `encryptedCredentials`.
   roleArn: string | null;
   externalId: string | null;
+  // GCP (D112): el número del proyecto que el cliente entregó.
+  projectNumber: string | null;
   encryptedCredentials: string | null;
 };
 
@@ -75,6 +77,9 @@ export type ExecutionSummary = {
 export abstract class ScanRepository {
   // El catálogo de checks de nube vigente: código del motor → id. Es lo que define el conjunto «ejecutado».
   abstract catalogChecks(platform: string): Promise<Map<string, string>>;
+  // La plataforma del activo de una ejecución o de un activo (decide qué catálogo de checks vale). null si no existe para esta empresa.
+  abstract executionPlatform(scope: TenantScope, executionId: string): Promise<string | null>;
+  abstract assetPlatform(scope: TenantScope, assetId: string): Promise<string | null>;
 
   // «Evaluar ahora»: crea una ejecución en cola. NOT_FOUND si el activo no existe para esta empresa; ASSET_NOT_VALIDATED si su
   // conexión aún no se comprobó; EXECUTION_IN_PROGRESS si ya hay una abierta.

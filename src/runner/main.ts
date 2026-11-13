@@ -2,11 +2,12 @@ import Docker from 'dockerode';
 import { RunNextExecution } from './application/run-next-execution';
 import { RunnerLogger } from './domain/ports';
 import { describeError } from './infrastructure/describe-error';
-import { DockerScanEngine, prowlerAwsProfile } from './infrastructure/docker-scan-engine';
+import { DockerScanEngine } from './infrastructure/docker-scan-engine';
 import { HttpRunnerApi } from './infrastructure/http-runner-api';
 import { loadRunnerConfig } from './infrastructure/runner-config';
-import { AwsInventoryScanner } from './infrastructure/inventory/aws-inventory-scanner';
-import { StsCredentialBroker } from './infrastructure/sts-credential-broker';
+import { createAwsAdapter } from './infrastructure/providers/aws/aws-adapter';
+import { CloudAdapters, engineProfileFor, RoutingCredentialBroker, RoutingInventoryScanner } from './infrastructure/providers/cloud-adapters';
+import { createGcpAdapter } from './infrastructure/providers/gcp/gcp-adapter';
 
 // Punto de entrada del trabajador (D57): `node dist/runner/main.js`. Es la raíz de composición: aquí, y solo aquí, se eligen los adaptadores.
 // Para correr el motor en la nube bastaría otro `ScanEngine`; el bucle y el backend no cambian.
@@ -26,21 +27,23 @@ async function main() {
   const config = loadRunnerConfig(process.env);
   const log = new StdoutLogger();
   // DOCKER_HOST apunta al proxy de Docker (solo las rutas de contenedores), nunca al socket del servidor.
-  const engine = new DockerScanEngine(new Docker(), prowlerAwsProfile(config.engineImage), {
+  // Un adaptador por nube (credencial, motor, inventario); el trabajo elige el suyo por su plataforma. GCP solo existe si este trabajador tiene la identidad de Monkey.
+  const adapters: CloudAdapters = { aws: createAwsAdapter(config.engineImage), ...(config.gcpFederationRoleArn ? { gcp: createGcpAdapter(config.engineImage, config.gcpFederationRoleArn) } : {}) };
+  const engine = new DockerScanEngine(new Docker(), engineProfileFor(adapters), {
     timeoutMs: config.engineTimeoutMs,
     memoryBytes: config.engineMemoryBytes,
     cpus: config.engineCpus,
   });
   const api = new HttpRunnerApi(config.backendUrl, config.runnerToken);
-  const broker = new StsCredentialBroker();
+  const broker = new RoutingCredentialBroker(adapters);
   // Dos carriles independientes (D58): una evaluación de minutos no puede hacer esperar la validación de un cliente que mira la pantalla.
   const lanes = [
-    { name: 'validación', step: new RunNextExecution(api, broker, engine, log, 'validation', new AwsInventoryScanner()), pollMs: config.validationPollIntervalMs },
+    { name: 'validación', step: new RunNextExecution(api, broker, engine, log, 'validation', new RoutingInventoryScanner(adapters)), pollMs: config.validationPollIntervalMs },
     { name: 'evaluación', step: new RunNextExecution(api, broker, engine, log, 'assessment'), pollMs: config.pollIntervalMs },
   ];
 
   const orphans = await engine.cleanupOrphans();
-  log.info(`Trabajador listo (carriles: ${lanes.map((l) => l.name).join(', ')}). Motor: ${config.engineImage}. Contenedores huérfanos retirados: ${orphans}.`);
+  log.info(`Trabajador listo (carriles: ${lanes.map((l) => l.name).join(', ')}). Motor: ${config.engineImage}. Nubes: ${Object.keys(adapters).join(', ')}. Contenedores huérfanos retirados: ${orphans}.`);
 
   let stopping = false;
   for (const signal of ['SIGTERM', 'SIGINT'] as const) {

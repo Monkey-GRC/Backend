@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsDate, IsIn, IsInt, IsNotEmpty, IsObject, IsOptional, IsString, IsUUID, Max, MaxLength, Min, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsDate, IsIn, IsInt, IsNotEmpty, IsObject, IsOptional, IsString, IsUUID, Max, MaxLength, Min, ValidateNested } from 'class-validator';
 import { RESOURCE_KIND_VALUES } from '../../../../common/catalogs/technical-catalogs';
 
 // API interna del trabajador (contracts/modules/control-tecnico.md). No es para el frontend.
@@ -11,7 +11,7 @@ export const MAX_RESOURCES = 500;
 export class RunnerResultsDto {
   @ApiProperty() @IsUUID() tenant_id!: string;
   @ApiProperty({ example: '5.44.0' }) @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value)) @IsString() @IsNotEmpty() @MaxLength(40) engine_version!: string;
-  @ApiProperty({ type: [String] }) @IsArray() @ArrayMinSize(1) @ArrayMaxSize(50) @IsString({ each: true }) regions!: string[];
+  @ApiProperty({ type: [String], description: 'Regiones evaluadas. Vacío en GCP (se evalúa el proyecto completo, D112).' }) @IsArray() @ArrayMaxSize(50) @IsString({ each: true }) regions!: string[];
   @ApiProperty() @Type(() => Date) @IsDate() started_at!: Date;
   @ApiProperty() @Type(() => Date) @IsDate() finished_at!: Date;
   // La salida del motor, sin tocar. Su forma la valida el parser (ENGINE_OUTPUT_INVALID diciendo qué fila), no class-validator.
