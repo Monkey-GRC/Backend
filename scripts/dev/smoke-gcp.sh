@@ -8,6 +8,9 @@
 #        ASSET_ID=<id> PROJECT_NUMBER=<número> bash scripts/dev/smoke-gcp.sh finish
 #      (CLEANUP=1 da de baja el activo al terminar.)
 #
+# Requisito (D112): tu backend local necesita un RUNNER_POOL propio (p. ej. local-rod) para que el trabajador del servidor de desarrollo, que comparte
+# la base, no se lleve las ejecuciones; el trabajador local habla con tu backend y solo recibe las de ese grupo.
+#
 # Las credenciales NUNCA van en la línea de comandos: se leen de un archivo (por defecto ~/.monkey-smoke.env, permisos 600) con
 #   EMAIL=...
 #   PASSWORD=...
@@ -85,7 +88,7 @@ finish_project() {
   case "$(echo "$out" | code)" in
     200) ok "validación real: Monkey entró al proyecto con un token temporal";;
     422) die "validación rechazada: $(echo "$out" | err)";;
-    503) die "validación 503: ¿corre el trabajador local con MONKEY_GCP_FEDERATION_ROLE_ARN? ¿Detuviste el del servidor (DT-105: docker stop monkey-dev-runner-1)?";;
+    503) die "validación 503: ¿corre el trabajador local con MONKEY_GCP_FEDERATION_ROLE_ARN? ¿Tiene tu backend un RUNNER_POOL propio (D112) y el trabajador local habla con él?";;
     *)   die "validación inesperada $(echo "$out" | code): $(echo "$out" | err)";;
   esac
   echo "== Evaluación"

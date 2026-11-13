@@ -31,6 +31,7 @@ import {
 import { ListFindingsUseCase } from './application/use-cases/findings.use-cases';
 import { EngineOutputParser } from './domain/ports/engine-output-parser';
 import { OcsfEngineOutputParser } from './infrastructure/engine/ocsf-parser';
+import { RUNNER_POOL, readRunnerPool } from './application/runner-pool';
 import { PREVIEW_PLATFORMS, readPreviewPlatforms } from './application/preview-platforms';
 import { ConnectionTemplates } from './application/connection-templates';
 import { StaticConnectionTemplates } from './infrastructure/templates/connection-templates.provider';
@@ -50,6 +51,8 @@ import { TechnicalControlController } from './presentation/technical-control.con
   controllers: [TechnicalControlController, AssetsController, ConnectionTemplatesController, ExecutionsController, FindingsController, RunnerController],
   providers: [
     { provide: TechnicalControlRepository, useClass: TechnicalControlPrismaRepository },
+    // Se evalúa al arrancar: un RUNNER_POOL inválido impide levantar el servidor (D112).
+    { provide: RUNNER_POOL, useFactory: (config: ConfigService) => readRunnerPool(config.get<string>('RUNNER_POOL')), inject: [ConfigService] },
     { provide: ScanRepository, useClass: ScanPrismaRepository },
     { provide: ConnectionCatalogRepository, useClass: ConnectionCatalogPrismaRepository },
     // La sonda la decide PROBE_MODE (por defecto «unavailable»; «simulated» solo fuera de producción).

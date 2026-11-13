@@ -84,6 +84,8 @@ model Execution {
   progressPercentage Int             @default(0) @map("progress_percentage")
   origin             ExecutionOrigin
   kind               ExecutionKind   @default(assessment)
+  // Grupo de trabajadores que la atiende (DT-105): el del backend que la creó. Un trabajador solo reclama las de su grupo.
+  runnerPool         String          @default("default") @map("runner_pool")
   // Versión del motor y regiones evaluadas (D53). Lo que el motor no devuelve para un check de esta corrida es `not_applicable`,
   // no «no ejecutado»: el conjunto ejecutado es el catálogo de esa versión (D56, DT-50).
   engineVersion      String?         @map("engine_version")

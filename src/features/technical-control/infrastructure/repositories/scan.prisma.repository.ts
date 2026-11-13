@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ConnectionCategory, DEFAULT_CRITICALITY, NO_COVERAGE, ResourceKindValue } from '../../../../common/catalogs/technical-catalogs';
 import { DiscoveredResource, Inventory } from '../../domain/entities/technical-control.entities';
@@ -9,6 +9,7 @@ import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { captureControlStates, recordControlStateChanges } from '../../../compliance/infrastructure/shared/control-state-events';
+import { RUNNER_POOL } from '../../application/runner-pool';
 import { FailedRow } from '../../domain/scan/findings';
 import { interpretTestResult } from '../../domain/scan/interpret-evaluations';
 import { TestCheckLink } from '../../domain/scan/readiness';
@@ -66,6 +67,7 @@ export class ScanPrismaRepository extends ScanRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    @Inject(RUNNER_POOL) private readonly runnerPool: string,
   ) {
     super();
   }
@@ -100,7 +102,7 @@ export class ScanPrismaRepository extends ScanRepository {
       if (!provisioning || !['validated', 'active', 'scheduled'].includes(provisioning.connectionStatus)) throw new DomainError('ASSET_NOT_VALIDATED');
       let executionId: string;
       try {
-        const created = await tx.execution.create({ data: { tenantId: scope.companyId, assetId: input.assetId, status: 'queued', origin: input.origin }, select: { id: true } });
+        const created = await tx.execution.create({ data: { tenantId: scope.companyId, assetId: input.assetId, status: 'queued', origin: input.origin, runnerPool: this.runnerPool }, select: { id: true } });
         executionId = created.id;
       } catch (e) {
         // El índice único parcial `executions_one_open_per_asset` decide: dos peticiones a la vez no pueden abrir dos.
@@ -129,11 +131,11 @@ export class ScanPrismaRepository extends ScanRepository {
   }
 
   async claimNext(kind?: ExecutionKindValue): Promise<ClaimedExecution | null> {
-    // Sin empresa: la función SECURITY DEFINER busca entre todas y solo toca el estado de UNA ejecución (SEG-47).
+    // Solo del grupo de este backend (D112). Sin empresa: la función SECURITY DEFINER busca entre todas y solo toca el estado de UNA ejecución (SEG-47).
     type Row = { out_execution_id: string; out_tenant_id: string; out_asset_id: string; out_origin: string; out_kind: string };
     const rows = kind
-      ? await this.prisma.$queryRaw<Row[]>`SELECT * FROM tenant.claim_next_execution(${kind}::tenant.execution_kind)`
-      : await this.prisma.$queryRaw<Row[]>`SELECT * FROM tenant.claim_next_execution()`;
+      ? await this.prisma.$queryRaw<Row[]>`SELECT * FROM tenant.claim_next_execution(${kind}::tenant.execution_kind, ${this.runnerPool})`
+      : await this.prisma.$queryRaw<Row[]>`SELECT * FROM tenant.claim_next_execution(NULL::tenant.execution_kind, ${this.runnerPool})`;
     if (rows.length === 0) return null;
     const r = rows[0];
     return { executionId: r.out_execution_id, tenantId: r.out_tenant_id, assetId: r.out_asset_id, origin: r.out_origin as 'scheduled' | 'manual', kind: r.out_kind as ExecutionKindValue };
@@ -145,7 +147,7 @@ export class ScanPrismaRepository extends ScanRepository {
       if (!asset) throw new DomainError('NOT_FOUND');
       let executionId: string;
       try {
-        const created = await tx.execution.create({ data: { tenantId: scope.companyId, assetId, status: 'queued', origin: 'manual', kind: 'validation' }, select: { id: true } });
+        const created = await tx.execution.create({ data: { tenantId: scope.companyId, assetId, status: 'queued', origin: 'manual', kind: 'validation', runnerPool: this.runnerPool }, select: { id: true } });
         executionId = created.id;
       } catch (e) {
         // El índice único parcial `executions_one_open_per_asset` decide: un activo no tiene dos ejecuciones abiertas.
@@ -268,6 +270,7 @@ export class ScanPrismaRepository extends ScanRepository {
             status: 'completed',
             progressPercentage: 100,
             origin: run.origin,
+            runnerPool: this.runnerPool,
             engineVersion: run.engineVersion,
             regions: run.regions,
             checksExecuted: run.checksExecuted,
