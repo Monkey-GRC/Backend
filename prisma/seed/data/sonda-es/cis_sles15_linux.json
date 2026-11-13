@@ -1,0 +1,45 @@
+{
+ "policyId": "cis_sles15_linux",
+ "translations": [
+  {
+   "checkId": "21079",
+   "remediationEs": "Ejecute el siguiente comando para crear una tabla en nftables:\n```\nnft create table inet <table name>\n```\nEjemplo:\n```\nnft create table inet filter\n```"
+  },
+  {
+   "checkId": "21080",
+   "remediationEs": "Ejecute el siguiente comando para crear las cadenas base (base chains):\n```\nnft create chain inet <table name> <base chain name> { type filter hook <(input|forward|output)> priority 0 \\; }\n```\nEjemplo:\n```\nnft create chain inet filter input { type filter hook input priority 0 \\; }\nnft create chain inet filter forward { type filter hook forward priority 0 \\; }\nnft create chain inet filter output { type filter hook output priority 0 \\; }\n```"
+  },
+  {
+   "checkId": "21082",
+   "remediationEs": "Ejecute el siguiente comando en las cadenas base con los ganchos (hooks) input, forward y output para aplicar una política por defecto DROP:\n```\nnft chain <table family> <table name> <chain name> { policy drop \\; }\n```\nEjemplo:\n```\nnft chain inet filter input { policy drop \\; }\nnft chain inet filter forward { policy drop \\; }\nnft chain inet filter output { policy drop \\; }\n```"
+  },
+  {
+   "checkId": "21083",
+   "remediationEs": "Ejecute el siguiente comando para habilitar el servicio nftables:\n```\nsystemctl enable nftables\n```"
+  },
+  {
+   "checkId": "21088",
+   "remediationEs": "Ejecute los siguientes comandos para implementar una política por defecto DROP:\n```\niptables -P INPUT DROP\niptables -P OUTPUT DROP\niptables -P FORWARD DROP\n```"
+  },
+  {
+   "checkId": "21089",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\niptables -A INPUT -i lo -j ACCEPT\niptables -A OUTPUT -o lo -j ACCEPT\niptables -A INPUT -s 127.0.0.0/8 -j DROP\n```"
+  },
+  {
+   "checkId": "21091",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\nip6tables -A INPUT -i lo -j ACCEPT\nip6tables -A OUTPUT -o lo -j ACCEPT\nip6tables -A INPUT -s ::1 -j DROP\n```"
+  },
+  {
+   "checkId": "21095",
+   "remediationEs": "Fije el siguiente parámetro en `/etc/audit/auditd.conf` de acuerdo con la política de su organización (el valor es el tamaño en MB):\n```\nmax_log_file = <MB>\n```"
+  },
+  {
+   "checkId": "21096",
+   "remediationEs": "Fije el siguiente parámetro en `/etc/audit/auditd.conf`:\n```\nmax_log_file_action = keep_logs\n```"
+  },
+  {
+   "checkId": "21164",
+   "remediationEs": "Si alguna cuenta de `/etc/shadow` no tiene contraseña, ejecute el siguiente comando para bloquearla hasta determinar por qué no la tiene:\n```\npasswd -l <username>\n```\nCompruebe también si la cuenta tiene una sesión abierta e investigue para qué se está usando, para determinar si es necesario cerrarla a la fuerza."
+  }
+ ]
+}

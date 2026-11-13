@@ -5,7 +5,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class CatalogOptionResponse {
   @ApiProperty({ example: 'technology_saas', description: 'Valor `snake_case` que viaja por el cable. Es lo que se envía en los formularios.' }) value!: string;
   @ApiProperty({ example: 'Tecnología / SaaS', description: 'Etiqueta traducida al idioma de `Accept-Language`. Es lo único que se muestra.' }) label!: string;
-  @ApiPropertyOptional({ enum: ['country', 'region', 'other'], description: 'Solo en listas de países: permite agrupar (`region` = agrupaciones como UE o LATAM).' }) group?: string;
+  @ApiPropertyOptional({ description: 'Permite agrupar. En listas de países: `country`, `region` (agrupaciones como UE o LATAM) u `other`. En `<sistema>_version`: el código de la distribución (`ubuntu`, `windows_server`).' }) group?: string;
+  @ApiPropertyOptional({ example: 'Ubuntu', description: 'Solo en `<sistema>_version`: el nombre de la distribución, para titular el grupo. Una marca no se traduce.' }) group_label?: string;
 }
 
 export class RegulationOptionResponse {

@@ -39,9 +39,14 @@ export type CapabilityItem = {
 // Una región de una plataforma (D67): su código es lo que viaja; `name` es el nombre del proveedor, por si no hay etiqueta traducida.
 export type RegionItem = { code: string; name: string };
 
+// Una versión de un sistema operativo que el cliente puede declarar para un servidor (D112): «Ubuntu 22.04 LTS», «Windows Server 2022». Solo salen las que la
+// sonda realmente entrega. `code` es el código de la API, definido por Monkey (no el id que use la sonda).
+export type OsVersionItem = { code: string; distribution: string; distributionName: string; versionLabel: string };
+
 export type Catalog =
   | { kind: 'capabilities'; items: CapabilityItem[] }
   | { kind: 'regions'; items: RegionItem[] }
+  | { kind: 'os_versions'; items: OsVersionItem[] }
   | { kind: 'enum'; name: string; values: readonly string[] }
   | { kind: 'regulations'; items: RegulationItem[] }
   | { kind: 'frameworks'; items: FrameworkItem[] };

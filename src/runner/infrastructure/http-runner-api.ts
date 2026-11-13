@@ -1,6 +1,7 @@
 import { Inventory } from '../domain/inventory';
 import { RunnerApi } from '../domain/ports';
 import { EngineRun, RunnerApiError, RunnerJob, RunnerJobKind } from '../domain/runner.types';
+import { SondaSnapshot } from '../domain/sonda';
 
 type Fetch = typeof fetch;
 
@@ -29,17 +30,49 @@ export class HttpRunnerApi extends RunnerApi {
       platform: data['platform'],
       externalAccountId: data['external_account_id'] ?? null,
       regions: data['regions'],
+      // Crear el agente de un servidor (D112): el backend dice cómo se llama en la sonda y a qué grupo va.
+      ...(data['kind'] === 'enrollment' ? { enrollment: { name: String(data['agent']?.name ?? ''), group: String(data['agent']?.group ?? ''), ...(data['agent']?.remove === true ? { remove: true } : {}) } } : {}),
       connection:
-        c.method === 'readonly_role'
-          ? { method: 'readonly_role', roleArn: c.role_arn, externalId: c.external_id ?? null }
-          : { method: 'access_keys', accessKeyId: c.access_key_id, secretAccessKey: c.secret_access_key },
+        c.method === 'agent'
+          ? { method: 'agent', agentId: String(data['agent']?.agent_id ?? ''), group: String(data['agent']?.group ?? '') }
+          : c.method === 'readonly_role'
+            ? { method: 'readonly_role', roleArn: c.role_arn, externalId: c.external_id ?? null }
+            : { method: 'access_keys', accessKeyId: c.access_key_id, secretAccessKey: c.secret_access_key },
     };
+  }
+
+  async submitSca(job: RunnerJob, s: SondaSnapshot): Promise<void> {
+    const body = {
+      tenant_id: job.tenantId,
+      source: 'sca',
+      sonda_version: s.sondaVersion,
+      started_at: s.startedAt.toISOString(),
+      finished_at: s.finishedAt.toISOString(),
+      agent: { agent_id: s.agent.id, name: s.agent.name, groups: s.agent.groups },
+      policies: s.policies.map((p) => ({
+        policy_id: p.policyId,
+        name: p.name,
+        scan_ended_at: p.endScan,
+        checks: p.checks.map((c) => ({ id: c.id, result: c.result, reason: c.reason, compliance: c.compliance })),
+      })),
+    };
+    // Un servidor tiene cientos de checks por política: pesa poco, pero se le da el mismo plazo que a una evaluación.
+    await this.ensureOk(await this.post(`/internal/runner/executions/${job.executionId}/results`, body, 180_000));
   }
 
   async submitResults(job: RunnerJob, run: EngineRun, regions: string[]): Promise<void> {
     // La salida de un escaneo pesa megas: tiempo de sobra para subirla.
     const body = { tenant_id: job.tenantId, engine_version: run.engineVersion, regions, started_at: run.startedAt.toISOString(), finished_at: run.finishedAt.toISOString(), findings: run.findings };
     await this.ensureOk(await this.post(`/internal/runner/executions/${job.executionId}/results`, body, 180_000));
+  }
+
+  async enrolled(job: RunnerJob, agent: { agentId: string; key: string }): Promise<void> {
+    // La clave viaja SOLO aquí, por la red interna, y no se registra en ninguna parte.
+    await this.ensureOk(await this.post(`/internal/runner/executions/${job.executionId}/enrolled`, { tenant_id: job.tenantId, agent_id: agent.agentId, key: agent.key }, 30_000));
+  }
+
+  async removed(job: RunnerJob): Promise<void> {
+    await this.ensureOk(await this.post(`/internal/runner/executions/${job.executionId}/removed`, { tenant_id: job.tenantId }, 30_000));
   }
 
   async validated(job: RunnerJob, inventory?: Inventory | null): Promise<void> {

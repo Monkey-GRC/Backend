@@ -19,6 +19,8 @@ export class StsCredentialBroker extends CredentialBroker {
   }
 
   async obtain(job: RunnerJob): Promise<TemporaryCredentials> {
+    // Un servidor con agente (D112) no tiene credenciales del cliente: lo lee la sonda, no este corredor. Aquí no debería llegar (RunNextExecution lo desvía).
+    if (job.connection.method === 'agent') throw new RunnerFailure(FAILURE.methodNotSupported);
     return job.connection.method === 'readonly_role' ? this.assume(job, job.connection) : this.verifyKeys(job, job.connection);
   }
 

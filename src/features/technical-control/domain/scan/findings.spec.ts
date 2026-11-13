@@ -73,3 +73,38 @@ describe('buildFindings (D90)', () => {
     expect(buildFindings([], 'es', 'x')).toEqual([]);
   });
 });
+
+// D112 · Los servidores: la sonda no califica sus checks, y el recurso afectado es el propio servidor.
+describe('buildFindings · servidores (D112)', () => {
+  const server = (patch: Partial<FailedRow> = {}): FailedRow =>
+    row({ checkUuid: 's1', severity: null, titleEn: 'Ensure /tmp is a separate partition.', titleEs: 'Asegurar que /tmp es una partición separada.', remediation: 'Create a separate /tmp partition.', resourceName: 'srv-prod-01', resourceUid: null, region: null, ...patch });
+
+  it('does not invent a severity: a check the probe does not rate has none', () => {
+    const [f] = buildFindings([server()], 'es', 'x');
+    expect(f.severity).toBeNull();
+    // Un valor ilegible sí cae a «media» (como siempre), pero la ausencia de dato no.
+    expect(buildFindings([server({ severity: 'rara' })], 'es', 'x')[0].severity).toBe('medium');
+    expect(buildFindings([server({ severity: '  ' })], 'es', 'x')[0].severity).toBeNull();
+  });
+
+  it('puts what is not rated after everything that is, and keeps a real severity when another row has it', () => {
+    const out = buildFindings([server({ checkUuid: 'a', titleEn: 'Alpha', titleEs: 'Alfa' }), server({ checkUuid: 'b', titleEs: 'Beta', severity: 'low' })], 'es', 'x');
+    expect(out.map((f) => f.title)).toEqual(['Beta', 'Alfa']);
+    expect(buildFindings([server(), server({ severity: 'high' })], 'es', 'x')[0].severity).toBe('high');
+  });
+
+  it('names the affected server and lists every server that fails the same check once', () => {
+    const [f] = buildFindings([server(), server({ resourceName: 'srv-prod-02' }), server()], 'es', 'x');
+    expect(f.resources).toEqual([
+      { name: 'srv-prod-01', uid: null, region: null },
+      { name: 'srv-prod-02', uid: null, region: null },
+    ]);
+    expect(f.resourcesTotal).toBe(2);
+  });
+
+  it('uses the Spanish title of the catalog and says when the guidance is only available in English', () => {
+    const [f] = buildFindings([server()], 'es', 'x');
+    expect(f.title).toBe('Asegurar que /tmp es una partición separada.');
+    expect(f.remediation).toEqual({ text: 'Create a separate /tmp partition.', language: 'en', isAiGenerated: false });
+  });
+});

@@ -1,0 +1,81 @@
+{
+ "policyId": "cis_alma_linux_9",
+ "translations": [
+  {
+   "checkId": "32517",
+   "remediationEs": "En instalaciones nuevas, durante la instalación cree una configuración de particiones personalizada y especifique una partición separada para `/var/log/audit`. En sistemas ya instalados, cree una partición nueva y configure `/etc/fstab` según corresponda."
+  },
+  {
+   "checkId": "32587",
+   "remediationEs": "Ejecute el siguiente comando para crear las cadenas base (base chains):\n```\nnft create chain inet <table name> <base chain name> { type filter hook <(input|forward|output)> priority 0 \\; }\n```\nEjemplo:\n```\nnft create chain inet filter input { type filter hook input priority 0 \\; }\nnft create chain inet filter forward { type filter hook forward priority 0 \\; }\nnft create chain inet filter output { type filter hook output priority 0 \\; }\n```"
+  },
+  {
+   "checkId": "32593",
+   "remediationEs": "Fije el siguiente parámetro en `/etc/audit/auditd.conf` de acuerdo con la política de su organización (el valor es el tamaño en MB):\n```\nmax_log_file = <MB>\n```"
+  },
+  {
+   "checkId": "32594",
+   "remediationEs": "Fije el siguiente parámetro en `/etc/audit/auditd.conf`:\n```\nmax_log_file_action = keep_logs\n```"
+  },
+  {
+   "checkId": "32602",
+   "remediationEs": "Cree reglas de auditoría para recopilar la información de inicio de sesión (session initiation).\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-session.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-w /var/run/utmp -p wa -k session\n-w /var/log/wtmp -p wa -k session\n-w /var/log/btmp -p wa -k session\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "32603",
+   "remediationEs": "Cree reglas de auditoría para recopilar los eventos de inicio y cierre de sesión.\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-login.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-w /var/log/lastlog -p wa -k logins\n-w /var/run/faillock -p wa -k logins\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "32614",
+   "remediationEs": "Ejecute el siguiente comando para quitar a los archivos de configuración de auditoría los permisos más amplios que 0640:\n```\nfind /etc/audit/ -type f \\( -name '*.conf' -o -name '*.rules' \\) -exec chmod u-x,g-wx,o-rwx {} +\n```"
+  },
+  {
+   "checkId": "32615",
+   "remediationEs": "Ejecute el siguiente comando para que el propietario de los archivos de configuración de auditoría sea el usuario root:\n```\nfind /etc/audit/ -type f \\( -name '*.conf' -o -name '*.rules' \\) ! -user root -exec chown root {} +\n```"
+  },
+  {
+   "checkId": "32616",
+   "remediationEs": "Ejecute el siguiente comando para que el grupo propietario de los archivos de configuración de auditoría sea root:\n```\nfind /etc/audit/ -type f \\( -name '*.conf' -o -name '*.rules' \\) ! -group root -exec chgrp root {} +\n```"
+  },
+  {
+   "checkId": "32617",
+   "remediationEs": "Ejecute el siguiente comando para quitar a las herramientas de auditoría los permisos de escritura de grupo y otros:\n```\nchmod go-w /sbin/auditctl /sbin/aureport /sbin/ausearch /sbin/autrace /sbin/auditd /sbin/augenrules\n```"
+  },
+  {
+   "checkId": "32618",
+   "remediationEs": "Ejecute el siguiente comando para que el propietario de las herramientas de auditoría sea el usuario root:\n```\nchown root /sbin/auditctl /sbin/aureport /sbin/ausearch /sbin/autrace /sbin/auditd /sbin/augenrules\n```"
+  },
+  {
+   "checkId": "32663",
+   "remediationEs": "Según el resultado del procedimiento de auditoría, use `visudo -f <PATH TO FILE>` para editar el archivo sudoers correspondiente y elimine cualquier línea que contenga la etiqueta `NOPASSWD`."
+  },
+  {
+   "checkId": "32664",
+   "remediationEs": "Configure el sistema operativo para exigir que los usuarios se reautentiquen al escalar privilegios. Según el resultado del procedimiento de auditoría, use `visudo -f <PATH TO FILE>` para editar el archivo sudoers correspondiente y elimine cualquier aparición de la etiqueta `!authenticate`."
+  },
+  {
+   "checkId": "32666",
+   "remediationEs": "Cree un grupo vacío que se usará para el comando `su`. El nombre del grupo debe seguir la política de su organización. Ejemplo:\n```\ngroupadd sugroup\n```\nAgregue la siguiente línea al archivo `/etc/pam.d/su`, indicando el grupo vacío:\n```\nauth required pam_wheel.so use_uid group=sugroup\n```"
+  },
+  {
+   "checkId": "32677",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/passwd`:\n```\nchmod u-x,go-wx /etc/passwd\nchown root:root /etc/passwd\n```"
+  },
+  {
+   "checkId": "32678",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/passwd-`:\n```\nchmod u-x,go-wx /etc/passwd-\nchown root:root /etc/passwd-\n```"
+  },
+  {
+   "checkId": "32679",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/group`:\n```\nchmod u-x,go-wx /etc/group\nchown root:root /etc/group\n```"
+  },
+  {
+   "checkId": "32680",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/group-`:\n```\nchmod u-x,go-wx /etc/group-\nchown root:root /etc/group-\n```"
+  },
+  {
+   "checkId": "32686",
+   "remediationEs": "Si alguna cuenta de `/etc/shadow` no tiene contraseña, ejecute el siguiente comando para bloquearla hasta determinar por qué no la tiene:\n```\npasswd -l <username>\n```\nCompruebe también si la cuenta tiene una sesión abierta e investigue para qué se está usando, para determinar si es necesario cerrarla a la fuerza."
+  }
+ ]
+}

@@ -40,6 +40,10 @@ export type ResourceKindValue = (typeof RESOURCE_KIND_VALUES)[number];
 
 export const CONNECTION_METHOD_VALUES = ['readonly_role', 'access_keys', 'agent'] as const;
 export type ConnectionMethodValue = (typeof CONNECTION_METHOD_VALUES)[number];
+// Las conexiones cuyo activo es un sistema operativo: servidores en la nube, servidores on-premise y equipos de trabajo. Ahí el cliente declara la VERSIÓN de su
+// sistema (D112), de la que salen el comando de instalación y qué evaluación se espera. Las bases de datos (`ac_03`, `ac_05`) se eligen por su motor, no por un SO.
+export const OS_CONNECTION_CATEGORIES: readonly string[] = ['ac_02', 'ac_04', 'ac_06'];
+
 export const CLOUD_PLATFORM_AWS = 'aws';
 export const AWS_ACCOUNT_ID = /^\d{12}$/;
 export const AWS_ROLE_ARN = /^arn:aws:iam::(\d{12}):role\/[\w+=,.@/-]{1,512}$/;

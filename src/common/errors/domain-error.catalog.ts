@@ -115,4 +115,13 @@ export const DOMAIN_ERROR_CATALOG: Record<
   // Esta instalación aún no puede comprobar conexiones (sin sonda). No es un fallo del cliente.
   CONNECTION_UNAVAILABLE: { status: HttpStatus.SERVICE_UNAVAILABLE, messageKey: 'connection.unavailable' },
   INTEGRATION_NOT_FOUND: { status: HttpStatus.NOT_FOUND, messageKey: 'integration.not_found' },
+  // La instalación de la sonda en un servidor (D112).
+  ASSET_NOT_AGENT: { status: HttpStatus.CONFLICT, messageKey: 'agent_install.not_agent' },
+  AGENT_INSTALL_NOT_READY: { status: HttpStatus.CONFLICT, messageKey: 'agent_install.not_ready' },
+  AGENT_ALREADY_LINKED: { status: HttpStatus.CONFLICT, messageKey: 'agent_install.already_linked' },
+  // Lo que el trabajador entrega de la sonda de un servidor no es de ESE servidor o de ESA empresa (SEG-45): se rechaza y no se guarda nada.
+  AGENT_NOT_LINKED: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'agent_install.not_linked' },
+  AGENT_GROUP_MISMATCH: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'agent_install.group_mismatch' },
+  // Esta instalación aún no está configurada para instalar la sonda (sin dirección ni versión). No es un fallo del cliente.
+  AGENT_INSTALL_UNAVAILABLE: { status: HttpStatus.SERVICE_UNAVAILABLE, messageKey: 'agent_install.unavailable' },
 };

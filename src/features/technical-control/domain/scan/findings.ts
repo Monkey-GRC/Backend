@@ -27,20 +27,24 @@ export type FindingRemediation = { text: string; language: FindingLanguage; isAi
 export type Finding = {
   id: string;
   title: string;
-  severity: string;
+  // Nulo: el motor que midió no califica sus checks (la sonda de servidores no trae severidad). No se inventa una: la pantalla no muestra nivel y el hallazgo va después de los calificados.
+  severity: string | null;
   resources: FindingResource[];
   resourcesTotal: number;
   remediation: FindingRemediation | null;
 };
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low', 'informational'];
-const rank = (s: string): number => {
+const rank = (s: string | null): number => {
+  if (s === null) return SEVERITY_ORDER.length + 1; // sin calificar: después de todo lo calificado
   const i = SEVERITY_ORDER.indexOf(s);
   return i === -1 ? SEVERITY_ORDER.length : i;
 };
-const normalizeSeverity = (s: string | null): string => {
+// Sin dato no hay severidad (nulo); un valor que no es de la escala se trata como media (como siempre).
+const normalizeSeverity = (s: string | null): string | null => {
   const v = s?.trim().toLowerCase();
-  return v && SEVERITY_ORDER.includes(v) ? v : 'medium';
+  if (!v) return null;
+  return SEVERITY_ORDER.includes(v) ? v : 'medium';
 };
 
 // La guía en el idioma pedido. En español se usa la traducción de Monkey y se marca como generada por IA mientras nadie la haya revisado; sin traducción, sale el
@@ -60,7 +64,7 @@ const titleOf = (row: FailedRow, language: FindingLanguage, fallback: string): s
 };
 
 export function buildFindings(rows: FailedRow[], language: FindingLanguage, fallbackTitle: string): Finding[] {
-  const byCheck = new Map<string, { first: FailedRow; severity: string; seen: Set<string>; resources: FindingResource[] }>();
+  const byCheck = new Map<string, { first: FailedRow; severity: string | null; seen: Set<string>; resources: FindingResource[] }>();
   for (const row of rows) {
     const severity = normalizeSeverity(row.severity);
     const entry = byCheck.get(row.checkUuid) ?? { first: row, severity, seen: new Set<string>(), resources: [] };

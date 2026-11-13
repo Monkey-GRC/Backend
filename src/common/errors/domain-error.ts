@@ -112,7 +112,14 @@ export type DomainErrorCode =
   | 'CONNECTION_METHOD_NOT_APPLICABLE'
   | 'CONNECTION_UNAVAILABLE'
   // D110 · La integración no existe o, para el auditor, la empresa no la tiene conectada.
-  | 'INTEGRATION_NOT_FOUND';
+  | 'INTEGRATION_NOT_FOUND'
+  // La instalación de la sonda en un servidor (D112).
+  | 'ASSET_NOT_AGENT'
+  | 'AGENT_INSTALL_NOT_READY'
+  | 'AGENT_ALREADY_LINKED'
+  | 'AGENT_NOT_LINKED'
+  | 'AGENT_GROUP_MISMATCH'
+  | 'AGENT_INSTALL_UNAVAILABLE';
 
 export class DomainError extends Error {
   constructor(

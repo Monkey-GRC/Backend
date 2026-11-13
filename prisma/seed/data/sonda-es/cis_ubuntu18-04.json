@@ -1,0 +1,81 @@
+{
+ "policyId": "cis_ubuntu18-04",
+ "translations": [
+  {
+   "checkId": "18520",
+   "remediationEs": "En instalaciones nuevas, durante la instalación cree una configuración de particiones personalizada y especifique una partición separada para `/var/log/audit`. En sistemas ya instalados, cree una partición nueva y configure `/etc/fstab` según corresponda."
+  },
+  {
+   "checkId": "18532",
+   "remediationEs": "Ejecute el siguiente comando para restaurar los binarios a su estado normal:\n```\nprelink -ua\n```\nDesinstale prelink con el gestor de paquetes correspondiente o de forma manual:\n```\napt purge prelink\n```"
+  },
+  {
+   "checkId": "18564",
+   "remediationEs": "Desinstale nis:\n```\napt purge nis\n```"
+  },
+  {
+   "checkId": "18565",
+   "remediationEs": "Desinstale rsh:\n```\napt purge rsh-client\n```"
+  },
+  {
+   "checkId": "18586",
+   "remediationEs": "Ejecute el siguiente comando para instalar Uncomplicated Firewall (UFW):\n```\napt install ufw\n```"
+  },
+  {
+   "checkId": "18587",
+   "remediationEs": "Ejecute el siguiente comando para eliminar el paquete iptables-persistent:\n```\napt purge iptables-persistent\n```"
+  },
+  {
+   "checkId": "18589",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\nufw allow in on lo\nufw allow out on lo\nufw deny in from 127.0.0.0/8\nufw deny in from ::1\n```"
+  },
+  {
+   "checkId": "18590",
+   "remediationEs": "Ejecute los siguientes comandos para implementar una política por defecto de denegación:\n```\nufw default deny incoming\nufw default deny outgoing\nufw default deny routed\n```"
+  },
+  {
+   "checkId": "18591",
+   "remediationEs": "Ejecute el siguiente comando para instalar nftables:\n```\napt install nftables\n```"
+  },
+  {
+   "checkId": "18594",
+   "remediationEs": "Ejecute el siguiente comando para crear una tabla en nftables:\n```\nnft create table inet <table name>\n```\nEjemplo:\n```\nnft create table inet filter\n```"
+  },
+  {
+   "checkId": "18595",
+   "remediationEs": "Ejecute el siguiente comando para crear las cadenas base (base chains):\n```\nnft create chain inet <table name> <base chain name> { type filter hook <(input|forward|output)> priority 0 \\; }\n```\nEjemplo:\n```\nnft create chain inet filter input { type filter hook input priority 0 \\; }\nnft create chain inet filter forward { type filter hook forward priority 0 \\; }\nnft create chain inet filter output { type filter hook output priority 0 \\; }\n```"
+  },
+  {
+   "checkId": "18597",
+   "remediationEs": "Ejecute el siguiente comando en las cadenas base con los ganchos (hooks) input, forward y output para aplicar una política por defecto DROP:\n```\nnft chain <table family> <table name> <chain name> { policy drop \\; }\n```\nEjemplo:\n```\nnft chain inet filter input { policy drop \\; }\nnft chain inet filter forward { policy drop \\; }\nnft chain inet filter output { policy drop \\; }\n```"
+  },
+  {
+   "checkId": "18598",
+   "remediationEs": "Ejecute el siguiente comando para habilitar el servicio nftables:\n```\nsystemctl enable nftables\n```"
+  },
+  {
+   "checkId": "18599",
+   "remediationEs": "Ejecute el siguiente comando para instalar iptables e iptables-persistent:\n```\napt install iptables iptables-persistent\n```"
+  },
+  {
+   "checkId": "18600",
+   "remediationEs": "Ejecute el siguiente comando para eliminar nftables:\n```\napt purge nftables\n```"
+  },
+  {
+   "checkId": "18602",
+   "remediationEs": "Ejecute los siguientes comandos para implementar una política por defecto DROP:\n```\niptables -P INPUT DROP\niptables -P OUTPUT DROP\niptables -P FORWARD DROP\n```"
+  },
+  {
+   "checkId": "18603",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\niptables -A INPUT -i lo -j ACCEPT\niptables -A OUTPUT -o lo -j ACCEPT\niptables -A INPUT -s 127.0.0.0/8 -j DROP\n```"
+  },
+  {
+   "checkId": "18605",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\nip6tables -A INPUT -i lo -j ACCEPT\nip6tables -A OUTPUT -o lo -j ACCEPT\nip6tables -A INPUT -s ::1 -j DROP\n```"
+  },
+  {
+   "checkId": "18610",
+   "remediationEs": "Fije el siguiente parámetro en `/etc/audit/auditd.conf`:\n```\nmax_log_file_action = keep_logs\n```"
+  }
+ ]
+}

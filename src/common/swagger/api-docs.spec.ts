@@ -131,7 +131,8 @@ describe('documentación de la API encendida (local)', () => {
 
   it('documenta toda la API pública y deja fuera la interna del trabajador', () => {
     const ids = operations().map((o) => o.id);
-    expect(ids.length).toBe(158);
+    // 158 de develop + 6 de la instalación de la sonda en un servidor (D112): estado, empezar, mostrar el comando, generar de nuevo, y los dos instaladores públicos.
+    expect(ids.length).toBe(164);
     expect(ids.some((id) => id.includes('/internal/'))).toBe(false);
   });
 

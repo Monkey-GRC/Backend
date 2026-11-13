@@ -5,6 +5,9 @@ import { Inventory } from '../entities/technical-control.entities';
 import { FailedRow } from '../scan/findings';
 import { TestCheckLink } from '../scan/readiness';
 import { InterpretedResult } from '../scan/scan.types';
+import { AgentReadingFacts } from '../agent-reading/reading-plan';
+import { CatalogPolicy } from '../sonda/catalog-lookup';
+import { InterpretedScaRow } from '../sonda/sonda.types';
 
 // Lo que una corrida entrega al terminar (D56, D57).
 export type ScanOutcome = {
@@ -27,8 +30,19 @@ export type ScanRun = ScanOutcome & {
 
 export type RecordedScan = { executionId: string; resultCount: number; resourceCount: number };
 
+// Lo que una lectura de la sonda de un servidor entrega al terminar, ya interpretado (D112).
+export type ScaOutcome = {
+  agentId: string;
+  finishedAt: Date;
+  sondaVersion: string;
+  // Cuántos checks del catálogo tienen las políticas entregadas: el conjunto «ejecutado». Lo que no devolvió filas no se guarda: se deriva (D56).
+  checksExecuted: number;
+  rows: InterpretedScaRow[];
+  logs: { level: 'info' | 'warn' | 'error'; message: string }[];
+};
+
 // Lo que el trabajador reclama: solo lo mínimo para abrir la transacción con SU empresa (viene de una función SECURITY DEFINER).
-export type ExecutionKindValue = 'assessment' | 'validation';
+export type ExecutionKindValue = 'assessment' | 'validation' | 'enrollment';
 export type ClaimedExecution = { executionId: string; tenantId: string; assetId: string; origin: 'scheduled' | 'manual'; kind: ExecutionKindValue };
 
 // El activo y su conexión tal como los necesita el trabajador. `encryptedCredentials` sigue cifrado: lo abre el caso de uso.
@@ -115,10 +129,37 @@ export abstract class ScanRepository {
   // cuenta entera) es de toda la cuenta y cuenta para todos los servicios que la usan (D61).
   abstract loadLatestScan(scope: TenantScope, assetId: string, serviceId?: string): Promise<LoadedScan | null>;
 
-  // D90 · ¿Es `testId` una prueba de nube de ese control del cliente? Devuelve el servicio del control, o null si el control o la prueba no existen para esta empresa
-  // (o la prueba no es de nube: no hay nada técnico que explicar).
+  // D90 · ¿Es `testId` una prueba automática (de nube, servidor, base de datos o aplicación) de ese control del cliente? Devuelve el servicio del control, o null si el control o la
+  // prueba no existen para esta empresa (o la prueba no es automática: una documental no tiene nada técnico que explicar).
   // `responsibleUserIds` son el dueño y el ejecutor activos del control (D102).
-  abstract findCloudTestOfControl(scope: TenantScope, controlId: string, testId: string): Promise<{ serviceId: string; responsibleUserIds: string[] } | null>;
-  // D90 · Lo que falló en la última evaluación completada de cada conexión de nube del servicio, solo en los checks de esa prueba. Con `includeProposed`, también cuentan
+  abstract findAutomatedTestOfControl(scope: TenantScope, controlId: string, testId: string): Promise<{ serviceId: string; responsibleUserIds: string[] } | null>;
+  // D90 · Lo que falló en la última evaluación completada de cada conexión del servicio (una cuenta de nube o un servidor con agente), solo en los checks de esa prueba. En un servidor, el
+  // recurso afectado es el propio servidor (su nombre). Con `includeProposed`, también cuentan
   // los vínculos que el comité aún no ratificó (igual que `writeEvaluations`). `measuredAt` es la fecha de la evaluación más reciente; null si ninguna conexión se evaluó.
-  abstract loadFailedRows(scope: TenantScope, input: { serviceId: string; testId: string; includeProposed: boolean }): Promise<{ measuredAt: Date | null; rows: FailedRow[] }>;}
+  abstract loadFailedRows(scope: TenantScope, input: { serviceId: string; testId: string; includeProposed: boolean }): Promise<{ measuredAt: Date | null; rows: FailedRow[] }>;
+
+  // ---- servidores con agente de la sonda (D112) ----
+
+  // El agente enlazado al activo de esta ejecución, tal como Monkey lo pre-registró: el hecho contra el que se comprueba lo que entrega el trabajador (SEG-45).
+  // null si la ejecución no existe para esta empresa o su activo no tiene agente; `agentId` es null mientras no se haya creado en la sonda.
+  abstract loadAgentLink(scope: TenantScope, executionId: string): Promise<{ tenantId: string; assetId: string; agentId: string | null } | null>;
+
+  // Las políticas del catálogo del comité que la sonda entregó, con sus checks (se reconocen por id o por nombre). Se lee libre (RLS de `catalog`).
+  abstract scaCatalog(policies: readonly { scaId: string; name: string }[]): Promise<CatalogPolicy[]>;
+
+  // Cierra una lectura de la sonda: guarda los resultados, marca el agente como conectado, mueve las evaluaciones de los controles y deja la bitácora, todo en UNA
+  // transacción. EXECUTION_NOT_RUNNING si la ejecución no está en curso.
+  abstract completeSca(scope: TenantScope, executionId: string, outcome: ScaOutcome, audit: AuditIntent<{ executionId: string; resultCount: number }>): Promise<{ executionId: string; resultCount: number }>;
+
+  // ---- la lectura automática de la sonda (D112) ----
+
+  // Los servidores de TODAS las empresas a los que podría tocarles una lectura (función SQL angosta que solo lee, SEG-47). Ya viene sin lo que no puede tocar (con una lectura abierta,
+  // empresa archivada, conectado hace poco); la decisión final es de `isReadingDue`.
+  abstract listAgentReadingCandidates(input: { windowSeconds: number; refreshSeconds: number }): Promise<AgentReadingFacts[]>;
+  // Deja en cola una lectura automática de ese servidor. null si ya hay una abierta o el servidor dejó de tener agente. No se audita: es mantenimiento, y cada 3 minutos serían cientos de filas.
+  abstract queueAgentReading(scope: TenantScope, assetId: string): Promise<{ executionId: string } | null>;
+  // Cierra una lectura AUTOMÁTICA que no estaba lista (el servidor aún no entrega su primera revisión, o no está conectado) sin que cuente como un error del cliente: queda cancelada, fuera de su historial y
+  // sin auditoría. Si el servidor estaba conectado y ahora no, pasa a `disconnected` (eso sí se audita). Devuelve false si no aplica (otra razón, lectura pedida por una persona, no está en curso): quien llama
+  // la cierra como fallo normal.
+  abstract settleAgentReading(scope: TenantScope, executionId: string, reason: string, audit: AuditIntent<{ executionId: string; assetId: string }>): Promise<boolean>;
+}

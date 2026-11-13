@@ -8,11 +8,16 @@ import { Page, PageRequest } from '../../../../common/pagination/page';
 import { CredentialCipher } from '../../../../common/security/credential-cipher';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { EngineOutputParser } from '../../domain/ports/engine-output-parser';
+import { AgentInstallRepository } from '../../domain/repositories/agent-install.repository';
 import { TechnicalControlRepository } from '../../domain/repositories/technical-control.repository';
-import { ExecutionKindValue, ExecutionSummary, RecordedScan, RunContext, ScanOutcome, ScanRepository } from '../../domain/repositories/scan.repository';
+import { ExecutionKindValue, ExecutionSummary, RecordedScan, RunContext, ScanOutcome, ScanRepository, ScaOutcome } from '../../domain/repositories/scan.repository';
 import { interpretScan } from '../../domain/scan/interpret-scan';
 import { AssetReadiness, computeReadiness } from '../../domain/scan/readiness';
 import { EngineFinding } from '../../domain/scan/scan.types';
+import { checkAgentIsolation, ReportedAgent } from '../../domain/sonda/agent-isolation';
+import { buildCatalogLookup } from '../../domain/sonda/catalog-lookup';
+import { interpretSca } from '../../domain/sonda/interpret-sca';
+import { ScaPolicyInput } from '../../domain/sonda/sonda.types';
 
 const PLATFORM = 'aws';
 const MAX_CLAIM_ATTEMPTS = 10;
@@ -123,13 +128,19 @@ export type RunnerJob = {
   tenantId: string;
   assetId: string;
   origin: 'scheduled' | 'manual';
-  platform: 'aws';
+  // `aws` para la nube; para crear el agente de un servidor (D112), la plataforma del activo.
+  platform: string;
   externalAccountId: string | null;
   regions: string[];
   connection:
     | { method: 'readonly_role'; roleArn: string; externalId: string | null }
     // Las llaves descifradas viajan SOLO en esta respuesta, por la red interna, y no se registran nunca.
-    | { method: 'access_keys'; accessKeyId: string; secretAccessKey: string };
+    | { method: 'access_keys'; accessKeyId: string; secretAccessKey: string }
+    // Un servidor con agente (D112): no hay credenciales del cliente.
+    | { method: 'agent' };
+  // De un servidor con agente (D112). Al crearlo: cómo debe llamarse en la sonda y a qué grupo pertenece, los dos derivados del activo y de la empresa (nombre = `asset_id`,
+  // grupo = `tenant_id`): el trabajador no los inventa. Al evaluarlo, además, `agentId`: el agente que Monkey enlazó a ESTE activo.
+  agent?: { name: string; group: string; agentId?: string; remove?: boolean };
 };
 
 type Credentials = Record<string, unknown>;
@@ -165,6 +176,7 @@ export class ClaimExecutionUseCase {
   constructor(
     private readonly repo: ScanRepository,
     private readonly cipher: CredentialCipher,
+    private readonly agents: AgentInstallRepository,
   ) {}
 
   // Reclama la próxima ejecución utilizable. Una cuya conexión no sirve se cierra como `failed` (problema de conexión, no incumplimiento)
@@ -174,7 +186,30 @@ export class ClaimExecutionUseCase {
       const claimed = await this.repo.claimNext(kind);
       if (!claimed) return null;
       const scope: TenantScope = { companyId: claimed.tenantId };
+      // Crear el agente de un servidor (D112) no tiene credenciales del cliente ni regiones: el trabajador necesita saber cómo se llama el agente y a qué grupo va.
+      if (claimed.kind === 'enrollment') {
+        const target = await this.agents.loadEnrollmentTarget(scope, claimed.executionId);
+        return {
+          executionId: claimed.executionId, kind: claimed.kind, tenantId: claimed.tenantId, assetId: claimed.assetId, origin: claimed.origin, platform: target.platform,
+          externalAccountId: null, regions: [], connection: { method: 'agent' },
+          // Un servidor ya dado de baja: la ejecución no crea el agente, lo retira de la sonda (D112 punto 8).
+          agent: { name: claimed.assetId, group: claimed.tenantId, ...(target.retired ? { remove: true } : {}) },
+        };
+      }
       const ctx = await this.repo.loadRunContext(scope, claimed.executionId);
+      // Evaluar un servidor con agente (D112): no hay credenciales del cliente ni regiones. El trabajador lee la sonda con la suya; aquí solo se le dice QUÉ agente leer.
+      if (claimed.kind === 'assessment' && ctx.connectionMethod === 'agent') {
+        const link = await this.repo.loadAgentLink(scope, claimed.executionId);
+        if (!link?.agentId) {
+          // El agente todavía no se creó en la sonda: problema de conexión, no incumplimiento.
+          await this.repo.failExecution(scope, claimed.executionId, 'connection.agent_not_found', () => entry(scope, null, 'execution.fail', recordedState(claimed.executionId, claimed.assetId, { reason: 'connection.agent_not_found', kind: claimed.kind })));
+          continue;
+        }
+        return {
+          executionId: claimed.executionId, kind: claimed.kind, tenantId: claimed.tenantId, assetId: claimed.assetId, origin: claimed.origin, platform: ctx.platform,
+          externalAccountId: null, regions: [], connection: { method: 'agent' }, agent: { name: claimed.assetId, group: claimed.tenantId, agentId: link.agentId },
+        };
+      }
       let creds: Credentials | null = null;
       try {
         creds = ctx.encryptedCredentials ? this.cipher.decrypt(ctx.encryptedCredentials) : null;
@@ -206,12 +241,66 @@ export class CompleteExecutionUseCase {
   }
 }
 
+export type ScaReading = {
+  sondaVersion: string;
+  finishedAt: Date;
+  agent: ReportedAgent;
+  policies: ScaPolicyInput[];
+};
+
+// El trabajador leyó la sonda de un servidor con agente y entrega lo que vio (D112). Monkey NO le cree a ciegas: comprueba que el agente es el que enlazó a ESTE activo de ESTA
+// empresa (SEG-45), reconoce cada check en el catálogo del comité y guarda solo lo que reconoce; el resto se informa como «no mapeado», nunca se inventa.
+@Injectable()
+export class CompleteScaExecutionUseCase {
+  constructor(private readonly repo: ScanRepository) {}
+
+  async execute(tenantId: string, executionId: string, input: ScaReading, now: Date = new Date()): Promise<{ executionId: string; resultCount: number }> {
+    const scope: TenantScope = { companyId: tenantId };
+    const link = await this.repo.loadAgentLink(scope, executionId);
+    const verdict = checkAgentIsolation({
+      link: link?.agentId ? { tenantId: link.tenantId, assetId: link.assetId, agentId: link.agentId } : null,
+      reported: input.agent,
+      tenantId,
+      assetId: link?.assetId ?? '',
+    });
+    if (!verdict.ok) throw new DomainError(verdict.code);
+
+    const catalog = await this.repo.scaCatalog(input.policies.map((p) => ({ scaId: p.policyId, name: p.name })));
+    const { lookup, executed } = buildCatalogLookup(catalog, input.policies.map((p) => ({ policyId: p.policyId, name: p.name })));
+    const sca = interpretSca({ policies: input.policies, lookup, readAt: now });
+
+    const total = input.policies.reduce((n, p) => n + p.checks.length, 0);
+    const logs: ScaOutcome['logs'] = [{ level: 'info', message: `Lectura completada: ${total} checks de ${input.policies.length} política(s) de la sonda ${input.sondaVersion}; ${sca.rows.length} reconocidos en el catálogo.` }];
+    // Cobertura no alcanzada (D56, D112): lo que la sonda entregó y el comité aún no tiene catalogado se ve en la bitácora, no se descarta en silencio.
+    for (const u of sca.unmapped) logs.push({ level: 'warn', message: `Política fuera del catálogo (${u.checks} checks sin guardar): ${u.policyName} [${u.policyId}]` });
+    if (sca.duplicates > 0) logs.push({ level: 'warn', message: `Checks repetidos en la entrega: ${sca.duplicates} (se guardó el peor resultado de cada uno).` });
+
+    return this.repo.completeSca(scope, executionId, { agentId: input.agent.agentId, finishedAt: input.finishedAt, sondaVersion: input.sondaVersion, checksExecuted: executed, rows: sca.rows, logs }, (r) =>
+      entry(scope, null, 'execution.complete', recordedState(r.executionId, link?.assetId ?? null, { source: 'sca', sonda_version: input.sondaVersion, results: r.resultCount, unmapped_policies: sca.unmapped.length })),
+    );
+  }
+}
+
 @Injectable()
 export class FailExecutionUseCase {
   constructor(private readonly repo: ScanRepository) {}
 
-  execute(tenantId: string, executionId: string, reason: string) {
+  async execute(tenantId: string, executionId: string, reason: string) {
     const scope: TenantScope = { companyId: tenantId };
+    // Una lectura AUTOMÁTICA de un servidor que «todavía no estaba listo» (D112) no es un fallo del cliente: se cierra sin ruido (sin historial ni auditoría de cada espera) y, si el
+    // servidor estaba conectado y ya no, pasa a «desconectado». Lo demás (otra razón, o una lectura que pidió una persona) se cierra como fallo, con su razón a la vista.
+    const settled = await this.repo.settleAgentReading(scope, executionId, reason, (s) => ({
+      tenantId: tenantId,
+      userId: null,
+      action: 'agent.disconnected',
+      resource: 'asset',
+      result: 'success',
+      ipAddress: 'system',
+      userAgent: 'system',
+      beforeState: null,
+      afterState: { asset_id: s.assetId, execution_id: s.executionId, reason },
+    }));
+    if (settled) return { executionId };
     return this.repo.failExecution(scope, executionId, reason, () => entry(scope, null, 'execution.fail', recordedState(executionId, null, { reason })));
   }
 }

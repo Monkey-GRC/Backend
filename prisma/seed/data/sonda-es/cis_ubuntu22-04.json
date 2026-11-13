@@ -1,0 +1,829 @@
+{
+ "policyId": "cis_ubuntu22-04",
+ "translations": [
+  {
+   "checkId": "28500",
+   "remediationEs": "Primero asegúrese de que systemd esté configurado para que `/tmp` se monte al arrancar el sistema:\n```\nsystemctl unmask tmp.mount\n```\nPara los requisitos específicos del montaje de `/tmp` en su entorno, modifique `/etc/fstab`. Ejemplo con tmpfs y opciones de montaje específicas: monte `tmpfs` en `/tmp` con las opciones `defaults,rw,nosuid,nodev,noexec,relatime` y un tamaño máximo (por ejemplo `size=2G`, que es solo un ejemplo del tamaño de tmpfs).\nEjemplo con un volumen o disco y opciones de montaje específicas (el origen del volumen o disco depende de su entorno):\n```\n<device> /tmp <fstype> defaults,nodev,nosuid,noexec 0 0\n```"
+  },
+  {
+   "checkId": "28501",
+   "remediationEs": "Solo si existe una partición separada para `/tmp`: edite el archivo `/etc/fstab` y agregue `nodev` al cuarto campo (opciones de montaje) de la partición `/tmp`.\nEjemplo:\n```\n<device> /tmp <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/tmp` con las opciones configuradas:\n```\nmount -o remount /tmp\n```"
+  },
+  {
+   "checkId": "28502",
+   "remediationEs": "Solo si existe una partición separada para `/tmp`: edite el archivo `/etc/fstab` y agregue `noexec` al cuarto campo (opciones de montaje) de la partición `/tmp`.\nEjemplo:\n```\n<device> /tmp <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/tmp` con las opciones configuradas:\n```\nmount -o remount /tmp\n```"
+  },
+  {
+   "checkId": "28503",
+   "remediationEs": "Solo si existe una partición separada para `/tmp`: edite el archivo `/etc/fstab` y agregue `nosuid` al cuarto campo (opciones de montaje) de la partición `/tmp`.\nEjemplo:\n```\n<device> /tmp <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/tmp` con las opciones configuradas:\n```\nmount -o remount /tmp\n```"
+  },
+  {
+   "checkId": "28505",
+   "remediationEs": "Solo si existe una partición separada para `/var`: edite el archivo `/etc/fstab` y agregue `nodev` al cuarto campo (opciones de montaje) de la partición `/var`.\nEjemplo:\n```\n<device> /var <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/var` con las opciones configuradas:\n```\nmount -o remount /var\n```"
+  },
+  {
+   "checkId": "28506",
+   "remediationEs": "Solo si existe una partición separada para `/var`: edite el archivo `/etc/fstab` y agregue `nosuid` al cuarto campo (opciones de montaje) de la partición `/var`.\nEjemplo:\n```\n<device> /var <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/var` con las opciones configuradas:\n```\nmount -o remount /var\n```"
+  },
+  {
+   "checkId": "28507",
+   "remediationEs": "En instalaciones nuevas, durante la instalación cree una configuración de particiones personalizada y especifique una partición separada para `/var/tmp`. En sistemas ya instalados, cree una partición nueva y configure `/etc/fstab` según corresponda."
+  },
+  {
+   "checkId": "28508",
+   "remediationEs": "Solo si existe una partición separada para `/var/tmp`: edite el archivo `/etc/fstab` y agregue `noexec` al cuarto campo (opciones de montaje) de la partición `/var/tmp`.\nEjemplo:\n```\n<device> /var/tmp <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/var/tmp` con las opciones configuradas:\n```\nmount -o remount /var/tmp\n```"
+  },
+  {
+   "checkId": "28509",
+   "remediationEs": "Solo si existe una partición separada para `/var/tmp`: edite el archivo `/etc/fstab` y agregue `nosuid` al cuarto campo (opciones de montaje) de la partición `/var/tmp`.\nEjemplo:\n```\n<device> /var/tmp <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/var/tmp` con las opciones configuradas:\n```\nmount -o remount /var/tmp\n```"
+  },
+  {
+   "checkId": "28510",
+   "remediationEs": "Solo si existe una partición separada para `/var/tmp`: edite el archivo `/etc/fstab` y agregue `nodev` al cuarto campo (opciones de montaje) de la partición `/var/tmp`.\nEjemplo:\n```\n<device> /var/tmp <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/var/tmp` con las opciones configuradas:\n```\nmount -o remount /var/tmp\n```"
+  },
+  {
+   "checkId": "28511",
+   "remediationEs": "En instalaciones nuevas, durante la instalación cree una configuración de particiones personalizada y especifique una partición separada para `/var/log`. En sistemas ya instalados, cree una partición nueva y configure `/etc/fstab` según corresponda."
+  },
+  {
+   "checkId": "28512",
+   "remediationEs": "Solo si existe una partición separada para `/var/log`: edite el archivo `/etc/fstab` y agregue `nodev` al cuarto campo (opciones de montaje) de la partición `/var/log`.\nEjemplo:\n```\n<device> /var/log <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/var/log` con las opciones configuradas:\n```\nmount -o remount /var/log\n```"
+  },
+  {
+   "checkId": "28513",
+   "remediationEs": "Solo si existe una partición separada para `/var/log`: edite el archivo `/etc/fstab` y agregue `noexec` al cuarto campo (opciones de montaje) de la partición `/var/log`.\nEjemplo:\n```\n<device> /var/log <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/var/log` con las opciones configuradas:\n```\nmount -o remount /var/log\n```"
+  },
+  {
+   "checkId": "28514",
+   "remediationEs": "Solo si existe una partición separada para `/var/log`: edite el archivo `/etc/fstab` y agregue `nosuid` al cuarto campo (opciones de montaje) de la partición `/var/log`.\nEjemplo:\n```\n<device> /var/log <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/var/log` con las opciones configuradas:\n```\nmount -o remount /var/log\n```"
+  },
+  {
+   "checkId": "28515",
+   "remediationEs": "En instalaciones nuevas, durante la instalación cree una configuración de particiones personalizada y especifique una partición separada para `/var/log/audit`. En sistemas ya instalados, cree una partición nueva y configure `/etc/fstab` según corresponda."
+  },
+  {
+   "checkId": "28516",
+   "remediationEs": "Solo si existe una partición separada para `/var/log/audit`: edite el archivo `/etc/fstab` y agregue `noexec` al cuarto campo (opciones de montaje) de la partición `/var/log/audit`.\nEjemplo:\n```\n<device> /var/log/audit <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/var/log/audit` con las opciones configuradas:\n```\nmount -o remount /var/log/audit\n```"
+  },
+  {
+   "checkId": "28517",
+   "remediationEs": "Solo si existe una partición separada para `/var/log/audit`: edite el archivo `/etc/fstab` y agregue `nodev` al cuarto campo (opciones de montaje) de la partición `/var/log/audit`.\nEjemplo:\n```\n<device> /var/log/audit <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/var/log/audit` con las opciones configuradas:\n```\nmount -o remount /var/log/audit\n```"
+  },
+  {
+   "checkId": "28518",
+   "remediationEs": "Solo si existe una partición separada para `/var/log/audit`: edite el archivo `/etc/fstab` y agregue `nosuid` al cuarto campo (opciones de montaje) de la partición `/var/log/audit`.\nEjemplo:\n```\n<device> /var/log/audit <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/var/log/audit` con las opciones configuradas:\n```\nmount -o remount /var/log/audit\n```"
+  },
+  {
+   "checkId": "28519",
+   "remediationEs": "En instalaciones nuevas, durante la instalación cree una configuración de particiones personalizada y especifique una partición separada para `/home`. En sistemas ya instalados, cree una partición nueva y configure `/etc/fstab` según corresponda."
+  },
+  {
+   "checkId": "28520",
+   "remediationEs": "Solo si existe una partición separada para `/home`: edite el archivo `/etc/fstab` y agregue `nodev` al cuarto campo (opciones de montaje) de la partición `/home`.\nEjemplo:\n```\n<device> /home <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/home` con las opciones configuradas:\n```\nmount -o remount /home\n```"
+  },
+  {
+   "checkId": "28521",
+   "remediationEs": "Solo si existe una partición separada para `/home`: edite el archivo `/etc/fstab` y agregue `nosuid` al cuarto campo (opciones de montaje) de la partición `/home`.\nEjemplo:\n```\n<device> /home <fstype> defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/home` con las opciones configuradas:\n```\nmount -o remount /home\n```"
+  },
+  {
+   "checkId": "28522",
+   "remediationEs": "Solo si existe una partición separada para `/dev/shm`: edite el archivo `/etc/fstab` y agregue `nodev` al cuarto campo (opciones de montaje) de la partición `/dev/shm`. Consulte la página del manual `fstab(5)` para más información.\nEjemplo:\n```\ntmpfs /dev/shm tmpfs defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/dev/shm` con las opciones configuradas:\n```\nmount -o remount /dev/shm\n```\nNota: se recomienda usar tmpfs como dispositivo y tipo de sistema de archivos, porque las aplicaciones usan `/dev/shm` como espacio de memoria compartida."
+  },
+  {
+   "checkId": "28523",
+   "remediationEs": "Solo si existe una partición separada para `/dev/shm`: edite el archivo `/etc/fstab` y agregue `noexec` al cuarto campo (opciones de montaje) de la partición `/dev/shm`.\nEjemplo:\n```\ntmpfs /dev/shm tmpfs defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/dev/shm` con las opciones configuradas:\n```\nmount -o remount /dev/shm\n```\nNota: se recomienda usar tmpfs como dispositivo y tipo de sistema de archivos, porque las aplicaciones usan `/dev/shm` como espacio de memoria compartida."
+  },
+  {
+   "checkId": "28524",
+   "remediationEs": "Solo si existe una partición separada para `/dev/shm`: edite el archivo `/etc/fstab` y agregue `nosuid` al cuarto campo (opciones de montaje) de la partición `/dev/shm`. Consulte la página del manual `fstab(5)` para más información.\nEjemplo:\n```\ntmpfs /dev/shm tmpfs defaults,rw,nosuid,nodev,noexec,relatime 0 0\n```\nLuego ejecute el siguiente comando para volver a montar `/dev/shm` con las opciones configuradas:\n```\nmount -o remount /dev/shm\n```\nNota: se recomienda usar tmpfs como dispositivo y tipo de sistema de archivos, porque las aplicaciones usan `/dev/shm` como espacio de memoria compartida."
+  },
+  {
+   "checkId": "28525",
+   "remediationEs": "Ejecute los siguientes comandos para detener `autofs.service` y eliminar el paquete autofs:\n```\nsystemctl stop autofs.service\napt purge autofs\n```\nO bien, solo si el paquete autofs es necesario como dependencia, ejecute los siguientes comandos para detener y enmascarar `autofs.service`:\n```\nsystemctl stop autofs.service\nsystemctl mask autofs.service\n```"
+  },
+  {
+   "checkId": "28526",
+   "remediationEs": "Instale AIDE con el gestor de paquetes correspondiente o de forma manual:\n```\napt install aide aide-common\n```\nConfigure AIDE según su entorno (consulte la documentación de AIDE para ver las opciones). Ejecute los siguientes comandos para inicializar AIDE:\n```\naideinit\nmv /var/lib/aide/aide.db.new /var/lib/aide/aide.db\n```"
+  },
+  {
+   "checkId": "28527",
+   "remediationEs": "Cree una contraseña cifrada con `grub-mkpasswd-pbkdf2`:\n```\ngrub-mkpasswd-pbkdf2 --iteration-count=600000 --salt=64\n```\nEl programa le pedirá la contraseña dos veces y mostrará el hash PBKDF2 de su contraseña (<encrypted-password>).\nAgregue lo siguiente en un archivo de configuración personalizado dentro de `/etc/grub.d`:\n```\ncat <<EOF\nexec tail -n +2 $0\nset superusers=\"<username>\"\npassword_pbkdf2 <username> <encrypted-password>\nEOF\n```\nLa información del superusuario y la contraseña no debe quedar en el archivo `/etc/grub.d/00_header`, porque una actualización de paquetes podría sobrescribirlo.\nSi necesita poder arrancar o reiniciar sin escribir la contraseña, edite `/etc/grub.d/10_linux` y agregue `--unrestricted` a la línea `CLASS=`. Ejemplo:\n```\nCLASS=\"--class gnu-linux --class gnu --class os --unrestricted\"\n```\nEjecute el siguiente comando para actualizar la configuración de grub2:\n```\nupdate-grub\n```"
+  },
+  {
+   "checkId": "28528",
+   "remediationEs": "Ejecute los siguientes comandos para fijar los permisos de la configuración de grub:\n```\nchown root:root /boot/grub/grub.cfg\nchmod u-x,go-rwx /boot/grub/grub.cfg\n```"
+  },
+  {
+   "checkId": "28530",
+   "remediationEs": "Ejecute el siguiente comando para restaurar los binarios a su estado normal:\n```\nprelink -ua\n```\nDesinstale prelink con el gestor de paquetes correspondiente o de forma manual:\n```\napt purge prelink\n```"
+  },
+  {
+   "checkId": "28531",
+   "remediationEs": "Edite `/etc/default/apport` y agregue o modifique el parámetro `enabled` para que valga 0:\n```\nenabled=0\n```\nEjecute los siguientes comandos para detener y enmascarar el servicio apport:\n```\nsystemctl stop apport.service\nsystemctl mask apport.service\n```\nO bien, ejecute el siguiente comando para eliminar el paquete apport:\n```\napt purge apport\n```"
+  },
+  {
+   "checkId": "28533",
+   "remediationEs": "Instale AppArmor:\n```\napt install apparmor apparmor-utils\n```"
+  },
+  {
+   "checkId": "28534",
+   "remediationEs": "Edite `/etc/default/grub` y agregue los parámetros `apparmor=1` y `security=apparmor` a la línea `GRUB_CMDLINE_LINUX=`:\n```\nGRUB_CMDLINE_LINUX=\"apparmor=1 security=apparmor\"\n```\nEjecute el siguiente comando para actualizar la configuración de grub2:\n```\nupdate-grub\n```"
+  },
+  {
+   "checkId": "28537",
+   "remediationEs": "Edite el archivo `/etc/motd` con el contenido adecuado según la política de su organización y elimine cualquier aparición de `\\m`, `\\r`, `\\s`, `\\v` o referencias a la plataforma del sistema operativo.\nO bien, si el mensaje del día no se usa, el archivo puede eliminarse. Ejecute el siguiente comando:\n```\nrm /etc/motd\n```"
+  },
+  {
+   "checkId": "28538",
+   "remediationEs": "Edite el archivo `/etc/issue` con el contenido adecuado según la política de su organización y elimine cualquier aparición de `\\m`, `\\r`, `\\s`, `\\v` o referencias a la plataforma del sistema operativo. Ejemplo (el texto del aviso debe ser el de su política):\n```\necho \"Authorized users only. All activity may be monitored and reported.\" > /etc/issue\n```"
+  },
+  {
+   "checkId": "28539",
+   "remediationEs": "Edite el archivo `/etc/issue.net` con el contenido adecuado según la política de su organización y elimine cualquier aparición de `\\m`, `\\r`, `\\s`, `\\v` o referencias a la plataforma del sistema operativo. Ejemplo (el texto del aviso debe ser el de su política):\n```\necho \"Authorized users only. All activity may be monitored and reported.\" > /etc/issue.net\n```"
+  },
+  {
+   "checkId": "28540",
+   "remediationEs": "Ejecute los siguientes comandos para fijar el modo, el propietario y el grupo de `/etc/motd`:\n```\nchown root:root $(readlink -e /etc/motd)\nchmod u-x,go-wx $(readlink -e /etc/motd)\n```\nO bien, ejecute el siguiente comando para eliminar el archivo `/etc/motd`:\n```\nrm /etc/motd\n```"
+  },
+  {
+   "checkId": "28541",
+   "remediationEs": "Ejecute los siguientes comandos para fijar el modo, el propietario y el grupo de `/etc/issue`:\n```\nchown root:root $(readlink -e /etc/issue)\nchmod u-x,go-wx $(readlink -e /etc/issue)\n```"
+  },
+  {
+   "checkId": "28542",
+   "remediationEs": "Ejecute los siguientes comandos para fijar el modo, el propietario y el grupo de `/etc/issue.net`:\n```\nchown root:root $(readlink -e /etc/issue.net)\nchmod u-x,go-wx $(readlink -e /etc/issue.net)\n```"
+  },
+  {
+   "checkId": "28545",
+   "remediationEs": "Agregue o edite la línea `user` en `/etc/chrony/chrony.conf` o en un archivo que termine en `.conf` dentro de `/etc/chrony/conf.d/`:\n```\nuser _chrony\n```\nO bien, si en el sistema se usa otro servicio de sincronización de hora, ejecute los siguientes comandos para eliminar chrony:\n```\napt purge chrony\napt autoremove chrony\n```"
+  },
+  {
+   "checkId": "28546",
+   "remediationEs": "Solo si chrony se usa en el sistema, ejecute los siguientes comandos. Para desenmascarar `chrony.service`:\n```\nsystemctl unmask chrony.service\n```\nPara habilitarlo e iniciarlo:\n```\nsystemctl --now enable chrony.service\n```\nO bien, si en el sistema se usa otro servicio de sincronización de hora, ejecute los siguientes comandos para eliminar chrony:\n```\napt purge chrony\napt autoremove chrony\n```"
+  },
+  {
+   "checkId": "28547",
+   "remediationEs": "Solo si systemd-timesyncd se usa en el sistema, ejecute los siguientes comandos. Para desenmascarar `systemd-timesyncd.service`:\n```\nsystemctl unmask systemd-timesyncd.service\n```\nPara habilitarlo e iniciarlo:\n```\nsystemctl --now enable systemd-timesyncd.service\n```\nO bien, si en el sistema se usa otro servicio de sincronización de hora, ejecute el siguiente comando para detener y enmascarar systemd-timesyncd:\n```\nsystemctl --now mask systemd-timesyncd.service\n```"
+  },
+  {
+   "checkId": "28551",
+   "remediationEs": "Solo si la política de su organización no requiere ni aprueba un gestor de escritorio gráfico ni un servidor X Window, ejecute el siguiente comando para eliminar el paquete del servidor X Windows:\n```\napt purge xserver-common\n```"
+  },
+  {
+   "checkId": "28552",
+   "remediationEs": "Ejecute los siguientes comandos para detener `avahi-daemon.socket` y `avahi-daemon.service` y eliminar el paquete avahi-daemon:\n```\nsystemctl stop avahi-daemon.socket avahi-daemon.service\napt purge avahi-daemon\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop avahi-daemon.socket avahi-daemon.service\nsystemctl mask avahi-daemon.socket avahi-daemon.service\n```"
+  },
+  {
+   "checkId": "28553",
+   "remediationEs": "Ejecute los siguientes comandos para detener `cups.socket` y `cups.service` y eliminar el paquete cups:\n```\nsystemctl stop cups.socket cups.service\napt purge cups\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop cups.socket cups.service\nsystemctl mask cups.socket cups.service\n```"
+  },
+  {
+   "checkId": "28554",
+   "remediationEs": "Ejecute los siguientes comandos para detener `isc-dhcp-server.service` y `isc-dhcp-server6.service` y eliminar el paquete isc-dhcp-server:\n```\nsystemctl stop isc-dhcp-server.service isc-dhcp-server6.service\napt purge isc-dhcp-server\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop isc-dhcp-server.service isc-dhcp-server6.service\nsystemctl mask isc-dhcp-server isc-dhcp-server6.service\n```"
+  },
+  {
+   "checkId": "28555",
+   "remediationEs": "Ejecute los siguientes comandos para detener `slapd.service` y eliminar el paquete slapd:\n```\nsystemctl stop slapd.service\napt purge slapd\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop slapd.service\nsystemctl mask slapd.service\n```"
+  },
+  {
+   "checkId": "28556",
+   "remediationEs": "Ejecute los siguientes comandos para detener `nfs-server.service` y eliminar el paquete nfs-kernel-server:\n```\nsystemctl stop nfs-server.service\napt purge nfs-kernel-server\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop nfs-server.service\nsystemctl mask nfs-server.service\n```"
+  },
+  {
+   "checkId": "28557",
+   "remediationEs": "Ejecute los siguientes comandos para detener `bind9.service` y eliminar el paquete bind9:\n```\nsystemctl stop bind9.service\napt purge bind9\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop bind9.service\nsystemctl mask bind9.service\n```"
+  },
+  {
+   "checkId": "28558",
+   "remediationEs": "Ejecute los siguientes comandos para detener `vsftpd.service` y eliminar el paquete vsftpd:\n```\nsystemctl stop vsftpd.service\napt purge vsftpd\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop vsftpd.service\nsystemctl mask vsftpd.service\n```\nNota: pueden existir otros paquetes de servidor ftp. Si no son necesarios y la política de su organización lo permite, también deben eliminarse. Si el paquete es necesario como dependencia, el servicio debe detenerse y enmascararse."
+  },
+  {
+   "checkId": "28559",
+   "remediationEs": "Ejecute los siguientes comandos para detener `apache2.socket`, `httpd.service` y `nginx.service` y eliminar los paquetes apache2 y nginx:\n```\nsystemctl stop apache2.socket httpd.service nginx.service\napt purge apache2 nginx\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop apache2.socket apache2.service nginx.service\nsystemctl mask apache2.socket apache2.service nginx.service\n```\nNota: pueden existir otros paquetes de servidor web. Si no son necesarios y la política de su organización lo permite, también deben eliminarse. Si el paquete es necesario como dependencia, el servicio y el socket deben detenerse y enmascararse."
+  },
+  {
+   "checkId": "28560",
+   "remediationEs": "Ejecute los siguientes comandos para detener `dovecot.socket` y `dovecot.service` y eliminar los paquetes dovecot-imapd y dovecot-pop3d:\n```\nsystemctl stop dovecot.socket dovecot.service\napt purge dovecot-imapd dovecot-pop3d\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop dovecot.socket dovecot.service\nsystemctl mask dovecot.socket dovecot.service\n```"
+  },
+  {
+   "checkId": "28561",
+   "remediationEs": "Ejecute los siguientes comandos para detener `smbd.service` y eliminar el paquete samba:\n```\nsystemctl stop smbd.service\napt purge samba\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop smbd.service\nsystemctl mask smbd.service\n```"
+  },
+  {
+   "checkId": "28562",
+   "remediationEs": "Ejecute los siguientes comandos para detener `squid.service` y eliminar el paquete squid:\n```\nsystemctl stop squid.service\napt purge squid\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop squid.service\nsystemctl mask squid.service\n```"
+  },
+  {
+   "checkId": "28563",
+   "remediationEs": "Ejecute los siguientes comandos para detener `snmpd.service` y eliminar el paquete snmpd:\n```\nsystemctl stop snmpd.service\napt purge snmpd\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop snmpd.service\nsystemctl mask snmpd.service\n```"
+  },
+  {
+   "checkId": "28564",
+   "remediationEs": "Ejecute los siguientes comandos para detener `ypserv.service` y eliminar el paquete ypserv:\n```\nsystemctl stop ypserv.service\napt purge ypserv\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop ypserv.service\nsystemctl mask ypserv.service\n```"
+  },
+  {
+   "checkId": "28565",
+   "remediationEs": "Edite `/etc/postfix/main.cf` y agregue la siguiente línea en la sección RECEIVING MAIL. Si la línea ya existe, cámbiela para que quede como la siguiente:\n```\ninet_interfaces = loopback-only\n```\nEjecute el siguiente comando para reiniciar postfix:\n```\nsystemctl restart postfix\n```\nNota: esta recomendación está pensada para el servidor de correo postfix. Según su entorno, puede tener instalado otro agente de transferencia de correo, como exim4; en ese caso, consulte la documentación de ese agente para configurar el estado recomendado."
+  },
+  {
+   "checkId": "28566",
+   "remediationEs": "Ejecute los siguientes comandos para detener `rsync.service` y eliminar el paquete rsync:\n```\nsystemctl stop rsync.service\napt purge rsync\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop rsync.service\nsystemctl mask rsync.service\n```"
+  },
+  {
+   "checkId": "28567",
+   "remediationEs": "Desinstale nis:\n```\napt purge nis\n```"
+  },
+  {
+   "checkId": "28568",
+   "remediationEs": "Desinstale rsh:\n```\napt purge rsh-client\n```"
+  },
+  {
+   "checkId": "28569",
+   "remediationEs": "Desinstale talk:\n```\napt purge talk\n```"
+  },
+  {
+   "checkId": "28570",
+   "remediationEs": "Desinstale telnet:\n```\napt purge telnet\n```"
+  },
+  {
+   "checkId": "28571",
+   "remediationEs": "Desinstale ldap-utils:\n```\napt purge ldap-utils\n```"
+  },
+  {
+   "checkId": "28572",
+   "remediationEs": "Ejecute los siguientes comandos para detener `rpcbind.socket` y `rpcbind.service` y eliminar el paquete rpcbind:\n```\nsystemctl stop rpcbind.socket rpcbind.service\napt purge rpcbind\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop rpcbind.socket rpcbind.service\nsystemctl mask rpcbind.socket rpcbind.service\n```"
+  },
+  {
+   "checkId": "28573",
+   "remediationEs": "Ejecute el siguiente comando para instalar Uncomplicated Firewall (UFW):\n```\napt install ufw\n```"
+  },
+  {
+   "checkId": "28574",
+   "remediationEs": "Ejecute el siguiente comando para eliminar el paquete iptables-persistent:\n```\napt purge iptables-persistent\n```"
+  },
+  {
+   "checkId": "28575",
+   "remediationEs": "Ejecute el siguiente comando para desenmascarar el demonio de ufw:\n```\nsystemctl unmask ufw.service\n```\nEjecute el siguiente comando para habilitar e iniciar el demonio de ufw:\n```\nsystemctl --now enable ufw.service\n```\nEjecute el siguiente comando para habilitar ufw:\n```\nufw enable\n```"
+  },
+  {
+   "checkId": "28576",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\nufw allow in on lo\nufw allow out on lo\nufw deny in from 127.0.0.0/8\nufw deny in from ::1\n```"
+  },
+  {
+   "checkId": "28577",
+   "remediationEs": "Ejecute los siguientes comandos para implementar una política por defecto de denegación:\n```\nufw default deny incoming\nufw default deny outgoing\nufw default deny routed\n```"
+  },
+  {
+   "checkId": "28578",
+   "remediationEs": "Ejecute el siguiente comando para instalar nftables:\n```\napt install nftables\n```"
+  },
+  {
+   "checkId": "28579",
+   "remediationEs": "Ejecute el siguiente comando para crear una tabla en nftables:\n```\nnft create table inet <table name>\n```\nEjemplo:\n```\nnft create table inet filter\n```"
+  },
+  {
+   "checkId": "28580",
+   "remediationEs": "Ejecute el siguiente comando para crear las cadenas base (base chains):\n```\nnft create chain inet <table name> <base chain name> { type filter hook <(input|forward|output)> priority 0 \\; }\n```\nEjemplo:\n```\nnft create chain inet filter input { type filter hook input priority 0 \\; }\nnft create chain inet filter forward { type filter hook forward priority 0 \\; }\nnft create chain inet filter output { type filter hook output priority 0 \\; }\n```"
+  },
+  {
+   "checkId": "28581",
+   "remediationEs": "Ejecute el siguiente comando en las cadenas base con los ganchos (hooks) input, forward y output para aplicar una política por defecto DROP:\n```\nnft chain <table family> <table name> <chain name> { policy drop \\; }\n```\nEjemplo:\n```\nnft chain inet filter input { policy drop \\; }\nnft chain inet filter forward { policy drop \\; }\nnft chain inet filter output { policy drop \\; }\n```"
+  },
+  {
+   "checkId": "28582",
+   "remediationEs": "Ejecute el siguiente comando para habilitar el servicio nftables:\n```\nsystemctl enable nftables\n```"
+  },
+  {
+   "checkId": "28583",
+   "remediationEs": "Ejecute el siguiente comando para instalar iptables e iptables-persistent:\n```\napt install iptables iptables-persistent\n```"
+  },
+  {
+   "checkId": "28584",
+   "remediationEs": "Ejecute el siguiente comando para eliminar nftables:\n```\napt purge nftables\n```"
+  },
+  {
+   "checkId": "28585",
+   "remediationEs": "Elimine ufw, o bien deténgalo y enmascárelo. Para eliminar ufw, ejecute:\n```\napt purge ufw\n```\nO bien, para deshabilitar ufw, ejecute:\n```\nufw disable\nsystemctl stop ufw\nsystemctl mask ufw\n```\nNota: `ufw disable` debe ejecutarse antes de `systemctl mask ufw` para deshabilitar UFW correctamente."
+  },
+  {
+   "checkId": "28586",
+   "remediationEs": "Ejecute los siguientes comandos para implementar una política por defecto DROP:\n```\niptables -P INPUT DROP\niptables -P OUTPUT DROP\niptables -P FORWARD DROP\n```"
+  },
+  {
+   "checkId": "28587",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\niptables -A INPUT -i lo -j ACCEPT\niptables -A OUTPUT -o lo -j ACCEPT\niptables -A INPUT -s 127.0.0.0/8 -j DROP\n```"
+  },
+  {
+   "checkId": "28588",
+   "remediationEs": "Solo si IPv6 está habilitado en su sistema, ejecute los siguientes comandos para implementar una política por defecto DROP:\n```\nip6tables -P INPUT DROP\nip6tables -P OUTPUT DROP\nip6tables -P FORWARD DROP\n```"
+  },
+  {
+   "checkId": "28589",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\nip6tables -A INPUT -i lo -j ACCEPT\nip6tables -A OUTPUT -o lo -j ACCEPT\nip6tables -A INPUT -s ::1 -j DROP\n```"
+  },
+  {
+   "checkId": "28590",
+   "remediationEs": "Ejecute el siguiente comando para instalar auditd y audispd-plugins:\n```\napt install auditd audispd-plugins\n```"
+  },
+  {
+   "checkId": "28591",
+   "remediationEs": "Ejecute los siguientes comandos para desenmascarar, habilitar e iniciar auditd:\n```\nsystemctl unmask auditd\nsystemctl enable auditd\nsystemctl start auditd\n```"
+  },
+  {
+   "checkId": "28592",
+   "remediationEs": "Edite `/etc/default/grub` y agregue `audit=1` a `GRUB_CMDLINE_LINUX`. Ejemplo:\n```\nGRUB_CMDLINE_LINUX=\"audit=1\"\n```\nEjecute el siguiente comando para actualizar la configuración de grub2:\n```\nupdate-grub\n```"
+  },
+  {
+   "checkId": "28593",
+   "remediationEs": "Edite `/etc/default/grub` y agregue `audit_backlog_limit=N` a `GRUB_CMDLINE_LINUX`. El tamaño recomendado para N es 8192 o mayor. Ejemplo:\n```\nGRUB_CMDLINE_LINUX=\"audit_backlog_limit=8192\"\n```\nEjecute el siguiente comando para actualizar la configuración de grub2:\n```\nupdate-grub\n```"
+  },
+  {
+   "checkId": "28594",
+   "remediationEs": "Fije el siguiente parámetro en `/etc/audit/auditd.conf` de acuerdo con la política de su organización (el valor es el tamaño en MB):\n```\nmax_log_file = <MB>\n```"
+  },
+  {
+   "checkId": "28595",
+   "remediationEs": "Fije el siguiente parámetro en `/etc/audit/auditd.conf`:\n```\nmax_log_file_action = keep_logs\n```"
+  },
+  {
+   "checkId": "28596",
+   "remediationEs": "Fije uno de los siguientes valores en `/etc/audit/auditd.conf`, según su política de seguridad local:\n```\ndisk_full_action = <halt|single>\ndisk_error_action = <syslog|single|halt>\n```\nEjemplo:\n```\ndisk_full_action = halt\ndisk_error_action = halt\n```"
+  },
+  {
+   "checkId": "28597",
+   "remediationEs": "Cree reglas de auditoría para vigilar los cambios al ámbito de administración del sistema (sudoers).\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-scope.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-w /etc/sudoers -p wa -k scope\n-w /etc/sudoers.d -p wa -k scope\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "28598",
+   "remediationEs": "Cree reglas de auditoría para registrar siempre las acciones realizadas como otro usuario (privilegios elevados).\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-user_emulation.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-a always,exit -F arch=b64 -C euid!=uid -F auid!=unset -S execve -k user_emulation\n-a always,exit -F arch=b32 -C euid!=uid -F auid!=unset -S execve -k user_emulation\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "28599",
+   "remediationEs": "Cree reglas de auditoría para vigilar los eventos que modifican la fecha y la hora (ejemplo para sistemas de 64 bits).\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-time-change.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-a always,exit -F arch=b64 -S adjtimex,settimeofday,clock_settime -k time-change\n-a always,exit -F arch=b32 -S adjtimex,settimeofday,clock_settime -k time-change\n-w /etc/localtime -p wa -k time-change\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "28600",
+   "remediationEs": "Cree reglas de auditoría para vigilar los eventos que modifican el entorno de red del sistema.\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-system_locale.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-a always,exit -F arch=b64 -S sethostname,setdomainname -k system-locale\n-a always,exit -F arch=b32 -S sethostname,setdomainname -k system-locale\n-w /etc/issue -p wa -k system-locale\n-w /etc/issue.net -p wa -k system-locale\n-w /etc/hosts -p wa -k system-locale\n-w /etc/networks -p wa -k system-locale\n-w /etc/network/ -p wa -k system-locale\n-w /etc/netplan/ -p wa -k system-locale\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "28601",
+   "remediationEs": "Cree reglas de auditoría para vigilar los eventos que modifican la información de usuarios y grupos.\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-identity.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-w /etc/group -p wa -k identity\n-w /etc/passwd -p wa -k identity\n-w /etc/gshadow -p wa -k identity\n-w /etc/shadow -p wa -k identity\n-w /etc/security/opasswd -p wa -k identity\n-w /etc/nsswitch.conf -p wa -k identity\n-w /etc/pam.conf -p wa -k identity\n-w /etc/pam.d -p wa -k identity\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "28602",
+   "remediationEs": "Cree reglas de auditoría para recopilar la información de inicio de sesión (session initiation).\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-session.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-w /var/run/utmp -p wa -k session\n-w /var/log/wtmp -p wa -k session\n-w /var/log/btmp -p wa -k session\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "28603",
+   "remediationEs": "Cree reglas de auditoría para recopilar los eventos de inicio y cierre de sesión.\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-login.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-w /var/log/lastlog -p wa -k logins\n-w /var/run/faillock -p wa -k logins\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "28604",
+   "remediationEs": "Cree reglas de auditoría para vigilar los eventos que modifican los Controles de Acceso Obligatorios (MAC) del sistema.\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-MAC-policy.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-w /etc/apparmor/ -p wa -k MAC-policy\n-w /etc/apparmor.d/ -p wa -k MAC-policy\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "28605",
+   "remediationEs": "Edite o cree el archivo `/etc/audit/rules.d/99-finalize.rules` y agregue la línea `-e 2` al final del archivo:\n```\n-e 2\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "28606",
+   "remediationEs": "Ejecute el siguiente comando para que el grupo propietario de los archivos de log de auditoría sea `adm`:\n```\nfind $(dirname $(awk -F\"=\" '/^\\s*log_file/ {print $2}' /etc/audit/auditd.conf | xargs)) -type f \\( ! -group adm -a ! -group root \\) -exec chgrp adm {} +\n```\nEjecute el siguiente comando para fijar el parámetro `log_group` en el archivo de configuración de auditoría como `log_group = adm`:\n```\nsed -ri 's/^\\s*#?\\s*log_group\\s*=\\s*\\S+(\\s*#.*)?.*$/log_group = adm\\1/' /etc/audit/auditd.conf\n```\nEjecute el siguiente comando para reiniciar el demonio de auditoría y recargar el archivo de configuración:\n```\nsystemctl restart auditd\n```"
+  },
+  {
+   "checkId": "28607",
+   "remediationEs": "Ejecute el siguiente comando para quitar a los archivos de configuración de auditoría los permisos más amplios que 0640:\n```\nfind /etc/audit/ -type f \\( -name '*.conf' -o -name '*.rules' \\) -exec chmod u-x,g-wx,o-rwx {} +\n```"
+  },
+  {
+   "checkId": "28608",
+   "remediationEs": "Ejecute el siguiente comando para que el propietario de los archivos de configuración de auditoría sea el usuario root:\n```\nfind /etc/audit/ -type f \\( -name '*.conf' -o -name '*.rules' \\) ! -user root -exec chown root {} +\n```"
+  },
+  {
+   "checkId": "28609",
+   "remediationEs": "Ejecute el siguiente comando para que el grupo propietario de los archivos de configuración de auditoría sea root:\n```\nfind /etc/audit/ -type f \\( -name '*.conf' -o -name '*.rules' \\) ! -group root -exec chgrp root {} +\n```"
+  },
+  {
+   "checkId": "28610",
+   "remediationEs": "Ejecute el siguiente comando para quitar a las herramientas de auditoría los permisos de escritura de grupo y otros:\n```\nchmod go-w /sbin/auditctl /sbin/aureport /sbin/ausearch /sbin/autrace /sbin/auditd /sbin/augenrules\n```"
+  },
+  {
+   "checkId": "28611",
+   "remediationEs": "Ejecute el siguiente comando para que el propietario de las herramientas de auditoría sea el usuario root:\n```\nchown root /sbin/auditctl /sbin/aureport /sbin/ausearch /sbin/autrace /sbin/auditd /sbin/augenrules\n```"
+  },
+  {
+   "checkId": "28612",
+   "remediationEs": "Ejecute el siguiente comando para que el grupo propietario de las herramientas de auditoría sea root:\n```\nchgrp root /sbin/auditctl /sbin/aureport /sbin/ausearch /sbin/autrace /sbin/auditd /sbin/augenrules\n```"
+  },
+  {
+   "checkId": "28613",
+   "remediationEs": "Edite `/etc/aide/aide.conf` y agregue o actualice las siguientes líneas de selección:\n```\n# Audit Tools\n/sbin/auditctl p+i+n+u+g+s+b+acl+xattrs+sha512\n/sbin/auditd p+i+n+u+g+s+b+acl+xattrs+sha512\n/sbin/ausearch p+i+n+u+g+s+b+acl+xattrs+sha512\n/sbin/aureport p+i+n+u+g+s+b+acl+xattrs+sha512\n/sbin/autrace p+i+n+u+g+s+b+acl+xattrs+sha512\n/sbin/augenrules p+i+n+u+g+s+b+acl+xattrs+sha512\n```\nNota: si `/etc/aide/aide.conf` incluye una instrucción `@@x_include` (por ejemplo, `@@x_include /etc/aide/aide.conf.d ^[a-zA-Z0-9_-]+$`), tenga en cuenta que `@x_include` es idéntica a `@@include`, salvo que, si un archivo de configuración es ejecutable, se ejecuta y su salida se usa como configuración. Si el ejecutable termina con un estado mayor que cero o escribe en stderr, aide se detiene con un error. Por seguridad, el directorio y cada archivo de configuración ejecutable deben pertenecer al usuario actual y no ser escribibles por el grupo ni por otros."
+  },
+  {
+   "checkId": "28614",
+   "remediationEs": "Ejecute el siguiente comando para instalar systemd-journal-remote:\n```\napt install systemd-journal-remote\n```"
+  },
+  {
+   "checkId": "28615",
+   "remediationEs": "Ejecute los siguientes comandos para detener y enmascarar `systemd-journal-remote.socket` y `systemd-journal-remote.service`:\n```\nsystemctl stop systemd-journal-remote.socket systemd-journal-remote.service\nsystemctl mask systemd-journal-remote.socket systemd-journal-remote.service\n```"
+  },
+  {
+   "checkId": "28616",
+   "remediationEs": "Ejecute los siguientes comandos para desenmascarar e iniciar `systemd-journald.service`:\n```\nsystemctl unmask systemd-journald.service\nsystemctl start systemd-journald.service\n```"
+  },
+  {
+   "checkId": "28617",
+   "remediationEs": "Fije el siguiente parámetro en la sección `[Journal]` de `/etc/systemd/journald.conf` o de un archivo que termine en `.conf` dentro de `/etc/systemd/journald.conf.d/`:\n```\nCompress=yes\n```\nNota: si esta opción aparece en un archivo canónicamente posterior, o más adelante en el mismo archivo, se sobrescribirá.\nEjecute el siguiente comando para aplicar los cambios en el servicio:\n```\nsystemctl reload-or-restart systemd-journald\n```"
+  },
+  {
+   "checkId": "28618",
+   "remediationEs": "Fije el siguiente parámetro en la sección `[Journal]` de `/etc/systemd/journald.conf` o de un archivo que termine en `.conf` dentro de `/etc/systemd/journald.conf.d/`:\n```\nStorage=persistent\n```\nNota: si esta opción aparece en un archivo canónicamente posterior, o más adelante en el mismo archivo, se sobrescribirá.\nEjecute el siguiente comando para aplicar los cambios en el servicio:\n```\nsystemctl reload-or-restart systemd-journald\n```"
+  },
+  {
+   "checkId": "28619",
+   "remediationEs": "Fije el siguiente parámetro en la sección `[Journal]` de `/etc/systemd/journald.conf` o de un archivo que termine en `.conf` dentro de `/etc/systemd/journald.conf.d/`:\n```\nForwardToSyslog=no\n```\nNota: si esta opción aparece en un archivo canónicamente posterior, o más adelante en el mismo archivo, se sobrescribirá.\nEjecute el siguiente comando para aplicar los cambios en el servicio:\n```\nsystemctl reload-or-restart systemd-journald\n```"
+  },
+  {
+   "checkId": "28625",
+   "remediationEs": "Solo si cron está instalado en el sistema, ejecute los siguientes comandos para desenmascarar, habilitar e iniciar cron:\n```\nsystemctl unmask \"$(systemctl list-unit-files | awk '$1~/^crond?\\.service/{print $1}')\"\nsystemctl --now enable \"$(systemctl list-unit-files | awk '$1~/^crond?\\.service/{print $1}')\"\n```"
+  },
+  {
+   "checkId": "28626",
+   "remediationEs": "Solo si cron está instalado en el sistema, ejecute los siguientes comandos para fijar el propietario y los permisos de `/etc/crontab`:\n```\nchown root:root /etc/crontab\nchmod og-rwx /etc/crontab\n```"
+  },
+  {
+   "checkId": "28627",
+   "remediationEs": "Solo si cron está instalado en el sistema, ejecute los siguientes comandos para fijar el propietario y los permisos del directorio `/etc/cron.hourly`:\n```\nchown root:root /etc/cron.hourly/\nchmod og-rwx /etc/cron.hourly/\n```"
+  },
+  {
+   "checkId": "28628",
+   "remediationEs": "Solo si cron está instalado en el sistema, ejecute los siguientes comandos para fijar el propietario y los permisos del directorio `/etc/cron.daily`:\n```\nchown root:root /etc/cron.daily/\nchmod og-rwx /etc/cron.daily/\n```"
+  },
+  {
+   "checkId": "28629",
+   "remediationEs": "Solo si cron está instalado en el sistema, ejecute los siguientes comandos para fijar el propietario y los permisos del directorio `/etc/cron.weekly`:\n```\nchown root:root /etc/cron.weekly/\nchmod og-rwx /etc/cron.weekly/\n```"
+  },
+  {
+   "checkId": "28630",
+   "remediationEs": "Solo si cron está instalado en el sistema, ejecute los siguientes comandos para fijar el propietario y los permisos del directorio `/etc/cron.monthly`:\n```\nchown root:root /etc/cron.monthly/\nchmod og-rwx /etc/cron.monthly/\n```"
+  },
+  {
+   "checkId": "28631",
+   "remediationEs": "Solo si cron está instalado en el sistema, ejecute los siguientes comandos para fijar el propietario y los permisos del directorio `/etc/cron.d`:\n```\nchown root:root /etc/cron.d/\nchmod og-rwx /etc/cron.d/\n```"
+  },
+  {
+   "checkId": "28634",
+   "remediationEs": "Ejecute el siguiente script para fijar el propietario y los permisos de `/etc/ssh/sshd_config` y de los archivos que terminan en `.conf` dentro del directorio `/etc/ssh/sshd_config.d`:\n```\n#!/usr/bin/env bash\n{\nchmod u-x,og-rwx /etc/ssh/sshd_config\nchown root:root /etc/ssh/sshd_config\nwhile IFS= read -r -d $'\\0' l_file; do\nif [ -e \"$l_file\" ]; then\nchmod u-x,og-rwx \"$l_file\"\nchown root:root \"$l_file\"\nfi\ndone < <(find /etc/ssh/sshd_config.d -type f -print0 2>/dev/null)\n}\n```\nSolo si hay otras ubicaciones en una instrucción `Include`, los archivos `*.conf` de esas ubicaciones también deben modificarse."
+  },
+  {
+   "checkId": "28635",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar uno o más de los siguientes parámetros, por encima de cualquier instrucción Include y Match:\n```\nAllowUsers <userlist>\n```\nY/o:\n```\nAllowGroups <grouplist>\n```\nNota: la primera aparición de una opción tiene prioridad, salvo en las instrucciones Match. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo `.conf` de un directorio Include. Es más fácil administrar una lista de permitidos que una de denegados: en una lista de denegados podría agregar un usuario o grupo y olvidar incluirlo en ella."
+  },
+  {
+   "checkId": "28636",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar el parámetro `LogLevel` en VERBOSE o INFO, por encima de cualquier entrada Include y Match:\n```\nLogLevel VERBOSE\n```\nO bien:\n```\nLogLevel INFO\n```\nNota: la primera aparición de una opción tiene prioridad, salvo en las instrucciones Match. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28637",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar el parámetro `UsePAM` en yes, por encima de cualquier entrada Include:\n```\nUsePAM yes\n```\nNota: la primera aparición de una opción tiene prioridad, salvo en las instrucciones Match. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28638",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar el parámetro `PermitRootLogin` en no, por encima de cualquier entrada Include y Match:\n```\nPermitRootLogin no\n```\nNota: la primera aparición de una opción tiene prioridad, salvo en las instrucciones Match. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28639",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar el parámetro `HostbasedAuthentication` en no, por encima de cualquier entrada Include y Match:\n```\nHostbasedAuthentication no\n```\nNota: la primera aparición de una opción tiene prioridad, salvo en las instrucciones Match. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28640",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar el parámetro `PermitEmptyPasswords` en no, por encima de cualquier entrada Include y Match:\n```\nPermitEmptyPasswords no\n```\nNota: la primera aparición de una opción tiene prioridad, salvo en las instrucciones Match. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28641",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar el parámetro `PermitUserEnvironment` en no, por encima de cualquier entrada Include:\n```\nPermitUserEnvironment no\n```\nNota: la primera aparición de una opción tiene prioridad. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28642",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar el parámetro `IgnoreRhosts` en yes, por encima de cualquier entrada Include y Match:\n```\nIgnoreRhosts yes\n```\nNota: la primera aparición de una opción tiene prioridad, salvo en las instrucciones Match. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28644",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` y agregue o modifique la línea `Ciphers` para que contenga una lista, separada por comas, de los cifrados (Ciphers) que la política de su organización no aprueba (débiles), cada uno precedido por `-`, por encima de cualquier entrada Include. Ejemplo:\n```\nCiphers -3des-cbc,aes128-cbc,aes192-cbc,aes256-cbc,chacha20-poly1305@openssh.com\n```\nSolo si la vulnerabilidad `CVE-2023-48795` ya se corrigió y cumple la política de su organización, `chacha20-poly1305@openssh.com` puede quitarse de la lista de cifrados excluidos.\nNota: la primera aparición de una opción tiene prioridad. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28645",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` y agregue o modifique la línea `MACs` para que contenga una lista, separada por comas, de los algoritmos MAC que la política de su organización no aprueba (débiles), cada uno precedido por `-`, por encima de cualquier entrada Include. Ejemplo:\n```\nMACs -hmac-md5,hmac-md5-96,hmac-ripemd160,hmac-sha1-96,umac-64@openssh.com,hmac-md5-etm@openssh.com,hmac-md5-96-etm@openssh.com,hmac-ripemd160-etm@openssh.com,hmac-sha1-96-etm@openssh.com,umac-64-etm@openssh.com,umac-128-etm@openssh.com\n```\nSolo si la vulnerabilidad `CVE-2023-48795` no se ha revisado ni corregido, también deben agregarse a la lista de exclusión los siguientes MAC etm:\n```\nhmac-sha1-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com\n```\nNota: la primera aparición de una opción tiene prioridad. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28646",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` y agregue o modifique la línea `KexAlgorithms` para que contenga una lista, separada por comas, de los algoritmos de intercambio de claves (KexAlgorithms) que la política de su organización no aprueba (débiles), cada uno precedido por `-`, por encima de cualquier entrada Include. Ejemplo:\n```\nKexAlgorithms -diffie-hellman-group1-sha1,diffie-hellman-group14-sha1,diffie-hellman-group-exchange-sha1\n```\nNota: la primera aparición de una opción tiene prioridad. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28648",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar el parámetro `Banner` con la ruta del aviso, por encima de cualquier entrada Include y Match:\n```\nBanner /etc/issue.net\n```\nNota: la primera aparición de una opción tiene prioridad, salvo en las instrucciones Match. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28649",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar el parámetro `MaxAuthTries` en 4 o menos, por encima de cualquier entrada Include y Match:\n```\nMaxAuthTries 4\n```\nNota: la primera aparición de una opción tiene prioridad, salvo en las instrucciones Match. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28650",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar el parámetro `MaxStartups` en 10:30:60 o más restrictivo, por encima de cualquier entrada Include:\n```\nMaxStartups 10:30:60\n```\nNota: la primera aparición de una opción tiene prioridad. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28651",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar el parámetro `MaxSessions` en 10 o menos, por encima de cualquier entrada Include y Match:\n```\nMaxSessions 10\n```\nNota: la primera aparición de una opción tiene prioridad, salvo en las instrucciones Match. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28652",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar el parámetro `LoginGraceTime` en 60 segundos o menos, por encima de cualquier entrada Include:\n```\nLoginGraceTime 60\n```\nNota: la primera aparición de una opción tiene prioridad. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28653",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar los parámetros `ClientAliveInterval` y `ClientAliveCountMax`, por encima de cualquier entrada Include y Match, de acuerdo con la política de su organización. Ejemplo:\n```\nClientAliveInterval 15\nClientAliveCountMax 3\n```\nNota: la primera aparición de una opción tiene prioridad, salvo en las instrucciones Match. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28654",
+   "remediationEs": "Primero determine si se necesita la funcionalidad LDAP. Si es así, instale `sudo-ldap`; si no, instale `sudo`. Ejemplo:\n```\napt install sudo\n```"
+  },
+  {
+   "checkId": "28655",
+   "remediationEs": "Edite el archivo `/etc/sudoers` con `visudo`, o un archivo en `/etc/sudoers.d/` con `visudo -f <PATH TO FILE>`, y agregue la siguiente línea:\n```\nDefaults use_pty\n```\nEdite `/etc/sudoers` y cualquier archivo en `/etc/sudoers.d/` con `visudo -f <PATH TO FILE>` y elimine cualquier aparición de `!use_pty`.\nNotas:\n- sudo lee cada archivo de `/etc/sudoers.d`, omitiendo los nombres que terminan en `~` o que contienen un punto, para evitar problemas con archivos temporales o de respaldo de los gestores de paquetes y los editores.\n- Los archivos se procesan en orden léxico: `/etc/sudoers.d/01_first` se lee antes que `/etc/sudoers.d/10_second`.\n- Como el orden es léxico y no numérico, `/etc/sudoers.d/1_whoops` se cargaría después de `/etc/sudoers.d/10_second`.\n- Usar la misma cantidad de ceros a la izquierda en los nombres de archivo evita estos problemas."
+  },
+  {
+   "checkId": "28656",
+   "remediationEs": "Edite el archivo `/etc/sudoers` o un archivo en `/etc/sudoers.d/` con `visudo` o `visudo -f <PATH TO FILE>` y agregue la siguiente línea. Ejemplo:\n```\nDefaults logfile=\"/var/log/sudo.log\"\n```\nNotas:\n- sudo lee cada archivo de `/etc/sudoers.d`, omitiendo los nombres que terminan en `~` o que contienen un punto, para evitar problemas con archivos temporales o de respaldo de los gestores de paquetes y los editores.\n- Los archivos se procesan en orden léxico: `/etc/sudoers.d/01_first` se lee antes que `/etc/sudoers.d/10_second`.\n- Como el orden es léxico y no numérico, `/etc/sudoers.d/1_whoops` se cargaría después de `/etc/sudoers.d/10_second`.\n- Usar la misma cantidad de ceros a la izquierda en los nombres de archivo evita estos problemas."
+  },
+  {
+   "checkId": "28657",
+   "remediationEs": "Según el resultado del procedimiento de auditoría, use `visudo -f <PATH TO FILE>` para editar el archivo sudoers correspondiente y elimine cualquier línea que contenga la etiqueta `NOPASSWD`."
+  },
+  {
+   "checkId": "28658",
+   "remediationEs": "Configure el sistema operativo para exigir que los usuarios se reautentiquen al escalar privilegios. Según el resultado del procedimiento de auditoría, use `visudo -f <PATH TO FILE>` para editar el archivo sudoers correspondiente y elimine cualquier aparición de la etiqueta `!authenticate`."
+  },
+  {
+   "checkId": "28659",
+   "remediationEs": "Si el tiempo de espera configurado es mayor de 15 minutos, edite el archivo indicado en la auditoría con `visudo -f <PATH TO FILE>` y cambie la entrada `timestamp_timeout=` a 15 minutos o menos, según la política de su organización. El valor está en minutos. Esta entrada puede aparecer sola o en la misma línea que `env_reset`. Ejemplos:\n```\nDefaults env_reset, timestamp_timeout=15\nDefaults timestamp_timeout=15\nDefaults env_reset\n```"
+  },
+  {
+   "checkId": "28660",
+   "remediationEs": "Cree un grupo vacío que se usará para el comando `su`. El nombre del grupo debe seguir la política de su organización. Ejemplo:\n```\ngroupadd sugroup\n```\nAgregue la siguiente línea al archivo `/etc/pam.d/su`, indicando el grupo vacío:\n```\nauth required pam_wheel.so use_uid group=sugroup\n```"
+  },
+  {
+   "checkId": "28661",
+   "remediationEs": "Ejecute el siguiente comando para instalar libpam-pwquality:\n```\napt install libpam-pwquality\n```"
+  },
+  {
+   "checkId": "28662",
+   "remediationEs": "Cree o edite la siguiente línea en `/etc/security/faillock.conf`, fijando la opción `deny` en 5 o menos:\n```\ndeny = 5\n```\nEjecute el siguiente comando:\n```\ngrep -Pl -- '\\bpam_faillock\\.so\\h+([^#\\n\\r]+\\h+)?deny\\b' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y elimine los argumentos `deny=<N>` de la línea o líneas de `pam_faillock.so`."
+  },
+  {
+   "checkId": "28664",
+   "remediationEs": "Edite `/etc/login.defs` y fije `ENCRYPT_METHOD` en SHA512 o YESCRYPT:\n```\nENCRYPT_METHOD <HASHING_ALGORITHM>\n```\nEjemplo:\n```\nENCRYPT_METHOD YESCRYPT\n```\nNotas:\n- Esto solo afecta las contraseñas de los grupos locales creadas después de actualizar el archivo para usar sha512 o yescrypt. Si se determina que el algoritmo en uso no es sha512 ni yescrypt, una vez cambiado se recomienda actualizar todas las contraseñas de grupo para que usen el algoritmo más fuerte.\n- Se recomienda que el algoritmo elegido sea el mismo en `/etc/login.defs` y en la configuración de PAM."
+  },
+  {
+   "checkId": "28665",
+   "remediationEs": "Edite `/etc/login.defs` y fije `PASS_MIN_DAYS` en un valor mayor que 0 que siga la política de su organización. Ejemplo:\n```\nPASS_MIN_DAYS 1\n```\nEjecute el siguiente comando para modificar el parámetro de los usuarios que tienen contraseña, según la política de su organización (edad mínima mayor que cero):\n```\nchage --mindays <N> <user>\n```\nEjemplo:\n```\nawk -F: '($2~/^\\$.+\\$/) {if($4 < 1)system (\"chage --mindays 1 \" $1)}' /etc/shadow\n```"
+  },
+  {
+   "checkId": "28666",
+   "remediationEs": "Fije el parámetro `PASS_MAX_DAYS` en `/etc/login.defs` de acuerdo con la política de su organización (un valor mayor que 0). Ejemplo:\n```\nPASS_MAX_DAYS 365\n```\nModifique el parámetro de los usuarios que tienen contraseña para que coincida:\n```\nchage --maxdays 365 <user>\n```\nEjecute el siguiente comando para modificar el parámetro de los usuarios que tienen contraseña, según la política de su organización (edad máxima que no supere 365 ni sea menor que 1):\n```\nchage --maxdays <N> <user>\n```\nEjemplo:\n```\nawk -F: '($2~/^\\$.+\\$/) {if($5 > 365 || $5 < 1)system (\"chage --maxdays 365 \" $1)}' /etc/shadow\n```"
+  },
+  {
+   "checkId": "28667",
+   "remediationEs": "Edite `/etc/login.defs` y fije `PASS_WARN_AGE` en 7 o más, según la política de su organización. Ejemplo:\n```\nPASS_WARN_AGE 7\n```\nEjecute el siguiente comando para modificar el parámetro de los usuarios que tienen contraseña, según la política de su organización (aviso de 7 días o más):\n```\nchage --warndays <N> <user>\n```\nEjemplo:\n```\nawk -F: '($2~/^\\$.+\\$/) {if($6 < 7)system (\"chage --warndays 7 \" $1)}' /etc/shadow\n```"
+  },
+  {
+   "checkId": "28668",
+   "remediationEs": "Ejecute el siguiente comando para fijar el período de inactividad por omisión de las contraseñas en 45 días o menos, según la política de su organización:\n```\nuseradd -D -f <N>\n```\nEjemplo:\n```\nuseradd -D -f 45\n```\nEjecute el siguiente comando para modificar el parámetro de los usuarios que tienen contraseña, según la política de su organización (inactividad de 45 días o menos):\n```\nchage --inactive <N> <user>\n```\nEjemplo:\n```\nawk -F: '($2~/^\\$.+\\$/) {if($7 > 45 || $7 < 0)system (\"chage --inactive 45 \" $1)}' /etc/shadow\n```"
+  },
+  {
+   "checkId": "28669",
+   "remediationEs": "Ejecute el siguiente comando para fijar el GID del grupo root en 0:\n```\ngroupmod -g 0 root\n```\nElimine cualquier grupo distinto de root que tenga el GID 0, o asígnele un GID nuevo si corresponde."
+  },
+  {
+   "checkId": "28670",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/passwd`:\n```\nchmod u-x,go-wx /etc/passwd\nchown root:root /etc/passwd\n```"
+  },
+  {
+   "checkId": "28671",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/passwd-`:\n```\nchmod u-x,go-wx /etc/passwd-\nchown root:root /etc/passwd-\n```"
+  },
+  {
+   "checkId": "28672",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/group`:\n```\nchmod u-x,go-wx /etc/group\nchown root:root /etc/group\n```"
+  },
+  {
+   "checkId": "28673",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/group-`:\n```\nchmod u-x,go-wx /etc/group-\nchown root:root /etc/group-\n```"
+  },
+  {
+   "checkId": "28674",
+   "remediationEs": "Ejecute uno de los siguientes comandos para fijar el propietario de `/etc/shadow` en root y su grupo en root o shadow:\n```\nchown root:shadow /etc/shadow\n```\nO bien:\n```\nchown root:root /etc/shadow\n```\nEjecute el siguiente comando para quitar los permisos excesivos de `/etc/shadow`:\n```\nchmod u-x,g-wx,o-rwx /etc/shadow\n```"
+  },
+  {
+   "checkId": "28675",
+   "remediationEs": "Ejecute uno de los siguientes comandos para fijar el propietario de `/etc/shadow-` en root y su grupo en root o shadow:\n```\nchown root:shadow /etc/shadow-\n```\nO bien:\n```\nchown root:root /etc/shadow-\n```\nEjecute el siguiente comando para quitar los permisos excesivos de `/etc/shadow-`:\n```\nchmod u-x,g-wx,o-rwx /etc/shadow-\n```"
+  },
+  {
+   "checkId": "28676",
+   "remediationEs": "Ejecute uno de los siguientes comandos para fijar el propietario de `/etc/gshadow` en root y su grupo en root o shadow:\n```\nchown root:shadow /etc/gshadow\n```\nO bien:\n```\nchown root:root /etc/gshadow\n```\nEjecute el siguiente comando para quitar los permisos excesivos de `/etc/gshadow`:\n```\nchmod u-x,g-wx,o-rwx /etc/gshadow\n```"
+  },
+  {
+   "checkId": "28677",
+   "remediationEs": "Ejecute uno de los siguientes comandos para fijar el propietario de `/etc/gshadow-` en root y su grupo en root o shadow:\n```\nchown root:shadow /etc/gshadow-\n```\nO bien:\n```\nchown root:root /etc/gshadow-\n```\nEjecute el siguiente comando para quitar los permisos excesivos de `/etc/gshadow-`:\n```\nchmod u-x,g-wx,o-rwx /etc/gshadow-\n```"
+  },
+  {
+   "checkId": "28678",
+   "remediationEs": "Ejecute el siguiente comando para que las cuentas usen contraseñas en shadow y migrar las contraseñas de `/etc/passwd` a `/etc/shadow`:\n```\npwconv\n```\nInvestigue si la cuenta tiene una sesión abierta y para qué se está usando, para determinar si es necesario cerrarla a la fuerza."
+  },
+  {
+   "checkId": "28679",
+   "remediationEs": "Si alguna cuenta de `/etc/shadow` no tiene contraseña, ejecute el siguiente comando para bloquearla hasta determinar por qué no la tiene:\n```\npasswd -l <username>\n```\nCompruebe también si la cuenta tiene una sesión abierta e investigue para qué se está usando, para determinar si es necesario cerrarla a la fuerza."
+  },
+  {
+   "checkId": "28680",
+   "remediationEs": "Analice la salida del paso de auditoría anterior y realice la acción adecuada para corregir las discrepancias encontradas."
+  },
+  {
+   "checkId": "28707",
+   "remediationEs": "Para los requisitos específicos del montaje de `/dev/shm` en su entorno, modifique `/etc/fstab`. Ejemplo: monte `tmpfs` en `/dev/shm` con las opciones `defaults,rw,nosuid,nodev,noexec,relatime,size=2G`."
+  },
+  {
+   "checkId": "28708",
+   "remediationEs": "Ejecute los siguientes comandos para desinstalar gdm3 y eliminar las dependencias que ya no se usan:\n```\napt purge gdm3\napt autoremove gdm3\n```"
+  },
+  {
+   "checkId": "28709",
+   "remediationEs": "Ejecute los siguientes comandos para detener `dnsmasq.service` y eliminar el paquete dnsmasq:\n```\nsystemctl stop dnsmasq.service\napt purge dnsmasq\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop dnsmasq.service\nsystemctl mask dnsmasq.service\n```"
+  },
+  {
+   "checkId": "28710",
+   "remediationEs": "Ejecute los siguientes comandos para detener `tftpd-hpa.service` y eliminar el paquete tftpd-hpa:\n```\nsystemctl stop tftpd-hpa.service\napt purge tftpd-hpa\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop tftpd-hpa.service\nsystemctl mask tftpd-hpa.service\n```"
+  },
+  {
+   "checkId": "28711",
+   "remediationEs": "Ejecute los siguientes comandos para detener `xinetd.service` y eliminar el paquete xinetd:\n```\nsystemctl stop xinetd.service\napt purge xinetd\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop xinetd.service\nsystemctl mask xinetd.service\n```"
+  },
+  {
+   "checkId": "28712",
+   "remediationEs": "Ejecute el siguiente comando para desinstalar ftp:\n```\napt purge ftp\n```"
+  },
+  {
+   "checkId": "28713",
+   "remediationEs": "Habilite o deshabilite IPv6 de acuerdo con los requisitos del sistema y la política de su organización."
+  },
+  {
+   "checkId": "28714",
+   "remediationEs": "Ejecute los siguientes comandos para detener `bluetooth.service` y eliminar el paquete bluez:\n```\nsystemctl stop bluetooth.service\napt purge bluez\n```\nO bien, si el paquete es necesario como dependencia, ejecute los siguientes comandos para detenerlo y enmascararlo:\n```\nsystemctl stop bluetooth.service\nsystemctl mask bluetooth.service\n```\nNota: puede ser necesario reiniciar el sistema."
+  },
+  {
+   "checkId": "28715",
+   "remediationEs": "Elimine ufw, o bien deshabilítelo y enmascare `ufw.service`. Para eliminar ufw, ejecute:\n```\napt purge ufw\n```\nO bien, para deshabilitar ufw y enmascarar `ufw.service`, ejecute:\n```\nufw disable\nsystemctl stop ufw.service\nsystemctl mask ufw.service\n```\nNota: `ufw disable` debe ejecutarse antes de `systemctl mask ufw.service` para deshabilitar UFW correctamente."
+  },
+  {
+   "checkId": "28716",
+   "remediationEs": "Los archivos de clave pública del host SSH (los de `/etc/ssh` que contienen una clave pública de openssh) deben tener un modo de 0644 o más restrictivo, y su propietario y su grupo deben ser root. Para corregir cada archivo, quite los permisos excesivos con `chmod u-x,go-wx`, fije el propietario con `chown root` y el grupo con `chgrp root`. Después de cada cambio, compruebe de nuevo el modo, el propietario y el grupo del archivo."
+  },
+  {
+   "checkId": "28717",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar el parámetro `DisableForwarding` en yes, por encima de cualquier entrada Include:\n```\nDisableForwarding yes\n```\nNota: la primera aparición de una opción tiene prioridad. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28718",
+   "remediationEs": "Edite `/etc/ssh/sshd_config` para fijar el parámetro `GSSAPIAuthentication` en no, por encima de cualquier entrada Include y Match:\n```\nGSSAPIAuthentication no\n```\nNota: la primera aparición de una opción tiene prioridad, salvo en las instrucciones Match. Si se usan ubicaciones Include y se entiende el orden de precedencia en su entorno, la entrada puede crearse en un archivo de la ubicación Include."
+  },
+  {
+   "checkId": "28719",
+   "remediationEs": "Ejecute el siguiente comando para habilitar el módulo pam_unix:\n```\npam-auth-update --enable unix\n```\nNota: si en su entorno se usa un perfil personalizado para configurar PAM que ya incluye la configuración del módulo pam_faillock, habilite ese módulo en su lugar."
+  },
+  {
+   "checkId": "28720",
+   "remediationEs": "Verifique que la línea `pam_pwquality.so` exista en un perfil de pam-auth-update:\n```\ngrep -P -- '\\bpam_pwquality\\.so\\b' /usr/share/pam-configs/*\n```\nLa salida debe ser parecida a esta:\n```\n/usr/share/pam-configs/pwquality: requisite pam_pwquality.so retry=3\n```\nSi se devuelve una salida parecida, ejecute el siguiente comando para actualizar `/etc/pam.d/common-password` con el perfil devuelto:\n```\npam-auth-update --enable {PROFILE_NAME}\n```\nEjemplo:\n```\npam-auth-update pwquality\n```\nSi NO se devuelve una salida parecida, cree un perfil de pam-auth-update para pwquality en `/usr/share/pam-configs/pwquality` con este contenido:\n```\nName: Pwquality password strength checking\nDefault: yes\nPriority: 1024\nConflicts: cracklib\nPassword-Type: Primary\nPassword:\n requisite pam_pwquality.so retry=3\nPassword-Initial:\n requisite pam_pwquality.so retry=3\n```\nEjecute el siguiente comando para actualizar `/etc/pam.d/common-password` con el perfil pwquality:\n```\npam-auth-update --enable pwquality\n```\nNotas:\n- El nombre que se use para el archivo debe ser el mismo que se use en el comando `pam-auth-update --enable`.\n- La línea `Name:` debe ser fácil de reconocer y de entender.\n- La línea `Priority:` es importante porque afecta el orden de las líneas en los archivos de `/etc/pam.d/`.\nSi en su entorno se usa un perfil personalizado para configurar PAM que ya incluye la configuración del módulo pam_pwquality, habilite ese módulo en su lugar."
+  },
+  {
+   "checkId": "28721",
+   "remediationEs": "Verifique que la línea `pam_pwhistory.so` exista en un perfil de pam-auth-update:\n```\ngrep -P -- '\\bpam_pwhistory\\.so\\b' /usr/share/pam-configs/*\n```\nLa salida debe ser parecida a esta:\n```\n/usr/share/pam-configs/pwhistory: requisite pam_pwhistory.so remember=24 enforce_for_root try_first_pass use_authtok\n```\nSi se devuelve una salida parecida, ejecute el siguiente comando para actualizar `/etc/pam.d/common-password` con el perfil devuelto:\n```\npam-auth-update --enable {PROFILE_NAME}\n```\nEjemplo:\n```\npam-auth-update pwhistory\n```\nSi NO se devuelve una salida parecida, cree un perfil de pam-auth-update para pwhistory en `/usr/share/pam-configs/pwhistory` con este contenido:\n```\nName: pwhistory password history checking\nDefault: yes\nPriority: 1024\nPassword-Type: Primary\nPassword:\n requisite pam_pwhistory.so remember=24 enforce_for_root try_first_pass use_authtok\n```\nEjecute el siguiente comando para actualizar `/etc/pam.d/common-password` con el perfil pwhistory:\n```\npam-auth-update --enable pwhistory\n```\nNotas:\n- El nombre que se use para el archivo debe ser el mismo que se use en el comando `pam-auth-update --enable`.\n- La línea `Name:` debe ser fácil de reconocer y de entender.\n- La línea `Priority:` es importante porque afecta el orden de las líneas en los archivos de `/etc/pam.d/`.\nSi en su entorno se usa un perfil personalizado para configurar PAM que ya incluye la configuración del módulo pam_pwhistory, habilite ese módulo en su lugar."
+  },
+  {
+   "checkId": "28722",
+   "remediationEs": "Cree dos perfiles de pam-auth-update en `/usr/share/pam-configs/`. El primero, en `/usr/share/pam-configs/faillock`, con estas líneas:\n```\nName: Enable pam_faillock to deny access\nDefault: yes\nPriority: 0\nAuth-Type: Primary\nAuth:\n [default=die] pam_faillock.so authfail\n```\nEl segundo, en `/usr/share/pam-configs/faillock_notify`, con estas líneas:\n```\nName: Notify of failed login attempts and reset count upon success\nDefault: yes\nPriority: 1024\nAuth-Type: Primary\nAuth:\n requisite pam_faillock.so preauth\nAccount-Type: Primary\nAccount:\n required pam_faillock.so\n```\nEjecute los siguientes comandos para actualizar los archivos PAM common-auth y common-account con los perfiles nuevos:\n```\npam-auth-update --enable faillock\npam-auth-update --enable faillock_notify\n```\nNotas:\n- El nombre que se use para el archivo debe ser el mismo que se use en el comando `pam-auth-update --enable`.\n- La línea `Name:` debe ser fácil de reconocer y de entender.\n- La línea `Priority:` es importante porque afecta el orden de las líneas en los archivos de `/etc/pam.d/`.\nSi en su entorno se usa un perfil personalizado para configurar PAM que ya incluye la configuración del módulo pam_faillock, habilite ese módulo en su lugar."
+  },
+  {
+   "checkId": "28723",
+   "remediationEs": "Fije el tiempo de desbloqueo de la contraseña de acuerdo con la política de su organización: `unlock_time` debe ser 0 (nunca) o 900 segundos o más. Edite `/etc/security/faillock.conf` y actualice o agregue la siguiente línea:\n```\nunlock_time = 900\n```\nLuego, para quitar el argumento `unlock_time` del módulo `pam_faillock.so` en los archivos PAM, ejecute:\n```\ngrep -Pl -- '\\bpam_faillock\\.so\\h+([^#\\n\\r]+\\h+)?unlock_time\\b' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y elimine el argumento `unlock_time=<N>` de la línea o líneas de `pam_faillock.so`."
+  },
+  {
+   "checkId": "28724",
+   "remediationEs": "Edite `/etc/security/faillock.conf`:\n- Elimine o actualice cualquier línea que contenga `root_unlock_time`, o fíjela en un valor de 60 o más.\n- Actualice o agregue la siguiente línea:\n```\neven_deny_root\n```\nEjecute el siguiente comando:\n```\ngrep -Pl -- '\\bpam_faillock\\.so\\h+([^#\\n\\r]+\\h+)?(even_deny_root|root_unlock_time)' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y elimine los argumentos `even_deny_root` y `root_unlock_time` de la línea o líneas de `pam_faillock.so`."
+  },
+  {
+   "checkId": "28725",
+   "remediationEs": "Cree o modifique un archivo que termine en `.conf` en el directorio `/etc/security/pwquality.conf.d/`, o el archivo `/etc/security/pwquality.conf`, y agregue o modifique la siguiente línea para fijar `difok` en 2 o más. Asegúrese de que cumpla la política de su organización. Por ejemplo, en `/etc/security/pwquality.conf.d/50-pwdifok.conf`:\n```\ndifok = 2\n```\nSi el parámetro ya aparece en `/etc/security/pwquality.conf`, coméntelo para que no choque con el valor nuevo.\nEjecute el siguiente comando para buscar los perfiles de PAM que lo fijan como argumento:\n```\ngrep -Pl -- '\\bpam_pwquality\\.so\\h+([^#\\n\\r]+\\h+)?difok\\b' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y elimine el argumento `difok` de la línea o líneas de `pam_pwquality.so`."
+  },
+  {
+   "checkId": "28726",
+   "remediationEs": "Cree o modifique un archivo que termine en `.conf` en el directorio `/etc/security/pwquality.conf.d/`, o el archivo `/etc/security/pwquality.conf`, y agregue o modifique la siguiente línea para fijar la longitud de la contraseña en 14 o más caracteres. Asegúrese de que cumpla la política de su organización. Por ejemplo, en `/etc/security/pwquality.conf.d/50-pwlength.conf`:\n```\nminlen = 14\n```\nSi el parámetro ya aparece en `/etc/security/pwquality.conf`, coméntelo para que no choque con el valor nuevo.\nEjecute el siguiente comando para buscar los perfiles de PAM que lo fijan como argumento:\n```\ngrep -Pl -- '\\bpam_pwquality\\.so\\h+([^#\\n\\r]+\\h+)?minlen\\b' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y elimine el argumento `minlen` de la línea o líneas de `pam_pwquality.so`."
+  },
+  {
+   "checkId": "28727",
+   "remediationEs": "Ejecute el siguiente comando:\n```\ngrep -Pl -- '\\bpam_pwquality\\.so\\h+([^#\\n\\r]+\\h+)?(minclass|[dulo]credit)\\b' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y elimine los argumentos `minclass`, `dcredit`, `ucredit`, `lcredit` y `ocredit` de la línea o líneas de `pam_pwquality.so`.\nCree o modifique un archivo que termine en `.conf` en el directorio `/etc/security/pwquality.conf.d/`, o el archivo `/etc/security/pwquality.conf`, y agregue o modifique las siguientes líneas para fijar la complejidad según la política de su organización:\n```\nminclass = _N_\ndcredit = _N_\nucredit = -1\nocredit = -1\nlcredit = -1\n```\nEn `dcredit`, `ucredit`, `ocredit` y `lcredit`, el valor debe ser 0 o un número precedido por el signo menos (-).\nEjemplo 1: fijar `minclass = 3` en `/etc/security/pwquality.conf.d/50-pwcomplexity.conf`:\n```\nminclass = 3\n```\nEjemplo 2: fijar `dcredit = -1`, `ucredit = -1` y `lcredit = -1` en el mismo archivo:\n```\ndcredit = -1\nucredit = -1\nlcredit = -1\n```"
+  },
+  {
+   "checkId": "28728",
+   "remediationEs": "Cree o modifique un archivo que termine en `.conf` en el directorio `/etc/security/pwquality.conf.d/`, o el archivo `/etc/security/pwquality.conf`, y agregue o modifique la siguiente línea para fijar `maxrepeat` en 3 o menos y distinto de 0. Asegúrese de que cumpla la política de su organización. Por ejemplo, en `/etc/security/pwquality.conf.d/50-pwrepeat.conf`:\n```\nmaxrepeat = 3\n```\nSi el parámetro ya aparece en `/etc/security/pwquality.conf`, coméntelo para que no choque con el valor nuevo.\nEjecute el siguiente comando para buscar los perfiles de PAM que lo fijan como argumento:\n```\ngrep -Pl -- '\\bpam_pwquality\\.so\\h+([^#\\n\\r]+\\h+)?maxrepeat\\b' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y elimine el argumento `maxrepeat` de la línea o líneas de `pam_pwquality.so`."
+  },
+  {
+   "checkId": "28729",
+   "remediationEs": "Cree o modifique un archivo que termine en `.conf` en el directorio `/etc/security/pwquality.conf.d/`, o el archivo `/etc/security/pwquality.conf`, y agregue o modifique la siguiente línea para fijar `maxsequence` en 3 o menos y distinto de 0. Asegúrese de que cumpla la política de su organización. Por ejemplo, en `/etc/security/pwquality.conf.d/50-pwmaxsequence.conf`:\n```\nmaxsequence = 3\n```\nSi el parámetro ya aparece en `/etc/security/pwquality.conf`, coméntelo para que no choque con el valor nuevo.\nEjecute el siguiente comando para buscar los perfiles de PAM que lo fijan como argumento:\n```\ngrep -Pl -- '\\bpam_pwquality\\.so\\h+([^#\\n\\r]+\\h+)?maxsequence\\b' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y elimine el argumento `maxsequence` de la línea o líneas de `pam_pwquality.so`."
+  },
+  {
+   "checkId": "28730",
+   "remediationEs": "Edite cualquier archivo que termine en `.conf` en el directorio `/etc/security/pwquality.conf.d/` y/o el archivo `/etc/security/pwquality.conf`, y comente o elimine cualquier línea con `dictcheck = 0`. Ejemplo:\n```\nsed -ri 's/^\\s*dictcheck\\s*=/# &/' /etc/security/pwquality.conf /etc/security/pwquality.conf.d/*.conf\n```\nEjecute el siguiente comando:\n```\ngrep -Pl -- '\\bpam_pwquality\\.so\\h+([^#\\n\\r]+\\h+)?dictcheck\\b' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y elimine el argumento `dictcheck` de la línea o líneas de `pam_pwquality.so`."
+  },
+  {
+   "checkId": "28731",
+   "remediationEs": "Ejecute el siguiente comando:\n```\ngrep -Pl -- '\\bpam_pwquality\\.so\\h+([^#\\n\\r]+\\h+)?enforcing=0\\b' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y elimine el argumento `enforcing=0` de la línea o líneas de `pam_pwquality.so`.\nEdite `/etc/security/pwquality.conf` y todos los archivos que terminen en `.conf` en el directorio `/etc/security/pwquality.conf.d/`, y elimine o comente cualquier línea que contenga el argumento `enforcing = 0`. Ejemplo:\n```\nsed -ri 's/^\\s*enforcing\\s*=\\s*0/# &/' /etc/security/pwquality.conf /etc/security/pwquality.conf.d/*.conf\n```"
+  },
+  {
+   "checkId": "28732",
+   "remediationEs": "Edite o agregue la siguiente línea en un archivo `*.conf` de `/etc/security/pwquality.conf.d` o en `/etc/security/pwquality.conf`:\n```\nenforce_for_root\n```"
+  },
+  {
+   "checkId": "28733",
+   "remediationEs": "Ejecute el siguiente comando:\n```\nawk '/Password-Type:/{ f = 1;next } /-Type:/{ f = 0 } f {if (/pam_pwhistory\\.so/) print FILENAME}' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y edite o agregue el argumento `remember=`, con un valor de 24 o más según la política de su organización, en la línea de pam_pwhistory de la sección Password. Archivo de ejemplo:\n```\nName: pwhistory password history checking\nDefault: yes\nPriority: 1024\nPassword-Type: Primary\nPassword:\n requisite pam_pwhistory.so remember=24 enforce_for_root try_first_pass use_authtok\n```\nAsegúrese de que la línea incluya `remember=<N>`.\nEjecute el siguiente comando para actualizar los archivos del directorio `/etc/pam.d/`:\n```\npam-auth-update --enable <MODIFIED_PROFILE_NAME>\n```\nEjemplo:\n```\npam-auth-update --enable pwhistory\n```"
+  },
+  {
+   "checkId": "28734",
+   "remediationEs": "Ejecute el siguiente comando:\n```\nawk '/Password-Type:/{ f = 1;next } /-Type:/{ f = 0 } f {if (/pam_pwhistory\\.so/) print FILENAME}' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y agregue el argumento `enforce_for_root` en la línea de pam_pwhistory de la sección Password. Archivo de ejemplo:\n```\nName: pwhistory password history checking\nDefault: yes\nPriority: 1024\nPassword-Type: Primary\nPassword:\n requisite pam_pwhistory.so remember=24 enforce_for_root try_first_pass use_authtok\n```\nAsegúrese de que la línea incluya `enforce_for_root`.\nEjecute el siguiente comando para actualizar los archivos del directorio `/etc/pam.d/`:\n```\npam-auth-update --enable <MODIFIED_PROFILE_NAME>\n```\nEjemplo:\n```\npam-auth-update --enable pwhistory\n```"
+  },
+  {
+   "checkId": "28735",
+   "remediationEs": "Edite los archivos que devuelva y agregue el argumento `use_authtok` en la línea de pam_pwhistory de la sección Password. Archivo de ejemplo:\n```\nName: pwhistory password history checking\nDefault: yes\nPriority: 1024\nPassword-Type: Primary\nPassword:\n requisite pam_pwhistory.so remember=24 enforce_for_root try_first_pass use_authtok\n```\nAsegúrese de que la línea incluya `use_authtok`.\nEjecute el siguiente comando para actualizar los archivos del directorio `/etc/pam.d/`:\n```\npam-auth-update --enable <MODIFIED_PROFILE_NAME>\n```\nEjemplo:\n```\npam-auth-update --enable pwhistory\n```"
+  },
+  {
+   "checkId": "28736",
+   "remediationEs": "Ejecute el siguiente comando:\n```\ngrep -PH -- '^\\h*([^#\\n\\r]+\\h+)?pam_unix\\.so\\h+([^#\\n\\r]+\\h+)?nullok\\b' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y elimine el argumento `nullok` de las líneas de pam_unix. Archivo de ejemplo (ninguna línea debe incluir `nullok`):\n```\nName: Unix authentication\nDefault: yes\nPriority: 256\nAuth-Type: Primary\nAuth:\n [success=end default=ignore] pam_unix.so try_first_pass\nAuth-Initial:\n [success=end default=ignore] pam_unix.so\nAccount-Type: Primary\nAccount:\n [success=end new_authtok_reqd=done default=ignore] pam_unix.so\nAccount-Initial:\n [success=end new_authtok_reqd=done default=ignore] pam_unix.so\nSession-Type: Additional\nSession:\n required pam_unix.so\nSession-Initial:\n required pam_unix.so\nPassword-Type: Primary\nPassword:\n [success=end default=ignore] pam_unix.so obscure use_authtok try_first_pass yescrypt\nPassword-Initial:\n [success=end default=ignore] pam_unix.so obscure yescrypt\n```\nEjecute el siguiente comando para actualizar los archivos del directorio `/etc/pam.d/`:\n```\npam-auth-update --enable <EDITED_PROFILE_NAME>\n```\nEjemplo:\n```\npam-auth-update --enable unix\n```\nNota: si se usan archivos personalizados, deben editarse directamente los archivos correspondientes de `/etc/pam.d/` y omitirse el comando `pam-auth-update --enable <EDITED_PROFILE_NAME>`."
+  },
+  {
+   "checkId": "28737",
+   "remediationEs": "Ejecute el siguiente comando:\n```\ngrep -PH -- '^\\h*([^#\\n\\r]+\\h+)?pam_unix\\.so\\h+([^#\\n\\r]+\\h+)?remember\\b' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y elimine el argumento `remember=<N>` de las líneas de pam_unix. Ejemplo de una salida que debe corregirse (hay que quitar `remember=5`):\n```\n[success=end default=ignore] pam_unix.so obscure use_authtok try_first_pass yescrypt remember=5\n[success=end default=ignore] pam_unix.so obscure yescrypt remember=5\n```\nEjecute el siguiente comando para actualizar los archivos del directorio `/etc/pam.d/`:\n```\npam-auth-update --enable <EDITED_PROFILE_NAME>\n```\nEjemplo:\n```\npam-auth-update --enable unix\n```\nNota: si se usan archivos personalizados, deben editarse directamente los archivos correspondientes de `/etc/pam.d/` y omitirse el comando `pam-auth-update --enable <EDITED_PROFILE_NAME>`."
+  },
+  {
+   "checkId": "28738",
+   "remediationEs": "Ejecute el siguiente comando:\n```\nawk '/Password-Type:/{ f = 1;next } /-Type:/{ f = 0 } f {if (/pam_unix\\.so/) print FILENAME}' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y agregue `use_authtok` a la línea de pam_unix de la sección Password, bajo la subsección `Password:`. Nota: si la sección Password incluye una subsección `Password-Initial:`, no debe agregarse `use_authtok` a la línea de pam_unix de esa subsección. Archivo de ejemplo:\n```\nName: Unix authentication\nDefault: yes\nPriority: 256\nAuth-Type: Primary\nAuth:\n [success=end default=ignore] pam_unix.so try_first_pass\nAuth-Initial:\n [success=end default=ignore] pam_unix.so\nAccount-Type: Primary\nAccount:\n [success=end new_authtok_reqd=done default=ignore] pam_unix.so\nAccount-Initial:\n [success=end new_authtok_reqd=done default=ignore] pam_unix.so\nSession-Type: Additional\nSession:\n required pam_unix.so\nSession-Initial:\n required pam_unix.so\nPassword-Type: Primary\nPassword:\n [success=end default=ignore] pam_unix.so obscure use_authtok try_first_pass yescrypt\nPassword-Initial:\n [success=end default=ignore] pam_unix.so obscure yescrypt\n```\nEjecute el siguiente comando para actualizar los archivos del directorio `/etc/pam.d/`:\n```\npam-auth-update --enable <MODIFIED_PROFILE_NAME>\n```\nEjemplo:\n```\npam-auth-update --enable unix\n```"
+  },
+  {
+   "checkId": "28739",
+   "remediationEs": "Ejecute el siguiente comando:\n```\nawk '/Password-Type:/{ f = 1;next } /-Type:/{ f = 0 } f {if (/pam_unix\\.so/) print FILENAME}' /usr/share/pam-configs/*\n```\nEdite los archivos que devuelva y edite o agregue un algoritmo de hash fuerte, `sha512` o `yescrypt`, según la política de su organización, en las líneas de pam_unix de la sección Password. Archivo de ejemplo:\n```\nName: Unix authentication\nDefault: yes\nPriority: 256\nAuth-Type: Primary\nAuth:\n [success=end default=ignore] pam_unix.so try_first_pass\nAuth-Initial:\n [success=end default=ignore] pam_unix.so\nAccount-Type: Primary\nAccount:\n [success=end new_authtok_reqd=done default=ignore] pam_unix.so\nAccount-Initial:\n [success=end new_authtok_reqd=done default=ignore] pam_unix.so\nSession-Type: Additional\nSession:\n required pam_unix.so\nSession-Initial:\n required pam_unix.so\nPassword-Type: Primary\nPassword:\n [success=end default=ignore] pam_unix.so obscure use_authtok try_first_pass yescrypt\nPassword-Initial:\n [success=end default=ignore] pam_unix.so obscure yescrypt\n```\nEjecute el siguiente comando para actualizar los archivos del directorio `/etc/pam.d/`:\n```\npam-auth-update --enable <MODIFIED_PROFILE_NAME>\n```\nEjemplo:\n```\npam-auth-update --enable unix\n```"
+  },
+  {
+   "checkId": "28740",
+   "remediationEs": "Ejecute el siguiente comando para fijar el UID de la cuenta root en 0:\n```\nusermod -u 0 root\n```\nModifique cualquier usuario distinto de root que tenga el UID 0 y asígnele un UID nuevo."
+  },
+  {
+   "checkId": "28741",
+   "remediationEs": "Ejecute el siguiente comando para fijar el GID del usuario root en 0:\n```\nusermod -g 0 root\n```\nEjecute el siguiente comando para fijar el GID del grupo root en 0:\n```\ngroupmod -g 0 root\n```\nElimine cualquier usuario distinto de root que tenga el GID 0, o asígnele un GID nuevo si corresponde."
+  },
+  {
+   "checkId": "28742",
+   "remediationEs": "Ejecute el siguiente comando para fijar una contraseña al usuario root:\n```\npasswd root\n```"
+  },
+  {
+   "checkId": "28743",
+   "remediationEs": "Edite `/root/.bash_profile` y `/root/.bashrc` y elimine, comente o actualice cualquier línea con `umask` para que sea 0027 o más restrictiva."
+  },
+  {
+   "checkId": "28744",
+   "remediationEs": "Edite `/etc/shells` y elimine cualquier línea que incluya `nologin`."
+  },
+  {
+   "checkId": "28745",
+   "remediationEs": "Ejecute el script de la auditoría de este control y siga las instrucciones de su salida. En resumen: ningún archivo de configuración de shell o de PAM (`/etc/profile`, `/etc/bashrc`, `/etc/bash.bashrc`, `/etc/pam.d/postlogin`, `/etc/login.defs`, `/etc/default/login` y los archivos `*.sh` de `/etc/profile.d/`) debe fijar un umask menos restrictivo que `0027`. Actualice esos archivos y comente la línea de UMASK, o cambie el umask a `0027` o más restrictivo.\nSi no hay ninguno configurado, defina el umask en un archivo con extensión `.sh` en el directorio `/etc/profile.d/`, como root. Por ejemplo, `/etc/profile.d/50-systemwide_umask.sh` con este contenido:\n```\numask 027\n```\nNota: este método solo aplica a bash y shell. Si en el sistema se admiten otros shells, se recomienda aplicar el mismo criterio en sus archivos de configuración."
+  },
+  {
+   "checkId": "28746",
+   "remediationEs": "Si usará cron para programar y ejecutar la verificación de AIDE, ejecute el siguiente comando:\n```\ncrontab -u root -e\n```\nAgregue la siguiente línea al crontab:\n```\n0 5 * * * /usr/bin/aide.wrapper --config /etc/aide/aide.conf --update\n```\nO bien, si usará `aidecheck.service` y `aidecheck.timer`, cree o edite el archivo `/etc/systemd/system/aidecheck.service` y agregue estas líneas:\n```\n[Unit]\nDescription=Aide Check\n[Service]\nType=simple\nExecStart=/usr/bin/aide.wrapper --config /etc/aide/aide.conf --update\n[Install]\nWantedBy=multi-user.target\n```\nCree o edite el archivo `/etc/systemd/system/aidecheck.timer` y agregue estas líneas:\n```\n[Unit]\nDescription=Aide check every day at 5AM\n[Timer]\nOnCalendar=*-*-* 05:00:00\nUnit=aidecheck.service\n[Install]\nWantedBy=multi-user.target\n```\nEjecute los siguientes comandos:\n```\nchown root:root /etc/systemd/system/aidecheck.*\nchmod 0644 /etc/systemd/system/aidecheck.*\nsystemctl daemon-reload\nsystemctl enable aidecheck.service\nsystemctl --now enable aidecheck.timer\n```"
+  },
+  {
+   "checkId": "28747",
+   "remediationEs": "Edite `/etc/systemd/journal-upload.conf` o un archivo que termine en `.conf` dentro de `/etc/systemd/journal-upload.conf.d` y asegúrese de que estas líneas estén fijadas en la sección `[Upload]`, según su entorno:\n```\n[Upload]\nURL=192.168.50.42\nServerKeyFile=/etc/ssl/private/journal-upload.pem\nServerCertificateFile=/etc/ssl/certs/journal-upload.pem\nTrustedCertificateFile=/etc/ssl/ca/trusted.pem\n```\nReinicie el servicio:\n```\nsystemctl restart systemd-journal-upload\n```"
+  },
+  {
+   "checkId": "28748",
+   "remediationEs": "Ejecute los siguientes comandos para desenmascarar, habilitar e iniciar systemd-journal-upload:\n```\nsystemctl unmask systemd-journal-upload.service\nsystemctl --now enable systemd-journal-upload.service\n```"
+  },
+  {
+   "checkId": "28749",
+   "remediationEs": "Fije el parámetro `space_left_action` en `/etc/audit/auditd.conf` en email, exec, single o halt. Ejemplo:\n```\nspace_left_action = email\n```\nFije el parámetro `admin_space_left_action` en `/etc/audit/auditd.conf` en single o halt. Ejemplo:\n```\nadmin_space_left_action = single\n```\nNota: para usar `space_left_action = email` debe haber un agente de transferencia de correo (MTA) instalado y bien configurado."
+  },
+  {
+   "checkId": "28750",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/shells`:\n```\nchmod u-x,go-wx /etc/shells\nchown root:root /etc/shells\n```"
+  },
+  {
+   "checkId": "28751",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/security/opasswd` y de `/etc/security/opasswd.old`, si existen:\n```\n[ -e \"/etc/security/opasswd\" ] && chmod u-x,go-rwx /etc/security/opasswd\n[ -e \"/etc/security/opasswd\" ] && chown root:root /etc/security/opasswd\n[ -e \"/etc/security/opasswd.old\" ] && chmod u-x,go-rwx /etc/security/opasswd.old\n[ -e \"/etc/security/opasswd.old\" ] && chown root:root /etc/security/opasswd.old\n```"
+  }
+ ]
+}

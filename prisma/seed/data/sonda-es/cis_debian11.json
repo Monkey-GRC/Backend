@@ -1,0 +1,165 @@
+{
+ "policyId": "cis_debian11",
+ "translations": [
+  {
+   "checkId": "29515",
+   "remediationEs": "En instalaciones nuevas, durante la instalación cree una configuración de particiones personalizada y especifique una partición separada para `/var/log/audit`. En sistemas ya instalados, cree una partición nueva y configure `/etc/fstab` según corresponda."
+  },
+  {
+   "checkId": "29526",
+   "remediationEs": "Instale AIDE con el gestor de paquetes correspondiente o de forma manual:\n```\napt install aide aide-common\n```\nConfigure AIDE según su entorno (consulte la documentación de AIDE para ver las opciones). Ejecute los siguientes comandos para inicializar AIDE:\n```\naideinit\nmv /var/lib/aide/aide.db.new /var/lib/aide/aide.db\n```"
+  },
+  {
+   "checkId": "29534",
+   "remediationEs": "Instale AppArmor:\n```\napt install apparmor apparmor-utils\n```"
+  },
+  {
+   "checkId": "29571",
+   "remediationEs": "Desinstale nis:\n```\napt purge nis\n```"
+  },
+  {
+   "checkId": "29572",
+   "remediationEs": "Desinstale rsh:\n```\napt purge rsh-client\n```"
+  },
+  {
+   "checkId": "29573",
+   "remediationEs": "Desinstale talk:\n```\napt purge talk\n```"
+  },
+  {
+   "checkId": "29574",
+   "remediationEs": "Desinstale telnet:\n```\napt purge telnet\n```"
+  },
+  {
+   "checkId": "29575",
+   "remediationEs": "Desinstale ldap-utils:\n```\napt purge ldap-utils\n```"
+  },
+  {
+   "checkId": "29578",
+   "remediationEs": "Ejecute el siguiente comando para eliminar el paquete iptables-persistent:\n```\napt purge iptables-persistent\n```"
+  },
+  {
+   "checkId": "29580",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\nufw allow in on lo\nufw allow out on lo\nufw deny in from 127.0.0.0/8\nufw deny in from ::1\n```"
+  },
+  {
+   "checkId": "29581",
+   "remediationEs": "Ejecute los siguientes comandos para implementar una política por defecto de denegación:\n```\nufw default deny incoming\nufw default deny outgoing\nufw default deny routed\n```"
+  },
+  {
+   "checkId": "29582",
+   "remediationEs": "Ejecute el siguiente comando para instalar nftables:\n```\napt install nftables\n```"
+  },
+  {
+   "checkId": "29589",
+   "remediationEs": "Ejecute el siguiente comando para habilitar el servicio nftables:\n```\nsystemctl enable nftables\n```"
+  },
+  {
+   "checkId": "29590",
+   "remediationEs": "Ejecute el siguiente comando para instalar iptables e iptables-persistent:\n```\napt install iptables iptables-persistent\n```"
+  },
+  {
+   "checkId": "29591",
+   "remediationEs": "Ejecute el siguiente comando para eliminar nftables:\n```\napt purge nftables\n```"
+  },
+  {
+   "checkId": "29593",
+   "remediationEs": "Ejecute los siguientes comandos para implementar una política por defecto DROP:\n```\niptables -P INPUT DROP\niptables -P OUTPUT DROP\niptables -P FORWARD DROP\n```"
+  },
+  {
+   "checkId": "29594",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\niptables -A INPUT -i lo -j ACCEPT\niptables -A OUTPUT -o lo -j ACCEPT\niptables -A INPUT -s 127.0.0.0/8 -j DROP\n```"
+  },
+  {
+   "checkId": "29596",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\nip6tables -A INPUT -i lo -j ACCEPT\nip6tables -A OUTPUT -o lo -j ACCEPT\nip6tables -A INPUT -s ::1 -j DROP\n```"
+  },
+  {
+   "checkId": "29601",
+   "remediationEs": "Fije el siguiente parámetro en `/etc/audit/auditd.conf` de acuerdo con la política de su organización (el valor es el tamaño en MB):\n```\nmax_log_file = <MB>\n```"
+  },
+  {
+   "checkId": "29602",
+   "remediationEs": "Fije el siguiente parámetro en `/etc/audit/auditd.conf`:\n```\nmax_log_file_action = keep_logs\n```"
+  },
+  {
+   "checkId": "29612",
+   "remediationEs": "Cree reglas de auditoría para recopilar la información de inicio de sesión (session initiation).\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-session.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-w /var/run/utmp -p wa -k session\n-w /var/log/wtmp -p wa -k session\n-w /var/log/btmp -p wa -k session\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "29613",
+   "remediationEs": "Cree reglas de auditoría para recopilar los eventos de inicio y cierre de sesión.\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-login.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-w /var/log/lastlog -p wa -k logins\n-w /var/run/faillock -p wa -k logins\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "29624",
+   "remediationEs": "Ejecute el siguiente comando para quitar a los archivos de configuración de auditoría los permisos más amplios que 0640:\n```\nfind /etc/audit/ -type f \\( -name '*.conf' -o -name '*.rules' \\) -exec chmod u-x,g-wx,o-rwx {} +\n```"
+  },
+  {
+   "checkId": "29625",
+   "remediationEs": "Ejecute el siguiente comando para que el propietario de los archivos de configuración de auditoría sea el usuario root:\n```\nfind /etc/audit/ -type f \\( -name '*.conf' -o -name '*.rules' \\) ! -user root -exec chown root {} +\n```"
+  },
+  {
+   "checkId": "29626",
+   "remediationEs": "Ejecute el siguiente comando para que el grupo propietario de los archivos de configuración de auditoría sea root:\n```\nfind /etc/audit/ -type f \\( -name '*.conf' -o -name '*.rules' \\) ! -group root -exec chgrp root {} +\n```"
+  },
+  {
+   "checkId": "29627",
+   "remediationEs": "Ejecute el siguiente comando para quitar a las herramientas de auditoría los permisos de escritura de grupo y otros:\n```\nchmod go-w /sbin/auditctl /sbin/aureport /sbin/ausearch /sbin/autrace /sbin/auditd /sbin/augenrules\n```"
+  },
+  {
+   "checkId": "29628",
+   "remediationEs": "Ejecute el siguiente comando para que el propietario de las herramientas de auditoría sea el usuario root:\n```\nchown root /sbin/auditctl /sbin/aureport /sbin/ausearch /sbin/autrace /sbin/auditd /sbin/augenrules\n```"
+  },
+  {
+   "checkId": "29630",
+   "remediationEs": "Ejecute el siguiente comando para instalar systemd-journal-remote:\n```\napt install systemd-journal-remote\n```"
+  },
+  {
+   "checkId": "29674",
+   "remediationEs": "Según el resultado del procedimiento de auditoría, use `visudo -f <PATH TO FILE>` para editar el archivo sudoers correspondiente y elimine cualquier línea que contenga la etiqueta `NOPASSWD`."
+  },
+  {
+   "checkId": "29675",
+   "remediationEs": "Configure el sistema operativo para exigir que los usuarios se reautentiquen al escalar privilegios. Según el resultado del procedimiento de auditoría, use `visudo -f <PATH TO FILE>` para editar el archivo sudoers correspondiente y elimine cualquier aparición de la etiqueta `!authenticate`."
+  },
+  {
+   "checkId": "29677",
+   "remediationEs": "Cree un grupo vacío que se usará para el comando `su`. El nombre del grupo debe seguir la política de su organización. Ejemplo:\n```\ngroupadd sugroup\n```\nAgregue la siguiente línea al archivo `/etc/pam.d/su`, indicando el grupo vacío:\n```\nauth required pam_wheel.so use_uid group=sugroup\n```"
+  },
+  {
+   "checkId": "29687",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/passwd`:\n```\nchmod u-x,go-wx /etc/passwd\nchown root:root /etc/passwd\n```"
+  },
+  {
+   "checkId": "29688",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/passwd-`:\n```\nchmod u-x,go-wx /etc/passwd-\nchown root:root /etc/passwd-\n```"
+  },
+  {
+   "checkId": "29689",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/group`:\n```\nchmod u-x,go-wx /etc/group\nchown root:root /etc/group\n```"
+  },
+  {
+   "checkId": "29690",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/group-`:\n```\nchmod u-x,go-wx /etc/group-\nchown root:root /etc/group-\n```"
+  },
+  {
+   "checkId": "29691",
+   "remediationEs": "Ejecute uno de los siguientes comandos para fijar el propietario de `/etc/shadow` en root y su grupo en root o shadow:\n```\nchown root:shadow /etc/shadow\n```\nO bien:\n```\nchown root:root /etc/shadow\n```\nEjecute el siguiente comando para quitar los permisos excesivos de `/etc/shadow`:\n```\nchmod u-x,g-wx,o-rwx /etc/shadow\n```"
+  },
+  {
+   "checkId": "29692",
+   "remediationEs": "Ejecute uno de los siguientes comandos para fijar el propietario de `/etc/shadow-` en root y su grupo en root o shadow:\n```\nchown root:shadow /etc/shadow-\n```\nO bien:\n```\nchown root:root /etc/shadow-\n```\nEjecute el siguiente comando para quitar los permisos excesivos de `/etc/shadow-`:\n```\nchmod u-x,g-wx,o-rwx /etc/shadow-\n```"
+  },
+  {
+   "checkId": "29693",
+   "remediationEs": "Ejecute uno de los siguientes comandos para fijar el propietario de `/etc/gshadow` en root y su grupo en root o shadow:\n```\nchown root:shadow /etc/gshadow\n```\nO bien:\n```\nchown root:root /etc/gshadow\n```\nEjecute el siguiente comando para quitar los permisos excesivos de `/etc/gshadow`:\n```\nchmod u-x,g-wx,o-rwx /etc/gshadow\n```"
+  },
+  {
+   "checkId": "29694",
+   "remediationEs": "Ejecute uno de los siguientes comandos para fijar el propietario de `/etc/gshadow-` en root y su grupo en root o shadow:\n```\nchown root:shadow /etc/gshadow-\n```\nO bien:\n```\nchown root:root /etc/gshadow-\n```\nEjecute el siguiente comando para quitar los permisos excesivos de `/etc/gshadow-`:\n```\nchmod u-x,g-wx,o-rwx /etc/gshadow-\n```"
+  },
+  {
+   "checkId": "29696",
+   "remediationEs": "Si alguna cuenta de `/etc/shadow` no tiene contraseña, ejecute el siguiente comando para bloquearla hasta determinar por qué no la tiene:\n```\npasswd -l <username>\n```\nCompruebe también si la cuenta tiene una sesión abierta e investigue para qué se está usando, para determinar si es necesario cerrarla a la fuerza."
+  }
+ ]
+}

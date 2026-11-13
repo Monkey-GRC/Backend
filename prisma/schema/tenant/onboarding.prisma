@@ -648,6 +648,8 @@ model Asset {
   findings        Finding[]
   executions Execution[]
   resources  AssetResource[]
+  // El agente de la sonda que mide este servidor (D112). Un activo, un agente.
+  agent      AssetAgent?
 
   @@unique([organizationId, code])
   @@index([tenantId])

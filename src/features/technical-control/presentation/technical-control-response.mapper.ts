@@ -1,3 +1,4 @@
+import { osVersionLabel } from '../../../common/catalogs/os-version';
 import { capabilityTexts } from '../../../common/text/translate-or';
 import { buildConnectionSetup } from '../application/cloud-connection';
 import { Asset, Capability, TechnicalControlState } from '../domain/entities/technical-control.entities';
@@ -74,6 +75,10 @@ export function toAssetResponse(a: Asset, monkeyPrincipalArn: string | null = nu
       schedule_frequency: a.provisioning.scheduleFrequency,
     },
     connection_setup: toConnectionSetup(a, monkeyPrincipalArn, t),
+    // Solo un servidor o equipo con agente (D112). `os_version` lleva el mismo texto que el catálogo (`<sistema>_version`).
+    agent: a.agent
+      ? { status: a.agent.status, os: a.agent.os, os_version: { value: a.agent.osVersion.code, label: osVersionLabel(a.agent.osVersion, t) }, last_sync_at: a.agent.lastSyncAt?.toISOString() ?? null }
+      : null,
   };
 }
 

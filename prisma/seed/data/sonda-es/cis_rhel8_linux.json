@@ -1,0 +1,73 @@
+{
+ "policyId": "cis_rhel8_linux",
+ "translations": [
+  {
+   "checkId": "5019",
+   "remediationEs": "En instalaciones nuevas, durante la instalación cree una configuración de particiones personalizada y especifique una partición separada para `/var/log/audit`. En sistemas ya instalados, cree una partición nueva y configure `/etc/fstab` según corresponda."
+  },
+  {
+   "checkId": "5102",
+   "remediationEs": "Ejecute el siguiente comando para crear una tabla en nftables:\n```\nnft create table inet <table name>\n```\nEjemplo:\n```\nnft create table inet filter\n```"
+  },
+  {
+   "checkId": "5103",
+   "remediationEs": "Ejecute el siguiente comando para crear las cadenas base (base chains):\n```\nnft create chain inet <table name> <base chain name> { type filter hook <(input|forward|output)> priority 0 \\; }\n```\nEjemplo:\n```\nnft create chain inet filter input { type filter hook input priority 0 \\; }\nnft create chain inet filter forward { type filter hook forward priority 0 \\; }\nnft create chain inet filter output { type filter hook output priority 0 \\; }\n```"
+  },
+  {
+   "checkId": "5105",
+   "remediationEs": "Ejecute el siguiente comando en las cadenas base con los ganchos (hooks) input, forward y output para aplicar una política por defecto DROP:\n```\nnft chain <table family> <table name> <chain name> { policy drop \\; }\n```\nEjemplo:\n```\nnft chain inet filter input { policy drop \\; }\nnft chain inet filter forward { policy drop \\; }\nnft chain inet filter output { policy drop \\; }\n```"
+  },
+  {
+   "checkId": "5106",
+   "remediationEs": "Ejecute el siguiente comando para habilitar el servicio nftables:\n```\nsystemctl enable nftables\n```"
+  },
+  {
+   "checkId": "5110",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\niptables -A INPUT -i lo -j ACCEPT\niptables -A OUTPUT -o lo -j ACCEPT\niptables -A INPUT -s 127.0.0.0/8 -j DROP\n```"
+  },
+  {
+   "checkId": "5111",
+   "remediationEs": "Ejecute los siguientes comandos para implementar una política por defecto DROP:\n```\niptables -P INPUT DROP\niptables -P OUTPUT DROP\niptables -P FORWARD DROP\n```"
+  },
+  {
+   "checkId": "5113",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\nip6tables -A INPUT -i lo -j ACCEPT\nip6tables -A OUTPUT -o lo -j ACCEPT\nip6tables -A INPUT -s ::1 -j DROP\n```"
+  },
+  {
+   "checkId": "5120",
+   "remediationEs": "Fije el siguiente parámetro en `/etc/audit/auditd.conf` de acuerdo con la política de su organización (el valor es el tamaño en MB):\n```\nmax_log_file = <MB>\n```"
+  },
+  {
+   "checkId": "5121",
+   "remediationEs": "Fije el siguiente parámetro en `/etc/audit/auditd.conf`:\n```\nmax_log_file_action = keep_logs\n```"
+  },
+  {
+   "checkId": "5130",
+   "remediationEs": "Cree reglas de auditoría para recopilar la información de inicio de sesión (session initiation).\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-session.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-w /var/run/utmp -p wa -k session\n-w /var/log/wtmp -p wa -k session\n-w /var/log/btmp -p wa -k session\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "5131",
+   "remediationEs": "Cree reglas de auditoría para recopilar los eventos de inicio y cierre de sesión.\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-login.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-w /var/log/lastlog -p wa -k logins\n-w /var/run/faillock -p wa -k logins\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "5187",
+   "remediationEs": "Según el resultado del procedimiento de auditoría, use `visudo -f <PATH TO FILE>` para editar el archivo sudoers correspondiente y elimine cualquier línea que contenga la etiqueta `NOPASSWD`."
+  },
+  {
+   "checkId": "5188",
+   "remediationEs": "Configure el sistema operativo para exigir que los usuarios se reautentiquen al escalar privilegios. Según el resultado del procedimiento de auditoría, use `visudo -f <PATH TO FILE>` para editar el archivo sudoers correspondiente y elimine cualquier aparición de la etiqueta `!authenticate`."
+  },
+  {
+   "checkId": "5189",
+   "remediationEs": "Si el tiempo de espera configurado es mayor de 15 minutos, edite el archivo indicado en la auditoría con `visudo -f <PATH TO FILE>` y cambie la entrada `timestamp_timeout=` a 15 minutos o menos, según la política de su organización. El valor está en minutos. Esta entrada puede aparecer sola o en la misma línea que `env_reset`. Ejemplos:\n```\nDefaults env_reset, timestamp_timeout=15\nDefaults timestamp_timeout=15\nDefaults env_reset\n```"
+  },
+  {
+   "checkId": "5190",
+   "remediationEs": "Cree un grupo vacío que se usará para el comando `su`. El nombre del grupo debe seguir la política de su organización. Ejemplo:\n```\ngroupadd sugroup\n```\nAgregue la siguiente línea al archivo `/etc/pam.d/su`, indicando el grupo vacío:\n```\nauth required pam_wheel.so use_uid group=sugroup\n```"
+  },
+  {
+   "checkId": "5212",
+   "remediationEs": "Si alguna cuenta de `/etc/shadow` no tiene contraseña, ejecute el siguiente comando para bloquearla hasta determinar por qué no la tiene:\n```\npasswd -l <username>\n```\nCompruebe también si la cuenta tiene una sesión abierta e investigue para qué se está usando, para determinar si es necesario cerrarla a la fuerza."
+  }
+ ]
+}

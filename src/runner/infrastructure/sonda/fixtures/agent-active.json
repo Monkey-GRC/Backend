@@ -1,0 +1,27 @@
+{
+    "data":  {
+                 "affected_items":  [
+                                        {
+                                            "os":  {
+                                                       "name":  "Ubuntu",
+                                                       "version":  "22.04.5 LTS"
+                                                   },
+                                            "group":  [
+                                                          "78778a4a-6fef-45b0-ade1-2ad12b457c22"
+                                                      ],
+                                            "status":  "active",
+                                            "version":  "Wazuh v4.14.6",
+                                            "name":  "91450ddf-f7e5-42c9-a004-243305c8d066",
+                                            "id":  "001",
+                                            "lastKeepAlive":  "2026-11-12T01:47:12+00:00"
+                                        }
+                                    ],
+                 "total_affected_items":  1,
+                 "total_failed_items":  0,
+                 "failed_items":  [
+
+                                  ]
+             },
+    "message":  "All selected agents information was returned",
+    "error":  0
+}

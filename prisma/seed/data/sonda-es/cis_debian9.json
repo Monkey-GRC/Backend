@@ -1,0 +1,9 @@
+{
+ "policyId": "cis_debian9",
+ "translations": [
+  {
+   "checkId": "2015",
+   "remediationEs": "En instalaciones nuevas, durante la instalación cree una configuración de particiones personalizada y especifique una partición separada para `/var/log/audit`. En sistemas ya instalados, cree una partición nueva y configure `/etc/fstab` según corresponda."
+  }
+ ]
+}

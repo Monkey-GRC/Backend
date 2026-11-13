@@ -68,6 +68,9 @@ services:
     restart: unless-stopped
     # Una corrida en curso al redesplegar puede perderse (el backend la cierra por tiempo a los 30 min): no redesplegar a mitad de un escaneo.
     stop_grace_period: 2m
+    # El certificado de la sonda (solo lectura): ~/monkey-dev/runner-secrets/sonda-ca.pem → /run/secrets/sonda-ca.pem (SONDA_CA_FILE). Sin sonda configurada, la carpeta puede estar vacía.
+    volumes:
+      - ./runner-secrets:/run/secrets:ro
     read_only: true
     tmpfs:
       - /tmp

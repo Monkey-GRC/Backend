@@ -8,5 +8,6 @@
   "completed": "Evaluación completada.",
   "failed": "La evaluación no pudo completarse.",
   "engine_failed": "La evaluación automática no pudo completarse. Inténtalo de nuevo; si se repite, contáctanos.",
-  "engine_timeout": "La evaluación tardó más de lo permitido y se canceló. Inténtalo de nuevo."
+  "engine_timeout": "La evaluación tardó más de lo permitido y se canceló. Inténtalo de nuevo.",
+  "probe_version_unsupported": "La evaluación automática está en mantenimiento y no pudo completarse. Inténtalo más tarde; si se repite, contáctanos."
 }

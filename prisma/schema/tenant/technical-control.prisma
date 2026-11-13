@@ -64,6 +64,9 @@ enum ExecutionStatus {
 enum ExecutionKind {
   assessment
   validation
+  // Crear el agente de la sonda de un servidor (D112): lo hace el trabajador, con una credencial de escritura que nunca está en el backend. Corre en su propio
+  // carril corto, como la validación: el cliente espera unos segundos en pantalla.
+  enrollment
 
   @@map("execution_kind")
   @@schema("tenant")
@@ -155,6 +158,55 @@ model ExecutionLog {
   @@index([executionId, loggedAt])
   @@index([tenantId])
   @@map("execution_logs")
+  @@schema("tenant")
+}
+
+// pending: pre-registrado y sin conectar · connected / disconnected: lo último que se vio · removed: se quitó el activo y su agente se eliminó de la sonda.
+enum AssetAgentStatus {
+  pending
+  connected
+  disconnected
+  removed
+
+  @@map("asset_agent_status")
+  @@schema("tenant")
+}
+
+// El vínculo entre un servidor y su agente en la sonda (D112, cierra DT-32 al construirse). Sin él, un resultado de la sonda no se acepta: es lo que
+// impide que un agente de una empresa entregue datos a otra (SEG-45, DT-33). La sonda no aísla a las empresas; lo impone Monkey.
+//
+// Nombre y grupo del agente en la sonda NO se guardan: son derivados y siempre iguales (nombre = `asset_id`, grupo = `tenant_id`). Se guardan solo
+// los hechos. La CLAVE del agente tampoco: sale una sola vez, dentro del comando de instalación.
+//
+// La fila nace al DECLARAR el servidor, con la versión que el cliente eligió (`sca_policy_id`): de ella sale el sistema operativo (y con él el comando
+// de instalación) y qué evaluación se espera. `agent_id` se completa cuando Monkey crea el agente en la sonda, así que hasta entonces es nulo.
+model AssetAgent {
+  id          String           @id @default(uuid()) @db.Uuid
+  tenantId    String           @map("tenant_id") @db.Uuid
+  // Un activo, un agente.
+  assetId     String           @unique @map("asset_id") @db.Uuid
+  // La versión que el cliente declaró («Ubuntu 22.04 LTS»): una política del catálogo. De `sca_policies.os_code` sale linux / windows / macos.
+  scaPolicyId String           @map("sca_policy_id") @db.Uuid
+  // El identificador del agente en la sonda (`001`, `002`…); nulo hasta que se crea. Único en TODA la base: un mismo agente no puede ser de dos
+  // activos, ni de dos empresas.
+  agentId     String?          @unique @map("agent_id")
+  // La clave del agente, CIFRADA y solo unos minutos: el tiempo justo para entregársela al navegador (D112 punto 4). Se borra al leerla (una sola vez) o al caducar.
+  // Nunca se devuelve, nunca va a la bitácora ni a la auditoría.
+  installKeyCipher    String?   @map("install_key_cipher")
+  installKeyExpiresAt DateTime? @map("install_key_expires_at")
+  status      AssetAgentStatus @default(pending)
+  registeredAt DateTime        @default(now()) @map("registered_at")
+  firstSeenAt DateTime?        @map("first_seen_at")
+  lastSeenAt  DateTime?        @map("last_seen_at")
+  lastSyncAt  DateTime?        @map("last_sync_at")
+
+  asset     Asset     @relation(fields: [assetId], references: [id])
+  tenant    Company   @relation(fields: [tenantId], references: [id])
+  scaPolicy ScaPolicy @relation(fields: [scaPolicyId], references: [id])
+
+  @@index([tenantId])
+  @@index([scaPolicyId])
+  @@map("asset_agents")
   @@schema("tenant")
 }
 

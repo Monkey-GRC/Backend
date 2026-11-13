@@ -105,6 +105,7 @@ model Company {
   executions     Execution[]
   checkResults   CheckResult[]
   assetResources AssetResource[]
+  assetAgents    AssetAgent[]
   executionLogs  ExecutionLog[]
   auditLogs        AuditLog[]
   complianceEvents ComplianceEvent[]

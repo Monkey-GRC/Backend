@@ -1,6 +1,8 @@
 import { CredentialBroker, InventoryScanner, RunnerApi, RunnerLogger, ScanEngine } from '../domain/ports';
 import { Inventory } from '../domain/inventory';
 import { FAILURE, RunnerApiError, RunnerFailure, RunnerJob, RunnerJobKind, TemporaryCredentials } from '../domain/runner.types';
+import { RunEnrollment } from './run-enrollment';
+import { RunSondaExecution } from './run-sonda-execution';
 
 export type StepResult = 'idle' | 'completed' | 'failed';
 
@@ -16,11 +18,27 @@ export class RunNextExecution {
     private readonly kind?: RunnerJobKind,
     // Opcional: sin él, la validación solo comprueba el acceso (no descubre activos).
     private readonly inventory?: InventoryScanner,
+    // Servidores con agente (D112). Sin él, el trabajador no lee la sonda y esas ejecuciones se cierran con una razón clara, sin tocarlas a mano.
+    private readonly sonda?: RunSondaExecution,
+    // Crear el agente de un servidor en la sonda (D112). Lleva la credencial de ALTA, aparte de la de lectura: sin ella, el trabajador no crea agentes.
+    private readonly enrollment?: RunEnrollment,
   ) {}
 
   async execute(): Promise<StepResult> {
     const job = await this.api.claim(this.kind);
     if (!job) return 'idle';
+    // Crear el agente de un servidor: no hay credenciales del cliente ni motor, y es otra credencial de la sonda.
+    if (job.kind === 'enrollment') {
+      if (this.enrollment && job.enrollment) return this.enrollment.execute(job as RunnerJob & { enrollment: { name: string; group: string } });
+      this.log.error(`Ejecución ${job.executionId}: este trabajador no tiene configurada la creación de agentes.`);
+      return this.reportFailure(job, FAILURE.methodNotSupported);
+    }
+    // Un servidor con agente no tiene credenciales del cliente ni motor en contenedor: otro camino (D112).
+    if (job.connection.method === 'agent') {
+      if (this.sonda) return this.sonda.execute(job as RunnerJob & { connection: { method: 'agent'; agentId: string; group: string } });
+      this.log.error(`Ejecución ${job.executionId}: este trabajador no tiene configurada la lectura de la sonda.`);
+      return this.reportFailure(job, FAILURE.methodNotSupported);
+    }
     this.log.info(`Ejecución ${job.executionId}: reclamada (${job.kind}, ${job.regions.length} región(es)).`);
 
     let reason: string | null = null;
