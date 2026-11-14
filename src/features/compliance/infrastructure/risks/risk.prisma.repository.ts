@@ -4,6 +4,7 @@ import { DomainError } from '../../../../common/errors/domain-error';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
+import { resolveAttributions } from '../../../../infrastructure/database/attribution';
 import { Page } from '../../../../common/pagination/page';
 import { nextCode } from '../../domain/risks/risk-types';
 import { loadControlResponsibles, usersOf } from '../shared/control-responsibles';
@@ -306,8 +307,10 @@ export class RiskPrismaRepository extends RiskRepository {
       const total = await tx.auditLog.count({ where });
       const rows = await tx.auditLog.findMany({
         where, orderBy: { createdAt: 'desc' }, skip: (page.page - 1) * page.pageSize, take: page.pageSize,
-        select: { beforeState: true, afterState: true, createdAt: true, user: { select: { id: true, name: true, lastName: true } } },
+        select: { beforeState: true, afterState: true, createdAt: true, userId: true },
       });
+      // `audit_logs.user_id` no tiene clave foránea (D117): se resuelve la persona, o su sello si ya no existe.
+      const people = await resolveAttributions(tx, rows.map((r) => r.userId));
       const read = (state: unknown): RiskEvaluation | null => {
         const v = state as { likelihood?: number | null; impact?: number | null; inherent_risk_value?: number | null; inherent_risk_level?: string | null } | null;
         return v ? { likelihood: v.likelihood ?? null, impact: v.impact ?? null, inherentRiskValue: v.inherent_risk_value ?? null, inherentRiskLevel: v.inherent_risk_level ?? null } : null;
@@ -319,7 +322,7 @@ export class RiskPrismaRepository extends RiskRepository {
           current: read(r.afterState) as EvaluationEntry['current'],
           // La primera evaluación no tiene valor previo: todos sus campos eran nulos.
           previous: before && before.likelihood !== null ? before : null,
-          evaluatedBy: r.user ? { id: r.user.id, name: r.user.name, lastName: r.user.lastName } : null,
+          evaluatedBy: r.userId && people.has(r.userId) ? { id: r.userId, name: people.get(r.userId)!.name, lastName: people.get(r.userId)!.lastName } : null,
           evaluatedAt: r.createdAt,
         };
       });

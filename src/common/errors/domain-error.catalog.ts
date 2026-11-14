@@ -115,4 +115,7 @@ export const DOMAIN_ERROR_CATALOG: Record<
   // Esta instalación aún no puede comprobar conexiones (sin sonda). No es un fallo del cliente.
   CONNECTION_UNAVAILABLE: { status: HttpStatus.SERVICE_UNAVAILABLE, messageKey: 'connection.unavailable' },
   INTEGRATION_NOT_FOUND: { status: HttpStatus.NOT_FOUND, messageKey: 'integration.not_found' },
+  CANNOT_DEACTIVATE_SELF: { status: HttpStatus.CONFLICT, messageKey: 'admin.cannot_deactivate_self' },
+  ADMIN_ALREADY_INACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'admin.already_inactive' },
+  ADMIN_NOT_INACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'admin.not_inactive' },
 };

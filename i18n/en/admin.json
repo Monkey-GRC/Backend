@@ -1,0 +1,12 @@
+{
+  "list": "Monkey administrators.",
+  "invited": "Done, we invited the administrator.",
+  "activation_code_regenerated": "Done, we issued a new invitation. Check whether the email went out.",
+  "deactivated": "Administrator deactivated. Their account will be deleted in 7 days; until then you can reactivate it.",
+  "reactivated": "Administrator reactivated. They must sign in again.",
+  "purged_label": "Deleted administrator",
+  "cannot_deactivate_self": "You cannot deactivate your own account.",
+  "last_admin": "The only active Monkey administrator cannot be deactivated.",
+  "already_inactive": "This account is already deactivated and will be deleted when its grace period ends.",
+  "not_inactive": "This account is not deactivated: there is nothing to reactivate."
+}

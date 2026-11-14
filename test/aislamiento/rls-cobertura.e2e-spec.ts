@@ -46,8 +46,8 @@ describe('Aislamiento por empresa (RLS) — cobertura de tablas', () => {
                             and a.attname in ('tenant_id', 'company_id'))`,
       [TENANT_SCHEMAS],
     );
-    // platform.companies se aísla por su propio id: es la única sin columna de tenant.
-    expect(r.rows.map((t) => t.tabla)).toEqual(['platform.companies']);
+    // platform.companies se aísla por su propio id; audit.admin_tombstones (D117) es de la plataforma, no de una empresa: solo admin_monkey la lee y la escribe (política `admin_monkey_only`).
+    expect(r.rows.map((t) => t.tabla).sort()).toEqual(['audit.admin_tombstones', 'platform.companies']);
   });
 
   it('las políticas tenant_isolation comparan el discriminante con app.tenant_id en USING y WITH CHECK', async () => {

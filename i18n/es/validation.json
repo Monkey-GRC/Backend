@@ -47,5 +47,6 @@
   "closure_reason_required": "Hay observaciones abiertas del auditor en este control: indica por qué das el veredicto igual.",
   "control_mismatch": "Esa evidencia no es de ese control.",
   "body_or_status_required": "Envía el texto nuevo (body) o el estado (status).",
-  "body_or_status_exclusive": "Cambia el texto o el estado, pero no los dos a la vez."
+  "body_or_status_exclusive": "Cambia el texto o el estado, pero no los dos a la vez.",
+  "role_not_allowed": "Ese rol no es válido aquí: solo se invita a otro administrador de Monkey."
 }

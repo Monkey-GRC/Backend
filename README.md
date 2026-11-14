@@ -120,7 +120,7 @@ Con `NODE_ENV=production` no se sirve aunque la variable esté puesta: **nunca l
 
 | Qué | Dónde |
 |---|---|
-| Features (una carpeta por módulo, con `domain/`, `application/`, `infrastructure/`, `presentation/`) | `src/features/` (`auth`, `companies`, `team`, `compliance`, `onboarding`, `services`, `technical-control`, `catalogs`, `catalog-admin`) |
+| Features (una carpeta por módulo, con `domain/`, `application/`, `infrastructure/`, `presentation/`) | `src/features/` (`auth`, `companies`, `team`, `admin-users`, `compliance`, `onboarding`, `services`, `technical-control`, `catalogs`, `catalog-admin`) |
 | Transversal sin lógica de negocio (errores, auditoría, cupo, correo, Swagger…) | `src/common/` |
 | Prisma, bloqueos de fila, correo, almacenamiento, auditoría y seguridad (adaptadores) | `src/infrastructure/` (`database/`, `mail/`, `storage/`, `audit/`, `security/`) |
 | El trabajador del motor de nube | `src/runner/` |

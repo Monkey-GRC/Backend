@@ -26,8 +26,7 @@ model AuditLog {
   result      AuditResult
   createdAt   DateTime    @default(now()) @map("created_at")
 
-  // Restrict: el audit trail es inmutable, no puede perder la atribución si se toca un usuario.
-  user   User?    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  // `user_id` sin clave foránea (D117): el audit trail no se reescribe y la cuenta de un admin_monkey puede purgarse; el nombre sale del sello (admin_tombstones).
   tenant Company? @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, createdAt])
@@ -50,11 +49,22 @@ model ComplianceEvent {
   userAgent     String?  @map("user_agent")
   createdAt     DateTime @default(now()) @map("created_at")
 
-  user   User?   @relation(fields: [userId], references: [id], onDelete: Restrict)
   tenant Company @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, createdAt])
   @@index([userId])
   @@map("compliance_events")
+  @@schema("audit")
+}
+// D117 · El sello de un admin_monkey purgado: lo mínimo para que la auditoría siga diciendo quién fue (nunca el correo ni nada de acceso). Solo de añadir (trigger + REVOKE).
+// `user_id` es el mismo uuid que tuvo en `users`; sin clave foránea porque esa fila ya no existe.
+model AdminTombstone {
+  userId   String   @id @map("user_id") @db.Uuid
+  name     String?
+  lastName String?  @map("last_name")
+  role     UserRole
+  purgedAt DateTime @default(now()) @map("purged_at")
+
+  @@map("admin_tombstones")
   @@schema("audit")
 }

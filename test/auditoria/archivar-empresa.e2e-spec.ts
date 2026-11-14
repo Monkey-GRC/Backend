@@ -47,8 +47,8 @@ describe('cobertura del borrado definitivo', () => {
         where c.relkind = 'r' and n.nspname in ('platform','tenant','audit')
           and not exists (select 1 from pg_attribute a where a.attrelid = c.oid and a.attname in ('tenant_id','company_id') and not a.attisdropped)`,
     );
-    // `companies` se borra al final y `company_purge_log` es el rastro que sobrevive.
-    expect(sinColumna.map((r) => r.tabla).sort()).toEqual(['platform.companies']);
+    // `companies` se borra al final y `company_purge_log` es el rastro que sobrevive. `audit.admin_tombstones` (D117) es de la plataforma, no de una empresa: no se borra con ella.
+    expect(sinColumna.map((r) => r.tabla).sort()).toEqual(['audit.admin_tombstones', 'platform.companies']);
   });
 });
 

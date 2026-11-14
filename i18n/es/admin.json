@@ -1,0 +1,12 @@
+{
+  "list": "Administradores de Monkey.",
+  "invited": "Listo, invitamos al administrador.",
+  "activation_code_regenerated": "Listo, emitimos una invitación nueva. Revisa si el correo salió.",
+  "deactivated": "Administrador desactivado. En 7 días se borrará su cuenta; hasta entonces puedes reactivarla.",
+  "reactivated": "Administrador reactivado. Debe iniciar sesión de nuevo.",
+  "purged_label": "Administrador eliminado",
+  "cannot_deactivate_self": "No puedes desactivar tu propia cuenta.",
+  "last_admin": "No se puede desactivar al único administrador activo de Monkey.",
+  "already_inactive": "Esta cuenta ya está desactivada y se borrará al terminar su plazo.",
+  "not_inactive": "Esta cuenta no está desactivada: no hay nada que reactivar."
+}
