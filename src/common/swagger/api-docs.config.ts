@@ -35,6 +35,7 @@ export const API_TAGS = {
   exclusions: 'Cumplimiento · Exclusiones',
   observations: 'Cumplimiento · Observaciones del auditor',
   integrations: 'Integraciones',
+  admins: 'Monkey Admin · Administradores',
 } as const;
 
 export const API_TAG_DESCRIPTIONS: Record<(typeof API_TAGS)[keyof typeof API_TAGS], string> = {
@@ -82,6 +83,8 @@ export const API_TAG_DESCRIPTIONS: Record<(typeof API_TAGS)[keyof typeof API_TAG
     'Observaciones que escribe el auditor sobre un servicio, un control o una evidencia, y que la empresa responde y el auditor cierra (D96). No mueven el porcentaje. Contrato: `contracts/modules/compliance-audit.md`.',
   [API_TAGS.integrations]:
     'La sección Integraciones de la empresa: el catálogo de lo que se puede conectar y las integraciones ya conectadas con su estado derivado. Contrato: `contracts/integraciones.md`.',
+  [API_TAGS.admins]:
+    'Cuentas de administrador de Monkey: listar, invitar por correo, reenviar la invitación, desactivar (7 días de gracia y luego se borra) y reactivar. Solo `admin_monkey`. Contrato: `contracts/gestion-usuarios/administradores.md`.',
 };
 
 // Los textos de error salen de i18n/es: la tabla de la descripción nunca se desfasa del producto.

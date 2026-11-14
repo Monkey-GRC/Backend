@@ -120,12 +120,12 @@ model CompanyFramework {
   id           String   @id @default(uuid()) @db.Uuid
   companyId    String   @map("company_id") @db.Uuid
   frameworkId  String   @map("framework_id") @db.Uuid
+  // Sin clave foránea (D117): quien contrató es un admin_monkey que puede purgarse; el nombre sale del sello.
   contractedBy String   @map("contracted_by") @db.Uuid
   contractedAt DateTime @map("contracted_at") @db.Date
 
   company          Company   @relation(fields: [companyId], references: [id])
   framework        Framework @relation(fields: [frameworkId], references: [id])
-  contractedByUser User      @relation(fields: [contractedBy], references: [id])
 
   @@unique([companyId, frameworkId])
   @@index([frameworkId])
@@ -137,6 +137,7 @@ model CompanyFramework {
 model AccessKey {
   id        String          @id @default(uuid()) @db.Uuid
   companyId String          @map("company_id") @db.Uuid
+  // Sin clave foránea (D117): quien emitió la clave es un admin_monkey que puede purgarse; el nombre sale del sello.
   createdBy String          @map("created_by") @db.Uuid
   codeHash  String          @unique @map("code_hash") // se busca por hash al canjear la clave
   status    AccessKeyStatus @default(pending)
@@ -144,7 +145,6 @@ model AccessKey {
   usedAt    DateTime?       @map("used_at")
 
   company Company @relation(fields: [companyId], references: [id])
-  createdByUser User @relation(fields: [createdBy], references: [id])
 
   @@index([companyId])
   @@map("access_keys")
