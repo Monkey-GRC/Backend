@@ -4,6 +4,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { AcceptLanguageResolver, I18nModule } from 'nestjs-i18n';
 import path from 'path';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { AdminUsersModule } from './features/admin-users/admin-users.module';
 import { AuthModule } from './features/auth/auth.module';
 import { CatalogAdminModule } from './features/catalog-admin/catalog-admin.module';
 import { CatalogsModule } from './features/catalogs/catalogs.module';
@@ -43,6 +44,7 @@ import { StorageModule } from './infrastructure/storage/storage.module';
     OnboardingModule,
     ServicesModule,
     TeamModule,
+    AdminUsersModule,
     ComplianceModule,
     TechnicalControlModule,
     IntegrationsModule,

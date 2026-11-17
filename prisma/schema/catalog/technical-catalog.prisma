@@ -150,3 +150,29 @@ model MonitoringDomainCapability {
   @@map("monitoring_domain_capabilities")
   @@schema("catalog")
 }
+
+// Etiquetas de una opción de conexión (D114): lo que la tarjeta destaca.
+enum ConnectionOptionTag {
+  recommended
+  fastest
+  advanced
+  less_secure
+
+  @@map("connection_option_tag")
+  @@schema("catalog")
+}
+
+// Las opciones del asistente de conexión (D114): `connection_method`, `gcp_connection_scope` y `gcp_setup_method`. `catalog` es el nombre del
+// catálogo que se sirve en GET /v1/catalogs/{catalog}; `code` es su `value`. El texto sale de i18n. Pasar una opción a `available` es un cambio de dato.
+model ConnectionOption {
+  id           String                @id @default(uuid()) @db.Uuid
+  catalog      String
+  code         String
+  availability FrameworkAvailability @default(coming_soon)
+  tags         ConnectionOptionTag[]
+  sortOrder    Int                   @map("sort_order")
+
+  @@unique([catalog, code])
+  @@map("connection_options")
+  @@schema("catalog")
+}

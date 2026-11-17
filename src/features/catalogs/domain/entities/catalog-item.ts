@@ -36,6 +36,13 @@ export type CapabilityItem = {
   generatedEvidence: string;
 };
 
+// Una opción del asistente de conexión (D114). El texto (`label`, `description`) sale de i18n por `code`.
+export type ConnectionOptionItem = {
+  code: string;
+  availability: 'available' | 'coming_soon';
+  tags: string[];
+};
+
 // Una región de una plataforma (D67): su código es lo que viaja; `name` es el nombre del proveedor, por si no hay etiqueta traducida.
 export type RegionItem = { code: string; name: string };
 
@@ -47,6 +54,7 @@ export type Catalog =
   | { kind: 'capabilities'; items: CapabilityItem[] }
   | { kind: 'regions'; items: RegionItem[] }
   | { kind: 'os_versions'; items: OsVersionItem[] }
+  | { kind: 'options'; name: string; items: ConnectionOptionItem[] }
   | { kind: 'enum'; name: string; values: readonly string[] }
   | { kind: 'regulations'; items: RegulationItem[] }
   | { kind: 'frameworks'; items: FrameworkItem[] };

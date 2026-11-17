@@ -60,7 +60,7 @@ declare_project() {
   [ -n "$svc" ] && ok "servicio $svc" || die "no hay ningún servicio"
   local payload; payload=$(PROJECT_ID=$PROJECT_ID SVC=$svc python3 -c 'import json,os;print(json.dumps({"name":"GCP prueba de punta a punta","connection_category":"ac_01","connection_method":"identity_federation","platform":"gcp","external_account_id":os.environ["PROJECT_ID"],"service_ids":[os.environ["SVC"]]}))')
   local out; out=$(call -X POST -d "$payload" "$API/assets")
-  [ "$(echo "$out" | code)" = 201 ] || die "alta ($(echo "$out" | code)): $(echo "$out" | err). ¿Tiene el backend PREVIEW_PLATFORMS=gcp?"
+  [ "$(echo "$out" | code)" = 201 ] || die "alta ($(echo "$out" | code)): $(echo "$out" | err)."
   local id; id=$(echo "$out" | body | j 'print(d["data"]["id"])'); ok "activo $id"
   echo "$out" | body | j 'import sys; s=d["data"]["connection_setup"]; sys.exit(0 if s["method"]=="identity_federation" and s["external_id"].startswith("mk-") and s["project_number"] is None else 1)' \
     && ok "instrucciones: canal, external_id y número pendiente" || bad "connection_setup incompleto"

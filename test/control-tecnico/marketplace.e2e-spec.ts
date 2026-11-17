@@ -32,10 +32,10 @@ describe('El catálogo de conexiones trae las plataformas del comité', () => {
     expect(names(items, 'ac_06')).toEqual(['Windows', 'macOS', 'Linux']);
   });
 
-  it('solo AWS y Linux y Windows en servidores on-premise están disponibles; el resto se muestra bloqueado', async () => {
+  it('solo AWS, GCP y Linux y Windows en servidores on-premise están disponibles; el resto se muestra bloqueado', async () => {
     const all = (await capabilities()).flatMap((c) => c.platforms.map((p) => ({ cap: c.catalog_code, ...p })));
-    expect(all.filter((p) => p.availability === 'available').map((p) => `${p.cap}/${p.code}`)).toEqual(['ac_01/aws', 'ac_04/linux', 'ac_04/windows']);
-    expect(all.filter((p) => p.availability === 'coming_soon').length).toBe(all.length - 3);
+    expect(all.filter((p) => p.availability === 'available').map((p) => `${p.cap}/${p.code}`)).toEqual(['ac_01/aws', 'ac_01/gcp', 'ac_04/linux', 'ac_04/windows']);
+    expect(all.filter((p) => p.availability === 'coming_soon').length).toBe(all.length - 4);
   });
 
   it('AWS se conecta con rol (el recomendado, primero) o con llaves; cada plataforma trae su logo', async () => {

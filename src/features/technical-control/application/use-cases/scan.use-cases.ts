@@ -2,7 +2,7 @@ import { Inventory } from '../../domain/entities/technical-control.entities';
 import { Injectable } from '@nestjs/common';
 import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
-import { CLOUD_PLATFORM_AWS, CLOUD_PLATFORM_GCP, CLOUD_PLATFORMS, CloudPlatform } from '../../../../common/catalogs/technical-catalogs';
+import { CLOUD_PLATFORM_AWS, CLOUD_PLATFORM_GCP, CLOUD_PLATFORMS } from '../../../../common/catalogs/technical-catalogs';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { Page, PageRequest } from '../../../../common/pagination/page';

@@ -47,5 +47,6 @@
   "closure_reason_required": "There are open auditor observations on this control: say why you are giving the verdict anyway.",
   "control_mismatch": "That evidence does not belong to that control.",
   "body_or_status_required": "Send the new text (body) or the status.",
-  "body_or_status_exclusive": "Change the text or the status, but not both at once."
+  "body_or_status_exclusive": "Change the text or the status, but not both at once.",
+  "role_not_allowed": "That role is not valid here: only another Monkey administrator can be invited."
 }

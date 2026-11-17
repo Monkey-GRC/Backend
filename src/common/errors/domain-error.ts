@@ -113,6 +113,10 @@ export type DomainErrorCode =
   | 'CONNECTION_UNAVAILABLE'
   // D110 · La integración no existe o, para el auditor, la empresa no la tiene conectada.
   | 'INTEGRATION_NOT_FOUND'
+  // D117 · Cuentas de administrador de Monkey (contracts/gestion-usuarios/administradores.md, MD-215).
+  | 'CANNOT_DEACTIVATE_SELF'
+  | 'ADMIN_ALREADY_INACTIVE'
+  | 'ADMIN_NOT_INACTIVE'
   // La instalación de la sonda en un servidor (D113).
   | 'ASSET_NOT_AGENT'
   | 'AGENT_INSTALL_NOT_READY'
@@ -125,6 +129,8 @@ export class DomainError extends Error {
   constructor(
     public readonly code: DomainErrorCode,
     public readonly details: Record<string, unknown> = {},
+    // Para el mismo `error.code` con un texto distinto en otro contexto (p. ej. LAST_ADMIN de una empresa y de Monkey Admin).
+    public readonly messageKey?: string,
   ) {
     super(code);
   }

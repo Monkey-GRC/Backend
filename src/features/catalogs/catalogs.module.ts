@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { CapabilityCatalogRepository } from './domain/repositories/capability-catalog.repository';
 import { FrameworkCatalogRepository } from './domain/repositories/framework-catalog.repository';
 import { OsVersionCatalogRepository } from './domain/repositories/os-version-catalog.repository';
+import { ConnectionOptionCatalogRepository } from './domain/repositories/connection-option-catalog.repository';
+import { ConnectionOptionCatalogPrismaRepository } from './infrastructure/repositories/connection-option-catalog.prisma.repository';
 import { RegionCatalogRepository } from './domain/repositories/region-catalog.repository';
 import { OsVersionCatalogPrismaRepository } from './infrastructure/repositories/os-version-catalog.prisma.repository';
 import { CapabilityCatalogPrismaRepository } from './infrastructure/repositories/capability-catalog.prisma.repository';
@@ -21,6 +23,7 @@ import { CatalogsController } from './presentation/catalogs.controller';
     { provide: CapabilityCatalogRepository, useClass: CapabilityCatalogPrismaRepository },
     { provide: RegionCatalogRepository, useClass: RegionCatalogPrismaRepository },
     { provide: OsVersionCatalogRepository, useClass: OsVersionCatalogPrismaRepository },
+    { provide: ConnectionOptionCatalogRepository, useClass: ConnectionOptionCatalogPrismaRepository },
     GetCatalogUseCase,
     GetContractedFrameworksUseCase,
   ],

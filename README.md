@@ -105,7 +105,7 @@ El motor de nube no corre dentro de la API: lo ejecuta un **trabajador** que rec
 2. Crea `deploy/runner.env` desde `deploy/runner.env.example` (`RUNNER_TOKEN` igual al del backend, `ENGINE_IMAGE` fijada por versión o digest, y las llaves AWS de pruebas). **Nunca lo commitees ni copies ahí el `.env` del backend.**
 3. `npm run runner:local` (o `-- --no-build` para no recompilar). El script busca el archivo de entorno en este orden: `RUNNER_ENV_FILE=ruta`, `deploy/runner.env` y `~/.monkey-runner.env`; si no encuentra ninguno, falla y lo dice.
 
-**GCP de punta a punta** (D112): con `PREVIEW_PLATFORMS=gcp` y `MONKEY_GCP_FEDERATION_ROLE_ARN` en el `.env` y el ARN también en el entorno del trabajador,
+**GCP de punta a punta** (D112): con `MONKEY_GCP_FEDERATION_ROLE_ARN` en el `.env` y el ARN también en el entorno del trabajador,
 `scripts/dev/smoke-gcp.sh declare` declara el proyecto y deja el comando para Cloud Shell; `finish` entrega el número de proyecto, valida y evalúa (ver su encabezado).
 **Pon un `RUNNER_POOL` propio** en el entorno de tu backend (p. ej. `RUNNER_POOL=local-rod`; `D112`): las ejecuciones que crea tu backend llevan ese grupo y solo tu trabajador local las reclama, así el del servidor de desarrollo (que comparte la base) no se las lleva. No hace falta detenerlo. En producción puede omitirse (queda `default`).
 
@@ -120,7 +120,7 @@ Con `NODE_ENV=production` no se sirve aunque la variable esté puesta: **nunca l
 
 | Qué | Dónde |
 |---|---|
-| Features (una carpeta por módulo, con `domain/`, `application/`, `infrastructure/`, `presentation/`) | `src/features/` (`auth`, `companies`, `team`, `compliance`, `onboarding`, `services`, `technical-control`, `catalogs`, `catalog-admin`) |
+| Features (una carpeta por módulo, con `domain/`, `application/`, `infrastructure/`, `presentation/`) | `src/features/` (`auth`, `companies`, `team`, `admin-users`, `compliance`, `onboarding`, `services`, `technical-control`, `catalogs`, `catalog-admin`) |
 | Transversal sin lógica de negocio (errores, auditoría, cupo, correo, Swagger…) | `src/common/` |
 | Prisma, bloqueos de fila, correo, almacenamiento, auditoría y seguridad (adaptadores) | `src/infrastructure/` (`database/`, `mail/`, `storage/`, `audit/`, `security/`) |
 | El trabajador del motor de nube | `src/runner/` |

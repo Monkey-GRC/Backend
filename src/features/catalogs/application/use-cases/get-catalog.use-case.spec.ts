@@ -1,5 +1,6 @@
 import { DomainError } from '../../../../common/errors/domain-error';
 import { OsVersionItem } from '../../domain/entities/catalog-item';
+import { ConnectionOptionCatalogRepository } from '../../domain/repositories/connection-option-catalog.repository';
 import { CapabilityCatalogRepository } from '../../domain/repositories/capability-catalog.repository';
 import { FrameworkCatalogRepository } from '../../domain/repositories/framework-catalog.repository';
 import { OsVersionCatalogRepository } from '../../domain/repositories/os-version-catalog.repository';
@@ -17,7 +18,7 @@ class FakeOsVersions extends OsVersionCatalogRepository {
 
 const none = { findAll: () => Promise.resolve([]) };
 const use = (osVersions: OsVersionCatalogRepository) =>
-  new GetCatalogUseCase(none as unknown as RegulationCatalogRepository, none as unknown as FrameworkCatalogRepository, none as unknown as CapabilityCatalogRepository, { findByPlatform: () => Promise.resolve([]) } as unknown as RegionCatalogRepository, osVersions);
+  new GetCatalogUseCase(none as unknown as RegulationCatalogRepository, none as unknown as FrameworkCatalogRepository, none as unknown as CapabilityCatalogRepository, { findByPlatform: () => Promise.resolve([]) } as unknown as RegionCatalogRepository, osVersions, { findByCatalog: () => Promise.resolve([]) } as unknown as ConnectionOptionCatalogRepository);
 
 describe('GetCatalogUseCase · <sistema>_version (D113)', () => {
   it('`linux_version` devuelve las versiones que la sonda entrega para Linux, leídas de la base', async () => {

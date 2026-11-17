@@ -641,11 +641,11 @@ describe('Comprobar la conexión: validación REAL a través del trabajador', ()
     expect((await a.agent.get(`/v1/assets/${id}/readiness`).expect(200)).body.data.readiness).toBe('not_measured');
   });
 
-  // D67: servidores, bases de datos y equipos se muestran bloqueados hasta que exista el canal de agente (DT-57): no se pueden registrar.
+  // D67: lo que aún no tiene flujo se muestra bloqueado y no se puede registrar. Linux y Windows en servidores on-premise (ac_04) ya están abiertos (D113): se cubren en servidor-agente.e2e-spec.ts.
   it.each([
     ['ac_02', 'linux'],
     ['ac_03', 'postgresql'],
-    ['ac_04', 'windows'],
+    ['ac_04', 'hp_ux'],
     ['ac_05', 'mysql_mariadb'],
     ['ac_06', 'macos'],
   ])('%s/%s está bloqueada: se muestra pero no se puede conectar, y no deja nada registrado', async (category, platform) => {

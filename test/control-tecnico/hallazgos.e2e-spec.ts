@@ -176,10 +176,10 @@ describe('Qué falló y cómo corregirlo (D90)', () => {
     await a.agent.get(`/v1/controls/no-es-uuid/tests/${testId}/findings`).expect(404);
   });
 
-  it('una prueba que no es de nube no tiene hallazgos que explicar (404)', async () => {
+  it('una prueba documental (política) no tiene hallazgos que explicar (404); las de nube y las de servidores sí (D90)', async () => {
     const other = await owner<{ test_id: string }>(
       `select cct.test_id from tenant.client_control_tests cct join catalog.tests t on t.id = cct.test_id
-        where cct.client_control_id = $1 and t.dimension <> 'cloud' limit 1`,
+        where cct.client_control_id = $1 and t.dimension = 'policy' limit 1`,
       [controlId],
     );
     if (other.length) await a.agent.get(`/v1/controls/${controlId}/tests/${other[0].test_id}/findings`).expect(404);

@@ -44,6 +44,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof DomainError) {
       ({ status, messageKey } = DOMAIN_ERROR_CATALOG[exception.code]);
+      if (exception.messageKey) messageKey = exception.messageKey;
       code = exception.code;
       Object.assign(error, exception.details);
     } else if (exception instanceof ValidationException) {

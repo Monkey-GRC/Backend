@@ -223,7 +223,7 @@ export interface PlatformSeed {
 
 // Fuente: columna «plataformas» de la hoja «Activos del Servicio (SCOPE)» del comité (AC-01…AC-06), en su orden (D67). En nube son proveedores;
 // en servidores y equipos, el sistema operativo; en bases de datos, el motor. RDS, Cloud SQL, EC2, Azure VM… que el comité cita son DÓNDE vive, no la plataforma.
-// `available` solo lo que tiene un flujo construido: AWS (D58) y Linux y Windows en servidores on-premise (`ac_04`, D113). Los demás se muestran bloqueados hasta tener su flujo.
+// `available` solo lo que tiene un flujo construido: AWS (D58), GCP (D112) y Linux y Windows en servidores on-premise (`ac_04`, D113). Los demás se muestran bloqueados hasta tener su flujo.
 // Los sistemas operativos y los motores llevan `agent`, que es su diseño (DT-57), aunque estén bloqueados.
 const platform = (
   capability: string,
@@ -245,7 +245,7 @@ const OS_SERVER = (capability: string, open: PlatformSeed['availability'] = 'com
 export const PLATFORMS: PlatformSeed[] = [
   platform('ac_01', 'aws', 'Amazon Web Services', ['readonly_role', 'access_keys'], 'aws', 'available'),
   platform('ac_01', 'azure', 'Azure'),
-  platform('ac_01', 'gcp', 'GCP', ['identity_federation']),
+  platform('ac_01', 'gcp', 'GCP', ['identity_federation'], 'gcp', 'available'),
   platform('ac_01', 'microsoft_365', 'Microsoft 365'),
   platform('ac_01', 'google_workspace', 'Google Workspace'),
   ...OS_SERVER('ac_02'),
@@ -263,6 +263,27 @@ export const PLATFORMS: PlatformSeed[] = [
   platform('ac_06', 'windows', 'Windows', ['agent']),
   platform('ac_06', 'macos', 'macOS', ['agent']),
   platform('ac_06', 'linux', 'Linux', ['agent']),
+];
+
+// Las opciones del asistente de conexión (D114): `connection_method`, `gcp_connection_scope` y `gcp_setup_method`, en su orden. Se sirven en
+// GET /v1/catalogs/<catalog>; el texto (`label` y `description`) vive en i18n. Solo se elige la `available`; la otra se muestra bloqueada.
+export type ConnectionOptionTagSeed = 'recommended' | 'fastest' | 'advanced' | 'less_secure';
+export interface ConnectionOptionSeed {
+  catalog: string;
+  code: string;
+  availability: 'available' | 'coming_soon';
+  tags: ConnectionOptionTagSeed[];
+}
+const option = (catalog: string, code: string, availability: ConnectionOptionSeed['availability'], tags: ConnectionOptionTagSeed[] = []): ConnectionOptionSeed => ({ catalog, code, availability, tags });
+export const CONNECTION_OPTIONS: ConnectionOptionSeed[] = [
+  option('connection_method', 'readonly_role', 'available', ['recommended']),
+  option('connection_method', 'access_keys', 'available', ['less_secure']),
+  option('connection_method', 'agent', 'available'),
+  option('connection_method', 'identity_federation', 'available', ['recommended']),
+  option('gcp_connection_scope', 'project', 'available'),
+  option('gcp_connection_scope', 'organization', 'coming_soon'),
+  option('gcp_setup_method', 'cloud_shell', 'available', ['recommended', 'fastest']),
+  option('gcp_setup_method', 'terraform', 'coming_soon', ['advanced']),
 ];
 
 // Las integraciones (D110, MD-211), en su orden: primero las de medición. Las que tienen plataforma de conexión (`platform` = `ac_01/<código>`)

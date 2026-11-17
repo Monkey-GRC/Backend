@@ -124,4 +124,7 @@ export const DOMAIN_ERROR_CATALOG: Record<
   AGENT_GROUP_MISMATCH: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'agent_install.group_mismatch' },
   // Esta instalación aún no está configurada para instalar la sonda (sin dirección ni versión). No es un fallo del cliente.
   AGENT_INSTALL_UNAVAILABLE: { status: HttpStatus.SERVICE_UNAVAILABLE, messageKey: 'agent_install.unavailable' },
+  CANNOT_DEACTIVATE_SELF: { status: HttpStatus.CONFLICT, messageKey: 'admin.cannot_deactivate_self' },
+  ADMIN_ALREADY_INACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'admin.already_inactive' },
+  ADMIN_NOT_INACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'admin.not_inactive' },
 };

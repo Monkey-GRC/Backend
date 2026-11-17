@@ -6,7 +6,7 @@
   "federation_rejected": "Google Cloud did not accept Monkey's access. Check that you ran the setup command in that project and that the project number is its own.",
   "regions_missing": "You have not declared which regions to assess yet. Choose at least one.",
   "not_configured": "This system does not have its connection configured yet.",
-  "provider_not_supported": "This platform isn't available yet. For now we can only assess AWS accounts.",
+  "provider_not_supported": "This platform isn't available to connect yet.",
   "method_not_supported_by_runner": "This connection type is assessed a different way and not from here.",
   "method_not_applicable": "That connection type is not available for this system.",
   "agent_not_found": "We could not find the probe for this server. Generate the install command again and run it once more.",
