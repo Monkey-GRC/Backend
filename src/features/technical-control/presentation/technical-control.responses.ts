@@ -58,6 +58,55 @@ export class AssetProvisioningResponse {
   @ApiProperty({ enum: SCHEDULE_FREQUENCY_VALUES, enumName: 'ScheduleFrequency', nullable: true }) schedule_frequency!: string | null;
 }
 
+export class AssetOsVersionResponse {
+  @ApiProperty({ example: 'ubuntu_22_04_lts', description: 'El `value` con el que se declaró (`GET /v1/catalogs/<sistema>_version`).' }) value!: string;
+  @ApiProperty({ example: 'Ubuntu 22.04 LTS', description: 'El mismo texto que el catálogo.' }) label!: string;
+}
+
+export class AssetAgentResponse {
+  @ApiProperty({ enum: ['pending', 'connected', 'disconnected', 'removed'], enumName: 'AssetAgentStatus', description: '`pending`: declarado, sin conectarse todavía · `connected` · `disconnected` · `removed`: se quitó el activo.' }) status!: string;
+  @ApiProperty({ enum: ['linux', 'windows', 'macos', 'solaris', 'hp_ux'], example: 'linux', description: 'El sistema, de la versión declarada: de él depende el comando de instalación.' }) os!: string;
+  @ApiProperty({ type: AssetOsVersionResponse }) os_version!: AssetOsVersionResponse;
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'La última vez que Monkey leyó este servidor con éxito (la «última revisión»). Nulo mientras no se ha conectado.' }) last_sync_at!: string | null;
+}
+
+export class AgentInstallOutboundResponse {
+  @ApiProperty({ example: 'sonda.monkey.example', description: 'A dónde se conecta el servidor del cliente.' }) host!: string;
+  @ApiProperty({ example: 1514, description: 'El puerto, de SALIDA: el servidor del cliente se conecta a Monkey; no hace falta abrir puertos de entrada.' }) port!: number;
+}
+
+export class AgentInstallConnectionResponse {
+  @ApiProperty({ enum: ['pending', 'connected', 'disconnected', 'removed'], enumName: 'AssetAgentStatus', description: 'Lo último que Monkey vio del servidor.' }) status!: string;
+  @ApiProperty({ description: '`true` mientras Monkey busca solo al servidor (hasta 24 horas desde que se creó su agente; un servidor desconectado se sigue buscando). Si es `false` y el estado es `pending`, Monkey dejó de buscarlo: ofrecer «Comprobar ahora» o «Generar de nuevo».' }) watching!: boolean;
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'La última vez que Monkey leyó este servidor con éxito.' }) last_sync_at!: string | null;
+}
+
+export class AgentInstallStateResponse {
+  @ApiProperty({ enum: ['not_started', 'preparing', 'ready', 'delivered', 'failed'], enumName: 'AgentInstallStatus', description: '`ready`: el comando se puede pedir (una vez, hasta `expires_at`) · `delivered`: ya se mostró o caducó · `failed`: ver `failure_message`.' }) status!: string;
+  @ApiProperty({ nullable: true, description: 'Solo en `failed`: el motivo, ya traducido. Nunca el mensaje de la sonda.' }) failure_message!: string | null;
+  @ApiProperty({ enum: ['linux', 'windows', 'macos', 'solaris', 'hp_ux'], example: 'linux', description: 'El sistema, de la versión que el cliente declaró: de él depende el comando.' }) os!: string;
+  @ApiProperty({ type: AssetOsVersionResponse, description: 'La versión del sistema que el cliente declaró.' }) os_version!: AssetOsVersionResponse;
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'Solo en `ready`: hasta cuándo se puede pedir el comando.' }) expires_at!: string | null;
+  @ApiProperty({ type: AgentInstallOutboundResponse, description: 'Lo que el firewall del cliente debe permitir de SALIDA. No hace falta abrir puertos de entrada.' }) requires_outbound!: AgentInstallOutboundResponse;
+  @ApiProperty({ type: AgentInstallConnectionResponse, description: 'Cómo va la conexión del servidor con Monkey, una vez instalado.' }) connection!: AgentInstallConnectionResponse;
+}
+
+export class AgentInstallOptionResponse {
+  @ApiProperty({ enum: ['command', 'file'], description: '`command`: se copia y se pega en una terminal · `file`: se descarga y se ejecuta.' }) kind!: string;
+  @ApiProperty({ example: 'Terminal', description: 'Dónde se pega o con qué se ejecuta («Terminal», «PowerShell»).' }) label!: string;
+  @ApiProperty({ required: false, enum: ['bash', 'powershell'], description: '`command`: dónde se pega.' }) shell?: string;
+  @ApiProperty({ required: false, description: '`command`: el comando. **Sensible**: lleva la clave de este servidor.' }) value?: string;
+  @ApiProperty({ required: false, example: 'instalar-monkey.ps1', description: '`file`: nombre con el que el navegador lo guarda.' }) filename?: string;
+  @ApiProperty({ required: false, description: '`file`: el contenido del archivo. **Sensible**: lleva la clave de este servidor.' }) content?: string;
+}
+
+export class AgentInstallRevealResponse {
+  @ApiProperty({ enum: ['linux', 'windows', 'macos', 'solaris', 'hp_ux'], example: 'linux', description: 'El sistema, de la versión que el cliente declaró.' }) os!: string;
+  @ApiProperty({ type: AssetOsVersionResponse, description: 'La versión del sistema que el cliente declaró.' }) os_version!: AssetOsVersionResponse;
+  @ApiProperty({ type: AgentInstallOptionResponse, isArray: true, description: 'Linux: un comando. Windows: un comando de PowerShell y un archivo. Se muestran UNA sola vez.' }) options!: AgentInstallOptionResponse[];
+  @ApiProperty({ type: AgentInstallOutboundResponse }) requires_outbound!: AgentInstallOutboundResponse;
+}
+
 export class AssetResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ example: 'AST-0007', description: 'Código legible del activo.' }) code!: string;
@@ -77,6 +126,7 @@ export class AssetResponse {
   @ApiProperty({ type: AssetServiceRefResponse, isArray: true, description: 'Servicios a los que da soporte.' }) services!: AssetServiceRefResponse[];
   @ApiProperty({ type: AssetProvisioningResponse }) provisioning!: AssetProvisioningResponse;
   @ApiProperty({ type: ConnectionSetupResponse, nullable: true, description: 'Instrucciones para completar la conexión, sin secretos. Las llaves nunca salen. `null` si no aplica.' }) connection_setup!: ConnectionSetupResponse | null;
+  @ApiProperty({ type: AssetAgentResponse, nullable: true, description: 'Solo un servidor o equipo con agente (D113): su estado y la versión del sistema que el cliente declaró. `null` en los demás.' }) agent!: AssetAgentResponse | null;
 }
 
 export class AssetListProvisioningResponse {
@@ -205,7 +255,7 @@ export class FindingRemediationResponse {
 export class FindingResponse {
   @ApiProperty({ format: 'uuid', description: 'Identifica la comprobación dentro del catálogo de Monkey.' }) id!: string;
   @ApiProperty({ example: 'El almacenamiento permite acceso público', description: 'Qué no se cumple, en el idioma de la petición.' }) title!: string;
-  @ApiProperty({ enum: ['critical', 'high', 'medium', 'low', 'informational'], enumName: 'FindingSeverity' }) severity!: string;
+  @ApiProperty({ enum: ['critical', 'high', 'medium', 'low', 'informational'], enumName: 'FindingSeverity', nullable: true, description: 'Nulo cuando quien midió no califica sus checks (los servidores): no se inventa un nivel.' }) severity!: string | null;
   @ApiProperty({ type: [FindingResourceResponse], description: 'Hasta 50 recursos afectados.' }) resources!: FindingResourceResponse[];
   @ApiProperty({ example: 3, description: 'Cuántos recursos están afectados en total (puede ser más de los que se listan).' }) resources_total!: number;
   @ApiProperty({ type: FindingRemediationResponse, nullable: true, description: 'Null si la comprobación no trae una guía que se pueda mostrar.' }) remediation!: FindingRemediationResponse | null;

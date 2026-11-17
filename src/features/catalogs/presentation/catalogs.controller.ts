@@ -15,6 +15,7 @@ import { capabilityTexts, translateOr } from '../../../common/text/translate-or'
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiItems, ApiItemsOneOf } from '../../../common/swagger/api-envelope';
 import { CapabilityOptionResponse, CatalogOptionResponse, ConnectionOptionResponse, FrameworkOptionResponse, RegulationOptionResponse } from './catalogs.responses';
+import { osVersionOption } from './os-version-option';
 
 const t = (key: string): string =>
   (I18nContext.current()?.t(key) as string | undefined) ?? key;
@@ -48,6 +49,9 @@ function toItems(catalog: Catalog) {
       const label = t(`catalogs.aws_region.${r.code}`);
       return { value: r.code, label: label === `catalogs.aws_region.${r.code}` ? r.name : label };
     });
+  }
+  if (catalog.kind === 'os_versions') {
+    return catalog.items.map((i) => osVersionOption(i, t));
   }
   if (catalog.kind === 'options') {
     // Texto de i18n por catálogo y valor; la descripción vive en `catalogs.option_description.<catálogo>.<valor>` (D114).
@@ -109,7 +113,7 @@ export class CatalogsController {
   }
 
   @ApiOperation({ summary: 'Opciones de una lista', description: 'Las opciones de un formulario. **El frontend nunca escribe estas listas a mano**: manda el `value` (`snake_case`) y muestra el `label` ya traducido. Cualquier usuario con sesión puede leerlas; no llevan datos de ninguna empresa. Un nombre que no existe responde 404. Contrato: `contracts/enums.md`.' })
-  @ApiParam({ name: 'name', description: 'Nombre del catálogo. Además de las listas fijas: `regulations`, `frameworks`, `automated-capabilities` y `<plataforma>_region` (por ejemplo `aws_region`).', enum: [...ENUM_CATALOG_NAMES, 'regulations', 'frameworks', 'automated-capabilities', 'aws_region', ...CONNECTION_OPTION_CATALOGS] })
+  @ApiParam({ name: 'name', description: 'Nombre del catálogo. Además de las listas fijas: `regulations`, `frameworks`, `automated-capabilities`, `<plataforma>_region` (por ejemplo `aws_region`) y `<sistema>_version` (por ejemplo `linux_version`: las versiones que el cliente puede declarar para un servidor, solo las que la sonda entrega).', enum: [...ENUM_CATALOG_NAMES, 'regulations', 'frameworks', 'automated-capabilities', 'aws_region', ...CONNECTION_OPTION_CATALOGS] })
   @ApiItemsOneOf([CatalogOptionResponse, ConnectionOptionResponse, RegulationOptionResponse, FrameworkOptionResponse, CapabilityOptionResponse], 'Opciones del catálogo. La forma depende del nombre: lista simple (`value`/`label`), opciones de conexión (`connection_method`, `gcp_connection_scope`, `gcp_setup_method`: con `description`, `availability` y `tags`), `regulations`, `frameworks` o `automated-capabilities`.')
   @Get(':name')
   async get(@Param('name') name: string) {

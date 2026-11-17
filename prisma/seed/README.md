@@ -77,3 +77,22 @@ Si el Excel cambia, el cambio **no** entra por recarga: `catalog:load` aborta co
 `cloud:translate` (guía en español, D90) lee `data/cloud-checks-es.json` para AWS y `data/cloud-gcp-checks-es.json` para GCP (un mismo `checkId` puede existir en las dos nubes). Requiere el catálogo de SOC 2 ya cargado (las pruebas `T-CLD`). Las asignaciones check → prueba son **propuestas** (`monkey_proposed`) hasta
 que el comité las ratifique. Los textos del motor son internos: no salen al cliente. **Licencia del motor sin verificar (`P14` E1):** el
 JSON incluye sus metadatos; revísalo antes de abrir el repo.
+
+## Políticas y checks de la sonda de servidores (D113)
+
+| Comando | Qué hace |
+|---|---|
+| `npm run sonda:extract -- <carpeta ruleset/sca> [ref]` | Lee la hoja «Checks» del Excel del comité (`SONDA_XLSX_PATH`) y las políticas de la sonda y escribe `data/sonda-checks.json.gz` (77 políticas, 11.352 checks, 14.334 mapeos a SOC 2, 19.850 asignaciones propuestas; 1,2 MB comprimido). Si algo no cuadra, **no escribe** |
+| `npm run sonda:load` · `-- --apply` | Dry-run / carga en una transacción (≈45.000 filas). Mismas garantías que los otros seeds; **no pisa una asignación `committee_ratified`** |
+| `npm run sonda:verify` | Solo lectura; sale con código 1 si la base no coincide |
+| `npm run sonda:untranslated` · `-- <política> [--from N --count M]` | Solo lee archivos. Sin argumentos: cuántas guías de corrección faltan por traducir en cada política ofrecida. Con una política: las pendientes en JSON (id, título, original), para repartir el trabajo en tandas |
+| `npm run sonda:generate -- --gpo --reuse [política…]` (`--dry-run`) | Completa `data/sonda-es/<política>.json` **sin escribir a mano**: `--gpo` genera las guías de Windows con el formato estándar de directiva de grupo (`sonda/gpo-translate.ts`; la ruta va exacta en un bloque de código); `--reuse` copia la traducción cuando el original en inglés es **idéntico** al de otra guía ya traducida. Nunca pisa lo que ya está en el archivo ni lo que el comité trae en español |
+| `npm run sonda:translate` · `-- --check` · `-- --apply` | Carga `data/sonda-es/*.json` en `remediation_es` (`translation_origin = 'machine'`, sin revisar). **Valida antes de escribir**: todo lo que la traducción deja como código (comandos, rutas) tiene que aparecer **igual** en el original (un comando alterado le haría daño al servidor del cliente), nada nombra al proveedor de la sonda y no se pisa lo del comité. `--check` solo valida (sin base de datos). Idempotente; nunca toca `reviewed` ni los títulos. Hoy: ≈4.000 guías (Ubuntu 22.04 completo, Windows ≈98 %, y Linux donde el texto es idéntico) |
+
+Las políticas de la sonda se bajan del repositorio público **en la etiqueta de la versión que usa el manager** (hoy `v4.14.6`), solo `ruleset/sca`, en una carpeta nueva
+y vacía (`git clone --depth 1 --filter=blob:none --sparse --branch v4.14.6 https://github.com/wazuh/wazuh.git <carpeta>` y `git -C <carpeta> sparse-checkout set ruleset/sca`).
+Los archivos se leen como texto y nunca se ejecutan. **El id oficial de cada política sale de su YAML, no del nombre del archivo** (19 de las 77 no coinciden).
+
+Requiere el catálogo de SOC 2 ya cargado (las pruebas `T-SRV` y `T-BD`). Las asignaciones a `T-APP-*` no se cargan (esas pruebas no existen, `P9`) y se informan.
+La asignación check → prueba entra como **`monkey_proposed`**: la hoja del comité no es la versión final. La tabla `catalog.sca_policies` queda como fuente de las versiones
+que se ofrecen al cliente (`GET /v1/catalogs/<sistema>_version`): solo `is_offerable` (lo que la sonda entrega y es un sistema operativo).

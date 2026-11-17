@@ -37,6 +37,16 @@ if [ -f "$ENV" ] && [ "$(value "$ENV" PROBE_MODE)" = "runner" ]; then
   fi
 fi
 
+# Servidores con agente (D113): es OPCIONAL, pero si el trabajador trae SONDA_API_URL tiene que venir completo (el trabajador tampoco arranca incompleto).
+if [ -f "$RUNNER" ] && [ -n "$(value "$RUNNER" SONDA_API_URL)" ]; then
+  need "$RUNNER" SONDA_API_USER SONDA_API_PASSWORD SONDA_ENROLL_USER SONDA_ENROLL_PASSWORD SONDA_SUPPORTED_VERSIONS SONDA_CA_FILE
+  [ "$(value "$RUNNER" SONDA_API_USER)" != "$(value "$RUNNER" SONDA_ENROLL_USER)" ] || fail "$RUNNER: SONDA_API_USER y SONDA_ENROLL_USER tienen que ser distintos (uno lee, otro da de alta)"
+  ca="$(value "$RUNNER" SONDA_CA_FILE)"
+  # El certificado se guarda en $ROOT/runner-secrets/ y el compose lo monta en /run/secrets/.
+  [ -z "$ca" ] || [ -f "$ROOT/runner-secrets/$(basename "$ca")" ] || fail "Falta el certificado de la sonda: $ROOT/runner-secrets/$(basename "$ca")"
+  need "$ENV" SONDA_MANAGER_HOST SONDA_MANAGER_PORT SONDA_AGENT_VERSION
+fi
+
 # D112: el grupo de trabajadores es opcional (queda «default»), pero con un formato inválido el backend se niega a arrancar.
 if [ -f "$ENV" ]; then
   pool="$(value "$ENV" RUNNER_POOL)"

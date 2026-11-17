@@ -196,6 +196,12 @@
     "agent": "Agente instalado",
     "identity_federation": "Federación de identidad, sin claves (GCP)"
   },
+  "os_version": {
+    "linux_generic": "Linux (pruebas generales)"
+  },
+  "os_group": {
+    "linux_generic": "Mi distribución no está en la lista"
+  },
   "aws_region": {
     "us-east-1": "Virginia del Norte (us-east-1)",
     "us-east-2": "Ohio (us-east-2)",

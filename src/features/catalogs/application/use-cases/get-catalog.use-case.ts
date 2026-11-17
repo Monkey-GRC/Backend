@@ -8,6 +8,7 @@ import { DomainError } from '../../../../common/errors/domain-error';
 import { Catalog } from '../../domain/entities/catalog-item';
 import { CapabilityCatalogRepository } from '../../domain/repositories/capability-catalog.repository';
 import { FrameworkCatalogRepository } from '../../domain/repositories/framework-catalog.repository';
+import { OsVersionCatalogRepository } from '../../domain/repositories/os-version-catalog.repository';
 import { ConnectionOptionCatalogRepository } from '../../domain/repositories/connection-option-catalog.repository';
 import { RegionCatalogRepository } from '../../domain/repositories/region-catalog.repository';
 import { RegulationCatalogRepository } from '../../domain/repositories/regulation-catalog.repository';
@@ -20,6 +21,7 @@ export class GetCatalogUseCase {
     private readonly frameworks: FrameworkCatalogRepository,
     private readonly capabilities: CapabilityCatalogRepository,
     private readonly regions: RegionCatalogRepository,
+    private readonly osVersions: OsVersionCatalogRepository,
     private readonly options: ConnectionOptionCatalogRepository,
   ) {}
 
@@ -39,6 +41,14 @@ export class GetCatalogUseCase {
       const items = await this.regions.findByPlatform(region[1]);
       if (items.length === 0) throw new DomainError('NOT_FOUND');
       return { kind: 'regions', items };
+    }
+    // `<sistema>_version` (p. ej. `linux_version`, `windows_version`): las versiones que el cliente puede declarar para un servidor salen de la base (D113),
+    // solo las que la sonda entrega. Ninguna lista vive en el código ni en la pantalla.
+    const version = /^([a-z0-9_]+)_version$/.exec(name);
+    if (version) {
+      const items = await this.osVersions.findOfferableByOs(version[1]);
+      if (items.length === 0) throw new DomainError('NOT_FOUND');
+      return { kind: 'os_versions', items };
     }
     // Las opciones del asistente de conexión (D114) salen de la base, con su disponibilidad y etiquetas.
     if (CONNECTION_OPTION_CATALOGS.includes(name)) {

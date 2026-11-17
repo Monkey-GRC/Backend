@@ -116,7 +116,14 @@ export type DomainErrorCode =
   // D117 · Cuentas de administrador de Monkey (contracts/gestion-usuarios/administradores.md, MD-215).
   | 'CANNOT_DEACTIVATE_SELF'
   | 'ADMIN_ALREADY_INACTIVE'
-  | 'ADMIN_NOT_INACTIVE';
+  | 'ADMIN_NOT_INACTIVE'
+  // La instalación de la sonda en un servidor (D113).
+  | 'ASSET_NOT_AGENT'
+  | 'AGENT_INSTALL_NOT_READY'
+  | 'AGENT_ALREADY_LINKED'
+  | 'AGENT_NOT_LINKED'
+  | 'AGENT_GROUP_MISMATCH'
+  | 'AGENT_INSTALL_UNAVAILABLE';
 
 export class DomainError extends Error {
   constructor(

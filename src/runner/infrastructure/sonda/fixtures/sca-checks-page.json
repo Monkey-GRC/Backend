@@ -1,0 +1,423 @@
+{
+    "data":  {
+                 "affected_items":  [
+                                        {
+                                            "policy_id":  "cis_ubuntu22-04",
+                                            "result":  "failed",
+                                            "command":  "findmnt -kn /tmp",
+                                            "references":  "https://www.freedesktop.org/wiki/Software/systemd/APIFileSystems/,https://www.freedesktop.org/software/systemd/man/systemd-fstab-generator.html,https://www.kernel.org/doc/Documentation/filesystems/tmpfs.txt",
+                                            "rationale":  "Making /tmp its own file system allows an administrator to set additional mount …",
+                                            "condition":  "all",
+                                            "id":  28500,
+                                            "title":  "Ensure /tmp is a separate partition.",
+                                            "description":  "The /tmp directory is a world-writable directory used for temporary storage by a…",
+                                            "remediation":  "First ensure that systemd is correctly configured to ensure that /tmp will be mo…",
+                                            "compliance":  [
+                                                               {
+                                                                   "key":  "cis",
+                                                                   "value":  "1.1.2.1.1"
+                                                               },
+                                                               {
+                                                                   "key":  "cis_csc_v7",
+                                                                   "value":  "9.2"
+                                                               },
+                                                               {
+                                                                   "key":  "cis_csc_v8",
+                                                                   "value":  "4.8"
+                                                               },
+                                                               {
+                                                                   "key":  "cmmc_v2.0",
+                                                                   "value":  "CM.L2-3.4.7,CM.L2-3.4.8,SC.L2-3.13.6"
+                                                               },
+                                                               {
+                                                                   "key":  "iso_27001-2013",
+                                                                   "value":  "A.13.1.3"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_mitigations",
+                                                                   "value":  "M1022"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_tactics",
+                                                                   "value":  "TA0005"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_techniques",
+                                                                   "value":  "T1499,T1499.001"
+                                                               },
+                                                               {
+                                                                   "key":  "pci_dss_v3.2.1",
+                                                                   "value":  "1.1.6,1.2.1,2.2.2,2.2.5"
+                                                               },
+                                                               {
+                                                                   "key":  "pci_dss_v4.0",
+                                                                   "value":  "1.2.5,2.2.4,6.4.1"
+                                                               },
+                                                               {
+                                                                   "key":  "soc_2",
+                                                                   "value":  "CC6.3,CC6.6"
+                                                               }
+                                                           ],
+                                            "rules":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "rule":  "c:findmnt -kn /tmp -\u003e r:\\s*/tmp\\s"
+                                                          },
+                                                          {
+                                                              "type":  "command",
+                                                              "rule":  "c:systemctl is-enabled tmp.mount -\u003e !r:masked|disabled"
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "policy_id":  "cis_ubuntu22-04",
+                                            "result":  "failed",
+                                            "command":  "findmnt -kn /tmp",
+                                            "rationale":  "Since the /tmp filesystem is not intended to support devices, set this option to…",
+                                            "condition":  "all",
+                                            "id":  28501,
+                                            "title":  "Ensure nodev option set on /tmp partition.",
+                                            "description":  "The nodev mount option specifies that the filesystem cannot contain special devi…",
+                                            "remediation":  "- IF - a separate partition exists for /tmp. Edit the /etc/fstab file and add no…",
+                                            "compliance":  [
+                                                               {
+                                                                   "key":  "cis",
+                                                                   "value":  "1.1.2.1.2"
+                                                               },
+                                                               {
+                                                                   "key":  "cis_csc_v7",
+                                                                   "value":  "9.2"
+                                                               },
+                                                               {
+                                                                   "key":  "cis_csc_v8",
+                                                                   "value":  "4.8"
+                                                               },
+                                                               {
+                                                                   "key":  "cmmc_v2.0",
+                                                                   "value":  "CM.L2-3.4.7,CM.L2-3.4.8,SC.L2-3.13.6"
+                                                               },
+                                                               {
+                                                                   "key":  "iso_27001-2013",
+                                                                   "value":  "A.13.1.3"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_mitigations",
+                                                                   "value":  "M1022"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_tactics",
+                                                                   "value":  "TA0005"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_techniques",
+                                                                   "value":  "T1200"
+                                                               },
+                                                               {
+                                                                   "key":  "pci_dss_v3.2.1",
+                                                                   "value":  "1.1.6,1.2.1,2.2.2,2.2.5"
+                                                               },
+                                                               {
+                                                                   "key":  "pci_dss_v4.0",
+                                                                   "value":  "1.2.5,2.2.4,6.4.1"
+                                                               },
+                                                               {
+                                                                   "key":  "soc_2",
+                                                                   "value":  "CC6.3,CC6.6"
+                                                               }
+                                                           ],
+                                            "rules":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "rule":  "c:findmnt -kn /tmp -\u003e r:nodev"
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "policy_id":  "cis_ubuntu22-04",
+                                            "result":  "passed",
+                                            "command":  "findmnt -kn /dev/shm",
+                                            "rationale":  "Since the /dev/shm filesystem is not intended to support devices, set this optio…",
+                                            "condition":  "all",
+                                            "id":  28522,
+                                            "title":  "Ensure nodev option set on /dev/shm partition.",
+                                            "description":  "The nodev mount option specifies that the filesystem cannot contain special devi…",
+                                            "remediation":  "- IF - a separate partition exists for /dev/shm. Edit the /etc/fstab file and ad…",
+                                            "compliance":  [
+                                                               {
+                                                                   "key":  "cis",
+                                                                   "value":  "1.1.2.2.2"
+                                                               },
+                                                               {
+                                                                   "key":  "cis_csc_v7",
+                                                                   "value":  "14.6"
+                                                               },
+                                                               {
+                                                                   "key":  "cis_csc_v8",
+                                                                   "value":  "3.3"
+                                                               },
+                                                               {
+                                                                   "key":  "cmmc_v2.0",
+                                                                   "value":  "AC.L1-3.1.1,AC.L1-3.1.2,AC.L2-3.1.3,AC.L2-3.1.5,MP.L2-3.8.2"
+                                                               },
+                                                               {
+                                                                   "key":  "hipaa",
+                                                                   "value":  "164.308(a)(3)(i),164.308(a)(3)(ii)(A),164.312(a)(1)"
+                                                               },
+                                                               {
+                                                                   "key":  "iso_27001-2013",
+                                                                   "value":  "A.9.1.1"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_mitigations",
+                                                                   "value":  "M1022"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_tactics",
+                                                                   "value":  "TA0005"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_techniques",
+                                                                   "value":  "T1200"
+                                                               },
+                                                               {
+                                                                   "key":  "nist_sp_800-53",
+                                                                   "value":  "AC-5,AC-6"
+                                                               },
+                                                               {
+                                                                   "key":  "pci_dss_v3.2.1",
+                                                                   "value":  "7.1,7.1.1,7.1.2,7.1.3"
+                                                               },
+                                                               {
+                                                                   "key":  "pci_dss_v4.0",
+                                                                   "value":  "1.3.1,7.1"
+                                                               },
+                                                               {
+                                                                   "key":  "soc_2",
+                                                                   "value":  "CC5.2,CC6.1"
+                                                               }
+                                                           ],
+                                            "rules":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "rule":  "c:findmnt -kn /dev/shm -\u003e r:nodev"
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "policy_id":  "cis_ubuntu22-04",
+                                            "result":  "passed",
+                                            "command":  "findmnt -kn /dev/shm",
+                                            "rationale":  "Setting this option on a file system prevents users from executing programs from…",
+                                            "condition":  "all",
+                                            "id":  28523,
+                                            "title":  "Ensure noexec option set on /dev/shm partition.",
+                                            "description":  "The noexec mount option specifies that the filesystem cannot contain executable …",
+                                            "remediation":  "- IF - a separate partition exists for /dev/shm. Edit the /etc/fstab file and ad…",
+                                            "compliance":  [
+                                                               {
+                                                                   "key":  "cis",
+                                                                   "value":  "1.1.2.2.4"
+                                                               },
+                                                               {
+                                                                   "key":  "cis_csc_v7",
+                                                                   "value":  "14.6"
+                                                               },
+                                                               {
+                                                                   "key":  "cis_csc_v8",
+                                                                   "value":  "3.3"
+                                                               },
+                                                               {
+                                                                   "key":  "cmmc_v2.0",
+                                                                   "value":  "AC.L1-3.1.1,AC.L1-3.1.2,AC.L2-3.1.3,AC.L2-3.1.5,MP.L2-3.8.2"
+                                                               },
+                                                               {
+                                                                   "key":  "hipaa",
+                                                                   "value":  "164.308(a)(3)(i),164.308(a)(3)(ii)(A),164.312(a)(1)"
+                                                               },
+                                                               {
+                                                                   "key":  "iso_27001-2013",
+                                                                   "value":  "A.9.1.1"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_mitigations",
+                                                                   "value":  "M1022"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_tactics",
+                                                                   "value":  "TA0005"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_techniques",
+                                                                   "value":  "T1204,T1204.002"
+                                                               },
+                                                               {
+                                                                   "key":  "nist_sp_800-53",
+                                                                   "value":  "AC-5,AC-6"
+                                                               },
+                                                               {
+                                                                   "key":  "pci_dss_v3.2.1",
+                                                                   "value":  "7.1,7.1.1,7.1.2,7.1.3"
+                                                               },
+                                                               {
+                                                                   "key":  "pci_dss_v4.0",
+                                                                   "value":  "1.3.1,7.1"
+                                                               },
+                                                               {
+                                                                   "key":  "soc_2",
+                                                                   "value":  "CC5.2,CC6.1"
+                                                               }
+                                                           ],
+                                            "rules":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "rule":  "c:findmnt -kn /dev/shm -\u003e r:noexec"
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "policy_id":  "cis_ubuntu22-04",
+                                            "file":  "/boot/grub/grub.cfg",
+                                            "reason":  "Could not open file \u0027/boot/grub/grub.cfg\u0027",
+                                            "result":  "not applicable",
+                                            "rationale":  "Requiring a boot password upon execution of the boot loader will prevent an unau…",
+                                            "condition":  "all",
+                                            "id":  28527,
+                                            "title":  "Ensure bootloader password is set.",
+                                            "description":  "Setting the boot loader password will require that anyone rebooting the system m…",
+                                            "remediation":  "Create an encrypted password with grub-mkpasswd-pbkdf2: # grub-mkpasswd-pbkdf2 -…",
+                                            "compliance":  [
+                                                               {
+                                                                   "key":  "cis",
+                                                                   "value":  "1.4.1"
+                                                               },
+                                                               {
+                                                                   "key":  "cis_csc_v7",
+                                                                   "value":  "14.6"
+                                                               },
+                                                               {
+                                                                   "key":  "cis_csc_v8",
+                                                                   "value":  "3.3"
+                                                               },
+                                                               {
+                                                                   "key":  "cmmc_v2.0",
+                                                                   "value":  "AC.L1-3.1.1,AC.L1-3.1.2,AC.L2-3.1.3,AC.L2-3.1.5,MP.L2-3.8.2"
+                                                               },
+                                                               {
+                                                                   "key":  "hipaa",
+                                                                   "value":  "164.308(a)(3)(i),164.308(a)(3)(ii)(A),164.312(a)(1)"
+                                                               },
+                                                               {
+                                                                   "key":  "iso_27001-2013",
+                                                                   "value":  "A.9.1.1"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_mitigations",
+                                                                   "value":  "M1046"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_tactics",
+                                                                   "value":  "TA0003"
+                                                               },
+                                                               {
+                                                                   "key":  "mitre_techniques",
+                                                                   "value":  "T1542"
+                                                               },
+                                                               {
+                                                                   "key":  "nist_sp_800-53",
+                                                                   "value":  "AC-5,AC-6"
+                                                               },
+                                                               {
+                                                                   "key":  "pci_dss_v3.2.1",
+                                                                   "value":  "7.1,7.1.1,7.1.2,7.1.3"
+                                                               },
+                                                               {
+                                                                   "key":  "pci_dss_v4.0",
+                                                                   "value":  "1.3.1,7.1"
+                                                               },
+                                                               {
+                                                                   "key":  "soc_2",
+                                                                   "value":  "CC5.2,CC6.1"
+                                                               }
+                                                           ],
+                                            "rules":  [
+                                                          {
+                                                              "type":  "file",
+                                                              "rule":  "f:/boot/grub/grub.cfg -\u003e r:^\\s*\\t*password_pbkdf2\\s*\\t*\\w+"
+                                                          },
+                                                          {
+                                                              "type":  "file",
+                                                              "rule":  "f:/boot/grub/grub.cfg -\u003e r:^\\s*\\t*set superusers="
+                                                          }
+                                                      ]
+                                        },
+                                        {
+                                            "policy_id":  "cis_ubuntu22-04",
+                                            "file":  "/etc/default/apport",
+                                            "reason":  "Invalid path or wrong permissions to run command \u0027systemctl is-enabled apport.service\u0027",
+                                            "result":  "not applicable",
+                                            "command":  "systemctl is-enabled apport.service,systemctl is-active apport.service",
+                                            "rationale":  "Apport collects potentially sensitive data, such as core dumps, stack traces, an…",
+                                            "condition":  "all",
+                                            "id":  28531,
+                                            "title":  "Ensure Automatic Error Reporting is not enabled.",
+                                            "description":  "The Apport Error Reporting Service automatically generates crash reports for deb…",
+                                            "remediation":  "Edit /etc/default/apport and add or edit the enabled parameter to equal 0: enabl…",
+                                            "compliance":  [
+                                                               {
+                                                                   "key":  "cis",
+                                                                   "value":  "1.5.5"
+                                                               },
+                                                               {
+                                                                   "key":  "cis_csc_v7",
+                                                                   "value":  "9.2"
+                                                               },
+                                                               {
+                                                                   "key":  "cis_csc_v8",
+                                                                   "value":  "4.8"
+                                                               },
+                                                               {
+                                                                   "key":  "cmmc_v2.0",
+                                                                   "value":  "CM.L2-3.4.7,CM.L2-3.4.8,SC.L2-3.13.6"
+                                                               },
+                                                               {
+                                                                   "key":  "iso_27001-2013",
+                                                                   "value":  "A.13.1.3"
+                                                               },
+                                                               {
+                                                                   "key":  "pci_dss_v3.2.1",
+                                                                   "value":  "1.1.6,1.2.1,2.2.2,2.2.5"
+                                                               },
+                                                               {
+                                                                   "key":  "pci_dss_v4.0",
+                                                                   "value":  "1.2.5,2.2.4,6.4.1"
+                                                               },
+                                                               {
+                                                                   "key":  "soc_2",
+                                                                   "value":  "CC6.3,CC6.6"
+                                                               }
+                                                           ],
+                                            "rules":  [
+                                                          {
+                                                              "type":  "command",
+                                                              "rule":  "c:systemctl is-enabled apport.service -\u003e r:disabled"
+                                                          },
+                                                          {
+                                                              "type":  "numeric",
+                                                              "rule":  "not c:systemctl is-active apport.service -\u003e r:active"
+                                                          },
+                                                          {
+                                                              "type":  "numeric",
+                                                              "rule":  "not f:/etc/default/apport -\u003e n:enabled=(\\d+) compare != 0"
+                                                          }
+                                                      ]
+                                        }
+                                    ],
+                 "total_affected_items":  6,
+                 "total_failed_items":  0,
+                 "failed_items":  [
+
+                                  ]
+             },
+    "message":  "All selected SCA/policy information was returned",
+    "error":  0
+}

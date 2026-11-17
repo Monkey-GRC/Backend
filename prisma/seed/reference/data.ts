@@ -223,7 +223,7 @@ export interface PlatformSeed {
 
 // Fuente: columna «plataformas» de la hoja «Activos del Servicio (SCOPE)» del comité (AC-01…AC-06), en su orden (D67). En nube son proveedores;
 // en servidores y equipos, el sistema operativo; en bases de datos, el motor. RDS, Cloud SQL, EC2, Azure VM… que el comité cita son DÓNDE vive, no la plataforma.
-// AWS y GCP están `available`: son los flujos construidos (D58, D112). Los demás se muestran bloqueados hasta tener su flujo.
+// `available` solo lo que tiene un flujo construido: AWS (D58), GCP (D112) y Linux y Windows en servidores on-premise (`ac_04`, D113). Los demás se muestran bloqueados hasta tener su flujo.
 // Los sistemas operativos y los motores llevan `agent`, que es su diseño (DT-57), aunque estén bloqueados.
 const platform = (
   capability: string,
@@ -233,9 +233,10 @@ const platform = (
   logoKey: string = code,
   availability: PlatformSeed['availability'] = 'coming_soon',
 ): PlatformSeed => ({ capability, code, name, logoKey, availability, methods });
-const OS_SERVER = (capability: string): PlatformSeed[] => [
-  platform(capability, 'linux', 'Linux', ['agent']),
-  platform(capability, 'windows', 'Windows', ['agent']),
+// `open`: los sistemas con flujo construido (D113: Linux y Windows en servidores on-premise, `ac_04`); el resto de la lista sigue bloqueado.
+const OS_SERVER = (capability: string, open: PlatformSeed['availability'] = 'coming_soon'): PlatformSeed[] => [
+  platform(capability, 'linux', 'Linux', ['agent'], 'linux', open),
+  platform(capability, 'windows', 'Windows', ['agent'], 'windows', open),
   platform(capability, 'hp_ux', 'HP-UX', ['agent']),
   platform(capability, 'aix', 'AIX', ['agent']),
   platform(capability, 'solaris', 'Solaris', ['agent']),
@@ -253,7 +254,7 @@ export const PLATFORMS: PlatformSeed[] = [
   platform('ac_03', 'sql_server', 'SQL Server', ['agent']),
   platform('ac_03', 'oracle', 'Oracle', ['agent']),
   platform('ac_03', 'mongodb', 'MongoDB', ['agent']),
-  ...OS_SERVER('ac_04'),
+  ...OS_SERVER('ac_04', 'available'),
   platform('ac_05', 'postgresql', 'PostgreSQL', ['agent']),
   platform('ac_05', 'mysql_mariadb', 'MySQL / MariaDB', ['agent'], 'mysql'),
   platform('ac_05', 'sql_server', 'SQL Server', ['agent']),

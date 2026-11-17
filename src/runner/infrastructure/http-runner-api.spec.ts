@@ -57,6 +57,53 @@ describe('HttpRunnerApi', () => {
     expect((await api().claim())!.connection).toEqual({ method: 'access_keys', accessKeyId: 'AKIA', secretAccessKey: 's' });
   });
 
+  it('claim: un servidor con agente trae SU agente y el grupo esperado, y ninguna credencial (D113)', async () => {
+    reply = { status: 200, body: { data: { execution_id: 'e3', kind: 'assessment', tenant_id: 't1', asset_id: 'a1', origin: 'scheduled', platform: 'ubuntu', external_account_id: null, regions: [], connection: { method: 'agent' }, agent: { agent_id: '001', group: 't1' } } } };
+    const j = (await api().claim())!;
+    expect(j).toMatchObject({ executionId: 'e3', platform: 'ubuntu', connection: { method: 'agent', agentId: '001', group: 't1' } });
+    expect(JSON.stringify(j.connection)).not.toMatch(/secret|password|key/i);
+  });
+
+  it('claim: crear el agente de un servidor trae su nombre y su grupo, y ninguna credencial (D113)', async () => {
+    reply = { status: 200, body: { data: { execution_id: 'e4', kind: 'enrollment', tenant_id: 't1', asset_id: 'a1', origin: 'manual', platform: 'linux', external_account_id: null, regions: [], connection: { method: 'agent' }, agent: { name: 'a1', group: 't1' } } } };
+    const j = (await api().claim('enrollment'))!;
+    expect(seen[0].body).toEqual({ kind: 'enrollment' });
+    expect(j).toMatchObject({ executionId: 'e4', kind: 'enrollment', platform: 'linux', enrollment: { name: 'a1', group: 't1' } });
+    expect(JSON.stringify(j)).not.toMatch(/secret|password|key/i);
+  });
+
+  it('claim: un servidor dado de baja trae la orden de retirar su agente (D113 punto 8)', async () => {
+    reply = { status: 200, body: { data: { execution_id: 'e5', kind: 'enrollment', tenant_id: 't1', asset_id: 'a1', origin: 'manual', platform: 'linux', external_account_id: null, regions: [], connection: { method: 'agent' }, agent: { name: 'a1', group: 't1', remove: true } } } };
+    expect((await api().claim('enrollment'))!.enrollment).toEqual({ name: 'a1', group: 't1', remove: true });
+  });
+
+  it('removed: avisa que el agente se retiró, solo con el tenant', async () => {
+    reply = { status: 200, body: { data: {} } };
+    await api().removed(job);
+    expect(seen[0]).toMatchObject({ method: 'POST', url: '/internal/runner/executions/e1/removed', body: { tenant_id: 't1' } });
+  });
+
+  it('enrolled: entrega el id y la clave del agente creado, con el tenant (la clave viaja SOLO aquí)', async () => {
+    reply = { status: 200, body: { data: {} } };
+    await api().enrolled(job, { agentId: '007', key: 'LACLAVEENBASE64' });
+    expect(seen[0]).toMatchObject({ method: 'POST', url: '/internal/runner/executions/e1/enrolled', auth: 'Bearer secreto-del-trabajador', body: { tenant_id: 't1', agent_id: '007', key: 'LACLAVEENBASE64' } });
+  });
+
+  it('results de la sonda: manda el tenant, el agente y las políticas con sus checks y etiquetas, sin normalizar', async () => {
+    reply = { status: 200, body: { data: { stored: 1 } } };
+    await api().submitSca(job, {
+      sondaVersion: '4.14.6', startedAt: new Date('2026-11-12T01:00:00Z'), finishedAt: new Date('2026-11-12T01:00:03Z'),
+      agent: { id: '001', name: 'a1', groups: ['t1'] },
+      policies: [{ policyId: 'cis_ubuntu22-04', name: 'CIS Ubuntu', endScan: '2026-11-12T00:59:00+00:00', checks: [{ id: '28500', result: 'not applicable', reason: null, compliance: [{ key: 'soc_2', value: 'CC6.3,CC6.6' }] }] }],
+    });
+    expect(seen[0].url).toBe('/internal/runner/executions/e1/results');
+    expect(seen[0].body).toEqual({
+      tenant_id: 't1', source: 'sca', sonda_version: '4.14.6', started_at: '2026-11-12T01:00:00.000Z', finished_at: '2026-11-12T01:00:03.000Z',
+      agent: { agent_id: '001', name: 'a1', groups: ['t1'] },
+      policies: [{ policy_id: 'cis_ubuntu22-04', name: 'CIS Ubuntu', scan_ended_at: '2026-11-12T00:59:00+00:00', checks: [{ id: '28500', result: 'not applicable', reason: null, compliance: [{ key: 'soc_2', value: 'CC6.3,CC6.6' }] }] }],
+    });
+  });
+
   it('results: manda el tenant, la versión, las regiones y la salida SIN tocar', async () => {
     reply = { status: 200, body: { data: {} } };
     const findings = [{ raro: { anidado: [1, 2] } }];

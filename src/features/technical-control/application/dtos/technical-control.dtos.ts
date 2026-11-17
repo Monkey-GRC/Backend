@@ -13,6 +13,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -119,6 +120,14 @@ export class CreateAssetDto {
   @ArrayMaxSize(50)
   @IsString({ each: true })
   regions?: string[];
+
+  @ApiPropertyOptional({ nullable: true, example: 'ubuntu_22_04_lts', maxLength: 80, description: 'La versión del sistema del servidor o equipo (D113). **Obligatoria con el canal `agent` en `ac_02`, `ac_04` y `ac_06`; no se acepta en las demás.** Es un `value` de `GET /v1/catalogs/<sistema>_version` (`linux_version`, `windows_version`…): de ella salen el comando de instalación correcto y qué evaluación se espera.' })
+  @IsOptional()
+  @Transform(trimOrNull)
+  @IsString()
+  @MaxLength(80)
+  @Matches(/^[a-z0-9]+(_[a-z0-9]+)*$/)
+  os_version?: string | null;
 }
 
 // PATCH /v1/assets/{id} — editar un sistema. Todo es opcional; lo que cambia la conexión (cuenta, regiones, rol, llaves) la devuelve a «pendiente».

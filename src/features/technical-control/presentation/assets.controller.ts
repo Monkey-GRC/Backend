@@ -104,6 +104,7 @@ export class AssetsController {
         connectionMethod: dto.connection_method,
         externalAccountId: dto.external_account_id ?? null,
         regions: dto.regions,
+        osVersion: dto.os_version ?? null,
       },
       metaOf(req),
     );

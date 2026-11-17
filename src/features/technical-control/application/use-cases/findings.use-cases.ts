@@ -6,8 +6,8 @@ import { ScanRepository } from '../../domain/repositories/scan.repository';
 import { buildFindings, Finding, FindingLanguage } from '../../domain/scan/findings';
 import { isScopedRole } from '../../../../common/enums/user-role.enum';
 
-// D90 · Qué falló y cómo corregirlo, para una prueba de nube de un control. Lo calcula de la última evaluación completada (nunca se guarda) y deja fuera lo que no es
-// del cliente: ni el nombre del proveedor de la sonda ni el texto crudo de cada recurso.
+// D90 · Qué falló y cómo corregirlo, para una prueba automática de un control (de nube o de servidores, D113). Lo calcula de la última evaluación completada (nunca se guarda) y
+// deja fuera lo que no es del cliente: ni el nombre del proveedor de la sonda ni el texto crudo de cada recurso.
 @Injectable()
 export class ListFindingsUseCase {
   constructor(private readonly repo: ScanRepository) {}
@@ -19,7 +19,7 @@ export class ListFindingsUseCase {
     page: PageRequest,
   ): Promise<{ measuredAt: Date | null; page: Page<Finding> }> {
     const scope = { companyId: principal.companyId, userId: principal.userId, role: principal.role };
-    const test = await this.repo.findCloudTestOfControl(scope, input.controlId, input.testId);
+    const test = await this.repo.findAutomatedTestOfControl(scope, input.controlId, input.testId);
     // Un control o una prueba de otra empresa no existen para quien pregunta: 404, no una lista vacía (conventions.md).
     if (!test) throw new DomainError('NOT_FOUND');
     // D96, SEG-66 · Lo automático que falla en la nube le llega a quien es responsable del control en esa dimensión; a otro responsable, no (existe y es de su empresa: 403).

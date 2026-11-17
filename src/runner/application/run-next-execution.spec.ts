@@ -2,6 +2,8 @@ import { Inventory } from '../domain/inventory';
 import { CredentialBroker, InventoryScanner, RunnerApi, RunnerLogger, ScanEngine } from '../domain/ports';
 import { AwsCredentials, EngineInput, EngineRun, FAILURE, RunnerApiError, RunnerFailure, RunnerJob, TemporaryCredentials } from '../domain/runner.types';
 import { RunNextExecution } from './run-next-execution';
+import { RunEnrollment } from './run-enrollment';
+import { RunSondaExecution } from './run-sonda-execution';
 
 const job: RunnerJob = {
   executionId: 'e1', kind: 'assessment', tenantId: 't1', assetId: 'a1', origin: 'manual', platform: 'aws', externalAccountId: '123456789012', regions: ['us-east-1'],
@@ -20,6 +22,11 @@ class FakeApi extends RunnerApi {
   inventories: (Inventory | null | undefined)[] = [];
   validated(j: RunnerJob, inventory?: Inventory | null) { this.validatedJobs.push(j); this.inventories.push(inventory); return Promise.resolve(); }
   submitResults(j: RunnerJob, r: EngineRun) { if (this.submitError) return Promise.reject(this.submitError); this.submitted.push({ job: j, run: r }); return Promise.resolve(); }
+  scaSubmitted: RunnerJob[] = [];
+  submitSca(j: RunnerJob) { this.scaSubmitted.push(j); return Promise.resolve(); }
+  enrolledJobs: RunnerJob[] = [];
+  enrolled(j: RunnerJob) { this.enrolledJobs.push(j); return Promise.resolve(); }
+  removed() { return Promise.resolve(); }
   fail(j: RunnerJob, reason: string) { if (this.failError) return Promise.reject(this.failError); this.failed.push({ job: j, reason }); return Promise.resolve(); }
 }
 const broker = (impl: () => Promise<TemporaryCredentials>): CredentialBroker => ({ obtain: impl });
@@ -140,6 +147,53 @@ describe('RunNextExecution', () => {
       let called = false;
       await new RunNextExecution(api, broker(() => Promise.resolve(creds)), engine(() => Promise.resolve(run)), new Log(), 'assessment', scanner(() => { called = true; return Promise.resolve(found); })).execute();
       expect(called).toBe(false);
+    });
+  });
+
+  describe('crear el agente de un servidor (D113)', () => {
+    const enrollJob: RunnerJob = { ...job, kind: 'enrollment', platform: 'linux', externalAccountId: null, regions: [], connection: { method: 'agent', agentId: '', group: 't1' }, enrollment: { name: 'a1', group: 't1' } };
+    const noBroker = broker(() => Promise.reject(new Error('crear un agente no pide credenciales del cliente')));
+    const noEngine = engine(() => Promise.reject(new Error('crear un agente no corre el motor de nube')));
+
+    it('se entrega a su caso de uso y no toca credenciales ni motor', async () => {
+      const api = new FakeApi(enrollJob);
+      const delegated: RunnerJob[] = [];
+      const enrollment = { execute: (j: RunnerJob) => { delegated.push(j); return Promise.resolve('completed' as const); } } as unknown as RunEnrollment;
+      const out = await new RunNextExecution(api, noBroker, noEngine, new Log(), 'enrollment', undefined, undefined, enrollment).execute();
+      expect(out).toBe('completed');
+      expect(delegated).toEqual([enrollJob]);
+    });
+
+    it('si el trabajador no tiene la credencial de alta, cierra la ejecución con una razón clara (no la deja colgada)', async () => {
+      const api = new FakeApi(enrollJob);
+      const out = await new RunNextExecution(api, noBroker, noEngine, new Log(), 'enrollment').execute();
+      expect(out).toBe('failed');
+      expect(api.failed).toEqual([{ job: enrollJob, reason: 'connection.method_not_supported_by_runner' }]);
+    });
+  });
+
+  // Servidores con agente (D113): no hay credenciales del cliente ni motor; otro camino.
+  describe('servidor con agente', () => {
+    const agentJob: RunnerJob = { ...job, platform: 'ubuntu', externalAccountId: null, regions: [], connection: { method: 'agent', agentId: '001', group: 't1' } };
+    const noBroker = broker(() => Promise.reject(new Error('un servidor con agente no pide credenciales del cliente')));
+    const noEngine = engine(() => Promise.reject(new Error('un servidor con agente no corre el motor de nube')));
+
+    it('se entrega a la lectura de la sonda y no toca credenciales ni motor', async () => {
+      const api = new FakeApi(agentJob);
+      const delegated: RunnerJob[] = [];
+      const sonda = { execute: (j: RunnerJob) => { delegated.push(j); return Promise.resolve('completed' as const); } } as unknown as RunSondaExecution;
+      const out = await new RunNextExecution(api, noBroker, noEngine, new Log(), 'assessment', undefined, sonda).execute();
+      expect(out).toBe('completed');
+      expect(delegated).toEqual([agentJob]);
+      expect(api.failed).toHaveLength(0);
+    });
+
+    it('si el trabajador no tiene configurada la sonda, cierra la ejecución con una razón clara (no la deja colgada)', async () => {
+      const api = new FakeApi(agentJob);
+      const log = new Log();
+      const out = await new RunNextExecution(api, noBroker, noEngine, log, 'assessment').execute();
+      expect(out).toBe('failed');
+      expect(api.failed).toEqual([{ job: agentJob, reason: 'connection.method_not_supported_by_runner' }]);
     });
   });
 });

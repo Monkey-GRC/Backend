@@ -19,6 +19,7 @@ export class StsCredentialBroker extends CredentialBroker {
     const c = job.connection;
     if (c.method === 'readonly_role') return this.assume(job, c);
     if (c.method === 'access_keys') return this.verifyKeys(job, c);
+    // Un servidor con agente (D112) tampoco llega aquí: RunNextExecution lo desvía a la sonda.
     throw new RunnerFailure(FAILURE.methodNotSupportedByRunner);
   }
 

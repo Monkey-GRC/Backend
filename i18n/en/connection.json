@@ -9,6 +9,13 @@
   "provider_not_supported": "This platform isn't available to connect yet.",
   "method_not_supported_by_runner": "This connection type is assessed a different way and not from here.",
   "method_not_applicable": "That connection type is not available for this system.",
+  "agent_not_found": "We could not find the probe for this server. Generate the install command again and run it once more.",
+  "agent_no_scan_yet": "The probe on this server has not delivered its first assessment yet. Wait a few minutes and try again.",
+  "agent_disconnected": "The probe on this server is not connected. Check that the server is on and can reach the internet, then try again.",
+  "agent_enroll_failed": "We could not prepare the installation on this server. Try again in a few minutes; if it keeps happening, contact us.",
+  "agent_group_mismatch": "The probe on this server does not belong to your company, so we did not save its results. Contact us.",
+  "probe_unreachable": "We could not reach the probe right now. Try again in a few minutes; if it keeps happening, contact us.",
+  "probe_unauthorized": "We could not authenticate to read the probe. Contact us.",
   "access_keys": {
     "less_secure": "Access keys are long-lived and less secure than a role. Use them only if you cannot create the role.",
     "step_1": "In IAM, create a read-only user with the SecurityAudit and ViewOnlyAccess policies.",
@@ -26,8 +33,10 @@
     "step_3": "When it finishes, the command prints the project number. Copy it and paste it into this form."
   },
   "agent": {
-    "step_1": "Copy the install command and run it on the server.",
-    "step_2": "Once the agent connects, the status will change to “Connected”."
+    "step_1": "Sign in to the server with an administrator account (on Windows, open PowerShell as administrator; on Linux, use a terminal with sudo).",
+    "step_2": "Copy the install command we show you and run it. It installs a lightweight Monkey program: we don't ask for passwords and no inbound ports are opened on your server.",
+    "step_3": "If your network restricts outbound connections, allow the one we list next to the command.",
+    "step_4": "Wait a few minutes. When the program connects, this server's status changes to “Connected”."
   },
   "permission_denied": "The user does not have enough permissions for automatic evaluation."
 }

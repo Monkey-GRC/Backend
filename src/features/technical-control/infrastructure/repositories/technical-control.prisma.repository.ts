@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   ConnectionCategory,
   ConnectionMethodValue,
@@ -14,6 +14,7 @@ import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
+import { RUNNER_POOL } from '../../application/runner-pool';
 import {
   Asset,
   AssetEdit,
@@ -40,6 +41,9 @@ const ASSET_CREATION_TRANSACTION = { timeoutMs: 30_000 };
 const ASSET_INCLUDE = {
   serviceAssets: { include: { service: { select: { id: true, name: true } } } },
   provisionings: { include: { automatedCapability: { select: { catalogCode: true } } } },
+  // El agente de la sonda y la versión del sistema que el cliente declaró (D113). Selección explícita: el id de la política en la sonda y su nombre en el
+  // catálogo del comité son internos y no se piden nunca.
+  agent: { select: { status: true, lastSyncAt: true, scaPolicy: { select: { osCode: true, versionCode: true, distribution: true, distributionName: true, versionLabel: true } } } },
 } as const;
 
 // Selección explícita de la capacidad: `provider` NO está y no debe estar nunca (confidencialidad).
@@ -68,7 +72,10 @@ const asStrings = (value: unknown): string[] =>
 
 @Injectable()
 export class TechnicalControlPrismaRepository extends TechnicalControlRepository {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(RUNNER_POOL) private readonly runnerPool: string,
+  ) {
     super();
   }
 
@@ -154,6 +161,10 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
           externalId: input.externalId,
         },
       });
+      // Un servidor con agente (D113): su fila nace con el activo, con la versión declarada y SIN agente todavía (`agent_id` nulo: Monkey lo crea al entregar el comando).
+      if (input.agentScaPolicyId) {
+        await tx.assetAgent.create({ data: { tenantId: scope.companyId, assetId: asset.id, scaPolicyId: input.agentScaPolicyId } });
+      }
       const created = await this.readAsset(tx, asset.id);
       await insertAuditLog(tx, audit(created));
       return created;
@@ -400,6 +411,13 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
         where: { id: before.provisioning.id },
         data: { connectionStatus: 'pending', isActive: false, scheduleFrequency: null, lastValidatedAt: null, encryptedCredentials: null },
       });
+      // Un servidor con agente (D113 punto 8): se suelta el vínculo y la clave guardada, y se deja en cola retirar el agente de la sonda. Sin esto el agente seguiría enviando datos de un
+      // servidor que ya no es de nadie, y su id seguiría ocupado. El vínculo se suelta aquí mismo (no depende de que el trabajador responda); retirar el agente lo hace el trabajador.
+      const link = await tx.assetAgent.findFirst({ where: { assetId: id }, select: { id: true, agentId: true } });
+      if (link) {
+        await tx.assetAgent.update({ where: { id: link.id }, data: { agentId: null, status: 'removed', installKeyCipher: null, installKeyExpiresAt: null } });
+        if (link.agentId) await tx.execution.create({ data: { tenantId: scope.companyId, assetId: id, status: 'queued', origin: 'manual', kind: 'enrollment', runnerPool: this.runnerPool } });
+      }
       const change = { before, after: await this.readAsset(tx, id, { allowInactive: true }) };
       await insertAuditLog(tx, audit(change));
       return change;
@@ -474,8 +492,14 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
       scheduleFrequency: string | null;
       automatedCapability: { catalogCode: string };
     }[];
+    agent: {
+      status: 'pending' | 'connected' | 'disconnected' | 'removed';
+      lastSyncAt: Date | null;
+      scaPolicy: { osCode: string | null; versionCode: string | null; distribution: string | null; distributionName: string | null; versionLabel: string | null };
+    } | null;
   }): Asset {
     const p = row.provisionings[0];
+    const sp = row.agent?.scaPolicy;
     return {
       id: row.id,
       code: row.code,
@@ -507,6 +531,10 @@ export class TechnicalControlPrismaRepository extends TechnicalControlRepository
         isActive: p.isActive,
         scheduleFrequency: p.scheduleFrequency as ScheduleFrequencyValue | null,
       },
+      // Las columnas de la política son anulables en el catálogo (una base de datos no es un sistema); la de un agente siempre trae su sistema y su versión.
+      agent: row.agent && sp?.osCode && sp.versionCode && sp.distribution && sp.distributionName && sp.versionLabel
+        ? { status: row.agent.status, os: sp.osCode, osVersion: { code: sp.versionCode, distribution: sp.distribution, distributionName: sp.distributionName, versionLabel: sp.versionLabel }, lastSyncAt: row.agent.lastSyncAt }
+        : null,
     };
   }
 

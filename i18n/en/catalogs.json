@@ -196,6 +196,12 @@
     "agent": "Installed agent",
     "identity_federation": "Identity federation, no keys (GCP)"
   },
+  "os_version": {
+    "linux_generic": "Linux (general checks)"
+  },
+  "os_group": {
+    "linux_generic": "My distribution isn't listed"
+  },
   "aws_region": {
     "us-east-1": "N. Virginia (us-east-1)",
     "us-east-2": "Ohio (us-east-2)",

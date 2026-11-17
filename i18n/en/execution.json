@@ -8,5 +8,6 @@
   "completed": "Assessment completed.",
   "failed": "The assessment could not be completed.",
   "engine_failed": "The automatic assessment could not be completed. Try again; if it keeps happening, contact us.",
-  "engine_timeout": "The assessment took longer than allowed and was cancelled. Try again."
+  "engine_timeout": "The assessment took longer than allowed and was cancelled. Try again.",
+  "probe_version_unsupported": "Automatic assessment is under maintenance and could not be completed. Try again later; if it keeps happening, contact us."
 }

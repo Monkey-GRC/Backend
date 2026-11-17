@@ -27,6 +27,16 @@ export type PlatformRule = PlatformView & {
   regionCodes: string[];
 };
 
+// Una versión de un sistema operativo que el catálogo ofrece y la sonda entrega (D113). `id` es la política del catálogo; `code` es el código de la API.
+export type OsVersionRule = {
+  id: string;
+  osCode: string;
+  code: string;
+  distribution: string;
+  distributionName: string;
+  versionLabel: string;
+};
+
 export type Capability = {
   catalogCode: ConnectionCategory;
   category: string;
@@ -57,6 +67,17 @@ export type AssetProvisioningView = {
   scheduleFrequency: ScheduleFrequencyValue | null;
 };
 
+// El agente de la sonda de un servidor (D113). Hasta que Monkey lo crea, `status` es `pending`. No lleva la clave ni el nombre/grupo del agente en la sonda
+// (son derivados del activo y de la empresa): esto es solo lo que la pantalla necesita.
+export type AssetAgentView = {
+  status: 'pending' | 'connected' | 'disconnected' | 'removed';
+  // La versión que el cliente declaró; de `os` sale el comando de instalación.
+  os: string;
+  osVersion: Pick<OsVersionRule, 'code' | 'distribution' | 'distributionName' | 'versionLabel'>;
+  // La última vez que Monkey leyó este servidor con éxito: la «última revisión» que ve el cliente.
+  lastSyncAt: Date | null;
+};
+
 // Las credenciales no forman parte de este tipo: se cifran al crear y no se leen de vuelta.
 export type Asset = {
   id: string;
@@ -79,6 +100,8 @@ export type Asset = {
   externalAccountId: string | null;
   services: { id: string; name: string }[];
   provisioning: AssetProvisioningView;
+  // Solo un servidor o equipo con agente (D113); null en los demás.
+  agent: AssetAgentView | null;
 };
 
 // Lo que hace falta para registrar un activo. `encryptedCredentials` ya viene cifrado.
@@ -100,6 +123,8 @@ export type NewAsset = {
   externalAccountId: string | null;
   regions: string[];
   externalId: string | null;
+  // La versión del sistema que el cliente declaró (D113): la política del catálogo. Con ella nace la fila de agente del activo, en la misma transacción.
+  agentScaPolicyId: string | null;
 };
 
 // Lo que la sonda necesita para validar una conexión. Las credenciales llegan descifradas y solo

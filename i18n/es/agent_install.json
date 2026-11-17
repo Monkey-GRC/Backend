@@ -1,0 +1,12 @@
+{
+  "read": "Estado de la instalación.",
+  "started": "Estamos preparando la instalación de este servidor.",
+  "revealed": "Comando de instalación. Cópialo ahora: no se vuelve a mostrar.",
+  "regenerated": "Estamos preparando un comando nuevo para este servidor.",
+  "not_agent": "Este activo no se conecta con un programa instalado en el servidor.",
+  "not_ready": "El comando de instalación todavía no está listo, ya se mostró o caducó. Si no alcanzaste a copiarlo, genera uno nuevo.",
+  "already_linked": "Ese programa ya está conectado a otro servidor. Genera un comando nuevo.",
+  "not_linked": "Los datos recibidos no corresponden a este servidor. No se guardó nada.",
+  "group_mismatch": "Los datos recibidos pertenecen a otra empresa. No se guardó nada.",
+  "unavailable": "La instalación en servidores todavía no está disponible en esta instalación de Monkey. Te avisaremos cuando puedas hacerla."
+}

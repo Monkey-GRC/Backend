@@ -1,0 +1,17 @@
+{
+ "policyId": "sca_distro_independent_linux",
+ "translations": [
+  {
+   "checkId": "36109",
+   "remediationEs": "Fije el siguiente parámetro en `/etc/audit/auditd.conf`:\n```\nmax_log_file_action = keep_logs\n```"
+  },
+  {
+   "checkId": "36178",
+   "remediationEs": "Si alguna cuenta de `/etc/shadow` no tiene contraseña, ejecute el siguiente comando para bloquearla hasta determinar por qué no la tiene:\n```\npasswd -l <username>\n```\nCompruebe también si la cuenta tiene una sesión abierta e investigue para qué se está usando, para determinar si es necesario cerrarla a la fuerza."
+  },
+  {
+   "checkId": "36184",
+   "remediationEs": "Analice la salida del paso de auditoría anterior y realice la acción adecuada para corregir las discrepancias encontradas."
+  }
+ ]
+}

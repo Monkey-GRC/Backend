@@ -1,0 +1,241 @@
+{
+ "policyId": "cis_ubuntu20-04",
+ "translations": [
+  {
+   "checkId": "19015",
+   "remediationEs": "En instalaciones nuevas, durante la instalación cree una configuración de particiones personalizada y especifique una partición separada para `/var/log/audit`. En sistemas ya instalados, cree una partición nueva y configure `/etc/fstab` según corresponda."
+  },
+  {
+   "checkId": "19026",
+   "remediationEs": "Instale AIDE con el gestor de paquetes correspondiente o de forma manual:\n```\napt install aide aide-common\n```\nConfigure AIDE según su entorno (consulte la documentación de AIDE para ver las opciones). Ejecute los siguientes comandos para inicializar AIDE:\n```\naideinit\nmv /var/lib/aide/aide.db.new /var/lib/aide/aide.db\n```"
+  },
+  {
+   "checkId": "19029",
+   "remediationEs": "Ejecute los siguientes comandos para fijar los permisos de la configuración de grub:\n```\nchown root:root /boot/grub/grub.cfg\nchmod u-x,go-rwx /boot/grub/grub.cfg\n```"
+  },
+  {
+   "checkId": "19031",
+   "remediationEs": "Ejecute el siguiente comando para restaurar los binarios a su estado normal:\n```\nprelink -ua\n```\nDesinstale prelink con el gestor de paquetes correspondiente o de forma manual:\n```\napt purge prelink\n```"
+  },
+  {
+   "checkId": "19033",
+   "remediationEs": "Instale AppArmor:\n```\napt install apparmor apparmor-utils\n```"
+  },
+  {
+   "checkId": "19034",
+   "remediationEs": "Edite `/etc/default/grub` y agregue los parámetros `apparmor=1` y `security=apparmor` a la línea `GRUB_CMDLINE_LINUX=`:\n```\nGRUB_CMDLINE_LINUX=\"apparmor=1 security=apparmor\"\n```\nEjecute el siguiente comando para actualizar la configuración de grub2:\n```\nupdate-grub\n```"
+  },
+  {
+   "checkId": "19072",
+   "remediationEs": "Desinstale nis:\n```\napt purge nis\n```"
+  },
+  {
+   "checkId": "19073",
+   "remediationEs": "Desinstale rsh:\n```\napt purge rsh-client\n```"
+  },
+  {
+   "checkId": "19074",
+   "remediationEs": "Desinstale talk:\n```\napt purge talk\n```"
+  },
+  {
+   "checkId": "19075",
+   "remediationEs": "Desinstale telnet:\n```\napt purge telnet\n```"
+  },
+  {
+   "checkId": "19076",
+   "remediationEs": "Desinstale ldap-utils:\n```\napt purge ldap-utils\n```"
+  },
+  {
+   "checkId": "19078",
+   "remediationEs": "Habilite o deshabilite IPv6 de acuerdo con los requisitos del sistema y la política de su organización."
+  },
+  {
+   "checkId": "19080",
+   "remediationEs": "Ejecute el siguiente comando para instalar Uncomplicated Firewall (UFW):\n```\napt install ufw\n```"
+  },
+  {
+   "checkId": "19081",
+   "remediationEs": "Ejecute el siguiente comando para eliminar el paquete iptables-persistent:\n```\napt purge iptables-persistent\n```"
+  },
+  {
+   "checkId": "19082",
+   "remediationEs": "Ejecute el siguiente comando para desenmascarar el demonio de ufw:\n```\nsystemctl unmask ufw.service\n```\nEjecute el siguiente comando para habilitar e iniciar el demonio de ufw:\n```\nsystemctl --now enable ufw.service\n```\nEjecute el siguiente comando para habilitar ufw:\n```\nufw enable\n```"
+  },
+  {
+   "checkId": "19083",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\nufw allow in on lo\nufw allow out on lo\nufw deny in from 127.0.0.0/8\nufw deny in from ::1\n```"
+  },
+  {
+   "checkId": "19084",
+   "remediationEs": "Ejecute los siguientes comandos para implementar una política por defecto de denegación:\n```\nufw default deny incoming\nufw default deny outgoing\nufw default deny routed\n```"
+  },
+  {
+   "checkId": "19085",
+   "remediationEs": "Ejecute el siguiente comando para instalar nftables:\n```\napt install nftables\n```"
+  },
+  {
+   "checkId": "19087",
+   "remediationEs": "Ejecute el siguiente comando para crear una tabla en nftables:\n```\nnft create table inet <table name>\n```\nEjemplo:\n```\nnft create table inet filter\n```"
+  },
+  {
+   "checkId": "19088",
+   "remediationEs": "Ejecute el siguiente comando para crear las cadenas base (base chains):\n```\nnft create chain inet <table name> <base chain name> { type filter hook <(input|forward|output)> priority 0 \\; }\n```\nEjemplo:\n```\nnft create chain inet filter input { type filter hook input priority 0 \\; }\nnft create chain inet filter forward { type filter hook forward priority 0 \\; }\nnft create chain inet filter output { type filter hook output priority 0 \\; }\n```"
+  },
+  {
+   "checkId": "19090",
+   "remediationEs": "Ejecute el siguiente comando en las cadenas base con los ganchos (hooks) input, forward y output para aplicar una política por defecto DROP:\n```\nnft chain <table family> <table name> <chain name> { policy drop \\; }\n```\nEjemplo:\n```\nnft chain inet filter input { policy drop \\; }\nnft chain inet filter forward { policy drop \\; }\nnft chain inet filter output { policy drop \\; }\n```"
+  },
+  {
+   "checkId": "19091",
+   "remediationEs": "Ejecute el siguiente comando para habilitar el servicio nftables:\n```\nsystemctl enable nftables\n```"
+  },
+  {
+   "checkId": "19093",
+   "remediationEs": "Ejecute el siguiente comando para instalar iptables e iptables-persistent:\n```\napt install iptables iptables-persistent\n```"
+  },
+  {
+   "checkId": "19094",
+   "remediationEs": "Ejecute el siguiente comando para eliminar nftables:\n```\napt purge nftables\n```"
+  },
+  {
+   "checkId": "19096",
+   "remediationEs": "Ejecute los siguientes comandos para implementar una política por defecto DROP:\n```\niptables -P INPUT DROP\niptables -P OUTPUT DROP\niptables -P FORWARD DROP\n```"
+  },
+  {
+   "checkId": "19097",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\niptables -A INPUT -i lo -j ACCEPT\niptables -A OUTPUT -o lo -j ACCEPT\niptables -A INPUT -s 127.0.0.0/8 -j DROP\n```"
+  },
+  {
+   "checkId": "19098",
+   "remediationEs": "Solo si IPv6 está habilitado en su sistema, ejecute los siguientes comandos para implementar una política por defecto DROP:\n```\nip6tables -P INPUT DROP\nip6tables -P OUTPUT DROP\nip6tables -P FORWARD DROP\n```"
+  },
+  {
+   "checkId": "19099",
+   "remediationEs": "Ejecute los siguientes comandos para implementar las reglas de loopback:\n```\nip6tables -A INPUT -i lo -j ACCEPT\nip6tables -A OUTPUT -o lo -j ACCEPT\nip6tables -A INPUT -s ::1 -j DROP\n```"
+  },
+  {
+   "checkId": "19133",
+   "remediationEs": "Según el resultado del procedimiento de auditoría, use `visudo -f <PATH TO FILE>` para editar el archivo sudoers correspondiente y elimine cualquier línea que contenga la etiqueta `NOPASSWD`."
+  },
+  {
+   "checkId": "19134",
+   "remediationEs": "Configure el sistema operativo para exigir que los usuarios se reautentiquen al escalar privilegios. Según el resultado del procedimiento de auditoría, use `visudo -f <PATH TO FILE>` para editar el archivo sudoers correspondiente y elimine cualquier aparición de la etiqueta `!authenticate`."
+  },
+  {
+   "checkId": "19135",
+   "remediationEs": "Si el tiempo de espera configurado es mayor de 15 minutos, edite el archivo indicado en la auditoría con `visudo -f <PATH TO FILE>` y cambie la entrada `timestamp_timeout=` a 15 minutos o menos, según la política de su organización. El valor está en minutos. Esta entrada puede aparecer sola o en la misma línea que `env_reset`. Ejemplos:\n```\nDefaults env_reset, timestamp_timeout=15\nDefaults timestamp_timeout=15\nDefaults env_reset\n```"
+  },
+  {
+   "checkId": "19136",
+   "remediationEs": "Cree un grupo vacío que se usará para el comando `su`. El nombre del grupo debe seguir la política de su organización. Ejemplo:\n```\ngroupadd sugroup\n```\nAgregue la siguiente línea al archivo `/etc/pam.d/su`, indicando el grupo vacío:\n```\nauth required pam_wheel.so use_uid group=sugroup\n```"
+  },
+  {
+   "checkId": "19148",
+   "remediationEs": "Edite `/etc/shells` y elimine cualquier línea que incluya `nologin`."
+  },
+  {
+   "checkId": "19150",
+   "remediationEs": "Ejecute el siguiente comando para instalar systemd-journal-remote:\n```\napt install systemd-journal-remote\n```"
+  },
+  {
+   "checkId": "19166",
+   "remediationEs": "Edite `/etc/default/grub` y agregue `audit=1` a `GRUB_CMDLINE_LINUX`. Ejemplo:\n```\nGRUB_CMDLINE_LINUX=\"audit=1\"\n```\nEjecute el siguiente comando para actualizar la configuración de grub2:\n```\nupdate-grub\n```"
+  },
+  {
+   "checkId": "19167",
+   "remediationEs": "Edite `/etc/default/grub` y agregue `audit_backlog_limit=N` a `GRUB_CMDLINE_LINUX`. El tamaño recomendado para N es 8192 o mayor. Ejemplo:\n```\nGRUB_CMDLINE_LINUX=\"audit_backlog_limit=8192\"\n```\nEjecute el siguiente comando para actualizar la configuración de grub2:\n```\nupdate-grub\n```"
+  },
+  {
+   "checkId": "19168",
+   "remediationEs": "Fije el siguiente parámetro en `/etc/audit/auditd.conf` de acuerdo con la política de su organización (el valor es el tamaño en MB):\n```\nmax_log_file = <MB>\n```"
+  },
+  {
+   "checkId": "19169",
+   "remediationEs": "Fije el siguiente parámetro en `/etc/audit/auditd.conf`:\n```\nmax_log_file_action = keep_logs\n```"
+  },
+  {
+   "checkId": "19177",
+   "remediationEs": "Cree reglas de auditoría para recopilar la información de inicio de sesión (session initiation).\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-session.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-w /var/run/utmp -p wa -k session\n-w /var/log/wtmp -p wa -k session\n-w /var/log/btmp -p wa -k session\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "19178",
+   "remediationEs": "Cree reglas de auditoría para recopilar los eventos de inicio y cierre de sesión.\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-login.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-w /var/log/lastlog -p wa -k logins\n-w /var/run/faillock -p wa -k logins\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "19180",
+   "remediationEs": "Cree reglas de auditoría para vigilar los eventos que modifican los Controles de Acceso Obligatorios (MAC) del sistema.\nCree o edite un archivo con extensión `.rules` en el directorio `/etc/audit/rules.d/` (por ejemplo, `/etc/audit/rules.d/50-MAC-policy.rules`) con las reglas correspondientes. Ejemplo de contenido:\n```\n-w /etc/apparmor/ -p wa -k MAC-policy\n-w /etc/apparmor.d/ -p wa -k MAC-policy\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "19186",
+   "remediationEs": "Edite o cree el archivo `/etc/audit/rules.d/99-finalize.rules` y agregue la línea `-e 2` al final del archivo:\n```\n-e 2\n```\nCombine y cargue las reglas en la configuración activa:\n```\naugenrules --load\n```\nSi la salida de `auditctl -s` muestra `enabled` con valor 2, hace falta reiniciar el sistema para cargar las reglas."
+  },
+  {
+   "checkId": "19188",
+   "remediationEs": "Ejecute el siguiente comando para que el grupo propietario de los archivos de log de auditoría sea `adm`:\n```\nfind $(dirname $(awk -F\"=\" '/^\\s*log_file/ {print $2}' /etc/audit/auditd.conf | xargs)) -type f \\( ! -group adm -a ! -group root \\) -exec chgrp adm {} +\n```\nEjecute el siguiente comando para fijar el parámetro `log_group` en el archivo de configuración de auditoría como `log_group = adm`:\n```\nsed -ri 's/^\\s*#?\\s*log_group\\s*=\\s*\\S+(\\s*#.*)?.*$/log_group = adm\\1/' /etc/audit/auditd.conf\n```\nEjecute el siguiente comando para reiniciar el demonio de auditoría y recargar el archivo de configuración:\n```\nsystemctl restart auditd\n```"
+  },
+  {
+   "checkId": "19189",
+   "remediationEs": "Ejecute el siguiente comando para quitar a los archivos de configuración de auditoría los permisos más amplios que 0640:\n```\nfind /etc/audit/ -type f \\( -name '*.conf' -o -name '*.rules' \\) -exec chmod u-x,g-wx,o-rwx {} +\n```"
+  },
+  {
+   "checkId": "19190",
+   "remediationEs": "Ejecute el siguiente comando para que el propietario de los archivos de configuración de auditoría sea el usuario root:\n```\nfind /etc/audit/ -type f \\( -name '*.conf' -o -name '*.rules' \\) ! -user root -exec chown root {} +\n```"
+  },
+  {
+   "checkId": "19191",
+   "remediationEs": "Ejecute el siguiente comando para que el grupo propietario de los archivos de configuración de auditoría sea root:\n```\nfind /etc/audit/ -type f \\( -name '*.conf' -o -name '*.rules' \\) ! -group root -exec chgrp root {} +\n```"
+  },
+  {
+   "checkId": "19192",
+   "remediationEs": "Ejecute el siguiente comando para quitar a las herramientas de auditoría los permisos de escritura de grupo y otros:\n```\nchmod go-w /sbin/auditctl /sbin/aureport /sbin/ausearch /sbin/autrace /sbin/auditd /sbin/augenrules\n```"
+  },
+  {
+   "checkId": "19193",
+   "remediationEs": "Ejecute el siguiente comando para que el propietario de las herramientas de auditoría sea el usuario root:\n```\nchown root /sbin/auditctl /sbin/aureport /sbin/ausearch /sbin/autrace /sbin/auditd /sbin/augenrules\n```"
+  },
+  {
+   "checkId": "19196",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/passwd`:\n```\nchmod u-x,go-wx /etc/passwd\nchown root:root /etc/passwd\n```"
+  },
+  {
+   "checkId": "19197",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/passwd-`:\n```\nchmod u-x,go-wx /etc/passwd-\nchown root:root /etc/passwd-\n```"
+  },
+  {
+   "checkId": "19198",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/group`:\n```\nchmod u-x,go-wx /etc/group\nchown root:root /etc/group\n```"
+  },
+  {
+   "checkId": "19199",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/group-`:\n```\nchmod u-x,go-wx /etc/group-\nchown root:root /etc/group-\n```"
+  },
+  {
+   "checkId": "19200",
+   "remediationEs": "Ejecute uno de los siguientes comandos para fijar el propietario de `/etc/shadow` en root y su grupo en root o shadow:\n```\nchown root:shadow /etc/shadow\n```\nO bien:\n```\nchown root:root /etc/shadow\n```\nEjecute el siguiente comando para quitar los permisos excesivos de `/etc/shadow`:\n```\nchmod u-x,g-wx,o-rwx /etc/shadow\n```"
+  },
+  {
+   "checkId": "19201",
+   "remediationEs": "Ejecute uno de los siguientes comandos para fijar el propietario de `/etc/shadow-` en root y su grupo en root o shadow:\n```\nchown root:shadow /etc/shadow-\n```\nO bien:\n```\nchown root:root /etc/shadow-\n```\nEjecute el siguiente comando para quitar los permisos excesivos de `/etc/shadow-`:\n```\nchmod u-x,g-wx,o-rwx /etc/shadow-\n```"
+  },
+  {
+   "checkId": "19202",
+   "remediationEs": "Ejecute uno de los siguientes comandos para fijar el propietario de `/etc/gshadow` en root y su grupo en root o shadow:\n```\nchown root:shadow /etc/gshadow\n```\nO bien:\n```\nchown root:root /etc/gshadow\n```\nEjecute el siguiente comando para quitar los permisos excesivos de `/etc/gshadow`:\n```\nchmod u-x,g-wx,o-rwx /etc/gshadow\n```"
+  },
+  {
+   "checkId": "19203",
+   "remediationEs": "Ejecute uno de los siguientes comandos para fijar el propietario de `/etc/gshadow-` en root y su grupo en root o shadow:\n```\nchown root:shadow /etc/gshadow-\n```\nO bien:\n```\nchown root:root /etc/gshadow-\n```\nEjecute el siguiente comando para quitar los permisos excesivos de `/etc/gshadow-`:\n```\nchmod u-x,g-wx,o-rwx /etc/gshadow-\n```"
+  },
+  {
+   "checkId": "19204",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/shells`:\n```\nchmod u-x,go-wx /etc/shells\nchown root:root /etc/shells\n```"
+  },
+  {
+   "checkId": "19205",
+   "remediationEs": "Ejecute los siguientes comandos para quitar los permisos excesivos y fijar el propietario y el grupo de `/etc/security/opasswd` y de `/etc/security/opasswd.old`, si existen:\n```\n[ -e \"/etc/security/opasswd\" ] && chmod u-x,go-rwx /etc/security/opasswd\n[ -e \"/etc/security/opasswd\" ] && chown root:root /etc/security/opasswd\n[ -e \"/etc/security/opasswd.old\" ] && chmod u-x,go-rwx /etc/security/opasswd.old\n[ -e \"/etc/security/opasswd.old\" ] && chown root:root /etc/security/opasswd.old\n```"
+  },
+  {
+   "checkId": "19207",
+   "remediationEs": "Si alguna cuenta de `/etc/shadow` no tiene contraseña, ejecute el siguiente comando para bloquearla hasta determinar por qué no la tiene:\n```\npasswd -l <username>\n```\nCompruebe también si la cuenta tiene una sesión abierta e investigue para qué se está usando, para determinar si es necesario cerrarla a la fuerza."
+  }
+ ]
+}

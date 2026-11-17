@@ -1,5 +1,9 @@
 import Docker from 'dockerode';
 import { RunNextExecution } from './application/run-next-execution';
+import { RunEnrollment } from './application/run-enrollment';
+import { RunSondaExecution } from './application/run-sonda-execution';
+import { nodeTransport, WazuhApiClient } from './infrastructure/sonda/wazuh-api.client';
+import { WazuhEnrollClient } from './infrastructure/sonda/wazuh-enroll.client';
 import { RunnerLogger } from './domain/ports';
 import { describeError } from './infrastructure/describe-error';
 import { DockerScanEngine } from './infrastructure/docker-scan-engine';
@@ -36,14 +40,42 @@ async function main() {
   });
   const api = new HttpRunnerApi(config.backendUrl, config.runnerToken);
   const broker = new RoutingCredentialBroker(adapters);
-  // Dos carriles independientes (D58): una evaluación de minutos no puede hacer esperar la validación de un cliente que mira la pantalla.
+  // La lectura de la sonda de servidores es opcional (D113): sin SONDA_API_URL este trabajador solo evalúa la nube.
+  const sonda = config.sonda
+    ? new RunSondaExecution(
+        api,
+        new WazuhApiClient(
+          { baseUrl: config.sonda.apiUrl, username: config.sonda.username, password: config.sonda.password },
+          nodeTransport({ ca: config.sonda.tlsCa ?? undefined, rejectUnauthorized: !config.sonda.tlsInsecure, serverName: config.sonda.tlsServerName ?? undefined }),
+        ),
+        log,
+        config.sonda.supportedVersions,
+      )
+    : undefined;
+  // Crear el agente de un servidor (D113): otra credencial de la sonda (de ALTA), otro carril. Sin SONDA_ENROLL_USER este trabajador no crea agentes.
+  const enrollment = config.sonda?.enroll
+    ? new RunEnrollment(
+        api,
+        new WazuhEnrollClient(
+          { baseUrl: config.sonda.apiUrl, username: config.sonda.enroll.username, password: config.sonda.enroll.password },
+          nodeTransport({ ca: config.sonda.tlsCa ?? undefined, rejectUnauthorized: !config.sonda.tlsInsecure, serverName: config.sonda.tlsServerName ?? undefined }),
+        ),
+        log,
+        config.sonda.supportedVersions,
+      )
+    : undefined;
+  // Carriles independientes (D58): una evaluación de minutos no puede hacer esperar la validación (ni el alta de un servidor) de un cliente que mira la pantalla.
   const lanes = [
-    { name: 'validación', step: new RunNextExecution(api, broker, engine, log, 'validation', new RoutingInventoryScanner(adapters)), pollMs: config.validationPollIntervalMs },
-    { name: 'evaluación', step: new RunNextExecution(api, broker, engine, log, 'assessment'), pollMs: config.pollIntervalMs },
+    { name: 'validación', step: new RunNextExecution(api, broker, engine, log, 'validation', new RoutingInventoryScanner(adapters), sonda), pollMs: config.validationPollIntervalMs },
+    { name: 'evaluación', step: new RunNextExecution(api, broker, engine, log, 'assessment', undefined, sonda), pollMs: config.pollIntervalMs },
+    ...(enrollment ? [{ name: 'alta de servidores', step: new RunNextExecution(api, broker, engine, log, 'enrollment', undefined, undefined, enrollment), pollMs: config.validationPollIntervalMs }] : []),
   ];
 
   const orphans = await engine.cleanupOrphans();
-  log.info(`Trabajador listo (carriles: ${lanes.map((l) => l.name).join(', ')}). Motor: ${config.engineImage}. Nubes: ${Object.keys(adapters).join(', ')}. Contenedores huérfanos retirados: ${orphans}.`);
+  log.info(
+    `Trabajador listo (carriles: ${lanes.map((l) => l.name).join(', ')}). Motor: ${config.engineImage}. Nubes: ${Object.keys(adapters).join(', ')}. Contenedores huérfanos retirados: ${orphans}. ` +
+      `Sonda de servidores: ${config.sonda ? `sí (versiones ${config.sonda.supportedVersions.join(', ')})` : 'no'}.`,
+  );
 
   let stopping = false;
   for (const signal of ['SIGTERM', 'SIGINT'] as const) {

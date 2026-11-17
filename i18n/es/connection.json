@@ -9,6 +9,13 @@
   "provider_not_supported": "Esta plataforma aún no está disponible para conectar.",
   "method_not_supported_by_runner": "Este tipo de conexión se evalúa de otra forma y no desde aquí.",
   "method_not_applicable": "Ese tipo de conexión no está disponible para este activo.",
+  "agent_not_found": "No encontramos la sonda de este servidor. Vuelve a generar el comando de instalación y ejecútalo de nuevo.",
+  "agent_no_scan_yet": "La sonda de este servidor todavía no entregó su primera evaluación. Espera unos minutos y vuelve a intentarlo.",
+  "agent_disconnected": "La sonda de este servidor no está conectada. Revisa que el servidor esté encendido y pueda salir a internet, e inténtalo de nuevo.",
+  "agent_enroll_failed": "No pudimos preparar la instalación en este servidor. Inténtalo de nuevo en unos minutos; si se repite, contáctanos.",
+  "agent_group_mismatch": "La sonda de este servidor no pertenece a tu empresa, así que no guardamos sus resultados. Contáctanos.",
+  "probe_unreachable": "No pudimos consultar la sonda en este momento. Inténtalo de nuevo en unos minutos; si se repite, contáctanos.",
+  "probe_unauthorized": "No pudimos autenticarnos para consultar la sonda. Contáctanos.",
   "access_keys": {
     "less_secure": "Las llaves de acceso son de larga duración y menos seguras que un rol. Úsalas solo si no puedes crear el rol.",
     "step_1": "Crea en IAM un usuario de solo lectura con las políticas SecurityAudit y ViewOnlyAccess.",
@@ -26,8 +33,10 @@
     "step_3": "Al terminar, el comando imprime el número de proyecto. Cópialo y pégalo en este formulario."
   },
   "agent": {
-    "step_1": "Copia el comando de instalación y ejecútalo en el servidor.",
-    "step_2": "Cuando el agente se conecte, el estado cambiará a «Conectado»."
+    "step_1": "Entra al servidor con una cuenta de administrador (en Windows, abre PowerShell como administrador; en Linux, usa una terminal con sudo).",
+    "step_2": "Copia el comando de instalación que te mostramos y ejecútalo. Instala un programa ligero de Monkey: no te pedimos contraseñas y no se abre ningún puerto de entrada en tu servidor.",
+    "step_3": "Si tu red limita las conexiones de salida, permite la que te indicamos junto al comando.",
+    "step_4": "Espera unos minutos. Cuando el programa se conecte, el estado de este servidor cambiará a «Conectado»."
   },
   "permission_denied": "El usuario no tiene permisos suficientes para la evaluación automática."
 }

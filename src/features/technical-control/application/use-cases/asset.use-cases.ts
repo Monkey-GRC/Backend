@@ -21,6 +21,7 @@ import { ConnectionProbe } from '../../domain/ports/connection-probe';
 import { ConnectionCatalogRepository } from '../../domain/repositories/connection-catalog.repository';
 import { TechnicalControlRepository } from '../../domain/repositories/technical-control.repository';
 import { checkCloudTarget, checkGcpProject, newExternalId, planConnection } from '../cloud-connection';
+import { checkOsVersion, needsOsVersion } from '../os-version';
 
 const scopeOf = (p: Principal): TenantScope => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 
@@ -77,6 +78,8 @@ export type NewAssetRequest = {
   connectionMethod?: ConnectionMethodValue;
   externalAccountId?: string | null;
   regions?: string[];
+  // La versión del sistema que el cliente declara para un servidor o equipo con agente (D113): un `value` de `GET /v1/catalogs/<sistema>_version`.
+  osVersion?: string | null;
 };
 
 @Injectable()
@@ -104,7 +107,14 @@ export class CreateAssetUseCase {
       },
       platform,
     );
-    if (errors.length > 0 || !plan) throw new ValidationException(errors);
+    // La versión del sistema que declara el cliente (D113): solo un servidor o equipo con agente. Se busca en el catálogo SOLO si hace falta.
+    const wanted = request.osVersion?.trim();
+    const osVersion = needsOsVersion(request.connectionCategory, request.connectionMethod) && wanted ? await this.catalog.findOsVersion(wanted) : null;
+    const allErrors = [
+      ...errors,
+      ...checkOsVersion({ category: request.connectionCategory, method: request.connectionMethod, platformCode: platform.code, osVersion: request.osVersion, found: osVersion }),
+    ];
+    if (allErrors.length > 0 || !plan) throw new ValidationException(allErrors);
     const input: NewAsset = {
       name: request.name,
       connectionCategory: request.connectionCategory,
@@ -121,6 +131,8 @@ export class CreateAssetUseCase {
       externalAccountId: plan.externalAccountId,
       regions: plan.regions,
       externalId: plan.externalId,
+      // Un servidor con agente nace con su fila de agente, con la versión declarada (D113).
+      agentScaPolicyId: osVersion?.id ?? null,
     };
 
     return this.repo.createAsset(

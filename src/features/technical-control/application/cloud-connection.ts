@@ -190,6 +190,6 @@ export function buildConnectionSetup(
   if (p.connectionMethod === 'access_keys') {
     return { method: 'access_keys', warning: 'connection.access_keys.less_secure', steps: ['connection.access_keys.step_1', 'connection.access_keys.step_2'] };
   }
-  if (p.connectionMethod === 'agent') return { method: 'agent', steps: ['connection.agent.step_1', 'connection.agent.step_2'] };
+  if (p.connectionMethod === 'agent') return { method: 'agent', steps: ['connection.agent.step_1', 'connection.agent.step_2', 'connection.agent.step_3', 'connection.agent.step_4'] };
   return null;
 }
