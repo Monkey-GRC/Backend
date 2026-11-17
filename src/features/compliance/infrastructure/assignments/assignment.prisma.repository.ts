@@ -8,7 +8,7 @@ import { loadServiceSnapshot } from '../shared/service-snapshot.loader';
 // Como las demás lecturas del cumplimiento: varios servicios en una transacción, con más holgura que los 5 s por defecto de Prisma.
 const READ_TRANSACTION = { timeoutMs: 30_000 };
 
-const PERSON = { select: { id: true, name: true, lastName: true, role: true } } as const;
+const PERSON = { select: { id: true, name: true, lastName: true, role: true, status: true } } as const;
 const toPerson = (u: { id: string; name: string | null; lastName: string | null; role: string }): AssignedPerson => ({ id: u.id, name: u.name, lastName: u.lastName, role: u.role });
 
 @Injectable()
@@ -49,7 +49,7 @@ export class AssignmentPrismaRepository extends AssignmentRepository {
       const rows = controlIds.length
         ? await tx.clientControlAssignment.findMany({ where: { clientControlId: { in: controlIds } }, select: { clientControlId: true, owner: PERSON, executor: PERSON } })
         : [];
-      const assignments = new Map<string, AssignmentRecord>(rows.map((r) => [r.clientControlId, { owner: toPerson(r.owner), executor: r.executor ? toPerson(r.executor) : null }]));
+      const assignments = new Map<string, AssignmentRecord>(rows.map((r) => [r.clientControlId, { owner: toPerson(r.owner), executor: r.executor ? toPerson(r.executor) : null, ownerActive: r.owner.status === 'active', executorActive: r.executor?.status === 'active' }]));
 
       let frameworkRequirements: Map<string, Set<string>> | null = null;
       if (f.frameworkId && controlIds.length) {

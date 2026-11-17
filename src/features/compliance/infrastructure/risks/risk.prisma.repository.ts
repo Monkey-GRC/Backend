@@ -7,7 +7,8 @@ import { PrismaService, TransactionClient } from '../../../../infrastructure/dat
 import { resolveAttributions } from '../../../../infrastructure/database/attribution';
 import { Page } from '../../../../common/pagination/page';
 import { nextCode } from '../../domain/risks/risk-types';
-import { loadControlResponsibles, usersOf } from '../shared/control-responsibles';
+import { loadControlAccess } from '../shared/control-access.loader';
+import { NO_ACCESS } from '../../domain/controls/control-access';
 import {
   CauseInput, CauseNode, CausePatch, CauseRecord, Changed, ControlLink, EvaluationEntry, GraphRef, RiskEvaluation, RiskGraph, RiskInput, RiskNode, RiskPatch, RiskRecord, RiskRepository,
   RiskTreatmentRecord,
@@ -66,8 +67,8 @@ export class RiskPrismaRepository extends RiskRepository {
         },
       });
 
-      // D96 · Qué controles son de qué responsable sale de su dueño y ejecutor (D102).
-      const responsibles = await loadControlResponsibles(tx, [...new Set(causes.flatMap((c) => c.causeControls.map((l) => l.clientControl.id)))]);
+      // D102 · Qué controles son de qué persona sale de su dueño y ejecutor.
+      const accessOf = await loadControlAccess(tx, [...new Set(causes.flatMap((c) => c.causeControls.map((l) => l.clientControl.id)))]);
 
       return {
         serviceId,
@@ -84,7 +85,7 @@ export class RiskPrismaRepository extends RiskRepository {
             .map<ControlLink>((l) => ({
               controlId: l.clientControl.id, ownCode: l.clientControl.ownCode, name: l.clientControl.control?.name ?? l.clientControl.name ?? l.clientControl.ownCode,
               origin: l.clientControl.control ? 'catalog' : 'own', catalogCode: l.clientControl.control?.code ?? null, isMandatory: l.isMandatory, effect: l.effect,
-              assignedUserIds: usersOf(responsibles.byControl.get(l.clientControl.id)),
+              access: accessOf.get(l.clientControl.id) ?? NO_ACCESS,
             })),
         })),
       };

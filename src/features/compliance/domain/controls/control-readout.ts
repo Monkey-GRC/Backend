@@ -1,6 +1,7 @@
 import { evaluateAutomatedTestFromAssets } from '../engine/automated-test';
 import { evaluateControl } from '../engine/control';
 import { evaluateDocumentaryTest } from '../engine/documentary-test';
+import type { ControlAccess } from './control-access';
 import type { DocumentaryEvidence } from '../evidence/evidence';
 import { AssetResult, ControlState, TestState } from '../engine/states';
 
@@ -33,7 +34,6 @@ export const dimensionOfAssetType = (type: string): Dimension | null => DIMENSIO
 export type ReadoutTest = { testId: string; code: string; displayName: string | null; displayNameEn: string | null; displayDescription: string | null; dimension: Dimension; mandatory: boolean; active: boolean };
 export type ReadoutAsset = { id: string; name: string; type: string };
 export type ReadoutDimension = { dimension: Dimension; applies: boolean; type: ControlType; reasonNotApplicable: string | null };
-export type ReadoutAssignee = { userId: string; name: string | null; lastName: string | null };
 
 export type ReadoutControl = {
   id: string;
@@ -47,11 +47,8 @@ export type ReadoutControl = {
   dimensions: ReadoutDimension[];
   tests: ReadoutTest[];
   trustCriteria: string[];
-  assignee: ReadoutAssignee | null;
-  /** Las personas responsables del control en alguna de sus dimensiones (`assignee` es solo la primera, la que se muestra). Lo que un `responsable` ve es lo suyo (SEG-66). */
-  assignedUserIds: string[];
-  /** Quiénes atienden cada dimensión del control (D98): el dueño y el ejecutor del control (D102). */
-  responsibleByDimension: Partial<Record<Dimension, string[]>>;
+  /** Dueño y ejecutor activos del control (D102): de ahí sale lo que ven el `responsable` y el `delegado`. */
+  access: ControlAccess;
   /** Estado de aprobación de un control propio (la propuesta `create`); un control del catálogo siempre está aprobado. */
   approval: 'approved' | 'pending' | 'rejected';
   catalogCode: string | null;

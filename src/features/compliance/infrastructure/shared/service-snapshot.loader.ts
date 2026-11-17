@@ -3,7 +3,8 @@ import { Dimension, ReadoutControl, resultKey } from '../../domain/controls/cont
 import { AssetResult } from '../../domain/engine/states';
 import { ServiceReadoutData } from '../../domain/controls/control.repository';
 import { DocumentaryEvidence } from '../../domain/evidence/evidence';
-import { DIMENSION_ORDER, loadControlResponsibles, usersOf } from './control-responsibles';
+import { NO_ACCESS } from '../../domain/controls/control-access';
+import { loadControlAccess } from './control-access.loader';
 import { requirementState, reviewsOf } from '../evidence/evidence-review.mapper';
 
 // Orden canónico de las categorías (enums.md `trust_criterion`).
@@ -36,7 +37,7 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
   });
 
   // D102 · Dueño y ejecutor de cada control: de ahí sale lo que ven el responsable y el delegado.
-  const responsibles = await loadControlResponsibles(tx, rows.map((r) => r.id));
+  const accessOf = await loadControlAccess(tx, rows.map((r) => r.id));
 
   // D88 · Las evidencias requeridas de estas acciones, con el estado de su última entrega según la revisión del admin_empresa (la que consume el motor, D96): de ellas sale el estado
   // de cada prueba documental en su control. Una sola consulta para todo el servicio.
@@ -61,8 +62,6 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
       requirementCodes.add(req.code);
       pointsOfFocus.add(`${req.code}-POF${link.pointOfFocus.number}`);
     }
-    const byDimension = responsibles.byControl.get(c.id);
-    const assignedIds = usersOf(byDimension);
     return {
       id: c.id,
       serviceId: c.serviceId,
@@ -77,10 +76,7 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
       tests: c.tests.map((t) => ({ testId: t.testId, code: t.test.code, displayName: t.test.displayName, displayNameEn: t.test.displayNameEn, displayDescription: t.test.displayDescription, dimension: t.test.dimension as Dimension, mandatory: true, active: true })),
       // Un control propio no llega a ningún requisito: su categoría es la que eligió la empresa.
       trustCriteria: c.control ? [...criteria].sort((a, b) => CRITERIA_ORDER.indexOf(a) - CRITERIA_ORDER.indexOf(b)) : c.trustCriterion ? [c.trustCriterion] : [],
-      // Con varias personas por control (D102) no hay «una» persona a cargo que mostrar.
-      assignee: null,
-      assignedUserIds: assignedIds,
-      responsibleByDimension: Object.fromEntries(DIMENSION_ORDER.flatMap((d) => (byDimension?.has(d) ? [[d, byDimension.get(d)]] : []))),
+      access: accessOf.get(c.id) ?? NO_ACCESS,
       approval: 'approved',
       catalogCode: c.control?.code ?? null,
       requirementCodes: [...requirementCodes].sort(),

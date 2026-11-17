@@ -5,7 +5,8 @@ import { ServiceReadoutData } from '../controls/control.repository';
 // calcula por servicio y con quién los tiene a cargo. Todo pasa por withScope: RLS impone el aislamiento entre empresas.
 
 export type AssignedPerson = { id: string; name: string | null; lastName: string | null; role: string };
-export type AssignmentRecord = { owner: AssignedPerson; executor: AssignedPerson | null };
+/** `ownerActive`/`executorActive`: solo la persona activa decide quién ve el control (D102); la inactiva se sigue mostrando a quien ve todo. */
+export type AssignmentRecord = { owner: AssignedPerson; executor: AssignedPerson | null; ownerActive: boolean; executorActive: boolean };
 
 export type AssignmentLoadFilters = {
   serviceId?: string;

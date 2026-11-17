@@ -1,3 +1,4 @@
+import type { ControlAccess } from '../controls/control-access';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
@@ -47,8 +48,8 @@ export type EvidenceAccess = {
   controlId: string;
   serviceId: string;
   controlActive: boolean;
-  /** Quiénes atienden la DIMENSIÓN del requerimiento (D102): un `responsable` o `delegado` solo actúa sobre lo de sus controles. */
-  assignedUserIds: string[];
+  /** Dueño y ejecutor del control (D102): un `responsable` o `delegado` solo actúa sobre lo de sus controles. */
+  access: ControlAccess;
 };
 
 export type NewSubmission = { fileKey: string; fileType: string; fileSize: number; integrityHash: string; submittedBy: string; meta: { ipAddress: string; userAgent: string } };
@@ -76,10 +77,8 @@ export type ControlEvidenceFacts = {
   serviceId: string;
   active: boolean;
   ownCode: string;
-  /** Las personas responsables del control en alguna de sus dimensiones. */
-  assignedUserIds: string[];
-  /** Quiénes atienden cada dimensión del control (D98). */
-  responsibleByDimension: Record<string, string[]>;
+  /** Dueño y ejecutor del control (D102). */
+  access: ControlAccess;
   /** Dimensiones que el control exige y aplican. */
   dimensions: string[];
   /** Las pruebas que el control lleva (el vínculo `client_control_tests`). */
@@ -91,8 +90,8 @@ export type ControlEvidenceFacts = {
 /** El código (`EV-<control>-NN`) y la posición los pone el repositorio, dentro de la transacción y con el control bloqueado. */
 export type NewRequirement = { description: string; dimension: string; testId: string | null; validityWithinPeriod: string };
 
-/** Un control que lleva un test, con quién es responsable de cada una de sus dimensiones (D96): para decidir qué ve un `responsable`. */
-export type TestEvidenceControl = { id: string; code: string; responsibleByDimension: Record<string, string[]> };
+/** Un control que lleva un test, con su dueño y ejecutor (D102): para decidir qué ve un `responsable` o `delegado`. */
+export type TestEvidenceControl = { id: string; code: string; access: ControlAccess };
 
 /** Lo que se subió para un test manual o documental, visto desde un control que lo lleva (D85, D88). */
 export type TestEvidence = {
@@ -106,7 +105,7 @@ export type TestEvidence = {
 
 /** Los controles vigentes de un servicio con quién los atiende (D102) y los requerimientos de todos ellos, cargados en bloque. */
 export type ServiceEvidence = {
-  controls: Array<{ id: string; ownCode: string; assignedUserIds: string[]; responsibleByDimension: Record<string, string[]> }>;
+  controls: Array<{ id: string; ownCode: string; access: ControlAccess }>;
   items: Array<{ controlId: string; requirement: RequirementRecord }>;
 };
 
@@ -114,7 +113,7 @@ export abstract class EvidenceRepository {
   /** `null` si el servicio no existe para esta empresa. Número fijo de consultas. */
   abstract listByService(scope: TenantScope, serviceId: string, viewer: ReviewerRole): Promise<ServiceEvidence | null>;
   /** Los requerimientos del control con sus entregas. `null` si el control no existe para esta empresa. `viewer`: de quién es la revisión que se lee. */
-  abstract listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ assignedUserIds: string[]; responsibleByDimension: Record<string, string[]>; requirements: RequirementRecord[] } | null>;
+  abstract listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ access: ControlAccess; requirements: RequirementRecord[] } | null>;
   /** `null` si el control no existe, no lleva el test, o el test no es manual ni documental. `viewer`: de quién es la revisión que se lee. */
   abstract listByTest(scope: TenantScope, controlId: string, testId: string, viewer: ReviewerRole): Promise<TestEvidence | null>;
   /** `null` si el requerimiento no existe para esta empresa. */

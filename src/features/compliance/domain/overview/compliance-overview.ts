@@ -76,8 +76,11 @@ export type OverviewInput = {
   frameworks: readonly OverviewFrameworkData[];
   criteria: readonly OverviewCriterionData[];
   placements: ReadonlyMap<string, readonly Placement[]>;
-  /** Un `responsable` ve el marco y las categorías completos, pero solo los controles que falla entre los que tiene asignados. */
-  onlyFailingOf?: string | null;
+  /**
+   * D118 · El resumen de un `responsable` o `delegado`: `readouts` ya son solo sus controles, así que solo salen los marcos y las categorías que tienen al menos uno
+   * (la categoría obligatoria no se fuerza).
+   */
+  scoped?: boolean;
   /** Hoy como día UTC, para la fecha de corte efectiva (por defecto, el día de hoy). */
   today?: Date;
 };
@@ -88,7 +91,7 @@ export function buildOverview(input: OverviewInput): OverviewFramework[] {
     return !!c && (c.mandatory || c.selected);
   };
 
-  return input.frameworks.map((fw) => {
+  const built = input.frameworks.map((fw) => {
     // Sin período auditado el motor no ejecuta (REQ-004, D87): el marco queda «Sin medir» y no se inventa ningún resultado. La fecha de corte no hace falta
     // guardarla: sin valor es «hoy».
     const defined = isPeriodDefined(fw);
@@ -102,11 +105,11 @@ export function buildOverview(input: OverviewInput): OverviewFramework[] {
     for (const criterion of criteria) {
       const controls = input.readouts.filter((r) => (input.placements.get(r.control.id) ?? []).some((p) => p.frameworkId === fw.frameworkId && p.criterion === criterion));
       const mandatory = input.criteria.find((c) => c.criterion === criterion)?.mandatory ?? false;
-      if (controls.length === 0 && !mandatory) continue;
+      if (controls.length === 0 && (!mandatory || input.scoped)) continue;
       const evaluation = evaluateCategory({ inScope: true, controls: controls.map((r) => ({ controlId: r.control.id, state: r.state })) });
       const counts = ratioOf(controls);
       const shown = defined ? counts : { progress: { done: 0, total: controls.length }, coverage: { measured: 0, applicable: controls.length }, failing: 0 };
-      const failing = !defined ? [] : controls.filter((r) => isFailing(r.state) && (!input.onlyFailingOf || r.control.assignedUserIds.includes(input.onlyFailingOf)));
+      const failing = !defined ? [] : controls.filter((r) => isFailing(r.state));
       categories.push({
         trustCriterion: criterion,
         readiness: defined ? readinessOfRollup({ total: shown.progress.total, measured: shown.coverage.measured, done: shown.progress.done, failing: shown.failing }) : 'not_measured',
@@ -151,4 +154,5 @@ export function buildOverview(input: OverviewInput): OverviewFramework[] {
       },
     };
   });
+  return input.scoped ? built.filter((fw) => fw.categories.length > 0) : built;
 }

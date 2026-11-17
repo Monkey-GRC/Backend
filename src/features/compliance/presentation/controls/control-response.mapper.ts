@@ -1,5 +1,6 @@
 import { I18nContext } from 'nestjs-i18n';
 import { localizedTestName, TestNames } from '../../../../common/text/test-display-name';
+import { ControlAccess } from '../../domain/controls/control-access';
 import { ControlReadout, Dimension } from '../../domain/controls/control-readout';
 import { ControlDetail } from '../../application/controls/get-control.use-case';
 import { codeOfControl } from '../../domain/overview/compliance-overview';
@@ -12,7 +13,7 @@ type Translate = (key: string) => string;
 // El nombre sale en el idioma de la petición (`display_name_en` si existe, si no el español).
 export const neutralName = (test: TestNames, dimension: Dimension, t: Translate) => localizedTestName(test, I18nContext.current()?.lang) ?? t(`control.test.${dimension}`);
 
-const assignee = (a: ControlReadout['control']['assignee']) => (a ? { user_id: a.userId, name: a.name, last_name: a.lastName } : null);
+const party = (p: ControlAccess['owner']) => (p ? { id: p.id, name: p.name, last_name: p.lastName, role: p.role } : null);
 
 const base = (r: ControlReadout) => ({
   id: r.control.id,
@@ -28,7 +29,8 @@ const base = (r: ControlReadout) => ({
   readiness: r.readiness,
   progress: r.progress,
   coverage: r.coverage,
-  assigned_to: assignee(r.control.assignee),
+  owner: party(r.control.access.owner),
+  executor: party(r.control.access.executor),
 });
 
 const technicalBlock = (r: ControlReadout) => ({

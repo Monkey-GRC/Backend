@@ -1,4 +1,5 @@
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
+import type { ControlAccess } from '../controls/control-access';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { ObservationStatus, ObservationType } from './observation-lifecycle';
@@ -37,7 +38,7 @@ export type ObservationFilters = {
 };
 
 /** La observación y los usuarios responsables de su control (vacío si no habla de un control): con eso el caso de uso decide si el `responsable` la toca. */
-export type ObservationAccess = { record: ObservationRecord; responsibleUserIds: string[] };
+export type ObservationAccess = { record: ObservationRecord; access: ControlAccess };
 
 /** Lo que cambia una escritura. Lo que no se nombra no se toca; la respuesta anterior se conserva al devolverla a `open`. */
 export type ObservationChange = {

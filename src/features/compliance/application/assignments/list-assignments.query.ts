@@ -1,9 +1,9 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
+import { ASSIGNMENT_FILTERS } from '../shared/assignment-filters';
 import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 
 export const CONTROL_STATES = ['effective', 'ineffective', 'expired', 'error', 'incomplete', 'evaluating', 'no_tests'] as const;
-export const ASSIGNMENT_FILTERS = ['unassigned', 'assigned'] as const;
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 
 // GET /v1/assignments (contracts/gestion-usuarios.md · Asignación de controles). Todos los filtros se combinan.

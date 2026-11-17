@@ -1,4 +1,5 @@
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
+import type { ControlAccess } from '../controls/control-access';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 
@@ -14,7 +15,7 @@ export type ControlLink = {
   catalogCode: string | null;
   isMandatory: boolean;
   effect: 'probability' | 'impact' | null;
-  assignedUserIds: string[];
+  access: ControlAccess;
 };
 
 /** Un cargo de la organización (`organization_responsibles`): el responsable de un tratamiento, no una persona con cuenta. */

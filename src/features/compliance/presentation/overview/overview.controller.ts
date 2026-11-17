@@ -20,12 +20,12 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 // El resumen de cumplimiento de un servicio (contracts/modules/compliance-overview.md, MD-137). `admin_monkey` no entra al cumplimiento de una empresa por aquí. La vista
 // técnica la restringe el caso de uso: `auditor` y `admin_empresa` (D81, D96).
 @ApiTags(API_TAGS.overview)
-@Roles('admin_empresa', 'responsable', 'auditor')
+@Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
 @Controller()
 export class OverviewController {
   constructor(private readonly getOverview: GetOverviewUseCase) {}
 
-  @ApiOperation({ summary: 'Resumen de cumplimiento de un servicio', description: 'Por cada marco contratado del servicio: el estado (Preparado, Casi listo, Requiere trabajo o Sin medir), el **avance** y la **cobertura juntos**, la evaluación (versión del catálogo y período) y el desglose por categoría con los controles que fallan y en qué fallan. La unidad es servicio × marco: nunca hay un número de toda la empresa. El avance informa; no decide el cumplimiento, que lo certifica la auditoría. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
+  @ApiOperation({ summary: 'Resumen de cumplimiento de un servicio', description: 'Por cada marco contratado del servicio: el estado (Preparado, Casi listo, Requiere trabajo o Sin medir), el **avance** y la **cobertura juntos**, la evaluación (versión del catálogo y período) y el desglose por categoría con los controles que fallan y en qué fallan. La unidad es servicio × marco: nunca hay un número de toda la empresa. El avance informa; no decide el cumplimiento, que lo certifica la auditoría. Un `responsable` o `delegado` recibe el resumen de SUS controles (D118): solo los marcos y categorías donde tiene alguno, sin marcos si no tiene ninguno. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
   @ApiData(ComplianceOverviewResponse, 'Resumen por marco y categoría.')
   @Get('services/:serviceId/compliance-overview')
   async overview(@CurrentUser() principal: Principal, @Param('serviceId', idPipe) serviceId: string, @Query() q: GetControlQuery) {

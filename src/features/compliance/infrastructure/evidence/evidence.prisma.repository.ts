@@ -9,7 +9,8 @@ import { ReviewerRole } from '../../domain/evidence/evidence';
 import {
   ControlEvidenceFacts, EvidenceAccess, EvidenceRepository, NewRequirement, NewReview, NewSubmission, RequirementRecord, ReviewSaved, ServiceEvidence, SubmissionRecord, TestEvidence,
 } from '../../domain/evidence/evidence.repository';
-import { loadControlResponsibles, usersOf } from '../shared/control-responsibles';
+import { loadControlAccess } from '../shared/control-access.loader';
+import { ControlAccess, NO_ACCESS } from '../../domain/controls/control-access';
 import { captureControlStates, recordControlStateChanges } from '../shared/control-state-events';
 import { reviewsOf, toReviewRecord, versionOf } from './evidence-review.mapper';
 
@@ -59,15 +60,15 @@ export class EvidencePrismaRepository extends EvidenceRepository {
     super();
   }
 
-  listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ assignedUserIds: string[]; responsibleByDimension: Record<string, string[]>; requirements: RequirementRecord[] } | null> {
+  listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ access: ControlAccess; requirements: RequirementRecord[] } | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const control = await tx.clientControl.findFirst({
         where: { id: controlId },
         select: { serviceId: true, evidenceRequirements: { orderBy: { sequence: 'asc' }, select: requirementSelect(viewer) } },
       });
       if (!control) return null;
-      const dims = (await loadControlResponsibles(tx, [controlId])).byControl.get(controlId);
-      return { assignedUserIds: usersOf(dims), responsibleByDimension: Object.fromEntries(dims ?? []), requirements: control.evidenceRequirements.map(toRequirement) };
+      const access = (await loadControlAccess(tx, [controlId])).get(controlId) ?? NO_ACCESS;
+      return { access, requirements: control.evidenceRequirements.map(toRequirement) };
     });
   }
 
@@ -77,12 +78,12 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       if (!service) return null;
       const rows = await tx.clientControl.findMany({ where: { serviceId, isActive: true }, select: { id: true, ownCode: true } });
       const ids = rows.map((r) => r.id);
-      const byControl = (await loadControlResponsibles(tx, ids)).byControl;
+      const accessOf = await loadControlAccess(tx, ids);
       const requirements = ids.length
         ? await tx.evidenceRequirement.findMany({ where: { clientControlId: { in: ids } }, orderBy: [{ sequence: 'asc' }], select: { ...requirementSelect(viewer), clientControlId: true } })
         : [];
       return {
-        controls: rows.map((r) => ({ id: r.id, ownCode: r.ownCode, assignedUserIds: usersOf(byControl.get(r.id)), responsibleByDimension: Object.fromEntries(byControl.get(r.id) ?? []) })),
+        controls: rows.map((r) => ({ id: r.id, ownCode: r.ownCode, access: accessOf.get(r.id) ?? NO_ACCESS })),
         items: requirements.map((r) => ({ controlId: r.clientControlId, requirement: toRequirement(r) })),
       };
     });
@@ -124,10 +125,10 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         orderBy: [{ sequence: 'asc' }],
         select: { ...requirementSelect(viewer), clientControlId: true },
       });
-      const byControl = (await loadControlResponsibles(tx, ids)).byControl;
+      const accessOf = await loadControlAccess(tx, ids);
       return {
         testId, dimension,
-        controls: controls.map((c) => ({ id: c.id, code: c.code, responsibleByDimension: Object.fromEntries(byControl.get(c.id) ?? []) })),
+        controls: controls.map((c) => ({ id: c.id, code: c.code, access: accessOf.get(c.id) ?? NO_ACCESS })),
         items: rows
           .map((r) => ({ controlId: r.clientControlId, requirement: toRequirement(r) }))
           .sort((a, b) => ids.indexOf(a.controlId) - ids.indexOf(b.controlId) || a.requirement.sequence - b.requirement.sequence),
@@ -245,11 +246,10 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         const sibling = await tx.evidenceRequirement.findFirst({ where: { clientControl: { serviceId: c.serviceId } }, select: { validityWithinPeriod: true } });
         validity = sibling?.validityWithinPeriod ?? null;
       }
-      const dims = (await loadControlResponsibles(tx, [c.id])).byControl.get(c.id);
+      const access = (await loadControlAccess(tx, [c.id])).get(c.id) ?? NO_ACCESS;
       return {
         controlId: c.id, serviceId: c.serviceId, active: c.isActive, ownCode: c.ownCode,
-        assignedUserIds: usersOf(dims),
-        responsibleByDimension: Object.fromEntries(dims ?? []),
+        access,
         dimensions: c.dimensions.filter((d) => d.reasonNotApplicable === null).map((d) => d.dimension),
         tests: c.tests.map((t) => ({ id: t.testId, code: t.test.code, displayName: t.test.displayName, displayNameEn: t.test.displayNameEn, dimension: t.test.dimension })),
         validityWithinPeriod: validity,
@@ -307,14 +307,10 @@ export class EvidencePrismaRepository extends EvidenceRepository {
   private async accessOf(tx: TransactionClient, requirementId: string): Promise<EvidenceAccess | null> {
     const r = await tx.evidenceRequirement.findFirst({
       where: { id: requirementId },
-      select: { id: true, dimension: true, clientControl: { select: { id: true, serviceId: true, isActive: true } } },
+      select: { id: true, clientControl: { select: { id: true, serviceId: true, isActive: true } } },
     });
     if (!r) return null;
-    // D98 · Le toca a quienes atienden la dimensión del requerimiento, no a cualquiera que atienda otra dimensión del control.
-    const users = (await loadControlResponsibles(tx, [r.clientControl.id])).byControl.get(r.clientControl.id)?.get(r.dimension as never) ?? [];
-    return {
-      requirementId: r.id, controlId: r.clientControl.id, serviceId: r.clientControl.serviceId, controlActive: r.clientControl.isActive,
-      assignedUserIds: users,
-    };
+    const access = (await loadControlAccess(tx, [r.clientControl.id])).get(r.clientControl.id) ?? NO_ACCESS;
+    return { requirementId: r.id, controlId: r.clientControl.id, serviceId: r.clientControl.serviceId, controlActive: r.clientControl.isActive, access };
   }
 }
