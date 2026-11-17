@@ -92,5 +92,9 @@ jobs:
           npm run clone:verify
           npm run audit:verify
 
+      # La base `monkey` ya preparada es la plantilla: el globalSetup la clona en una base por worker (monkey_w1..N) y las suites corren en paralelo.
       - name: Pruebas de aislamiento entre empresas (base de datos y API)
+        env:
+          E2E_WORKERS: 3
+          E2E_WORKER_MEMORY: 1500MB
         run: npm run test:e2e
