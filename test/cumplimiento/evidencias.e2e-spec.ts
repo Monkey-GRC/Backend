@@ -6,7 +6,7 @@ import * as auditInsert from '../../src/infrastructure/audit/audit-log.insert';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { asApp, failure, withRollback } from '../support/db';
 import { dosEmpresas, Tenant } from '../support/escenario';
-import { asignarServicio } from '../support/asignaciones';
+import { asignarControl, asignarServicio } from '../support/asignaciones';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
 // MD-126 · Subir una evidencia con su huella y versión, y descargarla con un enlace firmado (contracts/modules/compliance-evidence.md, D84, SEG-60). La empresa solo aporta:
@@ -42,10 +42,10 @@ const sha256 = (b: Buffer) => createHash('sha256').update(b).digest('hex');
 const auditRows = (tenantId: string, action: string) => owner<{ n: number }>('select count(*)::int n from audit.audit_logs where tenant_id = $1 and action = $2', [tenantId, action]).then((r) => r[0].n);
 const submissionsInDb = (id: string) => owner<{ version: string }>('select version from tenant.evidence_submissions where evidence_requirement_id = $1 order by version::int', [id]).then((r) => r.map((x) => x.version));
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<string> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable' | 'delegado'): Promise<string> {
   return (await owner<{ id: string }>(
-    `insert into platform.users (id, company_id, email, name, last_name, password_hash, role) values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role) returning id`,
-    [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
+    `insert into platform.users (id, company_id, email, name, last_name, password_hash, role, is_internal) values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role, $5) returning id`,
+    [companyId, email, await bcrypt.hash(PASSWORD, 4), role, role === 'delegado' ? true : null],
   ))[0].id;
 }
 
@@ -86,11 +86,9 @@ describe('MD-126 · listar la evidencia de un control', () => {
     for (const k of ['code', 'sequence', 'description', 'dimension', 'validity_within_period']) expect(item).toHaveProperty(k);
   });
 
-  it('el responsable dueño del control ve la evidencia; otro sin asignación no ve la documental; uno de otra empresa, 404', async () => {
+  it('el responsable dueño del control ve la evidencia; otro sin asignación, 403; uno de otra empresa, 404', async () => {
     await responsable.get(`/v1/controls/${controlId}/evidence`).expect(200);
-    const ajeno = await responsableAjeno.get(`/v1/controls/${controlId}/evidence`);
-    expect([200, 403]).toContain(ajeno.status);
-    if (ajeno.status === 200) expect(ajeno.body.data.items.map((i: any) => i.id)).not.toContain(requirementId);
+    await responsableAjeno.get(`/v1/controls/${controlId}/evidence`).expect(403);
     await b.agent.get(`/v1/controls/${controlId}/evidence`).expect(404);
   });
 
@@ -295,5 +293,82 @@ describe('MD-126 · una entrega es histórico (D84, RN-04)', () => {
         ),
       ).toMatch(/duplicate key|unique/);
     });
+  });
+});
+
+// MD-193, D102 · El alcance es el control: el dueño y el ejecutor ven, suben y descargan lo de sus controles; el resto de la empresa, 403; otra empresa, 404.
+describe('D102 · quién toca la evidencia de un control', () => {
+  let ownerId: string;
+  let otherOwnerId: string;
+  let ejecutor: Agent;
+  let sinControles: Agent;
+  let entrega: string;
+
+  beforeAll(async () => {
+    ownerId = (await owner<{ id: string }>(`select id from platform.users where email = $1`, [`responsable-evi-${RUN}@cumplimiento.test`]))[0].id;
+    otherOwnerId = (await owner<{ id: string }>(`select id from platform.users where email = $1`, [`responsable2-evi-${RUN}@cumplimiento.test`]))[0].id;
+    const ejecutorId = await cuenta(a.companyId, `delegado-evi-${RUN}@cumplimiento.test`, 'delegado');
+    await cuenta(a.companyId, `delegado2-evi-${RUN}@cumplimiento.test`, 'delegado');
+    ejecutor = await login(app, `delegado-evi-${RUN}@cumplimiento.test`);
+    sinControles = await login(app, `delegado2-evi-${RUN}@cumplimiento.test`);
+    await asignarControl(a.companyId, controlId, ownerId, ejecutorId);
+    await asignarControl(a.companyId, otherControlId, otherOwnerId);
+    entrega = (await upload(a.agent, requirementId, pdf('d102'), 'd102.pdf').expect(201)).body.data.id;
+  });
+  afterAll(async () => {
+    await asignarServicio(a.companyId, a.serviceId, ownerId);
+  });
+
+  it('lista por control: el dueño y el ejecutor, el suyo (200); el de otro control de su empresa, 403; el de otra empresa, 404', async () => {
+    for (const agent of [responsable, ejecutor]) {
+      await agent.get(`/v1/controls/${controlId}/evidence`).expect(200);
+      await agent.get(`/v1/controls/${otherControlId}/evidence`).expect(403);
+      await agent.get(`/v1/evidence-requirements/${requirementId}/submissions`).expect(200);
+      await agent.get(`/v1/evidence-requirements/${otherRequirementId}/submissions`).expect(403);
+    }
+    for (const agent of [responsableAjeno, sinControles]) {
+      await agent.get(`/v1/controls/${controlId}/evidence`).expect(403);
+      await agent.get(`/v1/evidence-requirements/${requirementId}/submissions`).expect(403);
+    }
+    const bControl = (await owner<{ id: string }>(`select id from tenant.client_controls where service_id = $1 limit 1`, [b.serviceId]))[0].id;
+    for (const agent of [responsable, ejecutor, sinControles]) await agent.get(`/v1/controls/${bControl}/evidence`).expect(404);
+  });
+
+  it('la lista del servicio da, por control, lo mismo que la del control; el que no tiene controles recibe una lista vacía (200)', async () => {
+    const del = async (agent: Agent, control: string) => ((await agent.get(`/v1/controls/${control}/evidence`).expect(200)).body.data.items as Array<{ id: string }>).map((i) => i.id);
+    const masivo = async (agent: Agent) => (await agent.get(`/v1/services/${a.serviceId}/evidence`).expect(200)).body.data.items as Array<{ id: string; control_id: string }>;
+    // El dueño de los demás controles del servicio los ve también; el ejecutor, solo el suyo.
+    const delDueno = await masivo(responsable);
+    expect(new Set(delDueno.map((i) => i.control_id))).toContain(controlId);
+    expect(new Set(delDueno.map((i) => i.control_id))).not.toContain(otherControlId);
+    const delEjecutor = await masivo(ejecutor);
+    expect([...new Set(delEjecutor.map((i) => i.control_id))]).toEqual([controlId]);
+    for (const [agent, items] of [[responsable, delDueno], [ejecutor, delEjecutor]] as const) {
+      expect(items.filter((i) => i.control_id === controlId).map((i) => i.id)).toEqual(await del(agent, controlId));
+    }
+    expect(await masivo(sinControles)).toEqual([]);
+    expect([...new Set((await masivo(responsableAjeno)).map((i) => i.control_id))]).toEqual([otherControlId]);
+  });
+
+  it('sube el ejecutor sobre su control; sobre el de otro, o sin controles, 403; el administrador sube sobre cualquiera', async () => {
+    await upload(ejecutor, requirementId, pdf('ejecutor'), 'del-ejecutor.pdf').expect(201);
+    await upload(ejecutor, otherRequirementId, pdf('x'), 'x.pdf').expect(403);
+    await upload(sinControles, requirementId, pdf('y'), 'y.pdf').expect(403);
+    await upload(responsableAjeno, requirementId, pdf('z'), 'z.pdf').expect(403);
+    await upload(a.agent, otherRequirementId, pdf('adm'), 'adm.pdf').expect(201);
+    await upload(auditor, requirementId, pdf('aud'), 'aud.pdf').expect(403);
+  });
+
+  it('descarga el ejecutor lo de su control; el que no es suyo, 403', async () => {
+    await ejecutor.get(`/v1/evidence-submissions/${entrega}/download`).expect(200);
+    await sinControles.get(`/v1/evidence-submissions/${entrega}/download`).expect(403);
+    await responsableAjeno.get(`/v1/evidence-submissions/${entrega}/download`).expect(403);
+    await b.agent.get(`/v1/evidence-submissions/${entrega}/download`).expect(404);
+  });
+
+  it('?view=technical es 403 para el delegado', async () => {
+    await ejecutor.get(`/v1/controls/${controlId}/evidence?view=technical`).expect(403);
+    await ejecutor.get(`/v1/services/${a.serviceId}/evidence?view=technical`).expect(403);
+    await ejecutor.get(`/v1/evidence-requirements/${requirementId}/submissions?view=technical`).expect(403);
   });
 });

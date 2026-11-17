@@ -510,8 +510,8 @@ describe('Reemitir el código de activación', () => {
   });
 });
 
-describe('Visibilidad transitoria del responsable (hasta MD-193)', () => {
-  // DT-87: transitorio hasta MD-193 (visibilidad por dueño/ejecutor). El responsable ve solo los controles de los que es dueño o ejecutor.
+describe('Alcance del responsable y del delegado (D102)', () => {
+  // El responsable ve los controles de los que es dueño (también los que ejecutan sus delegados); el delegado, los que ejecuta.
   it('sin asignaciones no ve nada; con un control asignado ve ese y solo ese; el delegado ejecutor también', async () => {
     const dueño = await activo(a.agent, 'vis-resp', 'responsable');
     const ejecutor = await activo(a.agent, 'vis-del', 'delegado', await sembrarEquipo(a.companyId, dueño.id));
@@ -528,25 +528,53 @@ describe('Visibilidad transitoria del responsable (hasta MD-193)', () => {
     await b.agent.get(`/v1/controls/${todos[0]}`).expect(404);
   });
 
-  // D102 · El delegado ejecuta: ve sus controles, su evidencia y sus observaciones, y nada más. Sin avance de la empresa, sin riesgos, sin servicios, sin hallazgos de la sonda.
-  it('el delegado recibe 403 en el resumen, los riesgos, los servicios y los hallazgos; el responsable sí entra a lo que el contrato le abre', async () => {
+  // Matriz rol × recurso: propio, ajeno de la misma empresa (403 por id, ausente de las listas) y de otra empresa (404).
+  it('matriz: dueño, ejecutor, otro responsable, otro delegado y delegado sin controles frente a controles propios, ajenos y de otra empresa', async () => {
+    const p1 = await activo(a.agent, 'mx-r1', 'responsable');
+    const p2 = await activo(a.agent, 'mx-r2', 'responsable');
+    const equipo1 = await sembrarEquipo(a.companyId, p1.id);
+    const e1 = await activo(a.agent, 'mx-d1', 'delegado', equipo1);
+    const e2 = await activo(a.agent, 'mx-d2', 'delegado', await sembrarEquipo(a.companyId, p2.id));
+    const sinNada = await activo(a.agent, 'mx-d0', 'delegado', equipo1);
+    const todos = ((await a.agent.get(`/v1/services/${a.serviceId}/controls?page_size=100`).expect(200)).body.data.items as any[]).map((c) => c.id);
+    const [mio, delOtro] = [todos[10], todos[11]];
+    await asignarControl(a.companyId, mio, p1.id, e1.id);
+    await asignarControl(a.companyId, delOtro, p2.id, e2.id);
+    const ajeno = (await b.agent.get(`/v1/services/${b.serviceId}/controls?page_size=1`).expect(200)).body.data.items[0].id;
+    const lista = async (s: Agent) => ((await s.get(`/v1/services/${a.serviceId}/controls?page_size=100`).expect(200)).body.data.items as any[]).map((c) => c.id);
+
+    const casos: Array<[string, Agent, string[], string[]]> = [
+      ['dueño', p1.session, [mio], [delOtro]],
+      ['ejecutor', e1.session, [mio], [delOtro]],
+      ['otro responsable', p2.session, [delOtro], [mio]],
+      ['otro delegado', e2.session, [delOtro], [mio]],
+      ['delegado sin controles', sinNada.session, [], [mio, delOtro]],
+    ];
+    for (const [quien, session, propios, ajenos] of casos) {
+      expect({ quien, lista: await lista(session) }).toEqual({ quien, lista: propios });
+      for (const id of propios) expect({ quien, id, status: (await session.get(`/v1/controls/${id}`)).status }).toEqual({ quien, id, status: 200 });
+      for (const id of ajenos) expect({ quien, id, status: (await session.get(`/v1/controls/${id}`)).status }).toEqual({ quien, id, status: 403 });
+      expect({ quien, status: (await session.get(`/v1/controls/${ajeno}`)).status }).toEqual({ quien, status: 404 });
+      expect({ quien, status: (await session.get(`/v1/services/${a.serviceId}/controls?view=technical`)).status }).toEqual({ quien, status: 403 });
+      // El resumen es siempre 200 (sin controles, sin marcos): nunca 403 por no tener nada.
+      const resumen = await session.get(`/v1/services/${a.serviceId}/compliance-overview`).expect(200);
+      expect({ quien, hayMarcos: resumen.body.data.frameworks.length > 0 }).toEqual({ quien, hayMarcos: propios.length > 0 });
+    }
+  });
+
+  // D102 · Sin controles, el responsable y el delegado reciben listas vacías (200), nunca 403; lo ajeno de su empresa, por id, es 403.
+  it('el responsable y el delegado sin controles reciben listas vacías en riesgos, causas, servicios y observaciones (200); el detalle ajeno es 403; el resumen, 200 (D118)', async () => {
     const responsable = await activo(a.agent, 'vis-403r', 'responsable');
     const ejecutor = await activo(a.agent, 'vis-403', 'delegado', await sembrarEquipo(a.companyId, responsable.id));
-    const control = (await owner<{ id: string }>('select id from tenant.client_controls where service_id = $1 and is_active limit 1', [a.serviceId]))[0].id;
-    const test = '00000000-0000-4000-8000-000000000001';
-    const cerradas = [
-      `/v1/services/${a.serviceId}/compliance-overview`,
-      `/v1/services/${a.serviceId}/risks`,
-      `/v1/services/${a.serviceId}/causes`,
-      '/v1/risk-matrix',
-      '/v1/services',
-      `/v1/services/${a.serviceId}`,
-      `/v1/controls/${control}/tests/${test}/findings`,
-    ];
-    for (const ruta of cerradas) expect({ ruta, status: (await ejecutor.session.get(ruta)).status }).toEqual({ ruta, status: 403 });
-    // El mismo recorrido con el responsable no se cierra por el rol: puede dar 200 o 404 según el recurso, pero nunca 403 por ser responsable.
-    for (const ruta of [`/v1/services/${a.serviceId}/compliance-overview`, `/v1/services/${a.serviceId}/risks`, '/v1/services']) {
-      expect({ ruta, status: (await responsable.session.get(ruta)).status }).toEqual({ ruta, status: 200 });
+    for (const quien of [responsable, ejecutor]) {
+      for (const ruta of [`/v1/services/${a.serviceId}/risks`, `/v1/services/${a.serviceId}/causes`, '/v1/services', `/v1/services/${a.serviceId}/observations`]) {
+        const res = await quien.session.get(ruta);
+        expect({ ruta, status: res.status, items: res.body.data?.items }).toEqual({ ruta, status: 200, items: [] });
+      }
+      await quien.session.get('/v1/risk-matrix').expect(200);
+      await quien.session.get(`/v1/services/${a.serviceId}`).expect(403);
+      await quien.session.get(`/v1/services/${a.serviceId}/compliance-overview`).expect(200);
+      await quien.session.get(`/v1/services/${b.serviceId}`).expect(404);
     }
   });
 });

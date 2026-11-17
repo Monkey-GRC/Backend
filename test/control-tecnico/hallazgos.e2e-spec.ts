@@ -19,15 +19,17 @@ let a: Tenant;
 let b: Tenant;
 let auditor: Agent;
 let responsable: Agent;
+let delegado: Agent;
+let delegadoSin: Agent;
 let controlId: string;
 let testId: string;
 let path: string;
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<void> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable' | 'delegado'): Promise<void> {
   await owner(
-    `insert into platform.users (id, company_id, email, name, last_name, password_hash, role)
-     values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role)`,
-    [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
+    `insert into platform.users (id, company_id, email, name, last_name, password_hash, role, is_internal)
+     values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role, $5)`,
+    [companyId, email, await bcrypt.hash(PASSWORD, 4), role, role === 'delegado' ? true : null],
   );
 }
 
@@ -59,7 +61,11 @@ beforeAll(async () => {
   await cuenta(a.companyId, `auditor-d90-${RUN}@cumplimiento.test`, 'auditor');
   await cuenta(a.companyId, `responsable-d90-${RUN}@cumplimiento.test`, 'responsable');
   auditor = await login(app, `auditor-d90-${RUN}@cumplimiento.test`);
+  await cuenta(a.companyId, `delegado-d90-${RUN}@cumplimiento.test`, 'delegado');
+  await cuenta(a.companyId, `delegado2-d90-${RUN}@cumplimiento.test`, 'delegado');
   responsable = await login(app, `responsable-d90-${RUN}@cumplimiento.test`);
+  delegado = await login(app, `delegado-d90-${RUN}@cumplimiento.test`);
+  delegadoSin = await login(app, `delegado2-d90-${RUN}@cumplimiento.test`);
 
   const created = await a.agent.post('/v1/assets').send(awsBody(a, `aws-d90-${RUN}`));
   if (created.status !== 201) throw new Error(`activo: ${created.status} ${JSON.stringify(created.body)}`);
@@ -157,6 +163,7 @@ describe('Qué falló y cómo corregirlo (D90)', () => {
   it('el auditor también lo ve; un responsable que no es dueño ni ejecutor del control, no (403)', async () => {
     await auditor.get(path).expect(200);
     await responsable.get(path).expect(403);
+    await delegado.get(path).expect(403);
   });
 
   it('el dueño o el ejecutor del control sí lo ven (D102); si pierde la asignación, ya no', async () => {
@@ -170,10 +177,28 @@ describe('Qué falló y cómo corregirlo (D90)', () => {
     await responsable.get(path).expect(403);
   });
 
+  it('el delegado ejecutor lo ve; otro delegado sin el control y el de otro dueño, no (403); si lo quitan como ejecutor, ya no', async () => {
+    const [{ id: dueno }] = await owner<{ id: string }>('select id from platform.users where email = $1', [`responsable-d90-${RUN}@cumplimiento.test`]);
+    const [{ id: ejecutor }] = await owner<{ id: string }>('select id from platform.users where email = $1', [`delegado-d90-${RUN}@cumplimiento.test`]);
+    await asignarControl(a.companyId, controlId, dueno, ejecutor);
+    try {
+      expect((await delegado.get(path).expect(200)).body.data.total).toBe(3);
+      expect((await responsable.get(path).expect(200)).body.data.total).toBe(3);
+      await delegadoSin.get(path).expect(403);
+      await delegado.get(`${path}?page=1`).expect(200);
+    } finally {
+      await owner('delete from platform.client_control_assignments where client_control_id = $1', [controlId]);
+    }
+    await delegado.get(path).expect(403);
+    await delegadoSin.get(path).expect(403);
+  });
+
   it('para otra empresa el control no existe (404), igual que un control o una prueba inventados', async () => {
     await b.agent.get(path).expect(404);
     await a.agent.get(`/v1/controls/${controlId}/tests/00000000-0000-4000-8000-000000000000/findings`).expect(404);
     await a.agent.get(`/v1/controls/no-es-uuid/tests/${testId}/findings`).expect(404);
+    const [ajeno] = await owner<{ id: string }>('select id from tenant.client_controls where service_id = $1 limit 1', [b.serviceId]);
+    for (const agent of [responsable, delegado, delegadoSin]) await agent.get(`/v1/controls/${ajeno.id}/tests/${testId}/findings`).expect(404);
   });
 
   it('una prueba documental (política) no tiene hallazgos que explicar (404); las de nube y las de servidores sí (D90)', async () => {

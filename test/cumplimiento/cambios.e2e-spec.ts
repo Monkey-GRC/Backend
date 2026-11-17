@@ -68,7 +68,8 @@ describe('MD-150 · crear un control propio', () => {
       progress: { done: 0, total: 1 },
       coverage: { measured: 0, applicable: 1 },
       evidence: [],
-      assigned_to: null,
+      owner: null,
+      executor: null,
     });
     // aparece en la lista junto a los del catálogo, y cuenta
     expect((await a.agent.get(list(a)).expect(200)).body.data.total).toBe(before + 1);
