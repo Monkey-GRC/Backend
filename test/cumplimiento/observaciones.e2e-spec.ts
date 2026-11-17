@@ -24,9 +24,12 @@ let auditor2: Agent; // otro auditor de A: ve todo, pero no toca lo del primero
 let auditorB: Agent;
 let responsable: Agent; // responsable de `control1`
 let responsableAjeno: Agent; // de A, sin ningún control
+let delegado: Agent; // ejecutor de `control1`
+let delegadoSin: Agent; // de A, sin ningún control
 let adminId: string;
 let auditorId: string;
 let responsableId: string;
+let delegadoId: string;
 let control1: string;
 let control2: string; // de un control del que el responsable NO es responsable
 let submission1: string; // entrega de evidencia del control 1
@@ -46,10 +49,10 @@ const pdf = (marca: string) => Buffer.from(`%PDF-1.7\n% evidencia ${marca} ${RUN
 const auditRows = (action: string, tenant = a.companyId) => owner<{ n: number }>('select count(*)::int n from audit.audit_logs where tenant_id = $1 and action = $2', [tenant, action]).then((r) => r[0].n);
 const row = (id: string) => owner<Record<string, any>>('select * from tenant.audit_observations where id = $1', [id]).then((r) => r[0]);
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<string> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable' | 'delegado'): Promise<string> {
   return (await owner<{ id: string }>(
-    `insert into platform.users (id, company_id, email, name, last_name, password_hash, role) values (gen_random_uuid(), $1, $2, 'Camilo', 'Ortiz', $3, $4::platform.user_role) returning id`,
-    [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
+    `insert into platform.users (id, company_id, email, name, last_name, password_hash, role, is_internal) values (gen_random_uuid(), $1, $2, 'Camilo', 'Ortiz', $3, $4::platform.user_role, $5) returning id`,
+    [companyId, email, await bcrypt.hash(PASSWORD, 4), role, role === 'delegado' ? true : null],
   ))[0].id;
 }
 
@@ -76,11 +79,15 @@ beforeAll(async () => {
   await cuenta(b.companyId, `auditor-obs-b-${RUN}@cumplimiento.test`, 'auditor');
   responsableId = await cuenta(a.companyId, `responsable-obs-${RUN}@cumplimiento.test`, 'responsable');
   await cuenta(a.companyId, `responsable2-obs-${RUN}@cumplimiento.test`, 'responsable');
+  delegadoId = await cuenta(a.companyId, `delegado-obs-${RUN}@cumplimiento.test`, 'delegado');
+  await cuenta(a.companyId, `delegado2-obs-${RUN}@cumplimiento.test`, 'delegado');
   auditor = await login(app, `auditor-obs-${RUN}@cumplimiento.test`);
   auditor2 = await login(app, `auditor2-obs-${RUN}@cumplimiento.test`);
   auditorB = await login(app, `auditor-obs-b-${RUN}@cumplimiento.test`);
   responsable = await login(app, `responsable-obs-${RUN}@cumplimiento.test`);
   responsableAjeno = await login(app, `responsable2-obs-${RUN}@cumplimiento.test`);
+  delegado = await login(app, `delegado-obs-${RUN}@cumplimiento.test`);
+  delegadoSin = await login(app, `delegado2-obs-${RUN}@cumplimiento.test`);
 
   // Dos controles del servicio de A con evidencia requerida: el primero es del responsable; el segundo no. Cada uno con una entrega de evidencia.
   const all = await owner<{ id: string; client_control_id: string }>(
@@ -91,8 +98,8 @@ beforeAll(async () => {
   expect(all.length).toBe(2);
   const reqs = all;
   [control1, control2] = reqs.map((r) => r.client_control_id);
-  // D102 · El responsable es dueño del primer control (platform.client_control_assignments); del segundo no.
-  await asignarControl(a.companyId, control1, responsableId);
+  // D102 · El responsable es dueño del primer control y el delegado su ejecutor (platform.client_control_assignments); del segundo, ninguno.
+  await asignarControl(a.companyId, control1, responsableId, delegadoId);
   const up = async (req: string, marca: string) => (await a.agent.post(`/v1/evidence-requirements/${req}/submissions`).attach('file', pdf(marca), 'evidencia.pdf').expect(201)).body.data.id as string;
   submission1 = await up(reqs[0].id, '1');
   submission2 = await up(reqs[1].id, '2');
@@ -160,7 +167,7 @@ describe('sobre qué habla', () => {
     expect((await create(auditor, randomUUID(), base)).status).toBe(404);
   });
 
-  it('sobre un control dado de baja no se abren observaciones nuevas (409), pero las que ya tenía se siguen leyendo', async () => {
+  it('sobre un control dado de baja no se abren observaciones nuevas (409) pero las que ya tenía se siguen leyendo', async () => {
     const [{ id: retired }] = await owner<{ id: string }>(`select id from tenant.client_controls where service_id = $1 and is_active and id not in ($2, $3) limit 1`, [a.serviceId, control1, control2]);
     const existing = await make({ client_control_id: retired });
     await owner('update tenant.client_controls set is_active = false where id = $1', [retired]);
@@ -209,9 +216,18 @@ describe('quién las ve', () => {
     expect(mine).not.toContain(ofControl2.id);
   });
 
-  it('un responsable sin controles recibe la lista vacía, no un error', async () => {
-    const res = await responsableAjeno.get(`/v1/services/${a.serviceId}/observations`).expect(200);
-    expect(res.body.data).toMatchObject({ items: [], total: 0 });
+  it('el delegado ve solo las de los controles que ejecuta (las de un servicio completo, no)', async () => {
+    const mine = await ids(delegado);
+    expect(mine).toContain(ofControl1.id);
+    expect(mine).not.toContain(serviceWide.id);
+    expect(mine).not.toContain(ofControl2.id);
+  });
+
+  it('un responsable o delegado sin controles recibe la lista vacía, no un error', async () => {
+    for (const agent of [responsableAjeno, delegadoSin]) {
+      const res = await agent.get(`/v1/services/${a.serviceId}/observations`).expect(200);
+      expect(res.body.data).toMatchObject({ items: [], total: 0 });
+    }
   });
 
   it('el detalle: el responsable abre las de su control; las de otro control o de un servicio completo son 403', async () => {
@@ -222,6 +238,9 @@ describe('quién las ve', () => {
       expect(code(res)).toBe('FORBIDDEN');
     }
     expect((await responsableAjeno.get(`/v1/observations/${ofControl1.id}`)).status).toBe(403);
+    expect((await delegado.get(`/v1/observations/${ofControl1.id}`).expect(200)).body.data).toMatchObject({ id: ofControl1.id });
+    for (const hidden of [ofControl2, serviceWide]) expect((await delegado.get(`/v1/observations/${hidden.id}`)).status).toBe(403);
+    expect((await delegadoSin.get(`/v1/observations/${ofControl1.id}`)).status).toBe(403);
   });
 
   it('admin_monkey no entra: 403 en la lista y en el detalle', async () => {
@@ -255,6 +274,11 @@ describe('quién las ve', () => {
     expect((await auditorB.get(`/v1/services/${a.serviceId}/observations`)).status).toBe(404);
     expect((await auditorB.get(`/v1/observations/${ofControl1.id}`)).status).toBe(404);
     expect((await b.agent.get(`/v1/observations/${ofControl1.id}`)).status).toBe(404);
+    const deB = await make({}, auditorB, b.serviceId);
+    for (const agent of [responsable, delegado, delegadoSin]) {
+      expect((await agent.get(`/v1/observations/${deB.id}`)).status).toBe(404);
+      expect((await agent.get(`/v1/services/${b.serviceId}/observations`)).status).toBe(404);
+    }
     expect((await auditor.get('/v1/observations/no-es-uuid')).status).toBe(404);
     expect((await auditor.get(`/v1/observations/${randomUUID()}`)).status).toBe(404);
   });
@@ -294,6 +318,17 @@ describe('responder', () => {
       expect((await row(other.id)).status).toBe('open');
     }
     expect((await answer(responsableAjeno, (await make({ client_control_id: control1 })).id)).status).toBe(403);
+  });
+
+  it('el delegado ejecutor responde las de su control; las de otro control, de un servicio completo o sin controles, no (403)', async () => {
+    const mine = await make({ client_control_id: control1 });
+    expect((await answer(delegado, mine.id).expect(200)).body.data).toMatchObject({ status: 'answered', answered_by: { id: delegadoId } });
+    for (const over of [{ client_control_id: control2 }, {}]) {
+      const other = await make(over);
+      expect((await answer(delegado, other.id)).status).toBe(403);
+      expect((await row(other.id)).status).toBe('open');
+    }
+    expect((await answer(delegadoSin, (await make({ client_control_id: control1 })).id)).status).toBe(403);
   });
 
   it('el auditor no responde (ni las suyas) y admin_monkey tampoco: 403', async () => {
@@ -343,7 +378,7 @@ describe('editar, devolver y cerrar: solo su autor', () => {
 
   it('otro auditor de la misma empresa, el admin_empresa y el responsable no la tocan: 403', async () => {
     const o = await answered();
-    for (const agent of [auditor2, a.agent, responsable]) {
+    for (const agent of [auditor2, a.agent, responsable, delegado]) {
       for (const body of [{ body: 'Intento.' }, { status: 'closed' }, { status: 'open' }]) {
         const res = await patch(agent, o.id, body);
         expect(res.status).toBe(403);

@@ -5,8 +5,8 @@ import { ListServiceEvidenceUseCase } from './evidence.use-cases';
 const req = (id: string, sequence: number, dimension = 'policy') => ({ id, sequence, dimension, submissions: [] }) as unknown as RequirementRecord;
 const data: ServiceEvidence = {
   controls: [
-    { id: 'c10', ownCode: 'IAC-10', assignedUserIds: ['u2'], responsibleByDimension: { policy: ['u2'] } },
-    { id: 'c2', ownCode: 'IAC-2', assignedUserIds: ['u1'], responsibleByDimension: { policy: ['u1'] } },
+    { id: 'c10', ownCode: 'IAC-10', access: { owner: { id: 'u2', name: null, lastName: null, role: 'responsable' }, executor: null } },
+    { id: 'c2', ownCode: 'IAC-2', access: { owner: { id: 'u1', name: null, lastName: null, role: 'responsable' }, executor: null } },
   ],
   items: [
     { controlId: 'c10', requirement: req('r10', 1) },

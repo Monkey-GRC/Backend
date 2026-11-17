@@ -26,10 +26,11 @@ export class CoverageResponse {
   @ApiProperty({ example: 9, description: 'Cuánto es medible (aplicable).' }) applicable!: number;
 }
 
-export class ControlAssigneeResponse {
-  @ApiProperty({ format: 'uuid' }) user_id!: string;
+export class ControlPartyResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ nullable: true, example: 'Ana' }) name!: string | null;
   @ApiProperty({ nullable: true, example: 'Pérez' }) last_name!: string | null;
+  @ApiProperty({ enum: ['admin_empresa', 'responsable', 'delegado', 'auditor', 'admin_monkey'], enumName: 'UserRole' }) role!: string;
 }
 
 export class FailingAffectedResponse {
@@ -73,7 +74,8 @@ export class ControlListItemResponse {
   @ApiProperty({ enum: READINESS, enumName: 'Readiness', description: READINESS_DOC }) readiness!: string;
   @ApiProperty({ type: ProgressResponse, description: 'Avance: pruebas cumplidas de las que cuentan. Informa; no decide el cumplimiento.' }) progress!: ProgressResponse;
   @ApiProperty({ type: CoverageResponse, description: 'Cobertura: cuánto de lo medible se midió.' }) coverage!: CoverageResponse;
-  @ApiProperty({ type: ControlAssigneeResponse, nullable: true, description: 'Persona a cargo; `null` si no hay.' }) assigned_to!: ControlAssigneeResponse | null;
+  @ApiProperty({ type: ControlPartyResponse, nullable: true, description: 'Dueño del control (D102); `null` si no tiene. El `responsable` y el `delegado` solo lo ven en sus controles.' }) owner!: ControlPartyResponse | null;
+  @ApiProperty({ type: ControlPartyResponse, nullable: true, description: 'Ejecutor del control (D102); `null` si lo ejecuta el dueño o no hay.' }) executor!: ControlPartyResponse | null;
   @ApiProperty({ type: ControlTechnicalResponse, required: false, description: 'Solo en la vista técnica (`view=technical`).' }) technical?: ControlTechnicalResponse;
 }
 

@@ -43,7 +43,7 @@ export class ControlsController {
     private readonly listControlTests: ListControlTestsUseCase,
   ) {}
 
-  @ApiOperation({ summary: 'Listar los controles de un servicio', description: 'Los controles del servicio con su estado, **avance y cobertura juntos**, quién los tiene a cargo. Filtros por criterio, tipo, estado y origen. El `responsable` solo ve los que tiene asignados. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
+  @ApiOperation({ summary: 'Listar los controles de un servicio', description: 'Los controles del servicio con su estado, **avance y cobertura juntos**, su dueño y su ejecutor. Filtros por criterio, tipo, estado, origen persona a cargo (`responsible`) y `assignment` (solo `admin_empresa`, otro rol recibe `403`). El `responsable` y el `delegado` solo ven los que son suyos (dueño o ejecutor, D102); sin ninguno, la lista llega vacía. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
   @ApiPaged(ControlListItemResponse, 'Página de controles.')
   @Get('services/:serviceId/controls')
   async list(@CurrentUser() principal: Principal, @Param('serviceId', idPipe) serviceId: string, @Query() q: ListControlsQuery) {
@@ -55,6 +55,8 @@ export class ControlsController {
       type: q.type,
       readiness: q.readiness,
       origin: q.origin,
+      responsible: q.responsible,
+      assignment: q.assignment,
       view: q.view,
       locale: I18nContext.current()?.lang,
     });
@@ -82,7 +84,7 @@ export class ControlsController {
     return new ResponseDto(HttpStatus.CREATED, t('control.created'), toControlDetail(detail, t));
   }
 
-  @ApiOperation({ summary: 'Detalle de un control', description: 'Estado, avance y cobertura; interpretación, dimensiones, evidencias requeridas con su última entrega, causas que trata y en qué falla. Un `responsable` que no tiene el control asignado recibe 403. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
+  @ApiOperation({ summary: 'Detalle de un control', description: 'Estado, avance y cobertura; interpretación, dimensiones, evidencias requeridas con su última entrega, causas que trata y en qué falla. Un `responsable` o `delegado` que no es dueño ni ejecutor del control recibe 403. Con `view=technical` (solo `auditor` y `admin_empresa`) agrega el bloque `technical`.' })
   @ApiData(ControlDetailResponse, 'Detalle del control.')
   @Get('controls/:id')
   async detail(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Query() q: GetControlQuery) {

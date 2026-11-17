@@ -8,7 +8,8 @@ import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.inser
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { ObservationAccess, ObservationChange, ObservationFilters, ObservationRecord, ObservationRepository } from '../../domain/observations/observation.repository';
 import { ObservationStatus, ObservationType } from '../../domain/observations/observation-lifecycle';
-import { loadControlResponsibles, usersOf } from '../shared/control-responsibles';
+import { loadControlAccess } from '../shared/control-access.loader';
+import { isPartyOf, NO_ACCESS } from '../../domain/controls/control-access';
 
 const PERSON = { select: { id: true, name: true, lastName: true } } as const;
 const SELECT = {
@@ -76,10 +77,10 @@ export class ObservationPrismaRepository extends ObservationRepository {
 
       const where: Prisma.AuditObservationWhereInput = { serviceId, ...(f.status ? { status: f.status } : {}), ...(f.type ? { type: f.type } : {}) };
       if (f.onlyControlsOf) {
-        // El `responsable` ve las de los controles de los que es responsable (en cualquier dimensión); las de un servicio completo, no.
+        // El `responsable` ve las de los controles de los que es responsable (dueño o ejecutor, D102); las de un servicio completo, no.
         const controls = (await tx.clientControl.findMany({ where: { serviceId }, select: { id: true } })).map((c) => c.id);
-        const responsibles = await loadControlResponsibles(tx, controls);
-        const mine = controls.filter((id) => usersOf(responsibles.byControl.get(id)).includes(f.onlyControlsOf as string));
+        const accessOf = await loadControlAccess(tx, controls);
+        const mine = controls.filter((id) => isPartyOf(f.onlyControlsOf as string, accessOf.get(id) ?? NO_ACCESS));
         where.clientControlId = { in: f.clientControlId ? mine.filter((id) => id === f.clientControlId) : mine };
       } else if (f.clientControlId) {
         where.clientControlId = f.clientControlId;
@@ -135,9 +136,9 @@ export class ObservationPrismaRepository extends ObservationRepository {
 
   private async access(tx: TransactionClient, row: Row): Promise<ObservationAccess> {
     const record = toRecord(row);
-    if (!record.clientControlId) return { record, responsibleUserIds: [] };
-    const responsibles = await loadControlResponsibles(tx, [record.clientControlId]);
-    return { record, responsibleUserIds: usersOf(responsibles.byControl.get(record.clientControlId)) };
+    if (!record.clientControlId) return { record, access: NO_ACCESS };
+    const access = (await loadControlAccess(tx, [record.clientControlId])).get(record.clientControlId) ?? NO_ACCESS;
+    return { record, access };
   }
 
   private async serviceExists(tx: TransactionClient, scope: TenantScope, serviceId: string): Promise<boolean> {

@@ -3,7 +3,7 @@ import { Page } from '../../../../common/pagination/page';
 import { compareOwnCode, readControl } from '../../domain/controls/control-readout';
 import { ControlState } from '../../domain/engine/states';
 import { AssignedPerson, AssignmentListingData } from '../../domain/assignments/assignment.repository';
-import { canSeeControl } from '../shared/control-visibility';
+import { canSeeControl } from '../../domain/controls/control-access';
 
 // Lógica pura de `GET /v1/assignments`: de lo que se cargó a la página que se muestra. Sin Prisma ni Nest.
 
@@ -51,8 +51,8 @@ export function listAssignments(p: Principal, data: AssignmentListingData, f: As
   for (const service of data.services) {
     for (const control of service.readout.controls) {
       const record = data.assignments.get(control.id);
-      // Quién ve qué: la misma regla que el resto del cumplimiento (D102), sobre el dueño y el ejecutor reales del control.
-      if (!canSeeControl(p, [record?.owner.id, record?.executor?.id].filter((id): id is string => !!id))) continue;
+      // Quién ve qué: la misma regla que el resto del cumplimiento (D102), sobre el dueño y el ejecutor ACTIVOS de la asignación.
+      if (!canSeeControl(p, { owner: record?.ownerActive ? record.owner : null, executor: record?.executorActive ? record.executor : null })) continue;
       const assignment = record ? 'assigned' : 'unassigned';
       if (f.assignment && f.assignment !== assignment) continue;
       if (f.ownerId && record?.owner.id !== f.ownerId) continue;

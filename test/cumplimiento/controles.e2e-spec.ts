@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
 import { asignarControl, controlesQueSeparan } from '../support/asignaciones';
+import { invitarYActivar, sembrarEquipo } from '../support/equipo';
 
 // MD-117 · Listar y ver las acciones de protección de un servicio (contracts/modules/compliance-controls.md). Cada prueba sale por HTTP, con la sesión
 // real de cada rol, contra el Postgres desechable.
@@ -51,9 +52,9 @@ describe('Lista de acciones de protección', () => {
     expect([page, page_size, total_pages]).toEqual([1, 25, Math.ceil(total / 25)]);
     const first = list[0];
     expect(Object.keys(first).sort()).toEqual(
-      ['approval', 'assigned_to', 'code', 'coverage', 'id', 'name', 'origin', 'own_code', 'progress', 'readiness', 'requirement_codes', 'trust_criteria', 'type'].sort(),
+      ['approval', 'code', 'coverage', 'executor', 'id', 'name', 'origin', 'owner', 'own_code', 'progress', 'readiness', 'requirement_codes', 'trust_criteria', 'type'].sort(),
     );
-    expect(first).toMatchObject({ origin: 'catalog', own_code: null, approval: 'approved', assigned_to: null, code: expect.stringMatching(/^[A-Z]+-\d+$/) });
+    expect(first).toMatchObject({ origin: 'catalog', own_code: null, approval: 'approved', owner: null, executor: null, code: expect.stringMatching(/^[A-Z]+-\d+$/) });
   });
 
   it('un servicio recién clonado y sin resultados está «Sin medir»: no inventa ningún cumplimiento', async () => {
@@ -164,10 +165,11 @@ describe('Quién puede pedir qué', () => {
     expect(visible.map((c) => c.id)).toContain(con);
     expect(visible.map((c) => c.id)).not.toContain(sin);
     expect(visible.length).toBeLessThan((await items(a.agent, '?page_size=100')).length);
-    expect(visible.every((c) => c.assigned_to === null)).toBe(true); // DT-87: transitorio hasta MD-193 (visibilidad por dueño/ejecutor); aún no se muestra quién está a cargo
+    expect(visible.find((c) => c.id === con)).toMatchObject({ owner: { id: responsableId, name: 'Prueba', last_name: 'Roles', role: 'responsable' }, executor: null });
     await responsable.get(`/v1/controls/${con}`).expect(200);
     await responsable.get(`/v1/controls/${sin}`).expect(403);
-  });});
+  });
+});
 
 describe('Aislamiento entre empresas', () => {
   it('el servicio de otra empresa y su lista no existen: 404', async () => {
@@ -270,5 +272,85 @@ describe('El estado sale de los resultados guardados', () => {
     const measured = await items(a.agent, '?page_size=100&readiness=needs_work');
     const almost = await items(a.agent, '?page_size=100&readiness=almost_ready');
     expect(measured.length + almost.length).toBeGreaterThan(0);
+  });
+});
+
+describe('Alcance por dueño y ejecutor (D102)', () => {
+  let rA: Awaited<ReturnType<typeof invitarYActivar>>;
+  let rB: Awaited<ReturnType<typeof invitarYActivar>>;
+  let dA: Awaited<ReturnType<typeof invitarYActivar>>;
+  let dSin: Awaited<ReturnType<typeof invitarYActivar>>;
+  let c0: string;
+  let c1: string;
+  const ids = async (agent: Agent, query = '') => (await items(agent, `?page_size=100${query}`)).map((c) => c.id);
+
+  beforeAll(async () => {
+    const mail = (k: string) => `${k}-ctl-${RUN}@cumplimiento.test`;
+    const person = { name: 'Persona', last_name: 'De Prueba' };
+    rA = await invitarYActivar(app, a.agent, { email: mail('alc-ra'), role: 'responsable', ...person });
+    rB = await invitarYActivar(app, a.agent, { email: mail('alc-rb'), role: 'responsable', ...person });
+    const teamA = await sembrarEquipo(a.companyId, rA.id);
+    dA = await invitarYActivar(app, a.agent, { email: mail('alc-da'), role: 'delegado', group_id: teamA, is_internal: true, ...person });
+    dSin = await invitarYActivar(app, a.agent, { email: mail('alc-ds'), role: 'delegado', group_id: teamA, is_internal: true, ...person });
+    [c0, c1] = (await items(a.agent, '?page_size=100')).slice(5, 7).map((c) => c.id);
+    await asignarControl(a.companyId, c0, rA.id, dA.id);
+    await asignarControl(a.companyId, c1, rB.id);
+  });
+
+  it('el dueño ve lo que ejecutan sus delegados; el ejecutor, solo lo que ejecuta; el que no tiene controles, una lista vacía', async () => {
+    expect(await ids(rA.session)).toEqual([c0]);
+    expect(await ids(dA.session)).toEqual([c0]);
+    expect(await ids(rB.session)).toEqual([c1]);
+    expect(await ids(dSin.session)).toEqual([]);
+    const todos = await ids(a.agent);
+    expect(todos).toEqual(expect.arrayContaining([c0, c1]));
+    expect(await ids(auditor)).toEqual(todos);
+  });
+
+  it('el detalle trae owner y executor con la forma del contrato; el ajeno de la empresa es 403 y el de otra empresa, 404', async () => {
+    for (const agent of [a.agent, auditor, rA.session, dA.session]) {
+      const d = (await agent.get(`/v1/controls/${c0}`).expect(200)).body.data;
+      expect(d.owner).toEqual({ id: rA.id, name: 'Persona', last_name: 'De Prueba', role: 'responsable' });
+      expect(d.executor).toEqual({ id: dA.id, name: 'Persona', last_name: 'De Prueba', role: 'delegado' });
+      expect(d).not.toHaveProperty('assigned_to');
+    }
+    expect((await a.agent.get(`/v1/controls/${c1}`).expect(200)).body.data.executor).toBeNull();
+    for (const agent of [rB.session, dSin.session]) await agent.get(`/v1/controls/${c0}`).expect(403);
+    await rA.session.get(`/v1/controls/${c1}`).expect(403);
+    const ajeno = (await b.agent.get(`/v1/services/${b.serviceId}/controls`).expect(200)).body.data.items[0].id;
+    await dA.session.get(`/v1/controls/${c1}`).expect(403);
+    for (const agent of [rA.session, dA.session]) await agent.get(`/v1/controls/${ajeno}`).expect(404);
+  });
+
+  it('el filtro responsible deja los controles de esa persona, y para un responsable se cruza con los suyos', async () => {
+    expect(await ids(a.agent, `&responsible=${dA.id}`)).toEqual([c0]);
+    expect(await ids(a.agent, `&responsible=${rB.id}`)).toEqual([c1]);
+    expect(await ids(rA.session, `&responsible=${rB.id}`)).toEqual([]);
+    await a.agent.get(`${listPath}?responsible=no-es-uuid`).expect(422);
+  });
+
+  it('el filtro assignment es solo del administrador: unassigned lista los «Sin asignar», assigned los que tienen dueño; otro rol recibe 403 y un valor ajeno, 422', async () => {
+    const todos = await ids(a.agent);
+    const sin = await ids(a.agent, '&assignment=unassigned');
+    const con = await ids(a.agent, '&assignment=assigned');
+    expect(con).toEqual(expect.arrayContaining([c0, c1]));
+    expect(sin).not.toContain(c0);
+    expect(sin).not.toContain(c1);
+    expect(sin.length + con.length).toBe(todos.length);
+    for (const agent of [auditor, rA.session, dA.session, monkey]) await agent.get(`${listPath}?assignment=unassigned`).expect(403);
+    await a.agent.get(`${listPath}?assignment=otro`).expect(422);
+  });
+
+  it('view=technical es 403 para el responsable y el delegado en la lista y el detalle', async () => {
+    for (const agent of [rA.session, dA.session, dSin.session]) {
+      await agent.get(`${listPath}?view=technical`).expect(403);
+      await agent.get(`/v1/controls/${c0}?view=technical`).expect(403);
+    }
+  });
+
+  it('las pruebas de un control son de admin_empresa y auditor: el dueño, el ejecutor y admin_monkey reciben 403', async () => {
+    await a.agent.get(`/v1/controls/${c0}/tests`).expect(200);
+    await auditor.get(`/v1/controls/${c0}/tests`).expect(200);
+    for (const agent of [rA.session, dA.session, rB.session, dSin.session, monkey]) await agent.get(`/v1/controls/${c0}/tests`).expect(403);
   });
 });

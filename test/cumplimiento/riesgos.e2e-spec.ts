@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
-import { asignarControl, controlesConDimension } from '../support/asignaciones';
+import { asignarControl } from '../support/asignaciones';
 
 // MD-122 · Riesgos y causas de un servicio (contracts/modules/compliance-risks.md).
 type Agent = Awaited<ReturnType<typeof login>>;
@@ -13,15 +13,18 @@ let monkey: Agent;
 let auditor: Agent;
 let responsable: Agent;
 let responsableId: string;
+let delegadoEjecutor: Agent;
+let delegadoSin: Agent;
+let delegadoEjecutorId: string;
 const risks = (t: Tenant, q = '') => `/v1/services/${t.serviceId}/risks${q}`;
 const causes = (t: Tenant, q = '') => `/v1/services/${t.serviceId}/causes${q}`;
 const RISK = { name: 'Pérdida de un portátil con datos de clientes', description: 'Un equipo se extravía o es robado fuera de la oficina.', trust_criterion: 'confidentiality', potential_impact: ['reputational', 'financial_loss'] };
 const CAUSE = { name: 'Equipos sin cifrado de disco', description: 'Los portátiles no tienen el disco cifrado.', failure_category: 'information_technology' };
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<string> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable' | 'delegado'): Promise<string> {
   return (await owner<{ id: string }>(
-    `insert into platform.users (id, company_id, email, name, last_name, password_hash, role) values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role) returning id`,
-    [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
+    `insert into platform.users (id, company_id, email, name, last_name, password_hash, role, is_internal) values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role, $5) returning id`,
+    [companyId, email, await bcrypt.hash(PASSWORD, 4), role, role === 'delegado' ? true : null],
   ))[0].id;
 }
 const fields = (res: { body: any }) => (res.body.error.fields as Array<{ field: string; code: string; message: string }>).map(({ field, code }) => ({ field, code }));
@@ -34,6 +37,10 @@ beforeAll(async () => {
   responsableId = await cuenta(a.companyId, `responsable-rsk-${RUN}@cumplimiento.test`, 'responsable');
   auditor = await login(app, `auditor-rsk-${RUN}@cumplimiento.test`);
   responsable = await login(app, `responsable-rsk-${RUN}@cumplimiento.test`);
+  delegadoEjecutorId = await cuenta(a.companyId, `delegado-rsk-${RUN}@cumplimiento.test`, 'delegado');
+  await cuenta(a.companyId, `delegado2-rsk-${RUN}@cumplimiento.test`, 'delegado');
+  delegadoEjecutor = await login(app, `delegado-rsk-${RUN}@cumplimiento.test`);
+  delegadoSin = await login(app, `delegado2-rsk-${RUN}@cumplimiento.test`);
 });
 afterAll(async () => {
   await app?.close();
@@ -269,25 +276,64 @@ describe('Quién puede qué y entre empresas', () => {
 });
 
 describe('Vista de cada rol', () => {
-  it('el responsable ve solo los riesgos y causas que llegan a un control del que es dueño (D102)', async () => {
+  it('el responsable, el delegado y el que no tiene controles: solo lo que llega a un control suyo (D102); sin controles, listas vacías', async () => {
     expect(await all(responsable, risks(a))).toEqual([]);
     expect(await all(responsable, causes(a))).toEqual([]);
-    // Dueño de los controles con pruebas de bases de datos: ve las causas que llegan a ellos, y nada más.
-    for (const c of await controlesConDimension(a.serviceId, 'database')) await asignarControl(a.companyId, c, responsableId);
-    const mine = await all(responsable, causes(a));
+    // Un control que alguna causa mitiga: el dueño y el ejecutor ven lo que llega a él, y nada más.
+    const allRisks = await all(a.agent, risks(a));
+    const details = await Promise.all(allRisks.map(async (r) => (await a.agent.get(`/v1/risks/${r.id}`).expect(200)).body.data));
+    const control = details.flatMap((d) => d.causes).find((c: any) => c.controls.length > 0).controls[0].control_id as string;
+    await asignarControl(a.companyId, control, responsableId, delegadoEjecutorId);
+    const reach = (d: any) => d.causes.some((c: any) => c.controls.some((k: any) => k.control_id === control));
+    const mine = details.filter(reach).map((d) => d.id).sort();
+    const others = details.filter((d) => !reach(d));
     expect(mine.length).toBeGreaterThan(0);
-    expect(mine.length).toBeLessThan((await all(a.agent, causes(a))).length);
-    const myRisks = await all(responsable, risks(a));
-    expect(myRisks.length).toBeGreaterThan(0);
-    // lo que no le toca es 403
-    const others = (await all(a.agent, risks(a))).filter((r) => !myRisks.some((m) => m.id === r.id));
     expect(others.length).toBeGreaterThan(0);
-    await responsable.get(`/v1/risks/${others[0].id}`).expect(403);
-    await responsable.get(`/v1/risks/${myRisks[0].id}`).expect(200);
+    for (const agent of [responsable, delegadoEjecutor]) {
+      expect((await all(agent, risks(a))).map((r) => r.id).sort()).toEqual(mine);
+      const myCauses = await all(agent, causes(a));
+      expect(myCauses.length).toBeGreaterThan(0);
+      expect(myCauses.length).toBeLessThan((await all(a.agent, causes(a))).length);
+      await agent.get(`/v1/risks/${mine[0]}`).expect(200);
+      await agent.get(`/v1/risks/${mine[0]}/treatments`).expect(200);
+      await agent.get(`/v1/causes/${myCauses[0].id}`).expect(200);
+      // lo que no le toca, de su empresa, es 403; el historial de evaluaciones, también lo propio
+      for (const o of others) await agent.get(`/v1/risks/${o.id}`).expect(403);
+      await agent.get(`/v1/risks/${others[0].id}/treatments`).expect(403);
+      await agent.get(`/v1/risks/${mine[0]}/evaluation-history`).expect(403);
+    }
+    // el delegado sin controles: listas vacías (200), el detalle de un riesgo de su empresa, 403
+    expect(await all(delegadoSin, risks(a))).toEqual([]);
+    expect(await all(delegadoSin, causes(a))).toEqual([]);
+    await delegadoSin.get(`/v1/risks/${mine[0]}`).expect(403);
+    await delegadoSin.get(`/v1/risks/${mine[0]}/treatments`).expect(403);
+    // otra empresa: 404 para todos
+    const bRisk = (await all(b.agent, risks(b)))[0].id;
+    for (const agent of [responsable, delegadoEjecutor, delegadoSin]) {
+      await agent.get(`/v1/risks/${bRisk}`).expect(404);
+      await agent.get(risks(b)).expect(404);
+    }
+    // el administrador y el auditor ven todo
+    expect((await all(a.agent, risks(a))).length).toBe(allRisks.length);
+    expect((await all(auditor, risks(a))).length).toBe(allRisks.length);
+    await auditor.get(`/v1/risks/${others[0].id}/evaluation-history`).expect(200);
   });
-  it('la vista técnica trae los códigos del catálogo para el auditor y para el administrador (D81); el responsable recibe 403', async () => {
-    await responsable.get(risks(a, '?view=technical')).expect(403);
-    await responsable.get(causes(a, '?view=technical')).expect(403);
+  it('el responsable y el delegado no escriben nada: crear, evaluar y tratar son 403; la matriz 5×5 la leen', async () => {
+    const id = (await all(a.agent, risks(a)))[0].id;
+    for (const agent of [responsable, delegadoEjecutor, delegadoSin]) {
+      await agent.post(risks(a)).send(RISK).expect(403);
+      await agent.post(causes(a)).send(CAUSE).expect(403);
+      await agent.patch(`/v1/risks/${id}`).send({ name: 'x' }).expect(403);
+      await agent.post(`/v1/risks/${id}/evaluation`).send({ likelihood: 3, impact: 3 }).expect(403);
+      await agent.post(`/v1/risks/${id}/treatments`).send({}).expect(403);
+      await agent.get('/v1/risk-matrix').expect(200);
+    }
+  });
+  it('la vista técnica trae los códigos del catálogo para el auditor y para el administrador (D81); el responsable y el delegado reciben 403', async () => {
+    for (const agent of [responsable, delegadoEjecutor, delegadoSin]) {
+      await agent.get(risks(a, '?view=technical')).expect(403);
+      await agent.get(causes(a, '?view=technical')).expect(403);
+    }
     const adminTech = await all(a.agent, risks(a, '?view=technical'));
     expect(adminTech.find((r) => r.origin === 'catalog')!.technical).toEqual({ catalog_code: expect.any(String) });
     expect((await a.agent.get(causes(a, '?view=technical')).expect(200)).body.data.items[0].technical).toBeDefined();

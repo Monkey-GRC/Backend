@@ -7,6 +7,7 @@ import { Page } from '../../../../common/pagination/page';
 import { CauseInput, CauseNode, CausePatch, RiskGraph, RiskInput, RiskNode, RiskPatch, RiskRepository } from '../../domain/risks/risk.repository';
 import { storedLossTypes, LossType } from '../../domain/risks/risk-types';
 import { ViewMode, viewModeOf } from '../shared/view-access';
+import { canSeeControl } from '../../domain/controls/control-access';
 import { isScopedRole } from '../../../../common/enums/user-role.enum';
 
 // MD-122 · Riesgos y causas de un servicio. Los ven todos los roles (el `responsable`, solo lo que llega a una acción suya); los gestiona solo `admin_empresa`
@@ -21,7 +22,7 @@ export const activeCauses = (graph: RiskGraph, risk: RiskNode): CauseNode[] => g
 export const activeRisks = (graph: RiskGraph, cause: CauseNode): RiskNode[] => graph.risks.filter((r) => r.isActive && cause.riskIds.includes(r.id));
 
 // Una causa es del `responsable` si alguna de las acciones que la mitigan se le asignó; un riesgo, si alguna de sus causas lo es.
-const causeIsMine = (p: Principal, c: CauseNode) => c.controls.some((k) => k.assignedUserIds.includes(p.userId));
+const causeIsMine = (p: Principal, c: CauseNode) => c.controls.some((k) => canSeeControl(p, k.access));
 const riskIsMine = (p: Principal, g: RiskGraph, r: RiskNode) => activeCauses(g, r).some((c) => causeIsMine(p, c));
 const mayRead = (p: Principal, ok: () => boolean) => !isScopedRole(p.role) || ok();
 

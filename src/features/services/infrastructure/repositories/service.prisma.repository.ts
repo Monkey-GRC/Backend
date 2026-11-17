@@ -28,10 +28,6 @@ import { CloneCatalogService } from '../../../onboarding/application/clone-catal
 // filas contra la base, así que necesita más de los 5 s que Prisma da por defecto.
 const CLONING_TRANSACTION = { timeoutMs: 60_000 };
 
-// Leer un servicio son varias consultas seguidas (sus criterios, marcos, proveedores, conexiones y conteos) y la lista lee uno por uno. Contra una base remota (~100 ms por consulta)
-// con unos cuantos servicios se pasaba de los 5 s de Prisma y la lista fallaba con 500 (DT-82).
-const READ_TRANSACTION = { timeoutMs: 30_000 };
-
 // "2026-Q4": el periodo de evaluación con que se contrata un marco (A4, modelo-datos.md §6.2).
 const evaluationPeriodFor = (date: Date): string =>
   `${date.getUTCFullYear()}-Q${Math.floor(date.getUTCMonth() / 3) + 1}`;
@@ -146,22 +142,22 @@ export class ServicePrismaRepository extends ServiceRepository {
         take: request.pageSize,
         select: { id: true },
       });
-      const items: ServiceDetail[] = [];
-      for (const row of rows) items.push(await this.read(tx, row.id));
+      const items = await this.readMany(tx, rows.map((r) => r.id));
       return { items, total, page: request.page, pageSize: request.pageSize };
-    }, READ_TRANSACTION);
+    });
   }
 
   isResponsible(scope: TenantScope, serviceId: string): Promise<boolean> {
     return this.prisma.withScope(scope, async (tx) => !!(await tx.service.findFirst({ where: { id: serviceId, ...this.assignedTo(scope.userId as string) }, select: { id: true } })));
   }
 
-  // DT-87: transitorio hasta MD-193 (visibilidad por dueño/ejecutor). Los servicios con algún control activo del que la persona es dueña o ejecutora; sin ninguno, ninguno.
+  // D102 · MISMA regla en `compliance/.../control-access.loader.ts` y `technical-control/.../scan.prisma.repository.ts`: un cambio de la regla toca los tres (no se pueden importar entre features).
+  // Los servicios con algún control activo del que la persona (activa) es dueña o ejecutora; sin ninguno, ninguno.
   private assignedTo(userId: string) {
-    return { clientControls: { some: { isActive: true, assignment: { OR: [{ ownerId: userId }, { executorId: userId }] } } } };
+    return { clientControls: { some: { isActive: true, assignment: { OR: [{ ownerId: userId, owner: { status: 'active' as const } }, { executorId: userId, executor: { status: 'active' as const } }] } } } };
   }
   findById(scope: TenantScope, id: string): Promise<ServiceDetail | null> {
-    return this.prisma.withScope(scope, (tx) => this.readOrNull(tx, id), READ_TRANSACTION);
+    return this.prisma.withScope(scope, (tx) => this.readOrNull(tx, id));
   }
 
   update(
@@ -458,8 +454,14 @@ export class ServicePrismaRepository extends ServiceRepository {
   }
 
   private async readOrNull(tx: TransactionClient, id: string): Promise<ServiceDetail | null> {
-    const row = await tx.service.findUnique({
-      where: { id },
+    return (await this.readMany(tx, [id]))[0] ?? null;
+  }
+
+  // Un número fijo de consultas (3) sin importar cuántos servicios se lean; devuelve en el orden de `ids` y omite los que no existen.
+  private async readMany(tx: TransactionClient, ids: string[]): Promise<ServiceDetail[]> {
+    if (!ids.length) return [];
+    const found = await tx.service.findMany({
+      where: { id: { in: ids } },
       include: {
         trustCriteria: { include: { trustCriterion: true } },
         frameworks: { include: { framework: true, catalogVersion: true } },
@@ -468,57 +470,62 @@ export class ServicePrismaRepository extends ServiceRepository {
         _count: { select: { serviceAssets: { where: { asset: { status: 'active', parentAssetId: null } } } } },
       },
     });
-    if (!row) return null;
-
-    const criterionIds = row.trustCriteria.map((c) => c.trustCriterionId);
-    const activeFrameworkIds = row.frameworks.filter((f) => f.status === 'active').map((f) => f.frameworkId);
-    const [applicableRequirements, clonedControls] = await Promise.all([
-      tx.requirement.count({
-        where: { frameworkId: { in: activeFrameworkIds }, trustCriterionId: { in: criterionIds } },
-      }),
-      tx.clientControl.count({ where: { serviceId: id, isActive: true } }),
+    const byId = new Map(found.map((r) => [r.id, r]));
+    const allCriteria = [...new Set(found.flatMap((r) => r.trustCriteria.map((c) => c.trustCriterionId)))];
+    const allFrameworks = [...new Set(found.flatMap((r) => r.frameworks.filter((f) => f.status === 'active').map((f) => f.frameworkId)))];
+    const [requirementGroups, controlGroups] = await Promise.all([
+      tx.requirement.groupBy({ by: ['frameworkId', 'trustCriterionId'], where: { frameworkId: { in: allFrameworks }, trustCriterionId: { in: allCriteria } }, _count: { _all: true } }),
+      tx.clientControl.groupBy({ by: ['serviceId'], where: { serviceId: { in: ids }, isActive: true }, _count: { _all: true } }),
     ]);
-
-    const data: ServiceData = {
-      id: row.id,
-      organizationId: row.organizationId,
-      name: row.name,
-      description: row.description,
-      scopeStatement: row.scopeStatement,
-      type: row.type,
-      industriesServed: row.industriesServed,
-      activeClientCount: row.activeClientCount,
-      countries: row.countries,
-      dataTypes: row.dataTypes,
-      // Orden estable: el de los 5 criterios del contrato, no el de inserción.
-      trustCriteria: row.trustCriteria
-        .map((c) => c.trustCriterion.criterion)
-        .sort((a, b) => a.localeCompare(b)),
-      subserviceOrganizations: row.subserviceOrganizations.map((s) => ({
-        id: s.id,
-        type: s.type,
-        provider: s.provider,
-        serviceProvided: s.serviceProvided,
-        responsibility: s.responsibility,
-      })),
-      frameworks: row.frameworks
-        .map((f) => ({
-          code: f.framework.code,
-          name: f.framework.name,
-          contractedAt: f.contractedAt.toISOString().slice(0, 10),
-          status: f.status,
-          catalogVersion: f.catalogVersion.number,
-          evaluationPeriod: f.evaluationPeriod,
-        }))
-        .sort((a, b) => a.code.localeCompare(b.code)),
-      previousCertification: row.previousCertification,
-      expectedAvailability: fromDbAvailability(row.expectedAvailability),
-      systemDescription: row.systemDescription ? toSystemDescriptionView(row.systemDescription) : null,
-      catalog: { status: 'ready', applicableRequirements, clonedControls },
-      connectionCount: row._count.serviceAssets,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    };
-    return new ServiceDetail(data);
+    const clonedByService = new Map(controlGroups.map((g) => [g.serviceId, g._count._all]));
+    return ids.flatMap((id) => {
+      const row = byId.get(id);
+      if (!row) return [];
+      const criterionIds = new Set(row.trustCriteria.map((c) => c.trustCriterionId));
+      const activeFrameworkIds = new Set(row.frameworks.filter((f) => f.status === 'active').map((f) => f.frameworkId));
+      const applicableRequirements = requirementGroups.filter((g) => activeFrameworkIds.has(g.frameworkId) && criterionIds.has(g.trustCriterionId)).reduce((n, g) => n + g._count._all, 0);
+      const clonedControls = clonedByService.get(id) ?? 0;
+      const data: ServiceData = {
+        id: row.id,
+        organizationId: row.organizationId,
+        name: row.name,
+        description: row.description,
+        scopeStatement: row.scopeStatement,
+        type: row.type,
+        industriesServed: row.industriesServed,
+        activeClientCount: row.activeClientCount,
+        countries: row.countries,
+        dataTypes: row.dataTypes,
+        // Orden estable: el de los 5 criterios del contrato, no el de inserción.
+        trustCriteria: row.trustCriteria
+          .map((c) => c.trustCriterion.criterion)
+          .sort((a, b) => a.localeCompare(b)),
+        subserviceOrganizations: row.subserviceOrganizations.map((s) => ({
+          id: s.id,
+          type: s.type,
+          provider: s.provider,
+          serviceProvided: s.serviceProvided,
+          responsibility: s.responsibility,
+        })),
+        frameworks: row.frameworks
+          .map((f) => ({
+            code: f.framework.code,
+            name: f.framework.name,
+            contractedAt: f.contractedAt.toISOString().slice(0, 10),
+            status: f.status,
+            catalogVersion: f.catalogVersion.number,
+            evaluationPeriod: f.evaluationPeriod,
+          }))
+          .sort((a, b) => a.code.localeCompare(b.code)),
+        previousCertification: row.previousCertification,
+        expectedAvailability: fromDbAvailability(row.expectedAvailability),
+        systemDescription: row.systemDescription ? toSystemDescriptionView(row.systemDescription) : null,
+        catalog: { status: 'ready', applicableRequirements, clonedControls },
+        connectionCount: row._count.serviceAssets,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      };
+      return [new ServiceDetail(data)];
+    });
   }
 }

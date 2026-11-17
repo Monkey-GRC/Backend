@@ -2,6 +2,8 @@ import type { INestApplication } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
+import { asignarControl } from '../support/asignaciones';
+import { invitarYActivar, sembrarEquipo } from '../support/equipo';
 
 // MD-137 · El resumen de cumplimiento de un servicio por marco, categoría y acción que falla (contracts/modules/compliance-overview.md). Cada prueba sale por
 // HTTP, con la sesión real de cada rol, contra el Postgres desechable.
@@ -115,12 +117,72 @@ describe('Resumen del servicio — con la evaluación definida y resultados', ()
     expect(text).not.toMatch(/wazuh|prowler/i);
   });
 
-  it('un responsable ve el marco y las categorías completos, pero ningún fallo de lo que no tiene asignado', async () => {
-    const own = soc2(await read(responsable));
-    const admin = soc2(await read(a.agent));
-    expect(own.progress).toEqual(admin.progress);
-    expect(own.categories.map((c: any) => c.progress)).toEqual(admin.categories.map((c: any) => c.progress));
-    expect(own.categories.flatMap((c: any) => c.failing_controls)).toEqual([]);
+  it('un responsable o delegado sin controles recibe el resumen sin marcos (200), nunca el avance de la empresa', async () => {
+    const data = await read(responsable);
+    expect(data.service_id).toBe(a.serviceId);
+    expect(data.frameworks).toEqual([]);
+  });
+
+  describe('resumen acotado a lo suyo (D118)', () => {
+    let rX: Awaited<ReturnType<typeof invitarYActivar>>;
+    let dX: Awaited<ReturnType<typeof invitarYActivar>>;
+    let dY: Awaited<ReturnType<typeof invitarYActivar>>;
+    let rZ: Awaited<ReturnType<typeof invitarYActivar>>;
+    let noSecurity: string;
+    const mail = (k: string) => `${k}-res-${RUN}@cumplimiento.test`;
+    const person = { name: 'Persona', last_name: 'De Prueba' };
+
+    beforeAll(async () => {
+      rX = await invitarYActivar(app, a.agent, { email: mail('d118-rx'), role: 'responsable', ...person });
+      rZ = await invitarYActivar(app, a.agent, { email: mail('d118-rz'), role: 'responsable', ...person });
+      const team = await sembrarEquipo(a.companyId, rX.id);
+      dX = await invitarYActivar(app, a.agent, { email: mail('d118-dx'), role: 'delegado', group_id: team, is_internal: true, ...person });
+      dY = await invitarYActivar(app, a.agent, { email: mail('d118-dy'), role: 'delegado', group_id: team, is_internal: true, ...person });
+      const all = (await a.agent.get(`/v1/services/${a.serviceId}/controls?page_size=100`).expect(200)).body.data.items as any[];
+      const other = all.find((c) => c.id !== failingId && c.trust_criteria.includes('security'))!;
+      noSecurity = all.find((c) => c.trust_criteria.length > 0 && !c.trust_criteria.includes('security'))!.id;
+      await asignarControl(a.companyId, failingId, rX.id, dX.id);
+      await asignarControl(a.companyId, other.id, rX.id);
+      await asignarControl(a.companyId, noSecurity, rZ.id, dY.id);
+    });
+
+    it('el responsable cuenta solo sus controles (los que ejecutan sus delegados incluidos) y la evaluación es la del servicio', async () => {
+      const own = soc2(await read(rX.session));
+      const admin = soc2(await read(a.agent));
+      expect(own.progress.total).toBe(2);
+      expect(own.progress.total).toBeLessThan(admin.progress.total);
+      expect(own.coverage).toEqual({ measured: 1, applicable: 2 });
+      expect(own.evaluation).toEqual(admin.evaluation);
+      expect(own.categories.length).toBeGreaterThan(0);
+      for (const c of own.categories) expect(c.progress.total).toBeLessThanOrEqual(2);
+      expect(own.categories.flatMap((c: any) => c.failing_controls).map((f: any) => f.control_id)).toContain(failingId);
+    });
+
+    it('el delegado ejecutor ve lo que ejecuta; otro delegado, solo lo suyo; y no ven los fallos de controles ajenos', async () => {
+      const mine = soc2(await read(dX.session));
+      expect(mine.progress.total).toBe(1);
+      expect(mine.categories.flatMap((c: any) => c.failing_controls).map((f: any) => f.control_id)).toEqual(expect.arrayContaining([failingId]));
+      const other = soc2(await read(dY.session));
+      expect(other.progress.total).toBe(1);
+      expect(other.categories.flatMap((c: any) => c.failing_controls)).toEqual([]);
+    });
+
+    it('la categoría obligatoria no se fuerza: sin controles de Seguridad, Seguridad no sale; el admin_empresa la sigue viendo', async () => {
+      for (const agent of [rZ.session, dY.session]) {
+        const categories = soc2(await read(agent)).categories.map((c: any) => c.trust_criterion);
+        expect(categories.length).toBeGreaterThan(0);
+        expect(categories).not.toContain('security');
+      }
+      expect(soc2(await read(a.agent)).categories.map((c: any) => c.trust_criterion)).toContain('security');
+      expect(noSecurity).toBeTruthy();
+    });
+
+    it('la vista técnica es 403 para el responsable y el delegado; el servicio de otra empresa, 404', async () => {
+      for (const agent of [rX.session, dX.session]) {
+        await agent.get(`${path()}?view=technical`).expect(403);
+        await agent.get(`/v1/services/${b.serviceId}/compliance-overview`).expect(404);
+      }
+    });
   });
 });
 

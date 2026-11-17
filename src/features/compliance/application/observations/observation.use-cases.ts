@@ -8,6 +8,7 @@ import { Page } from '../../../../common/pagination/page';
 import { assertCanAnswer, assertCanResolve, assertEditable, ObservationType } from '../../domain/observations/observation-lifecycle';
 import { ObservationAccess, ObservationFilters, ObservationRecord, ObservationRepository } from '../../domain/observations/observation.repository';
 import { AnswerObservationDto, CreateObservationDto, UpdateObservationDto } from './observation.dto';
+import { canSeeControl } from '../../domain/controls/control-access';
 import { isScopedRole } from '../../../../common/enums/user-role.enum';
 
 // MD-154, D96 · Las observaciones del auditor (contracts/modules/compliance-audit.md). Las escribe, edita y cierra solo el `auditor` (lo impone @Roles en la ruta, y aquí que
@@ -28,9 +29,9 @@ const entry = (p: Principal, meta: RequestMeta, action: string, before: Observat
   beforeState: before ? snapshot(before) : null, afterState: snapshot(after),
 });
 
-/** El `responsable` solo toca lo de los controles de los que es responsable. Algo de la propia empresa que no le toca es `403`; de otra empresa, `404` (lo resuelve la RLS). */
+/** El `responsable` solo toca lo de los controles de los que es dueño o ejecutor (D102). Algo de la propia empresa que no le toca es `403`; de otra empresa, `404` (lo resuelve la RLS). */
 function assertScopedMayAct(p: Principal, current: ObservationAccess): void {
-  if (isScopedRole(p.role) && !current.responsibleUserIds.includes(p.userId)) throw new DomainError('FORBIDDEN');
+  if (!canSeeControl(p, current.access)) throw new DomainError('FORBIDDEN');
 }
 
 @Injectable()

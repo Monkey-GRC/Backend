@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import { FileStorage } from '../../src/common/storage/file-storage';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
-import { asignarServicio } from '../support/asignaciones';
+import { asignarControl, asignarServicio } from '../support/asignaciones';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
 // MD-177 · Ver la evidencia de un test manual y listarla por test; ver un PDF, PNG o JPG sin descargarlo (contracts/modules/compliance-evidence.md, D85, D88, D96).
@@ -126,9 +126,9 @@ describe('MD-177 · la evidencia de una prueba documental, en su control (D88)',
     await listOf(responsableDoc, controlX, docTest.id, '?view=technical').expect(403);
   });
 
-  it('el responsable dueño la ve; otro responsable recibe la lista vacía, no un error; el auditor ve todo', async () => {
+  it('el responsable dueño la ve; otro responsable, sobre un control que no es suyo, 403 (D102); el auditor ve todo', async () => {
     expect((await listOf(responsableDoc, controlX, docTest.id).expect(200)).body.data.items).toHaveLength(1);
-    expect((await listOf(responsableOtro, controlX, docTest.id).expect(200)).body.data.items).toEqual([]);
+    await listOf(responsableOtro, controlX, docTest.id).expect(403);
     expect((await listOf(auditor, controlX, docTest.id).expect(200)).body.data.items).toHaveLength(1);
   });
 
@@ -163,16 +163,34 @@ describe('MD-177 · un test manual que llevan varios controles (D85)', () => {
     expect(back.body.data.shared_with.map((c: any) => c.id)).toContain(origin);
   });
 
-  it('el responsable sin controles asignados no ve ni los requerimientos ni los controles compartidos', async () => {
-    const res = await listOf(responsableOtro, sharedControls[0], sharedTest.id).expect(200);
-    expect(res.body.data.items).toEqual([]);
-    expect(res.body.data.shared_with).toEqual([]);
+  it('el responsable sin controles asignados no entra al control (403): ni requerimientos ni controles compartidos', async () => {
+    await listOf(responsableOtro, sharedControls[0], sharedTest.id).expect(403);
   });
 
   it('el responsable dueño de los controles lo ve en todos los que lo llevan (D102)', async () => {
     const res = await listOf(responsableDoc, sharedControls[0], sharedTest.id).expect(200);
     expect(res.body.data.items.map((i: any) => i.control.id)).toContain(sharedControls[0]);
     expect(res.body.data.shared_with.length).toBeGreaterThan(0);
+  });
+
+  it('con dos dueños distintos, cada uno ve solo sus controles en los requerimientos y en shared_with; el administrador, todos', async () => {
+    const [primero, segundo] = sharedControls;
+    const id = async (k: string) => (await owner<{ id: string }>(`select id from platform.users where email = $1`, [`${k}-evt-${RUN}@cumplimiento.test`]))[0].id;
+    const duenoUno = await id('responsable');
+    await asignarControl(a.companyId, segundo, await id('responsable2'));
+    try {
+      const mio = (await listOf(responsableDoc, primero, sharedTest.id).expect(200)).body.data;
+      expect(mio.items.map((i: any) => i.control.id)).not.toContain(segundo);
+      expect(mio.shared_with.map((c: any) => c.id)).not.toContain(segundo);
+      const suyo = (await listOf(responsableOtro, segundo, sharedTest.id).expect(200)).body.data;
+      expect(suyo.items.map((i: any) => i.control.id)).toEqual([segundo]);
+      expect(suyo.shared_with.map((c: any) => c.id)).not.toContain(primero);
+      await listOf(responsableOtro, primero, sharedTest.id).expect(403);
+      const todo = (await listOf(a.agent, primero, sharedTest.id).expect(200)).body.data;
+      expect(todo.shared_with.map((c: any) => c.id)).toContain(segundo);
+    } finally {
+      await asignarControl(a.companyId, segundo, duenoUno);
+    }
   });
 });
 

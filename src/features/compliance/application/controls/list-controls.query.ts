@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import { ASSIGNMENT_FILTERS } from '../shared/assignment-filters';
 
 export const CONTROL_SORTS = ['code', '-code', 'name', '-name'] as const;
 export type ControlSort = (typeof CONTROL_SORTS)[number];
@@ -15,6 +16,8 @@ export class ListControlsQuery {
   @ApiPropertyOptional({ enum: ['manual', 'automated', 'hybrid', 'technical_manual'], enumName: 'ControlType', description: 'Solo los controles de este tipo.' }) @IsOptional() @IsIn(['manual', 'automated', 'hybrid', 'technical_manual']) type?: string;
   @ApiPropertyOptional({ enum: ['ready', 'almost_ready', 'needs_work', 'not_measured'], enumName: 'Readiness', description: 'Solo los controles en este estado.' }) @IsOptional() @IsIn(['ready', 'almost_ready', 'needs_work', 'not_measured']) readiness?: string;
   @ApiPropertyOptional({ enum: ['catalog', 'own'], enumName: 'ControlOrigin', description: '`catalog` clonados del catálogo · `own` creados por la empresa.' }) @IsOptional() @IsIn(['catalog', 'own']) origin?: string;
+  @ApiPropertyOptional({ format: 'uuid', description: 'Solo los controles de los que esa persona (`responsable` o `delegado`) es dueño o ejecutor (D102).' }) @IsOptional() @IsUUID() responsible?: string;
+  @ApiPropertyOptional({ enum: ASSIGNMENT_FILTERS, enumName: 'AssignmentFilter', description: '`unassigned` lista los controles «Sin asignar»; `assigned`, los que tienen dueño. Solo `admin_empresa`; otro rol responde 403.' }) @IsOptional() @IsIn(ASSIGNMENT_FILTERS) assignment?: (typeof ASSIGNMENT_FILTERS)[number];
   @ApiPropertyOptional({ enum: ['technical'], description: 'Vista técnica: agrega el bloque `technical`. Solo `auditor` y `admin_empresa`; para otro rol responde 403.' }) @IsOptional() @IsIn(['technical']) view?: 'technical';
 }
 

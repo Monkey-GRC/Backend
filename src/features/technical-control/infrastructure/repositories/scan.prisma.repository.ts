@@ -694,8 +694,7 @@ export class ScanPrismaRepository extends ScanRepository {
       });
       if (!link) return null;
       const serviceId = link.clientControl.serviceId;
-      // D102 · Lo automático que falla en la nube le llega al dueño y al ejecutor del control.
-      // DT-87: transitorio hasta MD-193 (visibilidad por dueño/ejecutor)
+      // D102 · Lo automático que falla en la nube le llega al dueño y al ejecutor ACTIVOS del control. MISMA regla en `compliance/.../control-access.loader.ts` y `services/.../service.prisma.repository.ts` (`assignedTo`): un cambio toca los tres.
       const assignment = await tx.clientControlAssignment.findUnique({
         where: { clientControlId: controlId },
         select: { ownerId: true, executorId: true, owner: { select: { status: true } }, executor: { select: { status: true } } },

@@ -14,26 +14,18 @@ import { EvidenceAccess, EvidenceRepository, RequirementRecord, ServiceEvidence,
 import { CreateEvidenceRequirementDto, ReviewEvidenceDto } from './evidence.dto';
 import { assertEvidenceFile, evidenceKey, fileNameOfKey, INLINE_TYPES } from './evidence-file';
 import { compareOwnCode } from '../../domain/controls/control-readout';
-import { canSeeControl } from '../shared/control-visibility';
+import { canSeeControl, ControlAccess } from '../../domain/controls/control-access';
 import { ViewMode, viewModeOf } from '../shared/view-access';
-import { isScopedRole } from '../../../../common/enums/user-role.enum';
 
 // MD-126 · Evidencias de un control (contracts/modules/compliance-evidence.md, D84). La empresa solo APORTA: sube `admin_empresa` y el `responsable` dueño del control;
 // el auditor lee y descarga (lo impone @Roles en la ruta). Subir no valida: la validación es del admin_empresa (MD-127, D96).
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 /** Algo de la propia empresa de lo que el `responsable` no es responsable: no es de otra empresa (eso sería 404), es que no le toca (403). */
-const assertCanTouch = (p: Principal, assignedUserIds: string[]): void => {
-  if (!canSeeControl(p, assignedUserIds)) throw new DomainError('FORBIDDEN');
+const assertCanTouch = (p: Principal, access: ControlAccess): void => {
+  if (!canSeeControl(p, access)) throw new DomainError('FORBIDDEN');
 };
 /** El enlace de descarga vive 5 minutos (SEG-59). */
 export const DOWNLOAD_LINK_SECONDS = 300;
-
-/**
- * D96, SEG-66 · El responsable recibe solo los requerimientos de las dimensiones de las que es responsable en el control. Lo comparten `GET /controls/{id}/evidence` y
- * `GET /services/{service_id}/evidence` (MD-208): deben dar lo mismo. Cuando MD-193 cambie el alcance a D102 (por control), cambian los dos juntos.
- */
-const visibleRequirements = (p: Principal, requirements: RequirementRecord[], responsibleByDimension: Record<string, string[]>): RequirementRecord[] =>
-  isScopedRole(p.role) ? requirements.filter((r) => (responsibleByDimension[r.dimension] ?? []).includes(p.userId)) : requirements;
 
 @Injectable()
 export class ListEvidenceUseCase {
@@ -43,9 +35,8 @@ export class ListEvidenceUseCase {
     const mode = viewModeOf(p, view);
     const data = await this.repo.listByControl(scopeOf(p), controlId, reviewerRoleFor(p.role));
     if (!data) throw new DomainError('NOT_FOUND');
-    assertCanTouch(p, data.assignedUserIds);
-    const requirements = visibleRequirements(p, data.requirements, data.responsibleByDimension);
-    return { view: mode, requirements };
+    assertCanTouch(p, data.access);
+    return { view: mode, requirements: data.requirements };
   }
 }
 
@@ -58,13 +49,8 @@ export class ListServiceEvidenceUseCase {
     const mode = viewModeOf(p, view);
     const data = await this.repo.listByService(scopeOf(p), serviceId, reviewerRoleFor(p.role));
     if (!data) throw new DomainError('NOT_FOUND');
-    const visible = data.controls.filter((c) => canSeeControl(p, c.assignedUserIds)).sort((a, b) => compareOwnCode(a.ownCode, b.ownCode));
-    // Mismo filtro por dimensión que `GET /controls/{id}/evidence` (ver `visibleRequirements`).
-    const items = visible.flatMap((c) => {
-      const own = data.items.filter((i) => i.controlId === c.id);
-      const allowed = new Set(visibleRequirements(p, own.map((i) => i.requirement), c.responsibleByDimension));
-      return own.filter((i) => allowed.has(i.requirement)).sort((a, b) => a.requirement.sequence - b.requirement.sequence);
-    });
+    const visible = data.controls.filter((c) => canSeeControl(p, c.access)).sort((a, b) => compareOwnCode(a.ownCode, b.ownCode));
+    const items = visible.flatMap((c) => data.items.filter((i) => i.controlId === c.id).sort((a, b) => a.requirement.sequence - b.requirement.sequence));
     return { view: mode, items };
   }
 }
@@ -72,8 +58,8 @@ export class ListServiceEvidenceUseCase {
 /** Lo que se subió para un test manual o documental, ya filtrado para quien pregunta. */
 export type TestEvidenceView = { view: ViewMode; testId: string; sharedWith: Array<{ id: string; code: string }>; items: TestEvidence['items']; controlCodes: Map<string, string> };
 
-// D85, D88 · La evidencia de un test manual o documental, para mostrarla en el test del control. D96, SEG-66: el `responsable` recibe solo lo de las dimensiones de las que es
-// solo ve el código de los otros controles que llevan el test si también atiende esa dimensión en ellos; lo demás se omite, no falla.
+// D85, D88 · La evidencia de un test manual o documental, para mostrarla en el test del control. D102: el `responsable` y el `delegado` reciben solo lo de sus controles y
+// solo ven el código de los otros controles que llevan el test si también son suyos; lo demás se omite, no falla.
 @Injectable()
 export class ListTestEvidenceUseCase {
   constructor(private readonly repo: EvidenceRepository) {}
@@ -82,13 +68,15 @@ export class ListTestEvidenceUseCase {
     const mode = viewModeOf(p, view);
     const data = await this.repo.listByTest(scopeOf(p), controlId, testId, reviewerRoleFor(p.role));
     if (!data) throw new DomainError('NOT_FOUND');
-    const responsibleOf = (control: string, dimension: string) => data.controls.find((c) => c.id === control)?.responsibleByDimension[dimension] ?? [];
-    const mine = (control: string, dimension: string) => !isScopedRole(p.role) || responsibleOf(control, dimension).includes(p.userId);
-    const items = data.items.filter((i) => mine(i.controlId, i.requirement.dimension));
+    const origin = data.controls.find((c) => c.id === controlId);
+    if (!origin) throw new DomainError('NOT_FOUND');
+    assertCanTouch(p, origin.access);
+    const mine = (control: string) => { const c = data.controls.find((x) => x.id === control); return !!c && canSeeControl(p, c.access); };
+    const items = data.items.filter((i) => mine(i.controlId));
     return {
       view: mode,
       testId: data.testId,
-      sharedWith: data.controls.filter((c) => c.id !== controlId && mine(c.id, data.dimension)).map((c) => ({ id: c.id, code: c.code })),
+      sharedWith: data.controls.filter((c) => c.id !== controlId && mine(c.id)).map((c) => ({ id: c.id, code: c.code })),
       items,
       controlCodes: new Map(data.controls.filter((c) => items.some((i) => i.controlId === c.id)).map((c) => [c.id, c.code])),
     };
@@ -103,7 +91,7 @@ export class ListSubmissionsUseCase {
     const mode = viewModeOf(p, view);
     const access = await this.repo.findRequirement(scopeOf(p), requirementId);
     if (!access) throw new DomainError('NOT_FOUND');
-    assertCanTouch(p, access.assignedUserIds);
+    assertCanTouch(p, access.access);
     const result = await this.repo.listSubmissions(scopeOf(p), requirementId, page, pageSize, reviewerRoleFor(p.role));
     if (!result) throw new DomainError('NOT_FOUND');
     return { view: mode, page: result };
@@ -119,7 +107,7 @@ export class UploadEvidenceUseCase {
     // Primero quién es el requerimiento y si a esta persona le toca: uno ajeno o inexistente es 404 y no gasta ni almacenamiento.
     const access: EvidenceAccess | null = await this.repo.findRequirement(scopeOf(p), requirementId);
     if (!access) throw new DomainError('NOT_FOUND');
-    assertCanTouch(p, access.assignedUserIds);
+    assertCanTouch(p, access.access);
     if (!access.controlActive) throw new DomainError('CONTROL_RETIRED');
 
     const contentType = assertEvidenceFile(file);
@@ -190,12 +178,10 @@ export class UploadTestEvidenceUseCase {
     if (!file) throw new DomainError('FILE_REQUIRED');
     const facts = await this.repo.controlEvidenceFacts(scopeOf(p), controlId);
     if (!facts) throw new DomainError('NOT_FOUND');
-    assertCanTouch(p, facts.assignedUserIds);
+    assertCanTouch(p, facts.access);
     if (!facts.active) throw new DomainError('CONTROL_RETIRED');
     const test = facts.tests.find((t) => t.id === testId);
     if (!test) throw new DomainError('NOT_FOUND');
-    // D98 · Además de atender el control en alguna dimensión, atiende la dimensión DE ESTA prueba.
-    assertCanTouch(p, facts.responsibleByDimension[test.dimension] ?? []);
     if (test.dimension !== 'policy') throw new ValidationException([{ field: 'test_id', code: 'test.not_documentary' }]);
     // El archivo se comprueba ANTES de crear el lugar donde quedará: uno rechazado no deja un requerimiento vacío.
     assertEvidenceFile(file);
@@ -258,7 +244,7 @@ export class GetEvidenceDownloadUseCase {
   async execute(p: Principal, submissionId: string, disposition: 'attachment' | 'inline', meta: RequestMeta): Promise<{ url: string; fileName: string; fileType: string; disposition: 'attachment' | 'inline'; expiresIn: number }> {
     const found = await this.repo.findSubmission(scopeOf(p), submissionId, reviewerRoleFor(p.role));
     if (!found) throw new DomainError('NOT_FOUND');
-    assertCanTouch(p, found.access.assignedUserIds);
+    assertCanTouch(p, found.access.access);
     if (disposition === 'inline' && !INLINE_TYPES.includes(found.submission.fileType)) throw new ValidationException([{ field: 'disposition', code: 'disposition.not_supported' }]);
 
     const fileName = fileNameOfKey(found.submission.fileKey);

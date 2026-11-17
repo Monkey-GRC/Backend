@@ -89,9 +89,9 @@ describe('MD-208 · evidencia de un servicio', () => {
     expect(controlsOf(itemsOf(await responsable.get(url(a.serviceId)).expect(200)))).toEqual([controlR]);
   });
 
-  // MD-208 · Debe dar lo mismo que GET /controls/{id}/evidence (filtro por dimensión, D96/SEG-66); cuando MD-193 cambie el alcance, cambian los dos juntos.
-  it('el responsable de un control solo en algunas dimensiones recibe lo mismo que en el endpoint del control, sin los requerimientos de la otra', async () => {
-    // Se pasa un requerimiento de controlR a una dimensión que el control no lleva (base desechable): nadie es responsable de ella.
+  // MD-208 · Debe dar lo mismo que GET /controls/{id}/evidence. El alcance es el control (D102): el dueño recibe todos sus requerimientos, sea cual sea la dimensión.
+  it('el dueño de un control recibe todos sus requerimientos, y lo mismo que en el endpoint del control', async () => {
+    // Se pasa un requerimiento de controlR a una dimensión que el control no lleva (base desechable): el alcance no depende de la dimensión.
     const dims = await dimensionesDe(controlR);
     const otra = ['server', 'database', 'app', 'cloud'].find((d) => !dims.includes(d))!;
     const [{ id: fuera }] = await owner<{ id: string }>(
@@ -105,8 +105,8 @@ describe('MD-208 · evidencia de un servicio', () => {
     const individual = (await responsable.get(`/v1/controls/${parcial}/evidence`).expect(200)).body.data.items as Item[];
     const masivo = itemsOf(await responsable.get(url(a.serviceId)).expect(200)).filter((i) => i.control_id === parcial).map(({ control_id: _c, ...rest }) => rest);
     expect(masivo).toEqual(individual);
-    expect(masivo.map((i) => i.id)).not.toContain(fuera);
-    expect(individual.map((i) => i.id)).not.toContain(fuera);
+    expect(masivo.map((i) => i.id)).toContain(fuera);
+    expect(individual.map((i) => i.id)).toContain(fuera);
   });
 
   it('el delegado solo ve lo de los controles que ejecuta', async () => {

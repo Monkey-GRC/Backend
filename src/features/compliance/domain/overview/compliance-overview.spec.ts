@@ -17,17 +17,17 @@ const CRITERIA: OverviewCriterionData[] = [
 const test = (id: string): ReadoutTest => ({ testId: id, code: `T-${id}`, displayName: null, displayNameEn: null, displayDescription: null, dimension: 'cloud', mandatory: true, active: true });
 const control = (id: string, patch: Partial<ReadoutControl> = {}): ReadoutControl => ({
   id, serviceId: 's1', ownCode: id.toUpperCase(), name: `Control ${id}`, origin: 'catalog', type: 'automated', interpretation: 'x', catalogDescription: 'x', dimensions: [],
-  tests: [test(`t-${id}`)], trustCriteria: ['security'], assignee: null, assignedUserIds: [], responsibleByDimension: {}, approval: 'approved', catalogCode: `IAC-${id}`, requirementCodes: ['CC6.1'], pointsOfFocus: [], documentary: [], ...patch,
+  tests: [test(`t-${id}`)], trustCriteria: ['security'], access: { owner: null, executor: null }, approval: 'approved', catalogCode: `IAC-${id}`, requirementCodes: ['CC6.1'], pointsOfFocus: [], documentary: [], ...patch,
 });
 const ASSETS: ReadoutAsset[] = [{ id: 'a1', name: 'cuenta-aws', type: 'cloud_service' }];
 const outcome = (c: ReadoutControl, result: AssetResult | null): ResultsIndex => (result ? new Map([[resultKey(c.id, `t-${c.id}`, 'a1'), result]]) : new Map());
 
 /** Arma el servicio: cada control con su resultado y su ubicación (marco y categoría). */
-function overview(entries: Array<{ c: ReadoutControl; result: AssetResult | null; places: string[] }>, fw: OverviewFrameworkData = framework(), onlyFailingOf: string | null = null) {
+function overview(entries: Array<{ c: ReadoutControl; result: AssetResult | null; places: string[] }>, fw: OverviewFrameworkData = framework(), scoped = false) {
   const results: ResultsIndex = new Map(entries.flatMap((e) => [...outcome(e.c, e.result)]));
   const readouts = entries.map((e) => readControl(e.c, ASSETS, results));
   const placements = new Map<string, Placement[]>(entries.map((e) => [e.c.id, e.places.map((criterion) => ({ frameworkId: FW, criterion }))]));
-  return buildOverview({ readouts, frameworks: [fw], criteria: CRITERIA, placements, onlyFailingOf })[0];
+  return buildOverview({ readouts, frameworks: [fw], criteria: CRITERIA, placements, scoped })[0];
 }
 
 describe('readinessOfRollup', () => {
@@ -114,12 +114,17 @@ describe('buildOverview — qué falla', () => {
     expect(o.categories[0].failingControls[0]).toMatchObject({ code: 'C09', ownCode: 'C09' });
   });
 
-  it('un responsable ve el marco completo pero solo los fallos de lo que tiene asignado', () => {
-    const mine = control('1', { assignedUserIds: ['u1'] });
-    const entries = [{ c: mine, result: 'non_compliant' as AssetResult, places: ['security'] }, { c: control('2'), result: 'non_compliant' as AssetResult, places: ['security'] }];
-    const o = overview(entries, framework(), 'u1');
-    expect(o.progress).toEqual({ done: 0, total: 2 });
+  it('el resumen acotado (D118) cuenta solo los controles que recibe y no fuerza la categoría obligatoria', () => {
+    const mine = control('1', { access: { owner: { id: 'u1', name: null, lastName: null, role: 'responsable' }, executor: null } });
+    const o = overview([{ c: mine, result: 'non_compliant', places: ['availability'] }], framework(), true);
+    expect(o.progress).toEqual({ done: 0, total: 1 });
+    expect(o.categories.map((c) => c.trustCriterion)).toEqual(['availability']);
     expect(o.categories[0].failingControls.map((f) => f.code)).toEqual(['IAC-1']);
+  });
+
+  it('el resumen acotado sin controles no trae marcos; el completo sí fuerza la categoría obligatoria', () => {
+    expect(overview([], framework(), true)).toBeUndefined();
+    expect(overview([], framework(), false).categories.map((c) => c.trustCriterion)).toEqual(['security']);
   });
 });
 

@@ -14,7 +14,7 @@ export class GetServiceUseCase {
     const service = await this.services.findById(scope, id);
     // Un servicio de otra empresa no se ve (RLS): para quien pregunta, simplemente no existe.
     if (!service) throw new DomainError('NOT_FOUND');
-    // D96 · Existe y es de su empresa, pero un `responsable` solo lo lee si es responsable de algo en él: no le toca (403).
+    // D102 · Existe y es de su empresa, pero un `responsable` o `delegado` solo lo lee si tiene algún control suyo en él: no le toca (403).
     if (isScopedRole(principal.role) && !(await this.services.isResponsible(scope, id))) throw new DomainError('FORBIDDEN');
     return service;
   }

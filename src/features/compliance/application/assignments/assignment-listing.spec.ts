@@ -5,8 +5,7 @@ import { categoryOfRequirement, fold, listAssignments } from './assignment-listi
 
 const person = (id: string, role = 'responsable'): AssignedPerson => ({ id, name: id, lastName: 'X', role });
 const control = (id: string, ownCode: string, patch: Partial<ReadoutControl> = {}): ReadoutControl => ({
-  id, serviceId: 's1', ownCode, name: `Control ${ownCode}`, origin: 'catalog', type: 'manual', interpretation: 'x', catalogDescription: 'x', dimensions: [], tests: [], trustCriteria: [], assignee: null,
-  assignedUserIds: [], responsibleByDimension: {}, approval: 'approved', catalogCode: ownCode, requirementCodes: [], pointsOfFocus: [], documentary: [], ...patch,
+  id, serviceId: 's1', ownCode, name: `Control ${ownCode}`, origin: 'catalog', type: 'manual', interpretation: 'x', catalogDescription: 'x', dimensions: [], tests: [], trustCriteria: [], access: { owner: null, executor: null }, approval: 'approved', catalogCode: ownCode, requirementCodes: [], pointsOfFocus: [], documentary: [], ...patch,
 });
 const admin: Principal = { userId: 'a', companyId: 'co', role: 'admin_empresa', sessionId: 's' };
 const as = (role: Principal['role'], userId: string): Principal => ({ ...admin, role, userId });
@@ -71,18 +70,25 @@ describe('listAssignments', () => {
   });
 
   it('assignment, owner_id y executor_id se combinan', () => {
-    const d = data([['b1', { owner: person('r1'), executor: person('d1', 'delegado') }], ['b2', { owner: person('r1'), executor: null }]]);
+    const d = data([['b1', { owner: person('r1'), executor: person('d1', 'delegado'), ownerActive: true, executorActive: true }], ['b2', { owner: person('r1'), executor: null, ownerActive: true, executorActive: false }]]);
     expect(codes(admin, d, { assignment: 'unassigned' })).toEqual(['a1']);
     expect(codes(admin, d, { assignment: 'assigned', executorId: 'd1' })).toEqual(['b1']);
     expect(codes(admin, d, { ownerId: 'r1', category: 'C' })).toEqual(['b2']);
   });
 
   it('un responsable ve los suyos; un delegado, los que ejecuta; el auditor, todos', () => {
-    const d = data([['b1', { owner: person('r1'), executor: person('d1', 'delegado') }], ['b2', { owner: person('r2'), executor: null }]]);
+    const d = data([['b1', { owner: person('r1'), executor: person('d1', 'delegado'), ownerActive: true, executorActive: true }], ['b2', { owner: person('r2'), executor: null, ownerActive: true, executorActive: false }]]);
     expect(codes(as('responsable', 'r1'), d)).toEqual(['b1']);
     expect(codes(as('delegado', 'd1'), d)).toEqual(['b1']);
     expect(codes(as('delegado', 'd2'), d)).toEqual([]);
     expect(codes(as('auditor', 'x'), d)).toEqual(['a1', 'b1', 'b2']);
+  });
+
+  it('una persona dada de baja no hace ver el control, pero el administrador lo sigue viendo con ella', () => {
+    const d = data([['b1', { owner: person('r1'), executor: person('d1', 'delegado'), ownerActive: false, executorActive: false }]]);
+    expect(codes(as('responsable', 'r1'), d)).toEqual([]);
+    expect(codes(as('delegado', 'd1'), d)).toEqual([]);
+    expect(listAssignments(admin, d, { ...page }).items.find((i) => i.clientControlId === 'b1')?.owner?.id).toBe('r1');
   });
 
   it('status filtra sobre el estado calculado y pagina después: un control sin pruebas es no_tests', () => {

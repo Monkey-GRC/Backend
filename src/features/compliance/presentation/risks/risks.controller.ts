@@ -28,7 +28,7 @@ const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAg
 // Riesgos y causas de un servicio (contracts/modules/compliance-risks.md, MD-122). Los ven los cuatro roles de la empresa (el `responsable`, solo lo que llega a una acción
 // suya); los gestiona solo el administrador. `admin_monkey` no entra al cumplimiento de una empresa por aquí.
 @ApiTags(API_TAGS.risks)
-@Roles('admin_empresa', 'responsable', 'auditor')
+@Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
 @Controller()
 export class RisksController {
   constructor(
