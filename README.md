@@ -81,21 +81,21 @@ BOOTSTRAP_ADMIN_PASSWORD='…' npm run bootstrap:admin -- --apply
 ## Pruebas
 
 - **Unitarias:** `npm test` (no necesita nada).
-- **e2e:** necesitan un Postgres **desechable** con migraciones y catálogo. Crean empresas reales por la API y se niegan a correr contra un servidor que no sea local: **nunca las apuntes a la base compartida de dev**.
+- **e2e:** necesitan un Postgres **desechable**. Crean empresas reales por la API y se niegan a correr contra un servidor que no sea local: **nunca las apuntes a la base compartida de dev**.
 
 ```bash
-docker run -d --name monkey-test-pg -e POSTGRES_PASSWORD=test -e POSTGRES_DB=monkey -p 55432:5432 postgres:17
-export DATABASE_URL=postgresql://postgres:test@localhost:55432/monkey
-export APP_DATABASE_URL=postgresql://monkey_app:test@localhost:55432/monkey
-export TEST_DATABASE_URL=$DATABASE_URL
-npx prisma migrate deploy
-docker exec monkey-test-pg psql -U postgres -d monkey -c "ALTER ROLE monkey_app PASSWORD 'test'"
-npm run catalog:load -- --apply && npm run reference:load -- --apply
-npm run test:e2e
+npm run test:db -- up        # contenedor fijo monkey-test-pg (puerto 55432, 640 MB) + base plantilla monkey_template
+export TEST_DATABASE_URL=postgresql://postgres:test@localhost:55432/monkey_template
+npm run test:e2e                                           # todo, en paralelo (E2E_WORKERS, por defecto 2)
+npm run test:e2e -- test/cumplimiento/controles.e2e-spec.ts test/equipo/    # solo lo de un módulo
+npx jest --findRelatedTests src/features/equipo/algo.ts    # unitarias de lo que tocaste
 ```
 
-Exporta las tres URLs **en la misma terminal**: el `.env` apunta a la base de dev y `dotenv` no pisa lo que ya está definido. Exporta **solo esas**: si también exportas `MAIL_PROVIDER` o `PLATFORM_APP_URL`, fallan dos pruebas unitarias que leen el entorno. Al terminar: `docker rm -f monkey-test-pg`.
-El CI (`.github/workflows/ci.yml`) hace exactamente esto en cada PR a `develop` y `main`; al fusionar en `develop` solo corre el despliegue.
+- `npm run test:db -- up|rebuild|clean|status`: la plantilla (migraciones + catálogos + datos de referencia + contraseña `test` de `monkey_app`) se reconstruye sola solo si cambia la huella de `prisma/migrations` o `prisma/seed`; `status` dice si está al día.
+- Antes de cada corrida, `test/support/global-setup.ts` clona la plantilla en `monkey_template_w1..N` (una base por worker, ~50 ms cada una) y `test/support/worker-db.ts` apunta cada worker a la suya. Cada corrida parte limpia.
+- `E2E_WORKERS` (por defecto 2, ~1,7 GB de RAM entre jest y Postgres) y `E2E_WORKER_MEMORY` (por defecto 400MB: recicla un worker que crezca) lo ajustan. Las suites que no toleren paralelo se listan en `test/serial-suites.json` y corren aparte, en serie (hoy ninguna: las 67 pasan con 2 workers).
+- Exporta solo `TEST_DATABASE_URL` (el archivo de entorno local apunta a la base de dev). Si también exportas `MAIL_PROVIDER` o `PLATFORM_APP_URL`, fallan dos pruebas unitarias que leen el entorno.
+- El CI (`.github/workflows/ci.yml`) usa la base `monkey` que ya prepara como plantilla, con 3 workers, y sigue corriendo todo en cada PR a `develop` y `main`; al fusionar en `develop` solo corre el despliegue.
 
 ## El trabajador (runner) en local
 
