@@ -70,6 +70,9 @@ export class RunSondaExecution {
 
     const policies: SondaScaPolicy[] = [];
     for (const s of summaries) policies.push({ ...s, checks: await this.sonda.scaChecks(agentId, s.policyId) });
+    // La sonda publica la política al EMPEZAR el escaneo y sus checks llegan después, de golpe (en una prueba real, unos 40 s más tarde). Una política sin ningún check
+    // es un escaneo a medias, no un servidor sin nada que medir: entregarla daría un «completado» vacío y el cliente no vería resultados hasta la siguiente lectura.
+    if (policies.some((p) => p.checks.length === 0)) throw new RunnerFailure(FAILURE.agentNoScanYet);
 
     return { sondaVersion, startedAt, finishedAt: this.now(), agent: { id: agent.id, name: agent.name, groups: agent.groups }, policies };
   }

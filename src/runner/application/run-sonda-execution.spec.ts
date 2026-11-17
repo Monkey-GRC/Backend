@@ -114,6 +114,13 @@ describe('RunSondaExecution', () => {
     expect(api.failed).toEqual([{ reason: 'connection.agent_no_scan_yet' }]);
   });
 
+  it('una política que ya figura pero aún sin checks (escaneo a medias) → agent_no_scan_yet, no un «completado» vacío', async () => {
+    const { api, result } = run(new FakeSonda({ checks: [] }));
+    expect(await result).toBe('failed');
+    expect(api.failed).toEqual([{ reason: 'connection.agent_no_scan_yet' }]);
+    expect(api.snapshots).toEqual([]);
+  });
+
   it('si la sonda no responde o no autoriza, informa SU razón', async () => {
     for (const reason of [FAILURE.probeUnreachable, FAILURE.probeUnauthorized]) {
       const { api, result } = run(new FakeSonda({ version: new RunnerFailure(reason) }));
