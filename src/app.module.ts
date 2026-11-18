@@ -23,7 +23,9 @@ import { StorageModule } from './infrastructure/storage/storage.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    // Bajo Jest (`JEST_WORKER_ID` solo existe ahí, y se fija antes de importar este módulo) no se lee el `.env` de desarrollo: las pruebas declaran lo que necesitan y así dan
+    // lo mismo en local que en el CI, que no tiene `.env`. En desarrollo y producción la variable no existe y todo sigue igual.
+    ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: process.env['JEST_WORKER_ID'] !== undefined }),
     I18nModule.forRoot({
       fallbackLanguage: 'es',
       loaderOptions: {

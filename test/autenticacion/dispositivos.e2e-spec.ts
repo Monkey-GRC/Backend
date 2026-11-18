@@ -3,6 +3,8 @@ import bcrypt from 'bcrypt';
 import { createHmac, randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { totpAt } from '../../src/features/auth/domain/totp';
+import { FileStorage } from '../../src/common/storage/file-storage';
+import { StorageEnMemoria } from '../support/storage-en-memoria';
 import { Agent, bootApp, owner, PASSWORD, RUN } from '../support/app';
 import { correo } from '../support/correo-en-memoria';
 import { dosEmpresas, Tenant } from '../support/escenario';
@@ -26,7 +28,7 @@ const deviceToken = (res: request.Response) => deviceCookie(res).split(';')[0].s
 type Persona = { id: string; email: string; secret: string; recovery: string[] };
 
 beforeAll(async () => {
-  app = await bootApp();
+  app = await bootApp({ PLATFORM_APP_URL: 'http://platform.test' }, (builder) => builder.overrideProvider(FileStorage).useValue(new StorageEnMemoria()));
   ({ a, monkey } = await dosEmpresas(app));
   process.env['MFA_REQUIRED'] = 'true';
 });
