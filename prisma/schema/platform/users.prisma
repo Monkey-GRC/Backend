@@ -99,6 +99,7 @@ model User {
   controlsExecuted          ClientControlAssignment[]  @relation("ControlExecutor")
   controlAssignmentsGranted ClientControlAssignment[]  @relation("ControlAssignedBy")
   sessions                  Session[]
+  trustedDevices            TrustedDevice[]
   activationCodes           UserActivationCode[]    @relation("ActivationCodeUser")
   mfaChallenges             MfaChallenge[]
   passwordHistory           PasswordHistory[]
@@ -196,6 +197,33 @@ model Session {
   @@index([companyId])
   @@index([userId])
   @@map("sessions")
+  @@schema("platform")
+}
+
+// D123 · «Recordar este dispositivo por 30 días»: solo salta el código del segundo factor. La cookie `mnk_device` lleva un token opaco y aquí queda su HMAC (SEG-17, SEG-84).
+// Vence a los 30 días de creado (el uso no lo renueva). `city` guarda los nombres por idioma ({ es, en }) de la base GeoIP local.
+model TrustedDevice {
+  id         String    @id @default(uuid()) @db.Uuid
+  companyId  String    @map("company_id") @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  browser    String?
+  os         String?
+  deviceType String?   @map("device_type")
+  ipAddress  String    @map("ip_address")
+  country    String?   @db.Char(2)
+  city       Json?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  expiresAt  DateTime  @map("expires_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  revokedAt  DateTime? @map("revoked_at")
+
+  user    User    @relation(fields: [userId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([userId])
+  @@map("trusted_devices")
   @@schema("platform")
 }
 

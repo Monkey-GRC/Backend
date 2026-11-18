@@ -44,6 +44,7 @@
     "reference:verify": "tsx prisma/seed/seed-reference.ts --verify",
     "bootstrap:admin": "tsx prisma/seed/bootstrap-admin.ts",
     "mfa:reset": "tsx prisma/seed/reset-mfa.ts",
+    "geoip:update": "tsx scripts/geoip-update.ts",
     "clone:verify": "tsx scripts/verify-clone-catalog.ts",
     "audit:verify": "tsx scripts/verify-audit-append-only.ts",
     "storage:smoke": "tsx scripts/storage-smoke.ts"
@@ -71,6 +72,7 @@
     "cookie-parser": "^1.4.7",
     "dockerode": "^5.0.1",
     "dotenv": "^17.2.3",
+    "maxmind": "^5.1.0",
     "multer": "^2.2.0",
     "nestjs-i18n": "^10.6.0",
     "passport": "^0.7.0",

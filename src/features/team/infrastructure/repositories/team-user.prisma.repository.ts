@@ -7,6 +7,7 @@ import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { lockActorAndSubject, lockGroupRow, lockLeaderShare } from '../../../../infrastructure/database/row-locks';
+import { revokeTrustedDevices } from '../../../../infrastructure/database/trusted-devices';
 import { isEmailTaken } from './unique-violation';
 import { MemberChange, MemberFilters, MemberUpdated, NewMember, Placement, TeamUserRepository } from '../../domain/repositories/team-user.repository';
 import { assertNoLiveDelegates, describeReleased, isMoving, leaderToCheck, MemberState, partitionReleased, planMemberChange, releasesControls, TargetTeam } from '../../domain/member-change-plan';
@@ -191,6 +192,8 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
       if (Object.keys(data).length > 0) await tx.user.update({ where: { id }, data });
       // Desactivar es el deprovisioning de CC6.3: la sesión abierta no sobrevive (después de la fila del usuario, ya bloqueada).
       const sessionsClosed = plan.deactivating ? (await tx.session.updateMany({ where: { userId: id, revokedAt: null }, data: { revokedAt: at } })).count : 0;
+      // D123 · Tampoco sobreviven los dispositivos recordados.
+      if (plan.deactivating) await revokeTrustedDevices(tx, { userId: id }, at);
 
       const after = toMember(await tx.user.findUniqueOrThrow({ where: { id }, select: SELECT }));
       // Mandar el equipo en el que ya está (y nada más) no cambia nada: no hay qué auditar.

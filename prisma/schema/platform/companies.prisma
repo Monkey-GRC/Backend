@@ -69,6 +69,7 @@ model Company {
   services                  Service[]
   serviceTrustCriteria      ServiceTrustCriterion[]
   sessions               Session[]
+  trustedDevices           TrustedDevice[]
   userActivationCodes    UserActivationCode[]
   serviceFrameworks         ServiceFramework[]
   subserviceOrganizations   SubserviceOrganization[]

@@ -51,6 +51,8 @@ async function main() {
       await tx.userRecoveryCode.deleteMany({ where: { userId: user.id } });
       await tx.mfaChallenge.updateMany({ where: { userId: user.id, consumedAt: null }, data: { consumedAt: now } });
       const closed = await tx.session.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: now } });
+      // D123 · Sin segundo factor no hay dispositivos recordados: se olvidan en la misma transacción.
+      await tx.trustedDevice.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: now } });
       await tx.auditLog.createMany({
         data: [
           {

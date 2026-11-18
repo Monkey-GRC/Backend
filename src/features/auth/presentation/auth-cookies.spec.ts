@@ -3,6 +3,9 @@ import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import {
   clearAuthCookies,
+  clearDeviceCookie,
+  readDeviceCookie,
+  setDeviceCookie,
   clearMfaChallengeCookie,
   cookieNames,
   readAccessCookie,
@@ -189,5 +192,36 @@ describe('cookies de sesión (SEG-18)', () => {
     } as unknown as ExecutionContext;
     await guard.canActivate(ctx);
     expect(validate.execute).toHaveBeenCalledWith('admin-token');
+  });
+});
+
+// MD-217 · D123 · La cookie del dispositivo recordado: siempre `mnk_device` (Admin no la usa), 30 días, solo hacia /v1/auth.
+describe('cookie mnk_device (D123, SEG-84)', () => {
+  const original = process.env['NODE_ENV'];
+  afterEach(() => {
+    process.env['NODE_ENV'] = original;
+  });
+
+  it.each([
+    ['production', true],
+    ['development', false],
+  ])('en %s: HttpOnly, SameSite=Lax, ruta /v1/auth, 30 días y Secure=%s, al escribirla y al borrarla', (env, secure) => {
+    process.env['NODE_ENV'] = env;
+    const { res, set, cleared } = fakeResponse();
+    setDeviceCookie(res, 'token-opaco');
+    clearDeviceCookie(res);
+    expect(set).toHaveLength(1);
+    expect(set[0]).toMatchObject({ name: 'mnk_device', value: 'token-opaco' });
+    expect(set[0].options).toMatchObject({ httpOnly: true, sameSite: 'lax', path: '/v1/auth', maxAge: 30 * 24 * 60 * 60 * 1000 });
+    expect(Boolean(set[0].options.secure)).toBe(secure);
+    expect(cleared[0].name).toBe('mnk_device');
+    expect(cleared[0].options).toMatchObject({ httpOnly: true, sameSite: 'lax', path: '/v1/auth' });
+    expect(Boolean(cleared[0].options.secure)).toBe(secure);
+  });
+
+  it('se lee siempre con el mismo nombre, también con el header de Admin', () => {
+    expect(readDeviceCookie(fakeRequest(undefined, { mnk_device: 'x' }))).toBe('x');
+    expect(readDeviceCookie(fakeRequest('admin', { mnk_device: 'y' }))).toBe('y');
+    expect(readDeviceCookie(fakeRequest(undefined, {}))).toBeUndefined();
   });
 });

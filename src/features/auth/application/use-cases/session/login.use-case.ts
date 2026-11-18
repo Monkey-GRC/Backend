@@ -9,6 +9,7 @@ import { AuthUserRepository } from '../../../domain/repositories/auth-user.repos
 import { MfaChallengeService, OpenedChallenge } from '../../services/mfa-challenge.service';
 import { MfaPolicy } from '../../services/mfa-policy.service';
 import { IssuedSession, SessionIssuer } from '../../services/session-issuer.service';
+import { TrustedDevices } from '../../services/trusted-devices.service';
 
 // D94 · La contraseña correcta ya no siempre abre la sesión: si la persona tiene el segundo factor (o está obligada a configurarlo) lo que sigue es un desafío.
 export type LoginResult =
@@ -24,9 +25,10 @@ export class LoginUseCase {
     private readonly audit: AuditLogWriter,
     private readonly mfaPolicy: MfaPolicy,
     private readonly challenges: MfaChallengeService,
+    private readonly trustedDevices: TrustedDevices,
   ) {}
 
-  async execute(email: string, password: string, meta: RequestMeta): Promise<LoginResult> {
+  async execute(email: string, password: string, meta: RequestMeta, deviceToken?: string): Promise<LoginResult> {
     const now = new Date();
     const normalizedEmail = email.trim().toLowerCase();
     const credentials = await this.users.findCredentialsByEmail(normalizedEmail);
@@ -76,7 +78,9 @@ export class LoginUseCase {
 
     // Segundo factor (D94, SEG-16): quien ya lo tiene pasa por la verificación; quien no, por la configuración si es obligatoria. La sesión se abre después,
     // y el contador de intentos fallidos solo se limpia cuando la persona termina de entrar.
-    if (credentials.isMfaEnabled || this.mfaPolicy.isRequired()) {
+    // D123 · Un dispositivo recordado vigente DE ESTA persona salta solo el código (la contraseña ya se comprobó arriba). `admin_monkey` nunca recuerda dispositivos.
+    const device = credentials.isMfaEnabled && credentials.role !== 'admin_monkey' ? await this.trustedDevices.find(scope, credentials.id, deviceToken, now) : null;
+    if (!device && (credentials.isMfaEnabled || this.mfaPolicy.isRequired())) {
       const challenge = await this.challenges.open(scope, credentials.id, credentials.isMfaEnabled ? 'verify' : 'setup', meta, now);
       return { kind: 'mfa', challenge };
     }
@@ -97,9 +101,10 @@ export class LoginUseCase {
         result: 'success',
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
-        afterState: { session_id: session.id },
+        afterState: { session_id: session.id, ...(device ? { mfa: 'trusted_device' } : {}) },
       }),
       now,
+      device ? await this.trustedDevices.use(device, meta, now) : undefined,
     );
     return { kind: 'session', user, ...issued };
   }

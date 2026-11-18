@@ -101,8 +101,8 @@ function build() {
     w,
     open: (purpose: MfaChallengePurpose) => challenges.open(scope, 'u-1', purpose, meta),
     start: new StartMfaSetupUseCase(challenges, w.users as never, w.mfa as never, cipher),
-    confirm: new ConfirmMfaSetupUseCase(challenges, w.users as never, w.mfa as never, attempts, cipher, tokens, w.sessionIssuer as never),
-    verify: new VerifyMfaUseCase(challenges, w.users as never, w.mfa as never, attempts, cipher, tokens, w.sessionIssuer as never),
+    confirm: new ConfirmMfaSetupUseCase(challenges, w.users as never, w.mfa as never, attempts, cipher, tokens, w.sessionIssuer as never, {} as never),
+    verify: new VerifyMfaUseCase(challenges, w.users as never, w.mfa as never, attempts, cipher, tokens, w.sessionIssuer as never, {} as never),
   };
 }
 

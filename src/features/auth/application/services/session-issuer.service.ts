@@ -7,6 +7,7 @@ import { Session } from '../../domain/entities/session.entity';
 import type { SessionPolicy } from '../../domain/entities/session.entity';
 import { AccessTokenService } from '../../domain/ports/access-token.service';
 import { SessionRepository } from '../../domain/repositories/session.repository';
+import type { DeviceEffect } from '../../domain/repositories/trusted-device.repository';
 import { SESSION_POLICY } from '../session-policy.token';
 
 export type IssuedSession = {
@@ -32,6 +33,8 @@ export class SessionIssuer {
     meta: RequestMeta,
     audit: AuditIntent<Session> | null,
     now = new Date(),
+    // D123 · Recordar o anotar el dispositivo, en la misma transacción que la sesión.
+    device?: DeviceEffect,
   ): Promise<IssuedSession> {
     const refreshToken = this.tokens.generate();
     const session = await this.sessions.create(
@@ -45,6 +48,7 @@ export class SessionIssuer {
         expiresAt: Session.expiresAtFor(now, this.policy),
       },
       audit,
+      device,
     );
     const accessToken = await this.accessTokens.sign({
       sub: user.id,

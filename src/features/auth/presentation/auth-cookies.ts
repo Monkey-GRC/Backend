@@ -52,6 +52,19 @@ export function clearMfaChallengeCookie(req: Request, res: Response): void {
   res.clearCookie(cookieNames(req).mfa, { ...base(), path: MFA_PATH });
 }
 
+// D123 · «Recordar este dispositivo»: una sola cookie por navegador y siempre con este nombre (Monkey Admin no la usa: `admin_monkey` no recuerda dispositivos).
+// Escribir una nueva pisa la anterior. Vive en la misma ruta que el refresh: solo viaja a los endpoints de auth.
+export const DEVICE_COOKIE = 'mnk_device';
+export const DEVICE_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+export function setDeviceCookie(res: Response, token: string): void {
+  res.cookie(DEVICE_COOKIE, token, { ...base(), path: REFRESH_PATH, maxAge: DEVICE_COOKIE_MAX_AGE_MS });
+}
+
+export function clearDeviceCookie(res: Response): void {
+  res.clearCookie(DEVICE_COOKIE, { ...base(), path: REFRESH_PATH });
+}
+
 export function clearAuthCookies(req: Request, res: Response): void {
   const names = cookieNames(req);
   res.clearCookie(names.access, { ...base(), path: '/' });
@@ -65,6 +78,7 @@ function readCookie(req: Request, name: string): string | undefined {
 
 export const readAccessCookie = (req: Request) => readCookie(req, cookieNames(req).access);
 export const readRefreshCookie = (req: Request) => readCookie(req, cookieNames(req).refresh);
+export const readDeviceCookie = (req: Request) => readCookie(req, DEVICE_COOKIE);
 export const readMfaCookie = (req: Request) => readCookie(req, cookieNames(req).mfa);
 
 export function requestMeta(req: Request): RequestMeta {

@@ -1,6 +1,7 @@
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { Session } from '../entities/session.entity';
+import type { DeviceEffect, DeviceForget } from './trusted-device.repository';
 
 export type NewSession = {
   userId: string;
@@ -14,7 +15,8 @@ export type NewSession = {
 export abstract class SessionRepository {
   // `audit` se escribe en la misma transacción que la sesión (SEG-36). `null` solo cuando otra acción ya audita este
   // mismo hecho (el canje de la clave).
-  abstract create(scope: TenantScope, data: NewSession, audit: AuditIntent<Session> | null): Promise<Session>;
+  // `device` (D123) recuerda o anota el dispositivo en esa misma transacción.
+  abstract create(scope: TenantScope, data: NewSession, audit: AuditIntent<Session> | null, device?: DeviceEffect): Promise<Session>;
 
   // Búsqueda previa al tenant: el refresh llega solo con el token.
   abstract findByRefreshTokenHash(hash: string): Promise<Session | null>;
@@ -29,5 +31,6 @@ export abstract class SessionRepository {
   // Cierra la sesión y escribe `audit` en la misma transacción. Solo audita si de verdad la cerró (idempotente).
   // `null` en los cierres automáticos del sistema (inactividad, expiración, usuario inactivo): no son una acción del
   // usuario y hoy no se registran; si el comité pide registrarlos (CC7.2), se pasa una intención aquí.
-  abstract revoke(scope: TenantScope, sessionId: string, at: Date, audit: AuditIntent<Session> | null): Promise<void>;
+  // `forget` (D123, logout) revoca además el dispositivo recordado de la cookie, si es de esta persona, con su rastro.
+  abstract revoke(scope: TenantScope, sessionId: string, at: Date, audit: AuditIntent<Session> | null, forget?: DeviceForget): Promise<void>;
 }

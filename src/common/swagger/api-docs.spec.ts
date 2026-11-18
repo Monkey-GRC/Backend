@@ -134,7 +134,8 @@ describe('documentación de la API encendida (local)', () => {
     // 164 de develop + 6 de la instalación de la sonda en un servidor (D113): estado, empezar, mostrar el comando, generar de nuevo, y los dos instaladores públicos
     // + 1 de MD-194: revisar un veredicto (`PUT /v1/verdicts/{verdictId}/review`).
     // + 2 de MD-195: `GET /v1/me/work` y `GET /v1/team/workload`.
-    expect(ids.length).toBe(173);
+    // + 3 de MD-217: `GET /v1/auth/devices`, `DELETE /v1/auth/devices/{id}` y `DELETE /v1/auth/devices` (dispositivos recordados, D123).
+    expect(ids.length).toBe(176);
     expect(ids.some((id) => id.includes('/internal/'))).toBe(false);
   });
 

@@ -11,8 +11,9 @@ import { verifyTotp } from '../../../domain/totp';
 import { MfaAttempts } from '../../services/mfa-attempts.service';
 import { MfaChallengeService } from '../../services/mfa-challenge.service';
 import { IssuedSession, SessionIssuer } from '../../services/session-issuer.service';
+import { TrustedDevices } from '../../services/trusted-devices.service';
 
-export type ConfirmMfaSetupResult = IssuedSession & { user: AuthUser; recoveryCodes: string[] };
+export type ConfirmMfaSetupResult = IssuedSession & { user: AuthUser; recoveryCodes: string[]; deviceToken: string | null };
 
 // D94 · La persona escribe el primer código de su app: se activa el segundo factor, se le entregan los 10 códigos de recuperación (la única vez que se ven) y entra.
 @Injectable()
@@ -25,9 +26,10 @@ export class ConfirmMfaSetupUseCase {
     private readonly cipher: CredentialCipher,
     private readonly tokens: TokenHasher,
     private readonly sessionIssuer: SessionIssuer,
+    private readonly trustedDevices: TrustedDevices,
   ) {}
 
-  async execute(input: { challengeToken: string | undefined; code: string }, meta: RequestMeta): Promise<ConfirmMfaSetupResult> {
+  async execute(input: { challengeToken: string | undefined; code: string; rememberDevice?: boolean }, meta: RequestMeta): Promise<ConfirmMfaSetupResult> {
     const now = new Date();
     const { scope, challenge } = await this.challenges.resolve(input.challengeToken, 'setup', now);
     // Sin haber pedido el QR no hay nada que confirmar.
@@ -35,6 +37,8 @@ export class ConfirmMfaSetupUseCase {
     const credentials = await this.users.findCredentialsById(scope, challenge.userId);
     if (!credentials) throw new DomainError('MFA_CHALLENGE_INVALID');
     if (credentials.status !== 'active') throw new DomainError('ACCOUNT_INACTIVE');
+    // D123 · Antes de mirar el código: no lo gasta ni suma un intento.
+    if (input.rememberDevice && credentials.role === 'admin_monkey') throw new DomainError('REMEMBER_DEVICE_NOT_ALLOWED');
     this.attempts.assertNotLocked(credentials, now);
 
     const secret = String(this.cipher.decrypt(challenge.pendingSecretEncrypted)['secret']);
@@ -67,6 +71,7 @@ export class ConfirmMfaSetupUseCase {
     await this.users.registerSuccessfulLogin(scope, credentials.id, now);
     const user = await this.users.findById(scope, credentials.id);
     if (!user) throw new DomainError('INVALID_CREDENTIALS');
+    const trusted = input.rememberDevice ? await this.trustedDevices.trust(user, meta, now) : null;
     const issued = await this.sessionIssuer.issue(
       user,
       meta,
@@ -81,7 +86,8 @@ export class ConfirmMfaSetupUseCase {
         afterState: { session_id: session.id, mfa: 'setup' },
       }),
       now,
+      trusted?.effect,
     );
-    return { user, ...issued, recoveryCodes };
+    return { user, ...issued, recoveryCodes, deviceToken: trusted?.token ?? null };
   }
 }

@@ -7,6 +7,7 @@ import { insertAuditLog } from '../../../infrastructure/audit/audit-log.insert';
 import { resolveAttributions } from '../../../infrastructure/database/attribution';
 import { PrismaService, TransactionClient } from '../../../infrastructure/database/prisma.service';
 import { lockActorAndSubject } from '../../../infrastructure/database/row-locks';
+import { revokeTrustedDevices } from '../../../infrastructure/database/trusted-devices';
 import { AdminAccount, AdminFilters, DeactivationOutcome, PersonStamp, PurgedAdmin, ReactivationOutcome, Refusal } from '../domain/admin-account';
 import { AdminAccountRepository, NewAdmin } from '../domain/repositories/admin-account.repository';
 
@@ -134,6 +135,7 @@ export class AdminAccountPrismaRepository extends AdminAccountRepository {
       // CC6.3 · La sesión abierta y los desafíos del segundo factor pendientes no sobreviven.
       const sessionsClosed = (await tx.session.updateMany({ where: { userId: id, revokedAt: null }, data: { revokedAt: at } })).count;
       await tx.mfaChallenge.updateMany({ where: { userId: id, consumedAt: null }, data: { consumedAt: at } });
+      await revokeTrustedDevices(tx, { userId: id }, at);
       const done: DeactivationOutcome = { kind: 'deactivated', before, after: await this.accountOf(tx, id), sessionsClosed };
       await insertAuditLog(tx, audit(done));
       return done;

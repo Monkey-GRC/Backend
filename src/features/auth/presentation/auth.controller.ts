@@ -34,11 +34,14 @@ import { StartMfaSetupUseCase } from '../application/use-cases/mfa/start-mfa-set
 import { VerifyMfaUseCase } from '../application/use-cases/mfa/verify-mfa.use-case';
 import {
   clearAuthCookies,
+  clearDeviceCookie,
   clearMfaChallengeCookie,
+  readDeviceCookie,
   readMfaCookie,
   readRefreshCookie,
   requestMeta,
   setAuthCookies,
+  setDeviceCookie,
   setMfaChallengeCookie,
 } from './auth-cookies';
 import { toAuthResponse } from './auth-response.mapper';
@@ -81,7 +84,7 @@ export class AuthController {
   ) {}
 
   @Public()
-  @ApiOperation({ summary: 'Iniciar sesión', description: 'Valida el correo y la contraseña y abre la sesión: el servidor deja las cookies `httpOnly` `mnk_access` (15 min) y `mnk_refresh` en la respuesta (Monkey Admin, con el header `X-Monkey-Client: admin`, usa el prefijo `mnka_`). Nunca revela cuál de los dos datos falló. **Con el segundo factor (D94) la contraseña correcta no abre la sesión:** responde `data.next_step` (`mfa_verify` o `mfa_setup`) y deja la cookie `mnk_mfa` (el desafío, 5 minutos); la sesión se abre en `POST /auth/mfa/verify` o `POST /auth/mfa/setup/confirm`. La sesión cierra a los 30 min sin actividad y a las 8 h de abierta; a los 5 intentos fallidos la cuenta se bloquea 15 min.' })
+  @ApiOperation({ summary: 'Iniciar sesión', description: 'Valida el correo y la contraseña y abre la sesión: el servidor deja las cookies `httpOnly` `mnk_access` (15 min) y `mnk_refresh` en la respuesta (Monkey Admin, con el header `X-Monkey-Client: admin`, usa el prefijo `mnka_`). Nunca revela cuál de los dos datos falló. Con un dispositivo recordado vigente de esa misma persona (cookie `mnk_device`, D123) abre la sesión directo, sin segundo factor; cualquier otra cookie se ignora. **Con el segundo factor (D94) la contraseña correcta no abre la sesión:** responde `data.next_step` (`mfa_verify` o `mfa_setup`) y deja la cookie `mnk_mfa` (el desafío, 5 minutos); la sesión se abre en `POST /auth/mfa/verify` o `POST /auth/mfa/setup/confirm`. La sesión cierra a los 30 min sin actividad y a las 8 h de abierta; a los 5 intentos fallidos la cuenta se bloquea 15 min.' })
   @ApiData(AuthSessionResponse, 'Sesión abierta. Trae el usuario, su empresa y, para `admin_empresa`, el avance del onboarding.')
   @ApiDomainErrors('INVALID_CREDENTIALS', 'ACCOUNT_LOCKED', 'ACCOUNT_INACTIVE')
   @Post('login')
@@ -91,7 +94,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.login.execute(dto.email, dto.password, requestMeta(req));
+    const result = await this.login.execute(dto.email, dto.password, requestMeta(req), readDeviceCookie(req));
     if (result.kind === 'mfa') {
       setMfaChallengeCookie(req, res, result.challenge.token, result.challenge.expiresAt);
       return new ResponseDto(HttpStatus.OK, t(result.challenge.purpose === 'verify' ? 'auth.mfa_required' : 'auth.mfa_setup_required'), mfaStep(result.challenge));
@@ -150,15 +153,16 @@ export class AuthController {
 
   // ── Segundo factor (D94) ───────────────────────────────────────────────────────────────────────────────────────────────────────────
   @Public()
-  @ApiOperation({ summary: 'Verificar el segundo factor y abrir la sesión', description: 'Segundo paso del ingreso de quien ya tiene el segundo factor. Con la cookie `mnk_mfa` (la deja el login) y el código de 6 dígitos de su app —o uno de sus códigos de recuperación— abre la sesión con las mismas cookies del login. Un código equivocado cuenta como un intento fallido más: suma al bloqueo de la cuenta (5 intentos, 15 min) y al del desafío (5 intentos). Un código ya usado no sirve otra vez.' })
+  @ApiOperation({ summary: 'Verificar el segundo factor y abrir la sesión', description: 'Segundo paso del ingreso de quien ya tiene el segundo factor. Con la cookie `mnk_mfa` (la deja el login) y el código de 6 dígitos de su app —o uno de sus códigos de recuperación— abre la sesión con las mismas cookies del login. Un código equivocado cuenta como un intento fallido más: suma al bloqueo de la cuenta (5 intentos, 15 min) y al del desafío (5 intentos). Un código ya usado no sirve otra vez. Con `remember_device: true` (D123), correcto el código, deja además la cookie `mnk_device` (30 días) y el próximo ingreso desde este navegador salta el código; `admin_monkey` recibe 422 antes de comprobar el código.' })
   @ApiData(AuthSessionWithRecoveryResponse, 'Sesión abierta. Si entró con un código de recuperación, trae `recovery_codes_left`.')
-  @ApiDomainErrors('MFA_CHALLENGE_INVALID', 'MFA_CODE_INVALID', 'ACCOUNT_LOCKED', 'ACCOUNT_INACTIVE')
+  @ApiDomainErrors('MFA_CHALLENGE_INVALID', 'MFA_CODE_INVALID', 'ACCOUNT_LOCKED', 'ACCOUNT_INACTIVE', 'REMEMBER_DEVICE_NOT_ALLOWED')
   @Post('mfa/verify')
   @HttpCode(HttpStatus.OK)
   async verify(@Body() dto: VerifyMfaDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const result = await this.verifyMfa.execute({ challengeToken: readMfaCookie(req), code: dto.code, recoveryCode: dto.recovery_code }, requestMeta(req));
+    const result = await this.verifyMfa.execute({ challengeToken: readMfaCookie(req), code: dto.code, recoveryCode: dto.recovery_code, rememberDevice: dto.remember_device }, requestMeta(req));
     clearMfaChallengeCookie(req, res);
     setAuthCookies(req, res, result, this.policy.accessTokenTtl, result.session.expiresAt);
+    if (result.deviceToken) setDeviceCookie(res, result.deviceToken);
     const onboarding = await this.getOnboardingProgress.execute(result.user);
     return new ResponseDto(HttpStatus.OK, t('auth.logged_in'), {
       ...toAuthResponse(result.user, onboarding),
@@ -183,15 +187,16 @@ export class AuthController {
   }
 
   @Public()
-  @ApiOperation({ summary: 'Confirmar el segundo factor, recibir los códigos de recuperación y entrar', description: 'Con el primer código de 6 dígitos de la app activa el segundo factor, entrega **una sola vez** los 10 códigos de recuperación y abre la sesión. Un código equivocado cuenta como un intento fallido.' })
+  @ApiOperation({ summary: 'Confirmar el segundo factor, recibir los códigos de recuperación y entrar', description: 'Con el primer código de 6 dígitos de la app activa el segundo factor, entrega **una sola vez** los 10 códigos de recuperación y abre la sesión. Un código equivocado cuenta como un intento fallido. `remember_device: true` (D123) funciona como en `POST /auth/mfa/verify`.' })
   @ApiData(AuthSessionWithRecoveryResponse, 'Segundo factor activo y sesión abierta. `recovery_codes` trae los 10 códigos.')
-  @ApiDomainErrors('MFA_CHALLENGE_INVALID', 'MFA_SETUP_NOT_STARTED', 'MFA_CODE_INVALID', 'ACCOUNT_LOCKED', 'ACCOUNT_INACTIVE')
+  @ApiDomainErrors('MFA_CHALLENGE_INVALID', 'MFA_SETUP_NOT_STARTED', 'MFA_CODE_INVALID', 'ACCOUNT_LOCKED', 'ACCOUNT_INACTIVE', 'REMEMBER_DEVICE_NOT_ALLOWED')
   @Post('mfa/setup/confirm')
   @HttpCode(HttpStatus.OK)
   async setupConfirm(@Body() dto: MfaCodeDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const result = await this.confirmMfaSetup.execute({ challengeToken: readMfaCookie(req), code: dto.code }, requestMeta(req));
+    const result = await this.confirmMfaSetup.execute({ challengeToken: readMfaCookie(req), code: dto.code, rememberDevice: dto.remember_device }, requestMeta(req));
     clearMfaChallengeCookie(req, res);
     setAuthCookies(req, res, result, this.policy.accessTokenTtl, result.session.expiresAt);
+    if (result.deviceToken) setDeviceCookie(res, result.deviceToken);
     const onboarding = await this.getOnboardingProgress.execute(result.user);
     return new ResponseDto(HttpStatus.OK, t('auth.mfa_enabled'), { ...toAuthResponse(result.user, onboarding), recovery_codes: result.recoveryCodes });
   }
@@ -288,13 +293,14 @@ export class AuthController {
   }
 
   @Public()
-  @ApiOperation({ summary: 'Cerrar la sesión', description: 'Sin cuerpo. Invalida la sesión y limpia las cookies (`mnk_` o, para Admin, `mnka_`). Es idempotente: sin sesión también responde 204.' })
+  @ApiOperation({ summary: 'Cerrar la sesión', description: 'Sin cuerpo. Invalida la sesión y limpia las cookies (`mnk_` o, para Admin, `mnka_`). También olvida el dispositivo recordado de este navegador (D123) y borra `mnk_device`. Es idempotente: sin sesión también responde 204.' })
   @ApiNoBody('Sesión cerrada. No hay cuerpo.')
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   async signOut(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
-    await this.logout.execute(readRefreshCookie(req), requestMeta(req));
+    await this.logout.execute(readRefreshCookie(req), readDeviceCookie(req), requestMeta(req));
     clearAuthCookies(req, res);
+    clearDeviceCookie(res);
   }
 
   @ApiOperation({ summary: 'Usuario en sesión', description: 'Lo primero que llama el frontend al arrancar: dice si hay sesión, quién es y dónde continuar el onboarding.' })

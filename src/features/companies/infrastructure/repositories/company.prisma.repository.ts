@@ -5,6 +5,7 @@ import { lockUserQuota } from '../../../../common/quota/user-quota';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
+import { revokeTrustedDevices } from '../../../../infrastructure/database/trusted-devices';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { AccessKey } from '../../domain/entities/access-key.entity';
 import {
@@ -330,6 +331,8 @@ export class CompanyPrismaRepository extends CompanyRepository {
       // Sin sesión no hay acceso (se valida en cada petición) y sin desafío abierto nadie termina de entrar.
       const sessions = await tx.session.updateMany({ where: { companyId, revokedAt: null }, data: { revokedAt: data.at } });
       await tx.mfaChallenge.deleteMany({ where: { companyId } });
+      // D123 · Y ningún dispositivo recordado de la empresa archivada vale.
+      await revokeTrustedDevices(tx, { companyId }, data.at);
       // Lo que estaba en cola o en curso se cancela; el trabajador ya no reclama a una empresa archivada.
       await tx.execution.updateMany({
         where: { tenantId: companyId, status: { in: ['queued', 'running'] } },

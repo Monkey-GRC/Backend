@@ -11,9 +11,10 @@ import { verifyTotp } from '../../../domain/totp';
 import { MfaAttempts } from '../../services/mfa-attempts.service';
 import { MfaChallengeService } from '../../services/mfa-challenge.service';
 import { IssuedSession, SessionIssuer } from '../../services/session-issuer.service';
+import { TrustedDevices } from '../../services/trusted-devices.service';
 
-export type VerifyMfaInput = { challengeToken: string | undefined; code?: string; recoveryCode?: string };
-export type VerifyMfaResult = IssuedSession & { user: AuthUser; method: 'totp' | 'recovery'; recoveryCodesLeft: number | null };
+export type VerifyMfaInput = { challengeToken: string | undefined; code?: string; recoveryCode?: string; rememberDevice?: boolean };
+export type VerifyMfaResult = IssuedSession & { user: AuthUser; method: 'totp' | 'recovery'; recoveryCodesLeft: number | null; deviceToken: string | null };
 
 // D94 · Segundo paso del ingreso de quien ya tiene el segundo factor: con el código de su app (o uno de recuperación) se abre la sesión.
 @Injectable()
@@ -26,6 +27,7 @@ export class VerifyMfaUseCase {
     private readonly cipher: CredentialCipher,
     private readonly tokens: TokenHasher,
     private readonly sessionIssuer: SessionIssuer,
+    private readonly trustedDevices: TrustedDevices,
   ) {}
 
   async execute(input: VerifyMfaInput, meta: RequestMeta): Promise<VerifyMfaResult> {
@@ -34,6 +36,8 @@ export class VerifyMfaUseCase {
     const credentials = await this.users.findCredentialsById(scope, challenge.userId);
     if (!credentials || !credentials.isMfaEnabled || !credentials.mfaSecretEncrypted) throw new DomainError('MFA_CHALLENGE_INVALID');
     if (credentials.status !== 'active') throw new DomainError('ACCOUNT_INACTIVE');
+    // D123 · Antes de mirar el código: no lo gasta ni suma un intento.
+    if (input.rememberDevice && credentials.role === 'admin_monkey') throw new DomainError('REMEMBER_DEVICE_NOT_ALLOWED');
     this.attempts.assertNotLocked(credentials, now);
 
     let method: 'totp' | 'recovery';
@@ -60,6 +64,8 @@ export class VerifyMfaUseCase {
     if (!user) throw new DomainError('INVALID_CREDENTIALS');
 
     // La sesión y su rastro `auth.login` se confirman en la misma transacción (SEG-36); el rastro dice con qué segundo factor entró.
+    // D123 · Con «recordar», el dispositivo y su rastro entran en esa misma transacción.
+    const trusted = input.rememberDevice ? await this.trustedDevices.trust(user, meta, now) : null;
     const issued = await this.sessionIssuer.issue(
       user,
       meta,
@@ -74,7 +80,8 @@ export class VerifyMfaUseCase {
         afterState: { session_id: session.id, mfa: method },
       }),
       now,
+      trusted?.effect,
     );
-    return { user, ...issued, method, recoveryCodesLeft };
+    return { user, ...issued, method, recoveryCodesLeft, deviceToken: trusted?.token ?? null };
   }
 }
