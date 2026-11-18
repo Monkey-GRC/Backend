@@ -65,3 +65,6 @@ CLAUDE.md
 # runner local (llaves AWS)
 deploy/runner.env
 deploy/runner-secrets/
+
+# GeoIP (D123): la base GeoLite2 no se versiona; se descarga con la clave de MaxMind
+/geoip/*.mmdb
