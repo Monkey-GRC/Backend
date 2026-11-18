@@ -1,5 +1,5 @@
 import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, MaxLength, ValidateIf } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, MaxLength, ValidateIf } from 'class-validator';
 
 // contracts/modules/auth.md — segundo factor (D94).
 
@@ -16,6 +16,11 @@ export class VerifyMfaDto {
   @IsString()
   @MaxLength(24)
   recovery_code?: string;
+
+  @ApiPropertyOptional({ example: false, default: false, description: 'D123 · «Recordar este dispositivo por 30 días»: con el código correcto, el próximo ingreso desde este navegador salta el código del segundo factor (la contraseña se pide siempre). No disponible para `admin_monkey` (422).' })
+  @IsOptional()
+  @IsBoolean()
+  remember_device?: boolean;
 }
 
 export class MfaCodeDto {
@@ -24,4 +29,9 @@ export class MfaCodeDto {
   @IsNotEmpty()
   @MaxLength(12)
   code!: string;
+
+  @ApiPropertyOptional({ example: false, default: false, description: 'D123 · «Recordar este dispositivo por 30 días»: con el código correcto, el próximo ingreso desde este navegador salta el código del segundo factor (la contraseña se pide siempre). No disponible para `admin_monkey` (422).' })
+  @IsOptional()
+  @IsBoolean()
+  remember_device?: boolean;
 }

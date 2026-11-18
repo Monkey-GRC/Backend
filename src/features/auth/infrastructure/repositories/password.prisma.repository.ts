@@ -4,6 +4,7 @@ import { DomainError } from '../../../../common/errors/domain-error';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
+import { revokeTrustedDevices } from '../../../../infrastructure/database/trusted-devices';
 import { PasswordResetToken } from '../../domain/entities/password-reset-token.entity';
 import { PasswordChange, PasswordRepository } from '../../domain/repositories/password.repository';
 
@@ -39,6 +40,8 @@ export class PasswordPrismaRepository extends PasswordRepository {
         where: { userId: data.userId, revokedAt: null, ...(data.keepSessionId ? { id: { not: data.keepSessionId } } : {}) },
         data: { revokedAt: data.at },
       });
+      // D123 · Otra contraseña, otros dispositivos: los recordados dejan de valer en la misma transacción.
+      await revokeTrustedDevices(tx, { userId: data.userId }, data.at);
       await insertAuditLog(tx, audit({ userId: data.userId, sessionsClosed: closed.count }));
       return closed.count;
     });

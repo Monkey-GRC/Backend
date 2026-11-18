@@ -14,12 +14,18 @@ import { AuthUserRepository } from './domain/repositories/auth-user.repository';
 import { MfaRepository } from './domain/repositories/mfa.repository';
 import { PasswordRepository } from './domain/repositories/password.repository';
 import { SessionRepository } from './domain/repositories/session.repository';
+import { TrustedDeviceRepository } from './domain/repositories/trusted-device.repository';
+import { GeoIpLookup } from './domain/ports/geo-ip.lookup';
 import { AccessKeyAttemptLimiter } from './application/services/access-key-attempt-limiter.service';
 import { MfaAttempts } from './application/services/mfa-attempts.service';
 import { MfaChallengeService } from './application/services/mfa-challenge.service';
 import { PasswordNotifier } from './application/services/password-notifier.service';
 import { PasswordRules } from './application/services/password-rules.service';
 import { MfaPolicy } from './application/services/mfa-policy.service';
+import { TrustedDevices } from './application/services/trusted-devices.service';
+import { ListDevicesUseCase } from './application/use-cases/devices/list-devices.use-case';
+import { RevokeAllDevicesUseCase } from './application/use-cases/devices/revoke-all-devices.use-case';
+import { RevokeDeviceUseCase } from './application/use-cases/devices/revoke-device.use-case';
 import { SessionIssuer } from './application/services/session-issuer.service';
 import { StepUp } from './application/services/step-up.service';
 import { SESSION_POLICY } from './application/session-policy.token';
@@ -48,10 +54,13 @@ import { AuthUserPrismaRepository } from './infrastructure/repositories/auth-use
 import { MfaPrismaRepository } from './infrastructure/repositories/mfa.prisma.repository';
 import { PasswordPrismaRepository } from './infrastructure/repositories/password.prisma.repository';
 import { OnboardingProgressPrismaReader } from './infrastructure/repositories/onboarding-progress.prisma.reader';
+import { TrustedDevicePrismaRepository } from './infrastructure/repositories/trusted-device.prisma.repository';
+import { MaxmindGeoIpLookup } from './infrastructure/security/maxmind-geo-ip.lookup';
 import { SessionPrismaRepository } from './infrastructure/repositories/session.prisma.repository';
 import { BcryptPasswordHasher } from './infrastructure/security/bcrypt-password.hasher';
 import { JwtAccessTokenService } from './infrastructure/security/jwt-access-token.service';
 import { AuthController } from './presentation/auth.controller';
+import { DevicesController } from './presentation/devices.controller';
 import { MfaAdminController } from './presentation/mfa-admin.controller';
 import { SessionAuthGuard } from './presentation/guards/session-auth.guard';
 
@@ -74,7 +83,7 @@ const seconds = (config: ConfigService, key: string): number => {
       }),
     }),
   ],
-  controllers: [AuthController, MfaAdminController],
+  controllers: [AuthController, DevicesController, MfaAdminController],
   // D97: Monkey Admin pide el código de la persona antes de archivar o reactivar una empresa.
   exports: [StepUp],
   providers: [
@@ -89,6 +98,8 @@ const seconds = (config: ConfigService, key: string): number => {
     },
     { provide: AuthUserRepository, useClass: AuthUserPrismaRepository },
     { provide: SessionRepository, useClass: SessionPrismaRepository },
+    { provide: TrustedDeviceRepository, useClass: TrustedDevicePrismaRepository },
+    { provide: GeoIpLookup, useClass: MaxmindGeoIpLookup },
     { provide: MfaRepository, useClass: MfaPrismaRepository },
     { provide: PasswordRepository, useClass: PasswordPrismaRepository },
     { provide: PasswordHasher, useClass: BcryptPasswordHasher },
@@ -98,6 +109,10 @@ const seconds = (config: ConfigService, key: string): number => {
     { provide: OnboardingProgressReader, useClass: OnboardingProgressPrismaReader },
     GetOnboardingProgressUseCase,
     SessionIssuer,
+    TrustedDevices,
+    ListDevicesUseCase,
+    RevokeDeviceUseCase,
+    RevokeAllDevicesUseCase,
     AccessKeyAttemptLimiter,
     MfaPolicy,
     MfaChallengeService,

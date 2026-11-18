@@ -89,3 +89,17 @@ export class ActivationLookupResponse {
   @ApiProperty({ example: 'juan@acme.co', description: 'Correo con el que la empresa creó la cuenta; es el único con el que se activa. La pantalla lo muestra bloqueado.' }) email!: string;
   @ApiProperty({ format: 'date-time', example: '2026-11-03T15:04:02.000Z', description: 'Hasta cuándo se puede usar el código.' }) expires_at!: string;
 }
+
+export class TrustedDeviceResponse {
+  @ApiProperty({ format: 'uuid', description: 'Identificador del dispositivo recordado.' }) id!: string;
+  @ApiProperty({ nullable: true, example: 'Chrome', description: 'Navegador resumido del user agent al recordar el dispositivo; `null` si no se reconoce.' }) browser!: string | null;
+  @ApiProperty({ nullable: true, example: 'Windows', description: 'Sistema operativo resumido del user agent; `null` si no se reconoce.' }) os!: string | null;
+  @ApiProperty({ nullable: true, enum: ['computer', 'mobile', 'tablet'], example: 'computer', description: 'Tipo de dispositivo deducido del user agent: `computer`, `mobile` o `tablet`; `null` si no se reconoce.' }) device_type!: 'computer' | 'mobile' | 'tablet' | null;
+  @ApiProperty({ example: '181.49.12.7', description: 'IP del último ingreso con este dispositivo (al recordarlo o al entrar sin código).' }) ip_address!: string;
+  @ApiProperty({ nullable: true, example: 'CO', description: 'País (ISO 3166-1 alfa-2) del último ingreso, aproximado; `null` si la IP es privada o no se encuentra.' }) country!: string | null;
+  @ApiProperty({ nullable: true, example: 'Bogotá', description: 'Ciudad del último ingreso en el idioma de la petición (`Accept-Language`), aproximada; `null` si no se encuentra.' }) city!: string | null;
+  @ApiProperty({ format: 'date-time', description: 'Cuándo se recordó el dispositivo.' }) created_at!: string;
+  @ApiProperty({ format: 'date-time', description: 'Cuándo deja de valer: 30 días después de recordarlo; el uso no lo renueva.' }) expires_at!: string;
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'Último ingreso sin código con este dispositivo; `null` si nunca se usó.' }) last_used_at!: string | null;
+  @ApiProperty({ example: true, description: '`true` para el dispositivo de la cookie `mnk_device` de esta petición.' }) is_current!: boolean;
+}

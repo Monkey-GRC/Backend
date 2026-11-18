@@ -2,10 +2,14 @@ import { Injectable } from '@nestjs/common';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
+import { Prisma } from '../../../../../generated/prisma/client';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { lockUserRow } from '../../../../infrastructure/database/row-locks';
 import { Session } from '../../domain/entities/session.entity';
 import { NewSession, SessionRepository } from '../../domain/repositories/session.repository';
+import type { DeviceEffect, DeviceForget } from '../../domain/repositories/trusted-device.repository';
+import { toTrustedDevice } from './trusted-device.mapper';
+import { revokeActiveDevice } from './trusted-device.queries';
 
 type SessionRow = {
   id: string;
@@ -34,7 +38,7 @@ export class SessionPrismaRepository extends SessionRepository {
     super();
   }
 
-  async create(scope: TenantScope, data: NewSession, audit: AuditIntent<Session> | null): Promise<Session> {
+  async create(scope: TenantScope, data: NewSession, audit: AuditIntent<Session> | null, device?: DeviceEffect): Promise<Session> {
     const created = await this.prisma.withScope(scope, async (tx) => {
       const row = await tx.session.create({
         data: {
@@ -50,6 +54,14 @@ export class SessionPrismaRepository extends SessionRepository {
       });
       const session = toEntity(row);
       if (audit) await insertAuditLog(tx, audit(session));
+      if (device?.kind === 'trust') {
+        const created = await tx.trustedDevice.create({
+          data: { companyId: scope.companyId, userId: device.device.userId, tokenHash: device.device.tokenHash, browser: device.device.browser, os: device.device.os, deviceType: device.device.deviceType, ipAddress: device.device.ipAddress, country: device.device.country, city: device.device.city ?? undefined, createdAt: device.device.createdAt, expiresAt: device.device.expiresAt },
+        });
+        await insertAuditLog(tx, device.audit(toTrustedDevice(created)));
+      } else if (device?.kind === 'use') {
+        await tx.trustedDevice.updateMany({ where: { id: device.deviceId, revokedAt: null }, data: { lastUsedAt: device.at, ipAddress: device.ipAddress, country: device.country, city: device.city ?? Prisma.DbNull } });
+      }
       return session;
     });
     return created;
@@ -87,15 +99,20 @@ export class SessionPrismaRepository extends SessionRepository {
     );
   }
 
-  async revoke(scope: TenantScope, sessionId: string, at: Date, audit: AuditIntent<Session> | null): Promise<void> {
+  async revoke(scope: TenantScope, sessionId: string, at: Date, audit: AuditIntent<Session> | null, forget?: DeviceForget): Promise<void> {
     await this.prisma.withScope(scope, async (tx) => {
       // Orden global (row-locks.ts): la fila del usuario antes que la de la sesión. El insert de auditoría la pide (FK `user_id`) y la baja del usuario la tiene FOR UPDATE
       // mientras cierra sus sesiones: tocar la sesión primero formaría un ciclo. Sin auditoría no hay FK que esperar.
-      if (audit && scope.userId) await lockUserRow(tx, scope.userId, 'KEY SHARE');
+      if ((audit || forget) && scope.userId) await lockUserRow(tx, scope.userId, 'KEY SHARE');
       const closed = await tx.session.updateMany({
         where: { id: sessionId, revokedAt: null },
         data: { revokedAt: at },
       });
+      // D123 · Cerrar sesión olvida el dispositivo recordado de este navegador, en la misma transacción.
+      if (forget && scope.userId) {
+        const device = await revokeActiveDevice(tx, { tokenHash: forget.tokenHash, userId: scope.userId }, at);
+        if (device) await insertAuditLog(tx, forget.audit(device));
+      }
       // Otro cierre llegó primero: no hubo cambio, no hay rastro que escribir.
       if (closed.count === 0 || !audit) return;
       const row = await tx.session.findUniqueOrThrow({ where: { id: sessionId } });

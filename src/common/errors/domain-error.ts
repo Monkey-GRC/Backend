@@ -14,6 +14,8 @@ export type DomainErrorCode =
   | 'MFA_CODE_INVALID'
   | 'MFA_SETUP_NOT_STARTED'
   | 'MFA_NOT_ENABLED'
+  | 'REMEMBER_DEVICE_NOT_ALLOWED'
+  | 'DEVICE_NOT_FOUND'
   // D101 · Cambio y recuperación de contraseña (contracts/modules/auth.md).
   | 'CURRENT_PASSWORD_INVALID'
   | 'PASSWORD_REUSED'

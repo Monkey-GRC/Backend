@@ -3,6 +3,7 @@ import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
+import { revokeTrustedDevices } from '../../../../infrastructure/database/trusted-devices';
 import { MfaChallenge } from '../../domain/entities/mfa-challenge.entity';
 import { MfaRepository, NewMfaChallenge } from '../../domain/repositories/mfa.repository';
 
@@ -105,6 +106,8 @@ export class MfaPrismaRepository extends MfaRepository {
   async replaceRecoveryCodes(scope: TenantScope, userId: string, hashes: string[], audit: AuditIntent<{ userId: string }>): Promise<void> {
     await this.prisma.withScope(scope, async (tx) => {
       await tx.userRecoveryCode.deleteMany({ where: { userId } });
+      // D123 · Códigos nuevos: los dispositivos recordados se olvidan en la misma transacción.
+      await revokeTrustedDevices(tx, { userId }, new Date());
       await tx.userRecoveryCode.createMany({ data: hashes.map((codeHash) => ({ companyId: scope.companyId, userId, codeHash })) });
       await insertAuditLog(tx, audit({ userId }));
     });
@@ -123,6 +126,7 @@ export class MfaPrismaRepository extends MfaRepository {
       await tx.userRecoveryCode.deleteMany({ where: { userId } });
       await tx.mfaChallenge.updateMany({ where: { userId, consumedAt: null }, data: { consumedAt: at } });
       const closed = await tx.session.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: at } });
+      await revokeTrustedDevices(tx, { userId }, at);
       await insertAuditLog(tx, audit({ userId, sessionsClosed: closed.count }));
       return closed.count;
     });
