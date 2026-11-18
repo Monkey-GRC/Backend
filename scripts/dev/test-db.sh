@@ -45,7 +45,7 @@ start_container() {
 build_template() {
   local fp="$1"
   echo "Reconstruyendo la plantilla ${TEMPLATE}…"
-  psql_admin -d postgres -c "drop database if exists ${TEMPLATE} with (force)" -c "create database ${TEMPLATE}"
+  psql_admin -d postgres -c "update pg_database set datistemplate = false where datname = '${TEMPLATE}'" -c "drop database if exists ${TEMPLATE} with (force)" -c "create database ${TEMPLATE}"
   (
     cd "$ROOT"
     export DATABASE_URL="${URL}/${TEMPLATE}"

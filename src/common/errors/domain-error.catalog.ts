@@ -67,6 +67,7 @@ export const DOMAIN_ERROR_CATALOG: Record<
   TEST_NOT_MANUAL: { status: HttpStatus.CONFLICT, messageKey: 'verdict.test_not_manual' },
   TEST_DECIDED_BY_EVIDENCE: { status: HttpStatus.CONFLICT, messageKey: 'verdict.decided_by_evidence' },
   TEST_HAS_NO_ASSETS: { status: HttpStatus.CONFLICT, messageKey: 'verdict.test_has_no_assets' },
+  VERDICT_SUPERSEDED: { status: HttpStatus.CONFLICT, messageKey: 'verdict.superseded' },
   OBSERVATION_CLOSED: { status: HttpStatus.CONFLICT, messageKey: 'observation.closed_locked' },
   OBSERVATION_NOT_OPEN: { status: HttpStatus.CONFLICT, messageKey: 'observation.not_open' },
   INVALID_TRANSITION: { status: HttpStatus.CONFLICT, messageKey: 'observation.invalid_transition' },

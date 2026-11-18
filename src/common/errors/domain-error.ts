@@ -53,6 +53,8 @@ export type DomainErrorCode =
   | 'TEST_NOT_MANUAL'
   | 'TEST_DECIDED_BY_EVIDENCE'
   | 'TEST_HAS_NO_ASSETS'
+  // D121 · Revisar un veredicto que ya no es el último del test en el servicio.
+  | 'VERDICT_SUPERSEDED'
   // Observaciones del auditor (contracts/modules/compliance-audit.md, MD-154): una cerrada no se toca; responder solo una abierta; cerrar o devolver solo una respondida.
   | 'OBSERVATION_CLOSED'
   | 'OBSERVATION_NOT_OPEN'

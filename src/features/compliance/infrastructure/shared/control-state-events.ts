@@ -12,7 +12,7 @@ import { loadServiceSnapshot } from './service-snapshot.loader';
 export type StateChangeActor = { userId: string | null; ipAddress: string | null; userAgent: string | null };
 
 /** Qué escritura movió el estado; viaja en el evento. */
-export type StateChangeCause = 'test_verdict' | 'evidence_submission' | 'evidence_review' | 'exclusion_approved' | 'control_updated' | 'probe_result';
+export type StateChangeCause = 'test_verdict' | 'test_verdict_review' | 'evidence_submission' | 'evidence_review' | 'exclusion_approved' | 'control_updated' | 'probe_result';
 
 export async function captureControlStates(tx: TransactionClient, serviceId: string): Promise<Map<string, ControlStateSnapshot>> {
   const data = await loadServiceSnapshot(tx, serviceId);

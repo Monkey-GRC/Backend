@@ -1,18 +1,18 @@
 import { Prisma } from '../../../../../generated/prisma/client';
-import { EvidenceReviewRecord, EvidenceState, ReviewerRole, evidenceStateOf } from '../../domain/evidence/evidence';
+import { EvidenceReviewRecord, EvidenceState, evidenceStateOf } from '../../domain/evidence/evidence';
 
-// Lo que se lee de una revisión (`evidence_reviews`, D96). Hay una sola por entrega: la del admin_empresa.
+// Lo que se lee de una revisión (`evidence_reviews`, D102). Hay a lo sumo una por rol y entrega.
 export const REVIEW_SELECT = {
   reviewerRole: true, review: true, typeOk: true, periodOk: true, validOk: true, approvedOk: true, signedOk: true, contentOk: true, note: true, reviewedAt: true,
   reviewedByUser: { select: { id: true, name: true, lastName: true } },
 } as const;
 export type ReviewRow = Prisma.EvidenceReviewGetPayload<{ select: typeof REVIEW_SELECT }>;
 
-/** `where` de las revisiones de un rol, para anidarlo en `submissions: { select: { reviews: … } }`. */
-export const reviewsOf = (role: ReviewerRole) => ({ where: { reviewerRole: role }, select: REVIEW_SELECT }) as const;
+/** Todas las revisiones de la entrega, para anidarlo en `submissions: { select: { reviews: … } }`. */
+export const ALL_REVIEWS = { select: REVIEW_SELECT } as const;
 
 export const toReviewRecord = (r: ReviewRow): EvidenceReviewRecord => ({
-  reviewerRole: 'admin_empresa', review: r.review, typeOk: r.typeOk, periodOk: r.periodOk, validOk: r.validOk, approvedOk: r.approvedOk, signedOk: r.signedOk,
+  reviewerRole: r.reviewerRole, review: r.review, typeOk: r.typeOk, periodOk: r.periodOk, validOk: r.validOk, approvedOk: r.approvedOk, signedOk: r.signedOk,
   contentOk: r.contentOk, note: r.note, reviewedBy: r.reviewedByUser, reviewedAt: r.reviewedAt,
 });
 
@@ -26,5 +26,5 @@ export const versionOf = (v: string): number => Number(v) || 0;
 export function requirementState(submissions: ReadonlyArray<{ version: string; aiVerdict: string | null; reviews: ReviewRow[] }>): EvidenceState {
   const latest = [...submissions].sort((a, b) => versionOf(b.version) - versionOf(a.version))[0];
   if (!latest) return 'pending';
-  return evidenceStateOf({ aiVerdict: latest.aiVerdict, review: latest.reviews[0] ? toReviewRecord(latest.reviews[0]) : null });
+  return evidenceStateOf({ aiVerdict: latest.aiVerdict, reviews: latest.reviews.map(toReviewRecord) });
 }

@@ -5,14 +5,13 @@ import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
-import { ReviewerRole } from '../../domain/evidence/evidence';
 import {
   ControlEvidenceFacts, EvidenceAccess, EvidenceRepository, NewRequirement, NewReview, NewSubmission, RequirementRecord, ReviewSaved, ServiceEvidence, SubmissionRecord, TestEvidence,
 } from '../../domain/evidence/evidence.repository';
 import { loadControlAccess } from '../shared/control-access.loader';
 import { ControlAccess, NO_ACCESS } from '../../domain/controls/control-access';
 import { captureControlStates, recordControlStateChanges } from '../shared/control-state-events';
-import { reviewsOf, toReviewRecord, versionOf } from './evidence-review.mapper';
+import { ALL_REVIEWS, REVIEW_SELECT, toReviewRecord, versionOf } from './evidence-review.mapper';
 
 // Subir o revisar una evidencia relee el servicio entero (captura el estado de sus controles antes y después, D91) dentro de la misma transacción: con la base lejos
 // (desarrollo contra una base remota) los 5 s por defecto de Prisma no alcanzan y la subida responde 500 (P2028).
@@ -21,28 +20,28 @@ const STATE_TRANSACTION = { timeoutMs: 30_000 };
 const PERSON ={ select: { id: true, name: true, lastName: true } } as const;
 // Una dimensión que el control resuelve a mano; la documental (`policy`) también es manual (D88). Lo mismo que decide si cabe un veredicto (`test-verdict.prisma.repository.ts`).
 const MANUAL_DIMENSION_TYPES = new Set(['manual', 'technical_manual']);
-// La revisión que se lee es la del rol que pregunta, nunca la del otro (D84, SEG-61): por eso la entrega se pide con el rol.
-const submissionSelect = (viewer: ReviewerRole) =>
+// Todas las revisiones de la entrega, la de cada rol (D102): ya no se esconde la de un rol al otro (SEG-61 se retiró, D96).
+const submissionSelect = () =>
   ({
     id: true, evidenceRequirementId: true, version: true, filePath: true, fileType: true, fileSize: true, integrityHash: true, submittedAt: true, aiVerdict: true,
     submittedByUser: PERSON,
-    reviews: reviewsOf(viewer),
+    reviews: ALL_REVIEWS,
   }) as const;
 type SubmissionRow = Prisma.EvidenceSubmissionGetPayload<{ select: ReturnType<typeof submissionSelect> }>;
 
 const toSubmission = (r: SubmissionRow): SubmissionRecord => ({
   id: r.id, requirementId: r.evidenceRequirementId, version: versionOf(r.version), fileKey: r.filePath, fileType: r.fileType, fileSize: r.fileSize,
   integrityHash: r.integrityHash, submittedBy: r.submittedByUser, submittedAt: r.submittedAt, aiVerdict: r.aiVerdict,
-  review: r.reviews[0] ? toReviewRecord(r.reviews[0]) : null,
+  reviews: r.reviews.map(toReviewRecord),
 });
 const newestFirst = (a: SubmissionRecord, b: SubmissionRecord) => b.version - a.version;
 
-const requirementSelect = (viewer: ReviewerRole) =>
+const requirementSelect = () =>
   ({
     id: true, code: true, sequence: true, description: true, dimension: true, validityWithinPeriod: true, sourceRef: true,
     test: { select: { id: true, code: true, displayName: true, displayNameEn: true } },
     responsible: { select: { id: true, type: true, personName: true } },
-    submissions: { select: submissionSelect(viewer) },
+    submissions: { select: submissionSelect() },
   }) as const;
 type RequirementRow = Prisma.EvidenceRequirementGetPayload<{ select: ReturnType<typeof requirementSelect> }>;
 
@@ -60,11 +59,11 @@ export class EvidencePrismaRepository extends EvidenceRepository {
     super();
   }
 
-  listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ access: ControlAccess; requirements: RequirementRecord[] } | null> {
+  listByControl(scope: TenantScope, controlId: string): Promise<{ access: ControlAccess; requirements: RequirementRecord[] } | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const control = await tx.clientControl.findFirst({
         where: { id: controlId },
-        select: { serviceId: true, evidenceRequirements: { orderBy: { sequence: 'asc' }, select: requirementSelect(viewer) } },
+        select: { serviceId: true, evidenceRequirements: { orderBy: { sequence: 'asc' }, select: requirementSelect() } },
       });
       if (!control) return null;
       const access = (await loadControlAccess(tx, [controlId])).get(controlId) ?? NO_ACCESS;
@@ -72,7 +71,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
     });
   }
 
-  listByService(scope: TenantScope, serviceId: string, viewer: ReviewerRole): Promise<ServiceEvidence | null> {
+  listByService(scope: TenantScope, serviceId: string): Promise<ServiceEvidence | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const service = await tx.service.findFirst({ where: { id: serviceId, organization: { companyId: scope.companyId } }, select: { id: true } });
       if (!service) return null;
@@ -80,7 +79,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       const ids = rows.map((r) => r.id);
       const accessOf = await loadControlAccess(tx, ids);
       const requirements = ids.length
-        ? await tx.evidenceRequirement.findMany({ where: { clientControlId: { in: ids } }, orderBy: [{ sequence: 'asc' }], select: { ...requirementSelect(viewer), clientControlId: true } })
+        ? await tx.evidenceRequirement.findMany({ where: { clientControlId: { in: ids } }, orderBy: [{ sequence: 'asc' }], select: { ...requirementSelect(), clientControlId: true } })
         : [];
       return {
         controls: rows.map((r) => ({ id: r.id, ownCode: r.ownCode, access: accessOf.get(r.id) ?? NO_ACCESS })),
@@ -89,7 +88,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
     });
   }
 
-  listByTest(scope: TenantScope, controlId: string, testId: string, viewer: ReviewerRole): Promise<TestEvidence | null> {
+  listByTest(scope: TenantScope, controlId: string, testId: string): Promise<TestEvidence | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const origin = await tx.clientControl.findFirst({
         where: { id: controlId },
@@ -123,7 +122,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
           ...(dimension === 'policy' ? { testId } : { OR: [{ testId }, { testId: null, dimension }] }),
         },
         orderBy: [{ sequence: 'asc' }],
-        select: { ...requirementSelect(viewer), clientControlId: true },
+        select: { ...requirementSelect(), clientControlId: true },
       });
       const accessOf = await loadControlAccess(tx, ids);
       return {
@@ -140,13 +139,13 @@ export class EvidencePrismaRepository extends EvidenceRepository {
     return this.prisma.withScope(scope, (tx) => this.accessOf(tx, requirementId));
   }
 
-  listSubmissions(scope: TenantScope, requirementId: string, page: number, pageSize: number, viewer: ReviewerRole): Promise<Page<SubmissionRecord> | null> {
+  listSubmissions(scope: TenantScope, requirementId: string, page: number, pageSize: number): Promise<Page<SubmissionRecord> | null> {
     return this.prisma.withScope(scope, async (tx) => {
       if (!(await this.accessOf(tx, requirementId))) return null;
       const where = { evidenceRequirementId: requirementId };
       const total = await tx.evidenceSubmission.count({ where });
       // La versión es texto: se trae el requerimiento completo (un puñado de filas) y se pagina en memoria, para ordenar como número.
-      const rows = await tx.evidenceSubmission.findMany({ where, select: submissionSelect(viewer) });
+      const rows = await tx.evidenceSubmission.findMany({ where, select: submissionSelect() });
       const items = rows.map(toSubmission).sort(newestFirst).slice((page - 1) * pageSize, page * pageSize);
       return { items, total, page, pageSize };
     });
@@ -169,7 +168,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
             tenantId: scope.companyId, evidenceRequirementId: requirementId, submittedBy: input.submittedBy, filePath: input.fileKey, fileType: input.fileType,
             fileSize: input.fileSize, storageLocation: 's3', integrityHash: input.integrityHash, version: String(next),
           },
-          select: submissionSelect('admin_empresa'),
+          select: submissionSelect(),
         });
         const created = toSubmission(row);
         await insertAuditLog(tx, audit(created));
@@ -186,9 +185,9 @@ export class EvidencePrismaRepository extends EvidenceRepository {
     }
   }
 
-  findSubmission(scope: TenantScope, submissionId: string, viewer: ReviewerRole): Promise<{ submission: SubmissionRecord; access: EvidenceAccess } | null> {
+  findSubmission(scope: TenantScope, submissionId: string): Promise<{ submission: SubmissionRecord; access: EvidenceAccess } | null> {
     return this.prisma.withScope(scope, async (tx) => {
-      const row = await tx.evidenceSubmission.findFirst({ where: { id: submissionId }, select: submissionSelect(viewer) });
+      const row = await tx.evidenceSubmission.findFirst({ where: { id: submissionId }, select: submissionSelect() });
       if (!row) return null;
       const access = await this.accessOf(tx, row.evidenceRequirementId);
       return access ? { submission: toSubmission(row), access } : null;
@@ -201,10 +200,10 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       if (!found) return null;
       const access = await this.accessOf(tx, found.evidenceRequirementId);
       if (!access) return null;
-      // D91 · La revisión del admin_empresa mueve el estado de las pruebas (D96) y deja el evento de cada control que cambie.
+      // D91 · La revisión de un rol mueve el estado de las pruebas (D96) y deja el evento de cada control que cambie.
       const before = await captureControlStates(tx, access.serviceId);
       const key = { evidenceSubmissionId_reviewerRole: { evidenceSubmissionId: submissionId, reviewerRole: input.reviewerRole } };
-      const previous = await tx.evidenceReview.findUnique({ where: key, select: reviewsOf(input.reviewerRole).select });
+      const previous = await tx.evidenceReview.findUnique({ where: key, select: REVIEW_SELECT });
       const values = {
         reviewedBy: input.reviewedBy, reviewedAt: new Date(), typeOk: input.typeOk, periodOk: input.periodOk, validOk: input.validOk, approvedOk: input.approvedOk,
         signedOk: input.signedOk, contentOk: input.contentOk, review: input.review, note: input.note,
@@ -214,9 +213,9 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         create: { tenantId: scope.companyId, evidenceSubmissionId: submissionId, reviewerRole: input.reviewerRole, ...values },
         update: values,
       });
-      const row = await tx.evidenceSubmission.findFirstOrThrow({ where: { id: submissionId }, select: submissionSelect(input.reviewerRole) });
+      const row = await tx.evidenceSubmission.findFirstOrThrow({ where: { id: submissionId }, select: submissionSelect() });
       const submission = toSubmission(row);
-      const saved: ReviewSaved = { submission, access, before: previous ? toReviewRecord(previous) : null, after: submission.review! };
+      const saved: ReviewSaved = { submission, access, before: previous ? toReviewRecord(previous) : null, after: submission.reviews.find((r) => r.reviewerRole === input.reviewerRole)! };
       await insertAuditLog(tx, audit(saved));
       if (before) {
         await recordControlStateChanges(tx, {
@@ -271,7 +270,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
           description: input.description, dimension: input.dimension as Prisma.EvidenceRequirementUncheckedCreateInput['dimension'], testId: input.testId,
           validityWithinPeriod: input.validityWithinPeriod,
         },
-        select: requirementSelect('admin_empresa'),
+        select: requirementSelect(),
       });
       const created = toRequirement(row);
       await insertAuditLog(tx, audit(created));
@@ -297,7 +296,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
           description: input.description, dimension: input.dimension as Prisma.EvidenceRequirementUncheckedCreateInput['dimension'], testId,
           validityWithinPeriod: input.validityWithinPeriod,
         },
-        select: requirementSelect('admin_empresa'),
+        select: requirementSelect(),
       });
       await insertAuditLog(tx, audit(toRequirement(row)));
       return { requirementId: row.id, created: true };

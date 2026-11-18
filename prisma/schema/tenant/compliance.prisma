@@ -118,6 +118,7 @@ model ClientControl {
   assignment ClientControlAssignment?
   clientCauseControls   ClientCauseControl[]
   evaluations           Evaluation[]
+  testVerdicts          TestVerdict[]
   auditObservations     AuditObservation[]
   evidenceRequirements  EvidenceRequirement[]
   dimensions            ClientControlDimension[]
@@ -377,6 +378,73 @@ model EvidenceReview {
   @@index([tenantId])
   @@index([reviewedBy])
   @@map("evidence_reviews")
+  @@schema("tenant")
+}
+
+enum VerdictResult {
+  compliant
+  non_compliant
+
+  @@map("verdict_result")
+  @@schema("tenant")
+}
+
+enum VerdictReviewDecision {
+  approve
+  reject
+
+  @@map("verdict_review_decision")
+  @@schema("tenant")
+}
+
+// El veredicto de una prueba manual no documental (D85, D121, §7.4b): lo registra el ejecutor, el dueño o el admin_empresa y lo revisan el dueño y el admin_empresa.
+// Inmutable. Es del test en el servicio; `client_control_id` es el control de origen. El último de un test en un servicio decide el estado del test (solo cuenta si está aprobado).
+model TestVerdict {
+  id                       String        @id @default(uuid()) @db.Uuid
+  tenantId                 String        @map("tenant_id") @db.Uuid
+  serviceId                String        @map("service_id") @db.Uuid
+  clientControlId          String        @map("client_control_id") @db.Uuid
+  testId                   String        @map("test_id") @db.Uuid
+  result                   VerdictResult
+  note                     String?       @db.Text
+  closureObservationReason String?       @map("closure_observation_reason") @db.Text
+  registeredBy             String        @map("registered_by") @db.Uuid
+  registeredAt             DateTime      @default(now()) @map("registered_at")
+
+  service          Service             @relation(fields: [serviceId], references: [id])
+  clientControl    ClientControl       @relation(fields: [clientControlId], references: [id])
+  test             Test                @relation(fields: [testId], references: [id])
+  registeredByUser User                @relation("VerdictRegisteredBy", fields: [registeredBy], references: [id])
+  tenant           Company             @relation(fields: [tenantId], references: [id])
+  reviews          TestVerdictReview[]
+
+  @@index([tenantId])
+  @@index([serviceId, testId, registeredAt])
+  @@index([clientControlId])
+  @@index([registeredBy])
+  @@map("test_verdicts")
+  @@schema("tenant")
+}
+
+// Una revisión por rol y veredicto; un segundo PUT del mismo rol la reemplaza. `note` es obligatoria al rechazar (la aplicación y un CHECK).
+model TestVerdictReview {
+  id            String                @id @default(uuid()) @db.Uuid
+  tenantId      String                @map("tenant_id") @db.Uuid
+  testVerdictId String                @map("test_verdict_id") @db.Uuid
+  reviewerRole  EvidenceReviewerRole  @map("reviewer_role")
+  decision      VerdictReviewDecision
+  note          String?               @db.Text
+  reviewedBy    String                @map("reviewed_by") @db.Uuid
+  reviewedAt    DateTime              @default(now()) @map("reviewed_at")
+
+  verdict        TestVerdict @relation(fields: [testVerdictId], references: [id])
+  reviewedByUser User        @relation("VerdictReviewedBy", fields: [reviewedBy], references: [id])
+  tenant         Company     @relation(fields: [tenantId], references: [id])
+
+  @@unique([testVerdictId, reviewerRole])
+  @@index([tenantId])
+  @@index([reviewedBy])
+  @@map("test_verdict_reviews")
   @@schema("tenant")
 }
 

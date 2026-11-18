@@ -223,6 +223,7 @@ describe('MD-126 · subir una evidencia', () => {
       note: null,
       reviewed_by: null,
       reviewed_at: null,
+      reviews: [],
     });
     await responsable.get(`/v1/evidence-requirements/${requirementId}/submissions?view=technical`).expect(403);
   });
