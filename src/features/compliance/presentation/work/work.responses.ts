@@ -10,9 +10,9 @@ export class WorkProgressResponse {
 }
 
 export class WorkItemResponse {
-  @ApiProperty({ format: 'uuid' }) client_control_id!: string;
-  @ApiProperty({ example: 'IAC-12' }) code!: string;
-  @ApiProperty() title!: string;
+  @ApiProperty({ format: 'uuid', description: 'El control del cliente (de un servicio).' }) client_control_id!: string;
+  @ApiProperty({ example: 'IAC-12', description: 'El código del control (D80): el del catálogo o la numeración propia.' }) code!: string;
+  @ApiProperty({ description: 'El nombre del control.' }) title!: string;
   @ApiProperty({ type: AssignmentServiceResponse }) service!: AssignmentServiceResponse;
   @ApiProperty({ enum: ['owner', 'executor'], enumName: 'RoleInControl' }) role_in_control!: string;
   @ApiProperty({ enum: WORK_BUCKETS, enumName: 'WorkBucket', description: 'El primero que aplique (D122): rejected, to_review, to_upload, in_review, done.' }) bucket!: string;
@@ -21,22 +21,22 @@ export class WorkItemResponse {
 }
 
 export class MyWorkResponse {
-  @ApiProperty({ type: WorkItemResponse, isArray: true }) items!: WorkItemResponse[];
+  @ApiProperty({ type: WorkItemResponse, isArray: true, description: 'Los controles de la página.' }) items!: WorkItemResponse[];
   @ApiProperty({ type: WorkProgressResponse, description: 'Avance de SUS controles (los del servicio, si se filtró por él).' }) progress!: WorkProgressResponse;
-  @ApiProperty() page!: number;
-  @ApiProperty() page_size!: number;
-  @ApiProperty() total!: number;
-  @ApiProperty() total_pages!: number;
+  @ApiProperty({ description: 'Página actual, desde 1.' }) page!: number;
+  @ApiProperty({ description: 'Elementos por página.' }) page_size!: number;
+  @ApiProperty({ description: 'Controles que cumplen los filtros.' }) total!: number;
+  @ApiProperty({ description: 'Páginas en total.' }) total_pages!: number;
 }
 
 export class WorkloadItemResponse {
   @ApiProperty({ type: AssignedPersonResponse }) user!: AssignedPersonResponse;
-  @ApiProperty() owned_count!: number;
-  @ApiProperty() executed_count!: number;
+  @ApiProperty({ description: 'Controles de los que es dueño.' }) owned_count!: number;
+  @ApiProperty({ description: 'Controles que ejecuta.' }) executed_count!: number;
   @ApiProperty({ type: WorkProgressResponse, description: 'Avance de sus controles: los que posee y los que ejecuta.' }) progress!: WorkProgressResponse;
 }
 
 export class WorkloadResponse {
-  @ApiProperty({ type: WorkloadItemResponse, isArray: true }) items!: WorkloadItemResponse[];
+  @ApiProperty({ type: WorkloadItemResponse, isArray: true, description: 'Cada persona con su carga, por rol y nombre.' }) items!: WorkloadItemResponse[];
   @ApiProperty({ description: 'Controles vigentes «Sin asignar» de toda la empresa.' }) unassigned_count!: number;
 }
