@@ -4,11 +4,12 @@ import { FileStorage } from '../../src/common/storage/file-storage';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { asApp, failure, withRollback } from '../support/db';
 import { dosEmpresas, Tenant } from '../support/escenario';
-import { asignarServicio } from '../support/asignaciones';
+import { asignarControl, asignarServicio } from '../support/asignaciones';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
-// MD-127 + D88 · La persona lee lo que pide una prueba documental y sube su documento PARA ESA PRUEBA en ese control; el admin_empresa la valida o la rechaza con motivo (D96),
-// en una sola revisión de la que sale el estado de la prueba (RN-04). El responsable y el auditor no revisan. Cada prueba sale por HTTP con la sesión real de cada rol, contra el Postgres desechable.
+// MD-127 + D88 + D102 (MD-194) · La persona lee lo que pide una prueba documental y sube su documento PARA ESA PRUEBA en ese control; la revisan el responsable dueño (si no la subió él) y el
+// admin_empresa (siempre), una revisión por rol, y el estado de la prueba sale de COMBINAR las dos (RN-04): un rechazo gana. El delegado, el auditor y admin_monkey no revisan. Cada prueba sale por
+// HTTP con la sesión real de cada rol, contra el Postgres desechable.
 type Agent = Awaited<ReturnType<typeof login>>;
 type TestRef = { id: string; code: string };
 let app: INestApplication;
@@ -18,6 +19,7 @@ let monkey: Agent;
 let auditor: Agent;
 let responsable: Agent;
 let responsableNoDoc: Agent;
+let delegado: Agent;
 let responsableId: string;
 const storage = new StorageEnMemoria();
 
@@ -46,10 +48,10 @@ const docTestsOf = (controlId: string) =>
     [controlId],
   );
 
-async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<string> {
+async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable' | 'delegado'): Promise<string> {
   return (await owner<{ id: string }>(
-    `insert into platform.users (id, company_id, email, name, last_name, password_hash, role) values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role) returning id`,
-    [companyId, email, await bcrypt.hash(PASSWORD, 4), role],
+    `insert into platform.users (id, company_id, email, name, last_name, password_hash, role, is_internal) values (gen_random_uuid(), $1, $2, 'Prueba', 'Roles', $3, $4::platform.user_role, $5) returning id`,
+    [companyId, email, await bcrypt.hash(PASSWORD, 4), role, role === 'delegado' ? true : null],
   ))[0].id;
 }
 
@@ -63,6 +65,8 @@ beforeAll(async () => {
   responsable = await login(app, `responsable-rev-${RUN}@cumplimiento.test`);
   await asignarServicio(a.companyId, a.serviceId, responsableId);
   responsableNoDoc = await login(app, `responsable-nodoc-rev-${RUN}@cumplimiento.test`);
+  const delegadoId = await cuenta(a.companyId, `delegado-rev-${RUN}@cumplimiento.test`, 'delegado');
+  delegado = await login(app, `delegado-rev-${RUN}@cumplimiento.test`);
 
   const controls = await owner<{ id: string }>(
     `select cc.id from tenant.client_controls cc
@@ -73,6 +77,7 @@ beforeAll(async () => {
   );
   expect(controls.length).toBe(2);
   [controlX, controlY] = controls.map((c) => c.id);
+  await asignarControl(a.companyId, controlY, responsableId, delegadoId); // el delegado es el ejecutor de Y; el responsable, su dueño
   testsX = await docTestsOf(controlX);
   testsY = await docTestsOf(controlY);
 });
@@ -218,7 +223,7 @@ describe('D88 · reglas de la subida por prueba', () => {
   });
 });
 
-describe('D96 · solo el admin_empresa revisa; el responsable y el auditor leen', () => {
+describe('D96 · el motivo del rechazo, la vista técnica y la validación del cuerpo', () => {
   let v: string;
   let t: TestRef;
   beforeAll(async () => {
@@ -246,23 +251,22 @@ describe('D96 · solo el admin_empresa revisa; el responsable y el auditor leen'
     expect(visto).toMatchObject({ evidence_state: 'non_compliant', review_note: 'Falta el anexo de proveedores.' });
     expect(visto.technical).toBeUndefined();
     await responsable.get(`/v1/controls/${controlY}/evidence?view=technical`).expect(403);
+    await delegado.get(`/v1/controls/${controlY}/evidence?view=technical`).expect(403);
   });
 
-  it('el auditor ve la misma revisión que el administrador, y no puede revisar (403)', async () => {
+  it('el auditor ve las mismas revisiones que el administrador, y no puede revisar (403)', async () => {
     const find = (items: any[]) => items.find((i) => i.test?.id === t.id).submissions.find((s: any) => s.version === 2);
     const porAuditor = find(await requirementsOf(auditor, controlX, 'technical'));
     const porAdmin = find(await requirementsOf(a.agent, controlX, 'technical'));
     expect(porAuditor).toEqual(porAdmin);
-    expect(porAuditor).toMatchObject({ evidence_state: 'compliant', technical: { review: 'human_validated' } });
+    expect(porAuditor).toMatchObject({ evidence_state: 'compliant', technical: { review: 'human_validated', reviews: [{ reviewer_role: 'admin_empresa', review: 'human_validated' }] } });
     await review(auditor, v, ALL_OK).expect(403);
   });
 
-  it('responsable y admin_monkey no revisan (403); otra empresa y un id inválido, 404', async () => {
-    await review(responsable, v, ALL_OK).expect(403);
-    await review(monkey, v, ALL_OK).expect(403);
-    // El administrador de OTRA empresa no encuentra la entrega: para él no existe (404), no es que no pueda (403).
+  it('otra empresa y un id inválido, 404', async () => {
     await review(b.agent, v, ALL_OK).expect(404);
     await review(a.agent, 'no-es-un-uuid', ALL_OK).expect(404);
+    await review(responsable, '00000000-0000-4000-8000-000000000000', ALL_OK).expect(404);
   });
 
   it('`ai_prevalidated` y un cuerpo sin `review` se rechazan (422): lo deriva el sistema, nunca una persona', async () => {
@@ -271,11 +275,121 @@ describe('D96 · solo el admin_empresa revisa; el responsable y el auditor leen'
     await review(a.agent, v, { ...ALL_OK, type_ok: 'si' }).expect(422);
   });
 
-  it('deja el rastro de quién revisó qué, sin los atributos en el detalle', async () => {
-    const [row] = await owner<{ after_state: Record<string, unknown> }>(
-      `select after_state from audit.audit_logs where tenant_id = $1 and action = 'evidence_review.update' order by created_at desc limit 1`, [a.companyId]);
-    expect(row.after_state).toMatchObject({ reviewer_role: 'admin_empresa', review: 'human_validated' });
+  it('el cuerpo no puede fijar el rol de quien revisa: `reviewer_role` se rechaza (422)', async () => {
+    await review(a.agent, v, { ...ALL_OK, reviewer_role: 'responsable' }).expect(422);
+  });
+});
+
+// D102 · MD-194 · Dos niveles: el responsable dueño y el admin_empresa, una revisión por rol, y el estado combina las dos. Control Y: dueño = responsable, ejecutor = delegado.
+describe('D102 · revisión en dos niveles de una evidencia', () => {
+  let t: TestRef;
+  const rolesOf = (submissionId: string) =>
+    owner<{ reviewer_role: string; review: string; reviewed_by: string }>(`select reviewer_role, review, reviewed_by from tenant.evidence_reviews where evidence_submission_id = $1 order by reviewer_role`, [submissionId]);
+  const estado = async (agent: Agent = a.agent) => (await requirementsOf(agent, controlY)).find((r) => r.test?.id === t.id).submissions[0];
+  /** Sube una versión nueva de la prueba con la sesión dada y devuelve su id (la más reciente). */
+  const sube = async (agent: Agent, marca: string) => (await forTest(agent, controlY, t.id, marca).expect(201)).body.data.id as string;
+
+  beforeAll(() => {
+    t = testsY[1];
+  });
+
+  it('sube el delegado (ejecutor): sin revisión queda pendiente y el responsable dueño la valida con su propio rol', async () => {
+    const id = await sube(delegado, 'dos-niveles-delegado-1');
+    expect((await estado()).evidence_state).toBe('pending');
+    const res = await review(responsable, id, ALL_OK).expect(200);
+    expect(res.body.data).toMatchObject({ id, evidence_state: 'compliant' });
+    expect(res.body.data.technical).toBeUndefined(); // el responsable ve el estado y la nota, no los atributos
+    const filas = await rolesOf(id);
+    expect(filas.map((f) => f.reviewer_role)).toEqual(['responsable']);
+    expect((await docStates(controlY))[t.code]).toBe('compliant');
+  });
+
+  it('el admin_empresa revisa la misma entrega: dos revisiones, una por rol, y si validan los dos cumple', async () => {
+    const id = (await estado()).id;
+    await review(a.agent, id, ALL_OK).expect(200);
+    expect((await rolesOf(id)).map((f) => f.reviewer_role)).toEqual(['admin_empresa', 'responsable']);
+    expect((await estado()).evidence_state).toBe('compliant');
+    const tecnica = (await requirementsOf(a.agent, controlY, 'technical')).find((r) => r.test?.id === t.id).submissions[0];
+    expect(tecnica.technical.reviews.map((r: any) => r.reviewer_role)).toEqual(['admin_empresa', 'responsable']);
+  });
+
+  it('el rechazo de un rol gana sobre la validación del otro; quien subió lee el motivo', async () => {
+    const id = (await estado()).id;
+    const sinNota = await review(a.agent, id, { ...ALL_OK, signed_ok: false }).expect(422);
+    expect(sinNota.body.error.fields[0]).toMatchObject({ field: 'note', code: 'note.required' });
+    await review(a.agent, id, { ...ALL_OK, signed_ok: false, note: 'Falta la firma de la dirección.' }).expect(200);
+    for (const agent of [a.agent, responsable, delegado]) expect((await estado(agent)).evidence_state).toBe('non_compliant');
+    expect((await docStates(controlY))[t.code]).toBe('non_compliant');
+    const vistoPorQuienSubio = await estado(delegado);
+    expect(vistoPorQuienSubio).toMatchObject({ review_note: 'Falta la firma de la dirección.' });
+    expect(vistoPorQuienSubio.technical).toBeUndefined();
+    const tecnica = (await requirementsOf(a.agent, controlY, 'technical')).find((r) => r.test?.id === t.id).submissions[0];
+    expect(tecnica.technical).toMatchObject({ review: 'human_validated', note: 'Falta la firma de la dirección.' }); // el resumen explica el rechazo
+  });
+
+  it('un segundo PUT del mismo rol REEMPLAZA su revisión (una fila por rol) y cambia el estado', async () => {
+    const id = (await estado()).id;
+    await review(a.agent, id, ALL_OK).expect(200); // el admin retira su rechazo; el responsable sigue validando
+    expect((await rolesOf(id)).length).toBe(2);
+    expect((await estado()).evidence_state).toBe('compliant');
+    // El responsable ahora rechaza: gana su rechazo aunque el admin valide.
+    await review(responsable, id, { ...ALL_OK, content_ok: false, note: 'El anexo es de otro período.' }).expect(200);
+    expect((await rolesOf(id)).length).toBe(2);
+    expect((await estado(delegado)).evidence_state).toBe('non_compliant');
+    expect((await estado(delegado)).review_note).toBe('El anexo es de otro período.');
+    // …y un rechazo posterior anula una validación previa: el responsable vuelve a validar.
+    await review(responsable, id, ALL_OK).expect(200);
+    expect((await estado()).evidence_state).toBe('compliant');
+  });
+
+  it('el responsable dueño NO revisa lo que subió él mismo (403); el admin_empresa sí la revisa', async () => {
+    const id = await sube(responsable, 'dos-niveles-responsable-2');
+    await review(responsable, id, ALL_OK).expect(403);
+    expect(await rolesOf(id)).toEqual([]);
+    await review(a.agent, id, ALL_OK).expect(200);
+    expect((await rolesOf(id)).map((f) => f.reviewer_role)).toEqual(['admin_empresa']);
+    expect((await estado()).evidence_state).toBe('compliant'); // una sola validación, sin rechazos, cumple
+  });
+
+  it('el admin_empresa revisa también lo que subió él mismo (P34)', async () => {
+    const id = await sube(a.agent, 'dos-niveles-admin-3');
+    await review(a.agent, id, ALL_OK).expect(200);
+    expect((await estado()).evidence_state).toBe('compliant');
+    // Y el responsable dueño sí puede revisar lo que subió el admin.
+    await review(responsable, id, { ...ALL_OK, period_ok: false, note: 'El período no es el vigente.' }).expect(200);
+    expect((await estado()).evidence_state).toBe('non_compliant');
+  });
+
+  it('delegado, auditor, admin_monkey y un responsable que no es el dueño reciben 403; nada se escribe', async () => {
+    const id = await sube(delegado, 'dos-niveles-delegado-4');
+    await review(delegado, id, ALL_OK).expect(403);
+    await review(auditor, id, ALL_OK).expect(403);
+    await review(monkey, id, ALL_OK).expect(403);
+    await review(responsableNoDoc, id, ALL_OK).expect(403);
+    expect(await rolesOf(id)).toEqual([]);
+    expect((await estado()).evidence_state).toBe('pending');
+  });
+
+  it('otra empresa no encuentra la entrega: 404, no 403', async () => {
+    const id = (await estado()).id;
+    await review(b.agent, id, ALL_OK).expect(404);
+  });
+
+  it('deja el rastro con el rol de quien revisó y quién subió, sin los atributos en el detalle (SEG-36)', async () => {
+    const [row] = await owner<{ user_id: string; before_state: any; after_state: Record<string, unknown> }>(
+      `select user_id, before_state, after_state from audit.audit_logs where tenant_id = $1 and action = 'evidence_review.update' and after_state->>'reviewer_role' = 'responsable' order by created_at desc limit 1`, [a.companyId]);
+    expect(row.after_state).toMatchObject({ reviewer_role: 'responsable', submitted_by: expect.any(String), evidence_state: expect.any(String) });
+    expect(row.user_id).toBe(responsableId);
     for (const k of ['type_ok', 'period_ok', 'signed_ok', 'content_ok', 'note']) expect(JSON.stringify(row.after_state)).not.toContain(k);
+    const [admin] = await owner<{ after_state: Record<string, unknown> }>(
+      `select after_state from audit.audit_logs where tenant_id = $1 and action = 'evidence_review.update' and after_state->>'reviewer_role' = 'admin_empresa' order by created_at desc limit 1`, [a.companyId]);
+    expect(admin.after_state).toMatchObject({ reviewer_role: 'admin_empresa', review: 'human_validated' });
+  });
+
+  it('el cambio de estado que provoca una revisión deja su evento control.state', async () => {
+    const [n] = await owner<{ n: number }>(
+      `select count(*)::int n from audit.compliance_events where tenant_id = $1 and changed_field = 'control.state' and new_value->>'control_id' = $2 and new_value->>'cause' = 'evidence_review'`, [a.companyId, controlY]);
+    expect(n.n).toBeGreaterThan(0);
   });
 });
 
@@ -305,7 +419,7 @@ describe('D96 · la base aísla y protege las revisiones', () => {
     });
   });
 
-  it('solo existe una revisión por entrega', async () => {
+  it('solo existe una revisión por entrega y por rol', async () => {
     const [row] = await owner<{ evidence_submission_id: string; reviewed_by: string; tenant_id: string }>(
       `select evidence_submission_id, reviewed_by, tenant_id from tenant.evidence_reviews where tenant_id = $1 and reviewer_role = 'admin_empresa' limit 1`, [a.companyId]);
     await withRollback(async (db) => {
