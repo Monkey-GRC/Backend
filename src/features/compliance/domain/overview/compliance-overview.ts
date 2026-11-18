@@ -66,6 +66,16 @@ const ratioOf = (controls: readonly ControlReadout[]): { progress: Ratio; covera
   failing: controls.filter((c) => isFailing(c.state)).length,
 });
 
+/**
+ * El avance de un conjunto de controles con los mismos cortes en todo el producto: semáforo, hechos sobre total y cobertura. Lo usan el resumen (por categoría y marco) y «Mi trabajo» (D122).
+ * Con `measured = false` (el período del marco no está definido, D87) nada se mide: todo pendiente y «Sin medir».
+ */
+export function summarizeControls(readouts: readonly ControlReadout[], measured = true): { readiness: Readiness; progress: Ratio; coverage: Coverage } {
+  if (!measured) return { readiness: 'not_measured', progress: { done: 0, total: readouts.length }, coverage: { measured: 0, applicable: readouts.length } };
+  const { progress, coverage, failing } = ratioOf(readouts);
+  return { readiness: readinessOfRollup({ total: progress.total, measured: coverage.measured, done: progress.done, failing }), progress, coverage };
+}
+
 const blockingTests = (r: ControlReadout): OverviewControlLine['blockingTests'] =>
   r.tests
     .filter((t) => t.state !== 'compliant' && t.state !== 'not_applicable' && t.state !== 'deactivated')
@@ -107,12 +117,11 @@ export function buildOverview(input: OverviewInput): OverviewFramework[] {
       const mandatory = input.criteria.find((c) => c.criterion === criterion)?.mandatory ?? false;
       if (controls.length === 0 && (!mandatory || input.scoped)) continue;
       const evaluation = evaluateCategory({ inScope: true, controls: controls.map((r) => ({ controlId: r.control.id, state: r.state })) });
-      const counts = ratioOf(controls);
-      const shown = defined ? counts : { progress: { done: 0, total: controls.length }, coverage: { measured: 0, applicable: controls.length }, failing: 0 };
+      const shown = summarizeControls(controls, defined);
       const failing = !defined ? [] : controls.filter((r) => isFailing(r.state));
       categories.push({
         trustCriterion: criterion,
-        readiness: defined ? readinessOfRollup({ total: shown.progress.total, measured: shown.coverage.measured, done: shown.progress.done, failing: shown.failing }) : 'not_measured',
+        readiness: shown.readiness,
         progress: shown.progress,
         coverage: shown.coverage,
         failingControls: failing.map((r) => ({
@@ -132,8 +141,7 @@ export function buildOverview(input: OverviewInput): OverviewFramework[] {
     const unique = new Map<string, ControlReadout>();
     for (const category of categories) for (const line of category.technical.controls) unique.set(line.readout.control.id, line.readout);
     const all = [...unique.values()];
-    const counts = ratioOf(all);
-    const shown = defined ? counts : { progress: { done: 0, total: all.length }, coverage: { measured: 0, applicable: all.length }, failing: 0 };
+    const shown = summarizeControls(all, defined);
     const engine = evaluateFramework(
       categories.map((c) => ({ inScope: true, controls: c.technical.controls.map((l) => ({ controlId: l.readout.control.id, state: l.readout.state })) })),
     );
@@ -141,7 +149,7 @@ export function buildOverview(input: OverviewInput): OverviewFramework[] {
     return {
       frameworkCode: fw.code,
       name: fw.name,
-      readiness: defined ? readinessOfRollup({ total: shown.progress.total, measured: shown.coverage.measured, done: shown.progress.done, failing: shown.failing }) : 'not_measured',
+      readiness: shown.readiness,
       progress: shown.progress,
       coverage: shown.coverage,
       evaluation: { catalogVersion: fw.catalogVersion, periodStart: fw.periodStart, periodEnd: fw.periodEnd, cutoffDate: cutoff?.date ?? null, cutoffFrozen: cutoff?.frozen ?? null },
