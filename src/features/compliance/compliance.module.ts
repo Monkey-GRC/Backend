@@ -15,7 +15,7 @@ import { ListControlTestsUseCase } from './application/controls/list-control-tes
 import { GetOverviewUseCase } from './application/overview/get-overview.use-case';
 import { ListControlsUseCase } from './application/controls/list-controls.use-case';
 import { CreateTreatmentUseCase, EvaluateRiskUseCase, EvaluationHistoryUseCase, ListTreatmentsUseCase } from './application/risks/risk-assessment.use-cases';
-import { IssueVerdictUseCase, ListVerdictsUseCase } from './application/verdicts/verdict.use-cases';
+import { IssueVerdictUseCase, ListVerdictsUseCase, ReviewVerdictUseCase } from './application/verdicts/verdict.use-cases';
 import { CreateResponsibleUseCase, DeleteResponsibleUseCase, ListResponsiblesUseCase, UpdateResponsibleUseCase } from './application/responsibles/responsible.use-cases';
 import {
   CreateCauseUseCase, CreateRiskUseCase, DeactivateCauseUseCase, DeactivateRiskUseCase, GetCauseUseCase, GetRiskUseCase, LinkUseCases, ListCausesUseCase, ListRisksUseCase, ReactivateRiskUseCase,
@@ -83,7 +83,7 @@ import { RisksController } from './presentation/risks/risks.controller';
     { provide: EvaluationPeriodRepository, useClass: EvaluationPeriodPrismaRepository },
     SetEvaluationPeriodUseCase,
     { provide: TestVerdictRepository, useClass: TestVerdictPrismaRepository },
-    IssueVerdictUseCase, ListVerdictsUseCase,
+    IssueVerdictUseCase, ListVerdictsUseCase, ReviewVerdictUseCase,
     { provide: EvidenceRepository, useClass: EvidencePrismaRepository },
     ListEvidenceUseCase, ListServiceEvidenceUseCase, ListSubmissionsUseCase, UploadEvidenceUseCase, GetEvidenceDownloadUseCase, ReviewEvidenceUseCase, CreateEvidenceRequirementUseCase, UploadTestEvidenceUseCase, ListTestEvidenceUseCase, ListControlTestsUseCase,
   ],

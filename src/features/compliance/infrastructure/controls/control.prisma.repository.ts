@@ -4,7 +4,7 @@ import { PrismaService } from '../../../../infrastructure/database/prisma.servic
 import { ControlDetailData, ControlRepository, Placement, ServiceOverviewData, ServiceReadoutData } from '../../domain/controls/control.repository';
 import { evidenceStateOf } from '../../domain/evidence/evidence';
 import { loadServiceSnapshot } from '../shared/service-snapshot.loader';
-import { reviewsOf, toReviewRecord } from '../evidence/evidence-review.mapper';
+import { ALL_REVIEWS, toReviewRecord } from '../evidence/evidence-review.mapper';
 
 // Una lectura del cumplimiento junta controles, evaluaciones y exclusiones de un servicio en una sola transacción: con la base lejos (desarrollo contra una base remota)
 // los 5 s por defecto de Prisma no alcanzan y el resumen responde 500.
@@ -101,7 +101,7 @@ export class ControlPrismaRepository extends ControlRepository {
           id: true, code: true, sequence: true, description: true, dimension: true, validityWithinPeriod: true, sourceRef: true,
           responsible: { select: { id: true, type: true, personName: true } },
           // La revisión del admin_empresa: la única, la que ven todos y la que consume el motor (D96).
-          submissions: { select: { id: true, version: true, aiVerdict: true, reviews: reviewsOf('admin_empresa') } },
+          submissions: { select: { id: true, version: true, aiVerdict: true, reviews: ALL_REVIEWS } },
         },
       });
       const links = await tx.clientCauseControl.findMany({
@@ -119,7 +119,7 @@ export class ControlPrismaRepository extends ControlRepository {
             validityWithinPeriod: r.validityWithinPeriod,
             origin: r.sourceRef ? ('catalog' as const) : ('own' as const),
             responsible: r.responsible ? { id: r.responsible.id, type: r.responsible.type, personName: r.responsible.personName } : null,
-            latestSubmission: latest ? { id: latest.id, version: Number(latest.version) || 0, evidenceState: evidenceStateOf({ aiVerdict: latest.aiVerdict, review: latest.reviews[0] ? toReviewRecord(latest.reviews[0]) : null }) } : null,
+            latestSubmission: latest ? { id: latest.id, version: Number(latest.version) || 0, evidenceState: evidenceStateOf({ aiVerdict: latest.aiVerdict, reviews: latest.reviews.map(toReviewRecord) }) } : null,
           };
         }),
         causes: links.map((l) => ({ id: l.clientCause.id, code: l.clientCause.code, name: l.clientCause.name })),

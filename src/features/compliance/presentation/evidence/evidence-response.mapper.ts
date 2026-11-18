@@ -1,6 +1,7 @@
 import { I18nContext } from 'nestjs-i18n';
 import { localizedTestName } from '../../../../common/text/test-display-name';
-import { evidenceStateOf, WITHIN_EVALUATION_PERIOD } from '../../domain/evidence/evidence';
+import { evidenceStateOf, rejectingReview, WITHIN_EVALUATION_PERIOD } from '../../domain/evidence/evidence';
+import type { EvidenceReviewRecord } from '../../domain/evidence/evidence';
 import { RequirementRecord, SubmissionRecord } from '../../domain/evidence/evidence.repository';
 import { fileNameOfKey } from '../../application/evidence/evidence-file';
 import type { ViewMode } from '../../application/shared/view-access';
@@ -18,29 +19,29 @@ export function toSubmission(s: SubmissionRecord, view: ViewMode, includeRequire
     integrity_hash: s.integrityHash,
     submitted_by: { id: s.submittedBy.id, name: s.submittedBy.name, last_name: s.submittedBy.lastName },
     submitted_at: s.submittedAt.toISOString(),
-    // D96 · Lo deriva el servidor de la única revisión de la entrega, la del admin_empresa.
+    // D102 · Lo deriva el servidor combinando las revisiones de cada rol.
     evidence_state: evidenceStateOf(s),
-    // D96 · El motivo con el que el admin_empresa rechazó (o la nota con la que validó): es lo que el responsable lee para corregir. `null` si no hay revisión o no dejó nota.
-    review_note: s.review?.note ?? null,
+    // D102 · El motivo del rechazo (el de la revisión que no cumple, la más reciente): es lo que quien subió lee para corregir. `null` si nadie rechazó.
+    review_note: rejectingReview(s.reviews)?.note ?? null,
     // La IA sugiere y siempre va marcada; el contrato prevé una confianza que hoy no se guarda.
     ai: s.aiVerdict ? { is_ai_generated: true, ai_confidence: null, verdict: s.aiVerdict } : null,
   };
   if (view !== 'technical') return base;
-  // La revisión de quien pregunta (`ai_prevalidated` lo deriva el servidor, nunca lo manda una persona). Sin revisión humana, todo queda sin valorar.
-  const r = s.review;
-  return {
-    ...base,
-    technical: {
-      review: r ? r.review : s.aiVerdict ? 'ai_prevalidated' : 'pending_review',
-      attributes: {
-        type_ok: r?.typeOk ?? null, period_ok: r?.periodOk ?? null, valid_ok: r?.validOk ?? null,
-        approved_ok: r?.approvedOk ?? null, signed_ok: r?.signedOk ?? null, content_ok: r?.contentOk ?? null,
-      },
-      note: r?.note ?? null,
-      reviewed_by: r ? { id: r.reviewedBy.id, name: r.reviewedBy.name, last_name: r.reviewedBy.lastName } : null,
-      reviewed_at: r ? r.reviewedAt.toISOString() : null,
+  // D102 · La vista técnica trae la revisión de cada rol (`reviews[]`). Los campos de primer nivel resumen la que explica el estado: la que rechaza, si la hay; si no, la del admin_empresa
+  // y, si falta, la del responsable. `ai_prevalidated` lo deriva el servidor, nunca lo manda una persona; sin revisión humana, todo queda sin valorar.
+  const detail = (r: EvidenceReviewRecord | null) => ({
+    review: r ? r.review : s.aiVerdict ? 'ai_prevalidated' : 'pending_review',
+    attributes: {
+      type_ok: r?.typeOk ?? null, period_ok: r?.periodOk ?? null, valid_ok: r?.validOk ?? null,
+      approved_ok: r?.approvedOk ?? null, signed_ok: r?.signedOk ?? null, content_ok: r?.contentOk ?? null,
     },
-  };
+    note: r?.note ?? null,
+    reviewed_by: r ? { id: r.reviewedBy.id, name: r.reviewedBy.name, last_name: r.reviewedBy.lastName } : null,
+    reviewed_at: r ? r.reviewedAt.toISOString() : null,
+  });
+  const summary = rejectingReview(s.reviews) ?? s.reviews.find((r) => r.reviewerRole === 'admin_empresa') ?? s.reviews[0] ?? null;
+  const ordered = [...s.reviews].sort((a, b) => (a.reviewerRole === b.reviewerRole ? 0 : a.reviewerRole === 'admin_empresa' ? -1 : 1));
+  return { ...base, technical: { ...detail(summary), reviews: ordered.map((r) => ({ reviewer_role: r.reviewerRole, ...detail(r) })) } };
 }
 
 export function toRequirement(r: RequirementRecord, view: ViewMode) {

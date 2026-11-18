@@ -57,6 +57,7 @@ const NAMED_PARAMS: Record<string, string> = {
   connectionId: 'la conexión (el activo que la define)',
   requirementId: 'el requerimiento de evidencia',
   submissionId: 'la entrega de evidencia',
+  verdictId: 'el veredicto de una prueba manual',
   templateId: 'la plantilla de evidencia',
   testId: 'la prueba',
   pointOfFocusId: 'el punto de enfoque',

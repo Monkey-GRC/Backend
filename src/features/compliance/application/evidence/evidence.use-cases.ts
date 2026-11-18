@@ -9,7 +9,7 @@ import { Page } from '../../../../common/pagination/page';
 import { FileStorage } from '../../../../common/storage/file-storage';
 import type { UploadedFile } from '../../../../common/storage/uploaded-file';
 import { ValidationException } from '../../../../common/errors/validation.exception';
-import { evidenceStateOf, reviewerRoleFor, WITHIN_EVALUATION_PERIOD } from '../../domain/evidence/evidence';
+import { evidenceStateOf, ReviewerRole, reviewerRoleFor, WITHIN_EVALUATION_PERIOD } from '../../domain/evidence/evidence';
 import { EvidenceAccess, EvidenceRepository, RequirementRecord, ServiceEvidence, SubmissionRecord, TestEvidence } from '../../domain/evidence/evidence.repository';
 import { CreateEvidenceRequirementDto, ReviewEvidenceDto } from './evidence.dto';
 import { assertEvidenceFile, evidenceKey, fileNameOfKey, INLINE_TYPES } from './evidence-file';
@@ -33,7 +33,7 @@ export class ListEvidenceUseCase {
 
   async execute(p: Principal, controlId: string, view: 'technical' | undefined): Promise<{ view: ViewMode; requirements: RequirementRecord[] }> {
     const mode = viewModeOf(p, view);
-    const data = await this.repo.listByControl(scopeOf(p), controlId, reviewerRoleFor(p.role));
+    const data = await this.repo.listByControl(scopeOf(p), controlId);
     if (!data) throw new DomainError('NOT_FOUND');
     assertCanTouch(p, data.access);
     return { view: mode, requirements: data.requirements };
@@ -47,7 +47,7 @@ export class ListServiceEvidenceUseCase {
 
   async execute(p: Principal, serviceId: string, view: 'technical' | undefined): Promise<{ view: ViewMode; items: ServiceEvidence['items'] }> {
     const mode = viewModeOf(p, view);
-    const data = await this.repo.listByService(scopeOf(p), serviceId, reviewerRoleFor(p.role));
+    const data = await this.repo.listByService(scopeOf(p), serviceId);
     if (!data) throw new DomainError('NOT_FOUND');
     const visible = data.controls.filter((c) => canSeeControl(p, c.access)).sort((a, b) => compareOwnCode(a.ownCode, b.ownCode));
     const items = visible.flatMap((c) => data.items.filter((i) => i.controlId === c.id).sort((a, b) => a.requirement.sequence - b.requirement.sequence));
@@ -66,7 +66,7 @@ export class ListTestEvidenceUseCase {
 
   async execute(p: Principal, controlId: string, testId: string, view: 'technical' | undefined): Promise<TestEvidenceView> {
     const mode = viewModeOf(p, view);
-    const data = await this.repo.listByTest(scopeOf(p), controlId, testId, reviewerRoleFor(p.role));
+    const data = await this.repo.listByTest(scopeOf(p), controlId, testId);
     if (!data) throw new DomainError('NOT_FOUND');
     const origin = data.controls.find((c) => c.id === controlId);
     if (!origin) throw new DomainError('NOT_FOUND');
@@ -92,7 +92,7 @@ export class ListSubmissionsUseCase {
     const access = await this.repo.findRequirement(scopeOf(p), requirementId);
     if (!access) throw new DomainError('NOT_FOUND');
     assertCanTouch(p, access.access);
-    const result = await this.repo.listSubmissions(scopeOf(p), requirementId, page, pageSize, reviewerRoleFor(p.role));
+    const result = await this.repo.listSubmissions(scopeOf(p), requirementId, page, pageSize);
     if (!result) throw new DomainError('NOT_FOUND');
     return { view: mode, page: result };
   }
@@ -139,15 +139,20 @@ export class UploadEvidenceUseCase {
   }
 }
 
-// D96 · La revisión de una entrega la hace solo el admin_empresa, en una sola revisión (el rol sale de la sesión, no del cuerpo): la valida o la rechaza con motivo. Crea o
-// reemplaza la propia. De esta revisión sale el estado de la evidencia y, con él, el de las pruebas documentales de su control (D88).
+// D102 · La revisión de una entrega la hacen el `responsable` dueño del control (si no la subió él) y el `admin_empresa` (siempre), una revisión por rol (el rol sale de la sesión, no del
+// cuerpo): la valida o la rechaza con motivo y `PUT` crea o reemplaza la de su rol. El estado de la evidencia, y con él el de las pruebas documentales de su control (D88), sale de
+// COMBINAR las revisiones de los dos roles.
 @Injectable()
 export class ReviewEvidenceUseCase {
   constructor(private readonly repo: EvidenceRepository) {}
 
-  async execute(p: Principal, submissionId: string, dto: ReviewEvidenceDto, meta: RequestMeta): Promise<SubmissionRecord> {
-    const reviewerRole = reviewerRoleFor(p.role);
-    // Rechazar es dejar algún atributo en `false`: el responsable necesita el motivo para saber qué corregir (compliance-audit.md).
+  async execute(p: Principal, submissionId: string, dto: ReviewEvidenceDto, meta: RequestMeta): Promise<{ submission: SubmissionRecord; reviewerRole: ReviewerRole }> {
+    // Primero qué entrega es y si esta persona puede revisarla: una ajena o inexistente es 404; una de su empresa que no le toca, 403.
+    const found = await this.repo.findSubmission(scopeOf(p), submissionId);
+    if (!found) throw new DomainError('NOT_FOUND');
+    const reviewerRole = reviewerRoleFor(p, found.access.access, found.submission.submittedBy.id);
+    if (!reviewerRole) throw new DomainError('FORBIDDEN');
+    // Rechazar es dejar algún atributo en `false`: quien subió necesita el motivo para saber qué corregir (compliance-audit.md).
     const rejects = [dto.type_ok, dto.period_ok, dto.valid_ok, dto.approved_ok, dto.signed_ok, dto.content_ok].some((v) => v === false);
     if (rejects && !dto.note?.trim()) throw new ValidationException([{ field: 'note', code: 'note.required' }]);
     const saved = await this.repo.saveReview(
@@ -156,15 +161,18 @@ export class ReviewEvidenceUseCase {
         reviewerRole, reviewedBy: p.userId, typeOk: dto.type_ok ?? null, periodOk: dto.period_ok ?? null, validOk: dto.valid_ok ?? null, approvedOk: dto.approved_ok ?? null,
         signedOk: dto.signed_ok ?? null, contentOk: dto.content_ok ?? null, review: dto.review, note: dto.note?.trim() || null, meta,
       },
-      // Sin los atributos en el detalle (compliance-audit.md): se audita quién revisó qué entrega y con qué resultado global.
+      // Sin los atributos en el detalle (compliance-audit.md): se audita quién revisó qué entrega, con qué rol, quién la subió y con qué resultado.
       (done): AuditEntry => ({
         tenantId: p.companyId, userId: p.userId, action: 'evidence_review.update', resource: 'evidence_review', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
         beforeState: done.before ? { submission_id: done.submission.id, reviewer_role: reviewerRole, review: done.before.review } : null,
-        afterState: { submission_id: done.submission.id, requirement_id: done.submission.requirementId, version: done.submission.version, reviewer_role: reviewerRole, review: done.after.review, evidence_state: evidenceStateOf(done.submission) },
+        afterState: {
+          submission_id: done.submission.id, requirement_id: done.submission.requirementId, version: done.submission.version, reviewer_role: reviewerRole, review: done.after.review,
+          submitted_by: done.submission.submittedBy.id, evidence_state: evidenceStateOf(done.submission),
+        },
       }),
     );
     if (!saved) throw new DomainError('NOT_FOUND');
-    return saved.submission;
+    return { submission: saved.submission, reviewerRole };
   }
 }
 
@@ -242,7 +250,7 @@ export class GetEvidenceDownloadUseCase {
 
   /** `inline` hace que la pantalla muestre el archivo sin descargarlo; solo PDF, PNG y JPG (`422 disposition.not_supported` con otro tipo). */
   async execute(p: Principal, submissionId: string, disposition: 'attachment' | 'inline', meta: RequestMeta): Promise<{ url: string; fileName: string; fileType: string; disposition: 'attachment' | 'inline'; expiresIn: number }> {
-    const found = await this.repo.findSubmission(scopeOf(p), submissionId, reviewerRoleFor(p.role));
+    const found = await this.repo.findSubmission(scopeOf(p), submissionId);
     if (!found) throw new DomainError('NOT_FOUND');
     assertCanTouch(p, found.access.access);
     if (disposition === 'inline' && !INLINE_TYPES.includes(found.submission.fileType)) throw new ValidationException([{ field: 'disposition', code: 'disposition.not_supported' }]);

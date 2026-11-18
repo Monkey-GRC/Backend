@@ -4,11 +4,11 @@ import { DIMENSIONS } from '../controls/control.responses';
 import { ResponsibleRefResponse } from '../responsibles/responsible.responses';
 
 // Formas del `data` de contracts/modules/compliance-evidence.md, solo para la documentación (las arma evidence-response.mapper.ts).
-// D96: el responsable aporta la evidencia y la revisión es una sola, la del admin_empresa (MD-127).
+// D102: aportan el ejecutor, el dueño o el admin_empresa; revisan el dueño y el admin_empresa, una revisión por rol (MD-127, MD-194).
 
 export const EVIDENCE_STATES = ['compliant', 'non_compliant', 'pending', 'in_review', 'expired', 'not_applicable'] as const;
 export const EVIDENCE_STATE_DOC =
-  'Se deriva de la revisión, nadie lo escribe: `pending` espera revisión · `in_review` la IA dio su sugerencia y falta la revisión humana · `compliant`/`non_compliant` los decide una persona · `expired` venció · `not_applicable`. La IA nunca produce «cumple».';
+  'Se deriva de COMBINAR las revisiones de cada rol (D102), nadie lo escribe: `pending` espera revisión · `in_review` la IA dio su sugerencia y falta la revisión humana · `compliant`/`non_compliant` los decide una persona · `expired` venció · `not_applicable`. La IA nunca produce «cumple».';
 
 export class AiSuggestionResponse {
   @ApiProperty({ example: true, description: 'Siempre `true`: lo que genera la IA va marcado como tal.' }) is_ai_generated!: boolean;
@@ -16,12 +16,20 @@ export class AiSuggestionResponse {
   @ApiProperty({ description: 'Sugerencia de la IA. Es una inferencia, no un hecho verificado; no aprueba nada.' }) verdict!: string;
 }
 
-export class EvidenceTechnicalResponse {
-  @ApiProperty({ enum: ['pending_review', 'ai_prevalidated', 'human_validated'], description: 'La única revisión de la entrega, la del admin_empresa (D96). `ai_prevalidated` lo deriva el servidor.' }) review!: string;
+export class EvidenceReviewDetailResponse {
+  @ApiProperty({ enum: ['pending_review', 'ai_prevalidated', 'human_validated'], description: 'La revisión humana. `ai_prevalidated` lo deriva el servidor.' }) review!: string;
   @ApiProperty({ type: Object, description: 'Atributos que la revisión marca (`type_ok`, `period_ok`, `valid_ok`, `approved_ok`, `signed_ok`, `content_ok`); `null` hasta que se valoren.' }) attributes!: Record<string, boolean | null>;
   @ApiProperty({ nullable: true, example: null, description: 'Observación de quien revisó; `null` si no hay.' }) note!: string | null;
   @ApiProperty({ nullable: true, example: null, description: 'Quién hizo la revisión; `null` mientras no haya ninguna.' }) reviewed_by!: PersonResponse | null;
   @ApiProperty({ format: 'date-time', nullable: true, example: null }) reviewed_at!: string | null;
+}
+
+export class EvidenceRoleReviewResponse extends EvidenceReviewDetailResponse {
+  @ApiProperty({ enum: ['admin_empresa', 'responsable'], enumName: 'ReviewerRole', description: 'El rol con el que revisó; lo fija el servidor.' }) reviewer_role!: string;
+}
+
+export class EvidenceTechnicalResponse extends EvidenceReviewDetailResponse {
+  @ApiProperty({ type: EvidenceRoleReviewResponse, isArray: true, description: 'La revisión de cada rol (D102): a lo sumo una por rol. Los campos de arriba resumen la que explica el estado.' }) reviews!: EvidenceRoleReviewResponse[];
 }
 
 export class EvidenceSubmissionResponse {
@@ -35,7 +43,7 @@ export class EvidenceSubmissionResponse {
   @ApiProperty({ type: PersonResponse, description: 'Quién la subió.' }) submitted_by!: PersonResponse;
   @ApiProperty({ format: 'date-time', description: 'Cuándo se subió.' }) submitted_at!: string;
   @ApiProperty({ enum: EVIDENCE_STATES, enumName: 'EvidenceState', description: EVIDENCE_STATE_DOC }) evidence_state!: string;
-  @ApiProperty({ nullable: true, example: 'Falta la firma de la dirección.', description: 'La nota de la revisión del admin_empresa: el motivo del rechazo, que el responsable lee para corregir (D96). `null` si no hay revisión o no dejó nota.' }) review_note!: string | null;
+  @ApiProperty({ nullable: true, example: 'Falta la firma de la dirección.', description: 'El motivo del rechazo, que quien subió lee para corregir (D102). `null` si nadie rechazó.' }) review_note!: string | null;
   @ApiProperty({ type: AiSuggestionResponse, nullable: true, description: 'Sugerencia de la IA, si la hay. `null` si no.' }) ai!: AiSuggestionResponse | null;
   @ApiProperty({ type: EvidenceTechnicalResponse, required: false, description: 'Solo en la vista técnica (`view=technical`).' }) technical?: EvidenceTechnicalResponse;
 }

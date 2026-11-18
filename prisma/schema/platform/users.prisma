@@ -110,6 +110,8 @@ model User {
   riskTreatmentsCreated     RiskTreatment[] @relation("RiskTreatmentCreatedBy")
   evidenceSubmitted         EvidenceSubmission[] @relation("EvidenceSubmittedBy")
   evidenceReviewed          EvidenceReview[]     @relation("EvidenceReviewedBy")
+  verdictsRegistered        TestVerdict[]        @relation("VerdictRegisteredBy")
+  verdictsReviewed          TestVerdictReview[]  @relation("VerdictReviewedBy")
   assessmentsIssued         FrameworkAssessment[] @relation("AssessmentIssuedBy")
   exclusionsProposed        Exclusion[]          @relation("ExclusionProposedBy")
   exclusionsDecided         Exclusion[]          @relation("ExclusionDecidedBy")

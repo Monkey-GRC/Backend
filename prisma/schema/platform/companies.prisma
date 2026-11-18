@@ -95,6 +95,8 @@ model Company {
   evidenceRequirements  EvidenceRequirement[]
   evidenceSubmissions   EvidenceSubmission[]
   evidenceReviews       EvidenceReview[]
+  testVerdicts          TestVerdict[]
+  testVerdictReviews    TestVerdictReview[]
   frameworkAssessments  FrameworkAssessment[]
   exclusions            Exclusion[]
   auditObservations     AuditObservation[]

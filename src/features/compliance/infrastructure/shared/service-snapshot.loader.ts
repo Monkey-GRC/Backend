@@ -1,11 +1,12 @@
 import { TransactionClient } from '../../../../infrastructure/database/prisma.service';
-import { Dimension, ReadoutControl, resultKey } from '../../domain/controls/control-readout';
+import { Dimension, ReadoutControl, dimensionOfAssetType, resultKey } from '../../domain/controls/control-readout';
 import { AssetResult } from '../../domain/engine/states';
 import { ServiceReadoutData } from '../../domain/controls/control.repository';
 import { DocumentaryEvidence } from '../../domain/evidence/evidence';
+import { verdictStateOf } from '../../domain/verdicts/test-verdict';
 import { NO_ACCESS } from '../../domain/controls/control-access';
 import { loadControlAccess } from './control-access.loader';
-import { requirementState, reviewsOf } from '../evidence/evidence-review.mapper';
+import { ALL_REVIEWS, requirementState } from '../evidence/evidence-review.mapper';
 
 // Orden canónico de las categorías (enums.md `trust_criterion`).
 const CRITERIA_ORDER = ['security', 'availability', 'confidentiality', 'integrity', 'privacy'];
@@ -39,13 +40,13 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
   // D102 · Dueño y ejecutor de cada control: de ahí sale lo que ven el responsable y el delegado.
   const accessOf = await loadControlAccess(tx, rows.map((r) => r.id));
 
-  // D88 · Las evidencias requeridas de estas acciones, con el estado de su última entrega según la revisión del admin_empresa (la que consume el motor, D96): de ellas sale el estado
+  // D88 · Las evidencias requeridas de estas acciones, con el estado de su última entrega según la combinación de las revisiones de cada rol (la que consume el motor, D102): de ellas sale el estado
   // de cada prueba documental en su control. Una sola consulta para todo el servicio.
   const documentaryRows = rows.length
     ? await tx.evidenceRequirement.findMany({
         // Solo lo entregado PARA una prueba (D88): un documento que el catálogo sugiere sin decir a qué prueba sirve no cuenta para ninguna.
         where: { clientControlId: { in: rows.map((r) => r.id) }, dimension: 'policy', testId: { not: null } },
-        select: { clientControlId: true, testId: true, submissions: { select: { version: true, aiVerdict: true, reviews: reviewsOf('admin_empresa') } } },
+        select: { clientControlId: true, testId: true, submissions: { select: { version: true, aiVerdict: true, reviews: ALL_REVIEWS } } },
       })
     : [];
   const documentaryOf = new Map<string, DocumentaryEvidence[]>();
@@ -87,16 +88,36 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
 
   const assets = (await tx.serviceAsset.findMany({ where: { serviceId, asset: { status: 'active' } }, select: { asset: { select: { id: true, name: true, type: true } } } })).map((r) => r.asset);
 
-  // El último resultado de cada (control, test, activo): el histórico es inmutable y la lectura toma el más reciente.
+  // El último resultado de cada (control, test, activo): el histórico es inmutable y la lectura toma el más reciente. Las evaluaciones de origen `manual` son las de antes de D121 (ya
+  // migradas a `test_verdicts`): el motor ya no las lee, un veredicto manual solo cuenta si está aprobado.
   const latest = controls.length
     ? await tx.evaluation.findMany({
-        where: { serviceId, clientControlId: { in: controls.map((c) => c.id) } },
+        where: { serviceId, clientControlId: { in: controls.map((c) => c.id) }, origin: { not: 'manual' } },
         orderBy: { evaluatedAt: 'desc' },
         distinct: ['clientControlId', 'testId', 'assetId'],
         select: { clientControlId: true, testId: true, assetId: true, result: true },
       })
     : [];
   const results = new Map<string, AssetResult>(latest.map((e) => [resultKey(e.clientControlId, e.testId, e.assetId), e.result as AssetResult]));
+
+  // D85, D121 · El estado de una prueba manual no documental sale del ÚLTIMO veredicto del test en el servicio: si está aprobado, su resultado vale en todos los controles que llevan el test y
+  // sobre todos los activos de su dimensión; si está pendiente o rechazado el test queda pendiente (sin resultado), aunque uno anterior haya estado aprobado. Una sola consulta para el servicio.
+  const verdicts = controls.length
+    ? await tx.testVerdict.findMany({
+        where: { serviceId },
+        orderBy: [{ registeredAt: 'desc' }, { id: 'desc' }],
+        distinct: ['testId'],
+        select: { testId: true, result: true, reviews: { select: { decision: true } } },
+      })
+    : [];
+  for (const v of verdicts) {
+    if (verdictStateOf(v.reviews) !== 'approved') continue;
+    for (const c of controls) {
+      const test = c.tests.find((t) => t.testId === v.testId);
+      if (!test) continue;
+      for (const a of assets) if (dimensionOfAssetType(a.type) === test.dimension) results.set(resultKey(c.id, v.testId, a.id), v.result);
+    }
+  }
 
   // Una exclusión APROBADA y vigente saca al activo del universo del test (su resultado es `excluded`, RN-05); la pendiente, la rechazada y la vencida no cambian nada:
   // el activo sigue contando. El veredicto de la sonda no se toca: la exclusión se superpone al leer (MD-144, D78).

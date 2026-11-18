@@ -114,14 +114,15 @@ export class EvidenceController {
     return new ResponseDto(HttpStatus.CREATED, t('evidence.submitted'), toSubmission(created, 'business', true));
   }
 
-  // D96 · El responsable sube y el admin_empresa valida o rechaza, en una sola revisión. El rol sale de la sesión; el cuerpo no lo lleva.
-  @ApiOperation({ summary: 'Revisar una evidencia', description: 'Solo `admin_empresa` (D96): valida o rechaza la evidencia en **una sola revisión**; crea o reemplaza la suya. **Rechazar** es dejar algún atributo en `false` y exige `note` (el motivo que el responsable lee para corregir). Marca los seis atributos (`true`, `false` o sin valorar) y la validación humana (`review`). Solo una evidencia **validada por una persona** puede cumplir (RN-03); `ai_prevalidated` lo deriva el sistema y no se acepta. De esta revisión sale el estado de las pruebas documentales del control (D88). Responde con la entrega y su `evidence_state`. Queda registro de auditoría.' })
-  @ApiData(EvidenceSubmissionResponse, 'La entrega, con la revisión de quien la hizo en el bloque `technical`.')
+  // D102 · Quien sube es el ejecutor, el dueño o el admin_empresa; revisan el dueño (si no la subió él) y el admin_empresa. El rol sale de la sesión; el cuerpo no lo lleva.
+  @ApiOperation({ summary: 'Revisar una evidencia', description: 'El `responsable` dueño del control (lo que no subió él) y el `admin_empresa` (cualquiera, también lo suyo; P34). `delegado`, `auditor` y `admin_monkey`, 403; un `responsable` ajeno al control, 403. Una revisión por rol: crea o reemplaza la de quien llama; el rol lo fija el servidor. El estado sale de COMBINAR las revisiones (D102): algún rechazo gana; sin rechazos y con al menos una validación, validada. **Rechazar** es dejar algún atributo en `false` y exige `note` (el motivo que quien subió lee para corregir). Marca los seis atributos (`true`, `false` o sin valorar) y la validación humana (`review`). Solo una evidencia **validada por una persona** puede cumplir (RN-03); `ai_prevalidated` lo deriva el sistema y no se acepta. De esta revisión sale el estado de las pruebas documentales del control (D88). Responde con la entrega y su `evidence_state`. Queda registro de auditoría.' })
+  @ApiData(EvidenceSubmissionResponse, 'La entrega con su `evidence_state` combinado; el `admin_empresa` recibe además el bloque `technical`.')
   @Put('evidence-submissions/:submissionId/review')
-  @Roles('admin_empresa')
+  @Roles('admin_empresa', 'responsable')
   async review(@CurrentUser() p: Principal, @Param('submissionId', idPipe) submissionId: string, @Body() dto: ReviewEvidenceDto, @Req() req: Request) {
     const reviewed = await this.reviewEvidence.execute(p, submissionId, dto, metaOf(req));
-    return new ResponseDto(HttpStatus.OK, t('evidence.reviewed'), toSubmission(reviewed, 'technical', true));
+    // El responsable ve el estado y la nota de rechazo, no los atributos (la vista técnica es de admin_empresa y auditor).
+    return new ResponseDto(HttpStatus.OK, t('evidence.reviewed'), toSubmission(reviewed.submission, reviewed.reviewerRole === 'admin_empresa' ? 'technical' : 'business', true));
   }
 
   // D88 · Una evidencia propia en un control: de una prueba documental concreta, o compartida con todas las del control.

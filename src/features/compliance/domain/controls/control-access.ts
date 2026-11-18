@@ -8,10 +8,13 @@ export type ControlAccess = { owner: ControlParty | null; executor: ControlParty
 
 export const NO_ACCESS: ControlAccess = { owner: null, executor: null };
 
-type Parties = { owner: { id: string } | null; executor: { id: string } | null };
+export type Parties = { owner: { id: string } | null; executor: { id: string } | null };
 
 /** La persona es el dueño o el ejecutor activo del control. */
 export const isPartyOf = (userId: string, access: Parties): boolean => access.owner?.id === userId || access.executor?.id === userId;
+
+/** La persona es el dueño activo del control. */
+export const isOwnerOf = (userId: string, access: Parties): boolean => access.owner?.id === userId;
 
 /** D102, D118 · `responsable` y `delegado` ven y tocan solo los controles de los que son dueño o ejecutor; el resto de los roles, todos. */
 export const canSeeControl = (p: { role: string; userId: string }, access: Parties): boolean => !isScopedRole(p.role) || isPartyOf(p.userId, access);

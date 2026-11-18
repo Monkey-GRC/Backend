@@ -241,6 +241,7 @@ export class ServicePrismaRepository extends ServiceRepository {
       // del auditor (que nunca se borran, MD-154) el servicio no se borra.
       const history =
         (await tx.evaluation.count({ where: { serviceId: id } })) +
+        (await tx.testVerdict.count({ where: { serviceId: id } })) +
         (await tx.auditObservation.count({ where: { serviceId: id } })) +
         (await tx.evidenceSubmission.count({
           where: { evidenceRequirement: { clientControl: { serviceId: id } } },

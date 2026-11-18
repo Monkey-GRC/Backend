@@ -20,8 +20,8 @@ export type SubmissionRecord = {
   submittedBy: PersonRef;
   submittedAt: Date;
   aiVerdict: string | null;
-  /** La única revisión de la entrega, la del admin_empresa (D96). */
-  review: EvidenceReviewRecord | null;
+  /** Las revisiones de la entrega, a lo sumo una por rol (D102): la del `responsable` dueño y la del `admin_empresa`. */
+  reviews: EvidenceReviewRecord[];
 };
 
 /** La prueba documental a la que sirve un requerimiento (D88). */
@@ -68,7 +68,7 @@ export type NewReview = {
   meta: { ipAddress: string; userAgent: string };
 };
 
-/** Lo que cambió al revisar: la revisión anterior del mismo rol (si la había) y la nueva, para el rastro. La entrega ya trae SOLO la revisión de quien revisó. */
+/** Lo que cambió al revisar: la revisión anterior del mismo rol (si la había) y la nueva, para el rastro. La entrega trae las revisiones de todos los roles. */
 export type ReviewSaved = { submission: SubmissionRecord; access: EvidenceAccess; before: EvidenceReviewRecord | null; after: EvidenceReviewRecord };
 
 /** Qué hace falta saber de un control para agregarle una evidencia propia (D88). */
@@ -111,17 +111,17 @@ export type ServiceEvidence = {
 
 export abstract class EvidenceRepository {
   /** `null` si el servicio no existe para esta empresa. Número fijo de consultas. */
-  abstract listByService(scope: TenantScope, serviceId: string, viewer: ReviewerRole): Promise<ServiceEvidence | null>;
-  /** Los requerimientos del control con sus entregas. `null` si el control no existe para esta empresa. `viewer`: de quién es la revisión que se lee. */
-  abstract listByControl(scope: TenantScope, controlId: string, viewer: ReviewerRole): Promise<{ access: ControlAccess; requirements: RequirementRecord[] } | null>;
-  /** `null` si el control no existe, no lleva el test, o el test no es manual ni documental. `viewer`: de quién es la revisión que se lee. */
-  abstract listByTest(scope: TenantScope, controlId: string, testId: string, viewer: ReviewerRole): Promise<TestEvidence | null>;
+  abstract listByService(scope: TenantScope, serviceId: string): Promise<ServiceEvidence | null>;
+  /** Los requerimientos del control con sus entregas. `null` si el control no existe para esta empresa. */
+  abstract listByControl(scope: TenantScope, controlId: string): Promise<{ access: ControlAccess; requirements: RequirementRecord[] } | null>;
+  /** `null` si el control no existe, no lleva el test, o el test no es manual ni documental. */
+  abstract listByTest(scope: TenantScope, controlId: string, testId: string): Promise<TestEvidence | null>;
   /** `null` si el requerimiento no existe para esta empresa. */
   abstract findRequirement(scope: TenantScope, requirementId: string): Promise<EvidenceAccess | null>;
-  abstract listSubmissions(scope: TenantScope, requirementId: string, page: number, pageSize: number, viewer: ReviewerRole): Promise<Page<SubmissionRecord> | null>;
+  abstract listSubmissions(scope: TenantScope, requirementId: string, page: number, pageSize: number): Promise<Page<SubmissionRecord> | null>;
   /** Guarda la entrega con la versión siguiente y su rastro de auditoría en la misma transacción. `null` si el requerimiento no existe. */
   abstract createSubmission(scope: TenantScope, requirementId: string, input: NewSubmission, audit: AuditIntent<SubmissionRecord>): Promise<SubmissionRecord | null>;
-  abstract findSubmission(scope: TenantScope, submissionId: string, viewer: ReviewerRole): Promise<{ submission: SubmissionRecord; access: EvidenceAccess } | null>;
+  abstract findSubmission(scope: TenantScope, submissionId: string): Promise<{ submission: SubmissionRecord; access: EvidenceAccess } | null>;
   /** Crea o reemplaza la revisión de ESE rol sobre la entrega, con su rastro en la misma transacción (D84). `null` si la entrega no existe para esta empresa. */
   abstract saveReview(scope: TenantScope, submissionId: string, input: NewReview, audit: AuditIntent<ReviewSaved>): Promise<ReviewSaved | null>;
   /** `null` si el control no existe para esta empresa. */
