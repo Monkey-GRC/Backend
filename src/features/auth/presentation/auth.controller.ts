@@ -307,8 +307,7 @@ export class AuthController {
   @ApiData(AuthSessionResponse, 'Usuario, empresa y avance del onboarding (este último solo para `admin_empresa`).')
   @Get('me')
   async me(@CurrentUser() principal: Principal) {
-    const user = await this.getCurrentUser.execute(principal);
-    const onboarding = await this.getOnboardingProgress.execute(user);
+    const { user, onboarding } = await this.getCurrentUser.execute(principal);
     return new ResponseDto(HttpStatus.OK, t('auth.me'), toAuthResponse(user, onboarding));
   }
 

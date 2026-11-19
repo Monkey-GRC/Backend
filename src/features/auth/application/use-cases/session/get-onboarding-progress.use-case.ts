@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { UserRole } from '../../../../../common/enums/user-role.enum';
+import type { OnboardingFlags } from '../../../domain/ports/current-user.reader';
 import { OnboardingProgressReader } from '../../../domain/ports/onboarding-progress.reader';
 
 export type OnboardingStep = 'organizational_context' | 'service_context' | 'technical_control';
@@ -35,11 +36,27 @@ export class GetOnboardingProgressUseCase {
         if (await this.progress.hasTechnicalControl(scope)) completed.push('technical_control');
       }
     }
-
-    const all: OnboardingStep[] = ['organizational_context', 'service_context', 'technical_control'];
-    return {
-      next_step: all.find((step) => !completed.includes(step)) ?? null,
-      completed_steps: completed,
-    };
+    return progressFrom(completed);
   }
+}
+
+// Pasos en orden: un servicio sin organización no cuenta.
+export function progressFromFlags(flags: OnboardingFlags): OnboardingProgress {
+  const completed: OnboardingStep[] = [];
+  if (flags.organizationalContext) {
+    completed.push('organizational_context');
+    if (flags.declaredService) {
+      completed.push('service_context');
+      if (flags.technicalControl) completed.push('technical_control');
+    }
+  }
+  return progressFrom(completed);
+}
+
+function progressFrom(completed: OnboardingStep[]): OnboardingProgress {
+  const all: OnboardingStep[] = ['organizational_context', 'service_context', 'technical_control'];
+  return {
+    next_step: all.find((step) => !completed.includes(step)) ?? null,
+    completed_steps: completed,
+  };
 }

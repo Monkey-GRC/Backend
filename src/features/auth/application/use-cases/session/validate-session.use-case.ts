@@ -4,7 +4,6 @@ import { DomainError } from '../../../../../common/errors/domain-error';
 import { TenantScope } from '../../../../../common/tenancy/tenant-scope';
 import type { SessionPolicy } from '../../../domain/entities/session.entity';
 import { AccessTokenService } from '../../../domain/ports/access-token.service';
-import { AuthUserRepository } from '../../../domain/repositories/auth-user.repository';
 import { SessionRepository } from '../../../domain/repositories/session.repository';
 import { SESSION_POLICY } from '../../session-policy.token';
 
@@ -15,7 +14,6 @@ const TOUCH_THROTTLE_MS = 60_000;
 @Injectable()
 export class ValidateSessionUseCase {
   constructor(
-    private readonly users: AuthUserRepository,
     private readonly sessions: SessionRepository,
     private readonly accessTokens: AccessTokenService,
     @Inject(SESSION_POLICY) private readonly policy: SessionPolicy,
@@ -31,8 +29,10 @@ export class ValidateSessionUseCase {
     const now = new Date();
     const scope: TenantScope = { companyId: claims.cid, userId: claims.sub };
 
-    const session = await this.sessions.findById(scope, claims.sid);
-    if (!session || session.userId !== claims.sub) throw new DomainError('UNAUTHENTICATED');
+    // Sesión y persona en una sola transacción (MD-219): una validación = un withScope.
+    const found = await this.sessions.findWithOwner(scope, claims.sid);
+    if (!found || found.session.userId !== claims.sub) throw new DomainError('UNAUTHENTICATED');
+    const { session, owner: user } = found;
 
     const state = session.stateAt(now, this.policy);
     if (state !== 'active') {
@@ -40,7 +40,6 @@ export class ValidateSessionUseCase {
       throw new DomainError('SESSION_EXPIRED');
     }
 
-    const user = await this.users.findById(scope, claims.sub);
     if (!user || !user.isActive()) {
       await this.sessions.revoke(scope, session.id, now, null);
       throw new DomainError('ACCOUNT_INACTIVE');

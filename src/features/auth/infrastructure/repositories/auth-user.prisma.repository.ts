@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
-import { PrismaService } from '../../../../infrastructure/database/prisma.service';
+import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { AuthUser, UserCredentials } from '../../domain/entities/auth-user.entity';
 import { AuthUserRepository } from '../../domain/repositories/auth-user.repository';
 
@@ -27,6 +27,31 @@ const toCredentials = (
   u: { role: UserCredentials['role']; status: UserCredentials['status']; failedLoginAttempts: number; lockedUntil: Date | null; isMfaEnabled: boolean; mfaSecretEncrypted: string | null; mfaLastUsedStep: number | null; preferredLanguage: 'es' | 'en' },
 ): UserCredentials =>
   new UserCredentials(id, companyId, passwordHash, u.role, u.status, u.failedLoginAttempts, u.lockedUntil, u.isMfaEnabled, u.mfaSecretEncrypted, u.mfaLastUsedStep, u.preferredLanguage);
+
+// Perfil completo (empresa, grupo, líder). Recibe la transacción para compartirla con otras lecturas de la misma petición.
+export async function loadAuthUser(tx: TransactionClient, userId: string): Promise<AuthUser | null> {
+  const user = await tx.user.findUnique({
+    where: { id: userId },
+    include: { company: { select: { name: true } }, group: { select: { id: true, name: true, leader: { select: { id: true, name: true, lastName: true } } } } },
+  });
+  if (!user) return null;
+  return new AuthUser(
+    user.id,
+    user.companyId,
+    user.company.name,
+    user.email,
+    user.name,
+    user.lastName,
+    user.role,
+    user.status,
+    user.isMfaEnabled,
+    user.lastLoginAt,
+    user.createdAt,
+    user.group ? { id: user.group.id, name: user.group.name } : null,
+    user.role === 'delegado' && user.group ? user.group.leader : null,
+    user.preferredLanguage,
+  );
+}
 
 @Injectable()
 export class AuthUserPrismaRepository extends AuthUserRepository {
@@ -68,30 +93,7 @@ export class AuthUserPrismaRepository extends AuthUserRepository {
   }
 
   async findById(scope: TenantScope, userId: string): Promise<AuthUser | null> {
-    const user = await this.prisma.withScope(scope, (tx) =>
-      tx.user.findUnique({
-        where: { id: userId },
-        include: { company: { select: { name: true } }, group: { select: { id: true, name: true, leader: { select: { id: true, name: true, lastName: true } } } } },
-      }),
-    );
-    if (!user) return null;
-
-    return new AuthUser(
-      user.id,
-      user.companyId,
-      user.company.name,
-      user.email,
-      user.name,
-      user.lastName,
-      user.role,
-      user.status,
-      user.isMfaEnabled,
-      user.lastLoginAt,
-      user.createdAt,
-      user.group ? { id: user.group.id, name: user.group.name } : null,
-      user.role === 'delegado' && user.group ? user.group.leader : null,
-      user.preferredLanguage,
-    );
+    return this.prisma.withScope(scope, (tx) => loadAuthUser(tx, userId));
   }
 
   async registerFailedLogin(

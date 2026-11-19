@@ -1,3 +1,5 @@
+import type { UserRole, UserStatus } from '../../../../common/enums/user-role.enum';
+
 // Tiempos de la política de sesión (modelo-datos.md §5.3), en segundos. Vienen del .env.
 export type SessionPolicy = {
   accessTokenTtl: number; // 15 min
@@ -28,5 +30,19 @@ export class Session {
 
   static expiresAtFor(createdAt: Date, policy: SessionPolicy): Date {
     return new Date(createdAt.getTime() + policy.maxDuration * 1000);
+  }
+}
+
+// Lo mínimo de la persona dueña de la sesión que necesita validarla: se lee junto con la sesión, en una sola consulta.
+export class SessionOwner {
+  constructor(
+    public readonly id: string,
+    public readonly companyId: string,
+    public readonly role: UserRole,
+    public readonly status: UserStatus,
+  ) {}
+
+  isActive(): boolean {
+    return this.status === 'active';
   }
 }
