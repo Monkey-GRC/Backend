@@ -419,7 +419,7 @@ model TestVerdict {
   reviews          TestVerdictReview[]
 
   @@index([tenantId])
-  @@index([serviceId, testId, registeredAt])
+  @@index([serviceId, testId, registeredAt(sort: Desc), id(sort: Desc)])
   @@index([clientControlId])
   @@index([registeredBy])
   @@map("test_verdicts")
@@ -589,6 +589,7 @@ model Evaluation {
 
   findings Finding[]
 
+  // Además, el índice parcial `evaluations_latest_idx` (solo en la migración 20261119000100: Prisma no declara índices parciales).
   @@index([serviceId, clientControlId, evaluatedAt])
   @@index([assetId])
   @@index([tenantId])

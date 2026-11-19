@@ -15,6 +15,7 @@ import {
 } from '../../domain/verdicts/test-verdict.repository';
 import { loadControlAccess } from '../shared/control-access.loader';
 import { captureControlStates, recordControlStateChanges } from '../shared/control-state-events';
+import { latestApprovedVerdictIds } from '../shared/latest-results.query';
 import { loadServiceSnapshot } from '../shared/service-snapshot.loader';
 
 const PERSON = { select: { id: true, name: true, lastName: true } } as const;
@@ -152,14 +153,8 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
     return this.prisma.withScope(scope, async (tx) => {
       const control = await tx.clientControl.findFirst({ where: { id: controlId }, select: { serviceId: true } });
       if (!control) return new Map();
-      const rows = await tx.testVerdict.findMany({
-        // Solo los aprobados (alguna aprobación y ningún rechazo) y el más reciente de cada test: una consulta, sin traer el historial.
-        where: {
-          serviceId: control.serviceId, test: { clientControlTests: { some: { clientControlId: controlId } } },
-          reviews: { some: { decision: 'approve' }, none: { decision: 'reject' } },
-        },
-        orderBy: [...NEWEST_FIRST], distinct: ['testId'], select: VERDICT_SELECT,
-      });
+      // Solo los aprobados (alguna aprobación y ningún rechazo) y el más reciente de cada test: un LATERAL por test elige los ids y luego se leen con sus revisiones, sin traer el historial.
+      const rows = await tx.testVerdict.findMany({ where: { id: { in: await latestApprovedVerdictIds(tx, control.serviceId, controlId) } }, select: VERDICT_SELECT });
       const last = new Map<string, LastVerdict>();
       for (const r of rows) {
         if (verdictStateOf(r.reviews) !== 'approved') continue;
