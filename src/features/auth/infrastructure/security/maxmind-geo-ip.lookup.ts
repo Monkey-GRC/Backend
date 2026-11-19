@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { existsSync } from 'node:fs';
+import { statSync } from 'node:fs';
 import { isIP } from 'node:net';
 import { open, type CityResponse, type Reader } from 'maxmind';
 import { GeoIpLookup, GeoLocation } from '../../domain/ports/geo-ip.lookup';
@@ -15,12 +15,17 @@ const isPrivate = (ip: string): boolean => {
 };
 
 // D123 · Base local GeoLite2-City (MaxMind): la IP nunca sale del Backend. Carga perezosa; sin archivo, sin resultado o con una IP privada devuelve `null`
-// (un solo aviso por proceso) y nunca rompe el ingreso.
+// (un solo aviso por proceso) y nunca rompe el ingreso. Como mucho una vez por hora comprueba la fecha del archivo y, si cambió (actualización
+// semanal por cron), lo vuelve a abrir sin reiniciar el Backend.
+const RECHECK_MS = 60 * 60 * 1000;
+
 @Injectable()
 export class MaxmindGeoIpLookup extends GeoIpLookup {
   private readonly logger = new Logger(MaxmindGeoIpLookup.name);
   private reader: Promise<Reader<CityResponse> | null> | null = null;
   private warned = false;
+  private checkedAt = 0;
+  private loadedMtime: number | null = null;
 
   constructor(private readonly config: ConfigService) {
     super();
@@ -43,13 +48,29 @@ export class MaxmindGeoIpLookup extends GeoIpLookup {
   }
 
   private load(): Promise<Reader<CityResponse> | null> {
-    this.reader ??= this.openDatabase();
+    const now = Date.now();
+    if (this.reader && now - this.checkedAt < RECHECK_MS) return this.reader;
+    this.checkedAt = now;
+    const path = this.config.get<string>('GEOIP_DB_PATH')?.trim() || 'geoip/GeoLite2-City.mmdb';
+    const mtime = this.mtimeOf(path);
+    if (!this.reader || mtime !== this.loadedMtime) {
+      const previous = this.reader;
+      this.loadedMtime = mtime;
+      this.reader = this.openDatabase(path, mtime).then(async (opened) => opened ?? (previous ? await previous : null));
+    }
     return this.reader;
   }
 
-  private async openDatabase(): Promise<Reader<CityResponse> | null> {
-    const path = this.config.get<string>('GEOIP_DB_PATH')?.trim() || 'geoip/GeoLite2-City.mmdb';
-    if (!existsSync(path)) {
+  private mtimeOf(path: string): number | null {
+    try {
+      return statSync(path).mtimeMs;
+    } catch {
+      return null;
+    }
+  }
+
+  private async openDatabase(path: string, mtime: number | null): Promise<Reader<CityResponse> | null> {
+    if (mtime === null) {
       this.warnOnce(`GeoIP: no está la base ${path}; país y ciudad de los dispositivos quedan vacíos (npm run geoip:update)`);
       return null;
     }
