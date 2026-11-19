@@ -3,6 +3,7 @@ import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
+import { TransactionRunner } from '../../../../common/tenancy/transaction-runner';
 import { ControlEditRepository, ControlSnapshot } from '../../domain/controls/control-edit.repository';
 import { validateControlEdit } from './control-edit.validation';
 import { EditClientControlDto } from './control.dto';
@@ -18,18 +19,21 @@ const entry = (p: Principal, meta: RequestMeta, action: string, controlId: strin
 
 @Injectable()
 export class UpdateControlUseCase {
-  constructor(private readonly controls: ControlEditRepository, private readonly getControl: GetControlUseCase) {}
+  constructor(private readonly controls: ControlEditRepository, private readonly getControl: GetControlUseCase, private readonly tx: TransactionRunner) {}
 
   async execute(p: Principal, controlId: string, dto: EditClientControlDto, meta: RequestMeta): Promise<ControlDetail> {
-    const access = await this.controls.findAccess(scopeOf(p), controlId);
-    if (!access) throw new DomainError('NOT_FOUND');
-    if (!access.isActive) throw new DomainError('CONTROL_RETIRED');
-    const edit = validateControlEdit(dto, access.origin);
-    const done = await this.controls.update(scopeOf(p), controlId, edit, { userId: p.userId, meta }, (change) =>
-      entry(p, meta, 'client_control.update', controlId, stateOf(change.before), stateOf(change.after)),
-    );
-    if (!done) throw new DomainError('NOT_FOUND');
-    return this.getControl.execute(p, controlId, undefined);
+    return this.tx.run(scopeOf(p), async () => {
+      const access = await this.controls.findAccess(scopeOf(p), controlId);
+      if (!access) throw new DomainError('NOT_FOUND');
+      if (!access.isActive) throw new DomainError('CONTROL_RETIRED');
+      const edit = validateControlEdit(dto, access.origin);
+      const done = await this.controls.update(scopeOf(p), controlId, edit, { userId: p.userId, meta }, (change) =>
+        entry(p, meta, 'client_control.update', controlId, stateOf(change.before), stateOf(change.after)),
+      );
+      if (!done) throw new DomainError('NOT_FOUND');
+      return this.getControl.execute(p, controlId, undefined);
+      // 30 s: la lectura final de getControl los pide, y una transacción abierta no se amplía.
+    }, { timeoutMs: 30_000 });
   }
 }
 

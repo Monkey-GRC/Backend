@@ -9,6 +9,7 @@ import { Page } from '../../../../common/pagination/page';
 import { FileStorage } from '../../../../common/storage/file-storage';
 import type { UploadedFile } from '../../../../common/storage/uploaded-file';
 import { ValidationException } from '../../../../common/errors/validation.exception';
+import { TransactionRunner } from '../../../../common/tenancy/transaction-runner';
 import { evidenceStateOf, ReviewerRole, reviewerRoleFor, WITHIN_EVALUATION_PERIOD } from '../../domain/evidence/evidence';
 import { EvidenceAccess, EvidenceRepository, RequirementRecord, ServiceEvidence, SubmissionRecord, TestEvidence } from '../../domain/evidence/evidence.repository';
 import { CreateEvidenceRequirementDto, ReviewEvidenceDto } from './evidence.dto';
@@ -85,16 +86,16 @@ export class ListTestEvidenceUseCase {
 
 @Injectable()
 export class ListSubmissionsUseCase {
-  constructor(private readonly repo: EvidenceRepository) {}
+  constructor(private readonly repo: EvidenceRepository, private readonly tx: TransactionRunner) {}
 
   async execute(p: Principal, requirementId: string, page: number, pageSize: number, view: 'technical' | undefined): Promise<{ view: ViewMode; page: Page<SubmissionRecord> }> {
     const mode = viewModeOf(p, view);
-    const access = await this.repo.findRequirement(scopeOf(p), requirementId);
-    if (!access) throw new DomainError('NOT_FOUND');
-    assertCanTouch(p, access.access);
-    const result = await this.repo.listSubmissions(scopeOf(p), requirementId, page, pageSize);
-    if (!result) throw new DomainError('NOT_FOUND');
-    return { view: mode, page: result };
+    return this.tx.run(scopeOf(p), async () => {
+      const access = await this.repo.findRequirement(scopeOf(p), requirementId);
+      if (!access) throw new DomainError('NOT_FOUND');
+      assertCanTouch(p, access.access);
+      return { view: mode, page: await this.repo.listSubmissions(scopeOf(p), requirementId, page, pageSize) };
+    });
   }
 }
 
