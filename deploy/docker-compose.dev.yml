@@ -8,6 +8,9 @@ services:
     # El trabajador usa ESTA misma imagen (otro comando): un solo build, un solo pipeline.
     image: monkey-dev-backend:latest
     env_file: .env
+    volumes:
+      # D123 · Base GeoLite2-City (MaxMind), solo lectura. La renueva el cron scripts/deploy/geoip-update.sh; el Backend la relee solo.
+      - ./geoip:/app/geoip:ro
     restart: unless-stopped
     networks:
       - default
