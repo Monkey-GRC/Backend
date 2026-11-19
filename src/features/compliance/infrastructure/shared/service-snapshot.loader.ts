@@ -6,6 +6,7 @@ import { DocumentaryEvidence } from '../../domain/evidence/evidence';
 import { verdictStateOf } from '../../domain/verdicts/test-verdict';
 import { NO_ACCESS } from '../../domain/controls/control-access';
 import { loadControlAccess } from './control-access.loader';
+import { latestEvaluations, latestVerdicts } from './latest-results.query';
 import { ALL_REVIEWS, requirementState } from '../evidence/evidence-review.mapper';
 
 // Orden canónico de las categorías (enums.md `trust_criterion`).
@@ -90,32 +91,18 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
 
   // El último resultado de cada (control, test, activo): el histórico es inmutable y la lectura toma el más reciente. Las evaluaciones de origen `manual` son las de antes de D121 (ya
   // migradas a `test_verdicts`): el motor ya no las lee, un veredicto manual solo cuenta si está aprobado.
-  const latest = controls.length
-    ? await tx.evaluation.findMany({
-        where: { serviceId, clientControlId: { in: controls.map((c) => c.id) }, origin: { not: 'manual' } },
-        orderBy: { evaluatedAt: 'desc' },
-        distinct: ['clientControlId', 'testId', 'assetId'],
-        select: { clientControlId: true, testId: true, assetId: true, result: true },
-      })
-    : [];
+  const latest = controls.length ? await latestEvaluations(tx, serviceId, controls.map((c) => c.id)) : [];
   const results = new Map<string, AssetResult>(latest.map((e) => [resultKey(e.clientControlId, e.testId, e.assetId), e.result as AssetResult]));
 
   // D85, D121 · El estado de una prueba manual no documental sale del ÚLTIMO veredicto del test en el servicio: si está aprobado, su resultado vale en todos los controles que llevan el test y
   // sobre todos los activos de su dimensión; si está pendiente o rechazado el test queda pendiente (sin resultado), aunque uno anterior haya estado aprobado. Una sola consulta para el servicio.
-  const verdicts = controls.length
-    ? await tx.testVerdict.findMany({
-        where: { serviceId },
-        orderBy: [{ registeredAt: 'desc' }, { id: 'desc' }],
-        distinct: ['testId'],
-        select: { testId: true, result: true, reviews: { select: { decision: true } } },
-      })
-    : [];
+  const verdicts = controls.length ? await latestVerdicts(tx, [serviceId]) : [];
+  const controlsWithTest = new Map<string, { control: ReadoutControl; dimension: Dimension }[]>();
+  for (const c of controls) for (const t of c.tests) controlsWithTest.set(t.testId, [...(controlsWithTest.get(t.testId) ?? []), { control: c, dimension: t.dimension }]);
   for (const v of verdicts) {
-    if (verdictStateOf(v.reviews) !== 'approved') continue;
-    for (const c of controls) {
-      const test = c.tests.find((t) => t.testId === v.testId);
-      if (!test) continue;
-      for (const a of assets) if (dimensionOfAssetType(a.type) === test.dimension) results.set(resultKey(c.id, v.testId, a.id), v.result);
+    if (verdictStateOf(v.decisions.map((decision) => ({ decision }))) !== 'approved') continue;
+    for (const { control, dimension } of controlsWithTest.get(v.testId) ?? []) {
+      for (const a of assets) if (dimensionOfAssetType(a.type) === dimension) results.set(resultKey(control.id, v.testId, a.id), v.result as AssetResult);
     }
   }
 
@@ -128,7 +115,7 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
     select: { testId: true, assetId: true },
   });
   for (const x of excluded) {
-    for (const c of controls) if (c.tests.some((t) => t.testId === x.testId)) results.set(resultKey(c.id, x.testId, x.assetId as string), 'excluded');
+    for (const { control } of controlsWithTest.get(x.testId) ?? []) results.set(resultKey(control.id, x.testId, x.assetId as string), 'excluded');
   }
 
   return { serviceId, controls, assets, results };

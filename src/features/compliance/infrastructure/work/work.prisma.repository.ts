@@ -5,6 +5,7 @@ import { evidenceStateOf } from '../../domain/evidence/evidence';
 import { verdictStateOf } from '../../domain/verdicts/test-verdict';
 import { outcomeOfEvidence, outcomeOfVerdict } from '../../domain/work/work-bucket';
 import { ControlDeliveries, WorkPerson, WorkRepository } from '../../domain/work/work.repository';
+import { latestVerdicts } from '../shared/latest-results.query';
 import { ALL_REVIEWS, toReviewRecord, versionOf } from '../evidence/evidence-review.mapper';
 
 // Una dimensión que el control resuelve a mano (como en el veredicto): `hybrid` y `automated` las mide la sonda.
@@ -49,19 +50,14 @@ export class WorkPrismaRepository extends WorkRepository {
 
       // Veredictos: una pieza por prueba manual no documental de cada control; cuenta el último veredicto de la prueba en el servicio (D85, D121).
       const serviceIds = [...new Set(controls.map((c) => c.serviceId))];
-      const verdicts = await tx.testVerdict.findMany({
-        where: { serviceId: { in: serviceIds } },
-        orderBy: [{ registeredAt: 'desc' }, { id: 'desc' }],
-        distinct: ['serviceId', 'testId'],
-        select: { serviceId: true, testId: true, clientControlId: true, registeredBy: true, reviews: { select: { decision: true } } },
-      });
+      const verdicts = await latestVerdicts(tx, serviceIds);
       const latestOf = new Map(verdicts.map((v) => [`${v.serviceId}|${v.testId}`, v]));
       for (const c of controls) {
         const manual = new Set(c.dimensions.filter((d) => d.reasonNotApplicable === null && MANUAL_DIMENSION_TYPES.has(d.type)).map((d) => d.dimension as string));
         for (const t of c.tests) {
           if (t.test.dimension === 'policy' || !manual.has(t.test.dimension)) continue;
           const v = latestOf.get(`${c.serviceId}|${t.testId}`);
-          byControl.get(c.id)?.items.push({ delivery: v ? { by: v.registeredBy, outcome: outcomeOfVerdict(verdictStateOf(v.reviews)), ownerCanReview: v.clientControlId === c.id } : null });
+          byControl.get(c.id)?.items.push({ delivery: v ? { by: v.registeredBy, outcome: outcomeOfVerdict(verdictStateOf(v.decisions.map((decision) => ({ decision })))), ownerCanReview: v.clientControlId === c.id } : null });
         }
       }
 
