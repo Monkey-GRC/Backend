@@ -5,7 +5,7 @@ import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.inser
 import { Prisma } from '../../../../../generated/prisma/client';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { lockUserRow } from '../../../../infrastructure/database/row-locks';
-import { Session } from '../../domain/entities/session.entity';
+import { Session, SessionOwner } from '../../domain/entities/session.entity';
 import { NewSession, SessionRepository } from '../../domain/repositories/session.repository';
 import type { DeviceEffect, DeviceForget } from '../../domain/repositories/trusted-device.repository';
 import { toTrustedDevice } from './trusted-device.mapper';
@@ -19,6 +19,20 @@ type SessionRow = {
   lastActivityAt: Date;
   expiresAt: Date;
   revokedAt: Date | null;
+};
+
+type SessionWithOwnerRow = {
+  id: string;
+  company_id: string;
+  user_id: string;
+  created_at: Date;
+  last_activity_at: Date;
+  expires_at: Date;
+  revoked_at: Date | null;
+  owner_id: string | null;
+  owner_company_id: string | null;
+  owner_role: string | null;
+  owner_status: string | null;
 };
 
 const toEntity = (row: SessionRow): Session =>
@@ -82,6 +96,23 @@ export class SessionPrismaRepository extends SessionRepository {
       tx.session.findUnique({ where: { id: sessionId } }),
     );
     return row ? toEntity(row) : null;
+  }
+
+  async findWithOwner(scope: TenantScope, sessionId: string): Promise<{ session: Session; owner: SessionOwner | null } | null> {
+    const rows = await this.prisma.withScope(scope, (tx) =>
+      tx.$queryRaw<SessionWithOwnerRow[]>`
+        SELECT s.id, s.company_id, s.user_id, s.created_at, s.last_activity_at, s.expires_at, s.revoked_at,
+               u.id AS owner_id, u.company_id AS owner_company_id, u.role::text AS owner_role, u.status::text AS owner_status
+        FROM platform.sessions s
+        LEFT JOIN platform.users u ON u.id = s.user_id
+        WHERE s.id = ${sessionId}::uuid
+      `,
+    );
+    const row = rows[0];
+    if (!row) return null;
+    const session = new Session(row.id, row.company_id, row.user_id, row.created_at, row.last_activity_at, row.expires_at, row.revoked_at);
+    const owner = row.owner_id ? new SessionOwner(row.owner_id, row.owner_company_id as string, row.owner_role as SessionOwner['role'], row.owner_status as SessionOwner['status']) : null;
+    return { session, owner };
   }
 
   async rotate(scope: TenantScope, sessionId: string, newHash: string, at: Date): Promise<void> {

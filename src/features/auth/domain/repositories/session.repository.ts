@@ -1,6 +1,6 @@
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
-import { Session } from '../entities/session.entity';
+import { Session, SessionOwner } from '../entities/session.entity';
 import type { DeviceEffect, DeviceForget } from './trusted-device.repository';
 
 export type NewSession = {
@@ -22,6 +22,9 @@ export abstract class SessionRepository {
   abstract findByRefreshTokenHash(hash: string): Promise<Session | null>;
 
   abstract findById(scope: TenantScope, sessionId: string): Promise<Session | null>;
+
+  // Sesión y su dueña en una sola consulta (validación de cada petición). `owner` es null si la persona no es visible o no existe.
+  abstract findWithOwner(scope: TenantScope, sessionId: string): Promise<{ session: Session; owner: SessionOwner | null } | null>;
 
   // Refresh: rota el token (el anterior deja de servir) y marca actividad.
   abstract rotate(scope: TenantScope, sessionId: string, newHash: string, at: Date): Promise<void>;

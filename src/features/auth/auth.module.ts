@@ -9,6 +9,8 @@ import { AccessTokenService } from './domain/ports/access-token.service';
 import { PasswordHasher } from './domain/ports/password-hasher';
 import { AccessKeyRedemptionRepository } from './domain/repositories/access-key-redemption.repository';
 import { ActivationRepository } from './domain/repositories/activation.repository';
+import { CurrentUserReader } from './domain/ports/current-user.reader';
+import { CurrentUserPrismaReader } from './infrastructure/repositories/current-user.prisma.reader';
 import { OnboardingProgressReader } from './domain/ports/onboarding-progress.reader';
 import { AuthUserRepository } from './domain/repositories/auth-user.repository';
 import { MfaRepository } from './domain/repositories/mfa.repository';
@@ -107,6 +109,7 @@ const seconds = (config: ConfigService, key: string): number => {
     { provide: AccessKeyRedemptionRepository, useClass: AccessKeyRedemptionPrismaRepository },
     { provide: ActivationRepository, useClass: ActivationPrismaRepository },
     { provide: OnboardingProgressReader, useClass: OnboardingProgressPrismaReader },
+    { provide: CurrentUserReader, useClass: CurrentUserPrismaReader },
     GetOnboardingProgressUseCase,
     SessionIssuer,
     TrustedDevices,
