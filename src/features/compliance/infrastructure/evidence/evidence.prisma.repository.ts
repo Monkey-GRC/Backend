@@ -139,9 +139,8 @@ export class EvidencePrismaRepository extends EvidenceRepository {
     return this.prisma.withScope(scope, (tx) => this.accessOf(tx, requirementId));
   }
 
-  listSubmissions(scope: TenantScope, requirementId: string, page: number, pageSize: number): Promise<Page<SubmissionRecord> | null> {
+  listSubmissions(scope: TenantScope, requirementId: string, page: number, pageSize: number): Promise<Page<SubmissionRecord>> {
     return this.prisma.withScope(scope, async (tx) => {
-      if (!(await this.accessOf(tx, requirementId))) return null;
       const where = { evidenceRequirementId: requirementId };
       const total = await tx.evidenceSubmission.count({ where });
       // La versión es texto: se trae el requerimiento completo (un puñado de filas) y se pagina en memoria, para ordenar como número.

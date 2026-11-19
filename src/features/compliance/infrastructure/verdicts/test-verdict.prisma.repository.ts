@@ -176,10 +176,8 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
       const origin = await this.origin(tx, controlId, testId);
       if (!origin) return null;
       const where = { serviceId: origin.serviceId, testId };
-      const [total, rows] = await Promise.all([
-        tx.testVerdict.count({ where }),
-        tx.testVerdict.findMany({ where, orderBy: [...NEWEST_FIRST], skip: (page - 1) * pageSize, take: pageSize, select: VERDICT_SELECT }),
-      ]);
+      const total = await tx.testVerdict.count({ where });
+      const rows = await tx.testVerdict.findMany({ where, orderBy: [...NEWEST_FIRST], skip: (page - 1) * pageSize, take: pageSize, select: VERDICT_SELECT });
       const carrying = await this.carrying(tx, origin.serviceId, [testId]);
       const access = (await loadControlAccess(tx, [controlId])).get(controlId) ?? NO_ACCESS;
       return { page: { items: rows.map((r) => toRecord(r, carrying)), total, page, pageSize }, access };

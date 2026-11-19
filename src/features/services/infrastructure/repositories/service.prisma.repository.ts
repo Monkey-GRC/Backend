@@ -474,10 +474,8 @@ export class ServicePrismaRepository extends ServiceRepository {
     const byId = new Map(found.map((r) => [r.id, r]));
     const allCriteria = [...new Set(found.flatMap((r) => r.trustCriteria.map((c) => c.trustCriterionId)))];
     const allFrameworks = [...new Set(found.flatMap((r) => r.frameworks.filter((f) => f.status === 'active').map((f) => f.frameworkId)))];
-    const [requirementGroups, controlGroups] = await Promise.all([
-      tx.requirement.groupBy({ by: ['frameworkId', 'trustCriterionId'], where: { frameworkId: { in: allFrameworks }, trustCriterionId: { in: allCriteria } }, _count: { _all: true } }),
-      tx.clientControl.groupBy({ by: ['serviceId'], where: { serviceId: { in: ids }, isActive: true }, _count: { _all: true } }),
-    ]);
+    const requirementGroups = await tx.requirement.groupBy({ by: ['frameworkId', 'trustCriterionId'], where: { frameworkId: { in: allFrameworks }, trustCriterionId: { in: allCriteria } }, _count: { _all: true } });
+    const controlGroups = await tx.clientControl.groupBy({ by: ['serviceId'], where: { serviceId: { in: ids }, isActive: true }, _count: { _all: true } });
     const clonedByService = new Map(controlGroups.map((g) => [g.serviceId, g._count._all]));
     return ids.flatMap((id) => {
       const row = byId.get(id);

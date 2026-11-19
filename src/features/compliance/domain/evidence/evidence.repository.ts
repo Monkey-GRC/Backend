@@ -118,7 +118,7 @@ export abstract class EvidenceRepository {
   abstract listByTest(scope: TenantScope, controlId: string, testId: string): Promise<TestEvidence | null>;
   /** `null` si el requerimiento no existe para esta empresa. */
   abstract findRequirement(scope: TenantScope, requirementId: string): Promise<EvidenceAccess | null>;
-  abstract listSubmissions(scope: TenantScope, requirementId: string, page: number, pageSize: number): Promise<Page<SubmissionRecord> | null>;
+  abstract listSubmissions(scope: TenantScope, requirementId: string, page: number, pageSize: number): Promise<Page<SubmissionRecord>>;
   /** Guarda la entrega con la versión siguiente y su rastro de auditoría en la misma transacción. `null` si el requerimiento no existe. */
   abstract createSubmission(scope: TenantScope, requirementId: string, input: NewSubmission, audit: AuditIntent<SubmissionRecord>): Promise<SubmissionRecord | null>;
   abstract findSubmission(scope: TenantScope, submissionId: string): Promise<{ submission: SubmissionRecord; access: EvidenceAccess } | null>;
