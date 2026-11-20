@@ -16,10 +16,11 @@ import {
 } from '../../application/observations/observation.use-cases';
 import { toObservation } from './observation-response.mapper';
 import { ObservationResponse } from './observation.responses';
+import { clientIp } from '../../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
-const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 
 // Observaciones del auditor (contracts/modules/compliance-audit.md, MD-154, D96). Las escribe, edita y cierra solo el `auditor` y solo las suyas; las responde el `admin_empresa` o el
 // `responsable` responsable del control; las leen los tres (el `responsable`, solo las de sus controles). `admin_monkey` no entra. No mueven el porcentaje.

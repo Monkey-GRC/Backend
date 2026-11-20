@@ -20,7 +20,7 @@ describe('MaxmindGeoIpLookup (D123)', () => {
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['10.1.2.3', '192.168.0.4', '172.20.0.1', '127.0.0.1', '::1', 'fe80::1', '::ffff:10.0.0.5', 'no-es-ip', ''])('IP privada o inválida %s: null sin abrir la base', async (ip) => {
+  it.each(['10.1.2.3', '192.168.0.4', '172.20.0.1', '127.0.0.1', '::1', 'fe80::1', '::ffff:10.0.0.5', '::ffff:172.22.0.2', 'no-es-ip', ''])('IP privada o inválida %s: null sin abrir la base', async (ip) => {
     const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
     const geo = new MaxmindGeoIpLookup(config('geoip/no-existe.mmdb'));
     expect(await geo.lookup(ip)).toBeNull();

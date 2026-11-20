@@ -13,11 +13,12 @@ import { SetEvaluationPeriodDto } from '../../application/periods/evaluation-per
 import { SetEvaluationPeriodUseCase } from '../../application/periods/evaluation-period.use-cases';
 import { toEvaluationPeriod } from './evaluation-period-response.mapper';
 import { EvaluationPeriodResponse } from './evaluation-period.responses';
+import { clientIp } from '../../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 // 404 también cuando el id no es un UUID: no hay nada que encontrar.
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
-const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 
 // El período auditado y la fecha de corte de un marco del servicio (contracts/modules/compliance-overview.md, D87, MD-168). Solo `admin_empresa` (D96).
 @ApiTags(API_TAGS.overview)

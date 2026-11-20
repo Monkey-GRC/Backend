@@ -20,10 +20,11 @@ import { toCause, toRiskDetail, toRiskListItem } from './risk-response.mapper';
 import { API_TAGS } from '../../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiNoBody, ApiPaged } from '../../../../common/swagger/api-envelope';
 import { CauseControlLinkResponse, CauseResponse, RiskCauseLinkResponse, RiskDetailResponse, RiskListItemResponse, RiskMatrixResponse } from './risk.responses';
+import { clientIp } from '../../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
-const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 
 // Riesgos y causas de un servicio (contracts/modules/compliance-risks.md, MD-122). Los ven los cuatro roles de la empresa (el `responsable`, solo lo que llega a una acción
 // suya); los gestiona solo el administrador. `admin_monkey` no entra al cumplimiento de una empresa por aquí.

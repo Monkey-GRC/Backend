@@ -42,12 +42,13 @@ import { toServiceListItem, toServiceResponse } from './service-response.mapper'
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiEmpty, ApiPaged } from '../../../common/swagger/api-envelope';
 import { ServiceListItemResponse, ServiceResponse, SystemDescriptionDownloadResponse } from './service.responses';
+import { clientIp } from '../../../common/http/client-ip';
 
 const t = (key: string): string =>
   (I18nContext.current()?.t(key) as string | undefined) ?? key;
 
 const metaOf = (req: Request): RequestMeta => ({
-  ipAddress: req.ip ?? '',
+  ipAddress: clientIp(req),
   userAgent: req.get('user-agent') ?? '',
 });
 

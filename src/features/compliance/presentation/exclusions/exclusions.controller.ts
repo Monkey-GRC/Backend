@@ -14,10 +14,11 @@ import { toExclusion } from './exclusion-response.mapper';
 import { API_TAGS } from '../../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiPaged } from '../../../../common/swagger/api-envelope';
 import { ExclusionResponse } from './exclusion.responses';
+import { clientIp } from '../../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
-const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 
 // Exclusiones de un servicio (contracts/modules/compliance-audit.md, MD-144, D78). Las ven el administrador y el auditor; la crea y la decide solo el administrador
 // en un solo acto (D96): nace aprobada. El `responsable` y `admin_monkey` no entran.

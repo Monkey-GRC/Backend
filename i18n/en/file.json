@@ -1,5 +1,5 @@
 {
-  "required": "Attach a file in the \"file\" field.",
+  "required": "Attach a file.",
   "too_large": "The file is larger than the 25 MB limit.",
   "unsupported_type": "We don't accept this type of file, or its content doesn't match its extension. Check the allowed types.",
   "storage_unavailable": "We can't store files on your account yet. Share a link to the document in the meantime.",

@@ -13,6 +13,7 @@ import { toOrganizationalContextResponse } from './organizational-context-respon
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData } from '../../../common/swagger/api-envelope';
 import { OrganizationalContextResponse } from './organizational-context.responses';
+import { clientIp } from '../../../common/http/client-ip';
 
 const t = (key: string): string =>
   (I18nContext.current()?.t(key) as string | undefined) ?? key;
@@ -58,7 +59,7 @@ export class OnboardingController {
         complianceMaturity: dto.compliance_maturity,
         regulationCodes: dto.regulation_codes,
       },
-      { ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' },
+      { ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' },
     );
     return new ResponseDto(HttpStatus.OK, t('organizational_context.saved'), toOrganizationalContextResponse(ctx));
   }

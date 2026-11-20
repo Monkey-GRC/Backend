@@ -5,6 +5,8 @@ import { isIP } from 'node:net';
 import { open, type CityResponse, type Reader } from 'maxmind';
 import { GeoIpLookup, GeoLocation } from '../../domain/ports/geo-ip.lookup';
 
+import { normalizeIp } from '../../../../common/http/client-ip';
+
 const isPrivate = (ip: string): boolean => {
   if (isIP(ip) === 4) {
     const [a, b] = ip.split('.').map(Number);
@@ -33,7 +35,7 @@ export class MaxmindGeoIpLookup extends GeoIpLookup {
 
   async lookup(ipAddress: string): Promise<GeoLocation | null> {
     try {
-      const ip = ipAddress.startsWith('::ffff:') ? ipAddress.slice(7) : ipAddress;
+      const ip = normalizeIp(ipAddress);
       if (!isIP(ip) || isPrivate(ip)) return null;
       const reader = await this.load();
       const found = reader?.get(ip);

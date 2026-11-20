@@ -7,7 +7,7 @@
   "regions_missing": "You have not declared which regions to assess yet. Choose at least one.",
   "not_configured": "This system does not have its connection configured yet.",
   "provider_not_supported": "This platform isn't available to connect yet.",
-  "method_not_supported_by_runner": "This connection type is assessed a different way and not from here.",
+  "method_not_supported_by_runner": "This connection type is not assessed from here.",
   "method_not_applicable": "That connection type is not available for this system.",
   "agent_not_found": "We could not find the probe for this server. Generate the install command again and run it once more.",
   "agent_no_scan_yet": "The probe on this server has not delivered its first assessment yet. Wait a few minutes and try again.",
@@ -38,5 +38,5 @@
     "step_3": "If your network restricts outbound connections, allow the one we list next to the command.",
     "step_4": "Wait a few minutes. When the program connects, this server's status changes to “Connected”."
   },
-  "permission_denied": "The user does not have enough permissions for automatic evaluation."
+  "permission_denied": "The user or role lacks the read-only permissions. Check it has SecurityAudit and ViewOnlyAccess."
 }

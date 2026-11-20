@@ -6,6 +6,7 @@ import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
+import { normalizeIp } from '../../../common/http/client-ip';
 import { mailLanguageOf } from '../../../common/mail/mail-language';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiDomainErrors, ApiItems, ApiNoBody } from '../../../common/swagger/api-envelope';
@@ -44,7 +45,7 @@ export class DevicesController {
         browser: device.browser,
         os: device.os,
         device_type: device.deviceType,
-        ip_address: device.ipAddress,
+        ip_address: normalizeIp(device.ipAddress),
         country: device.country,
         city: device.cityIn(language),
         created_at: device.createdAt.toISOString(),

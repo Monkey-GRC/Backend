@@ -39,10 +39,11 @@ import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiItems, ApiNoBody } from '../../../common/swagger/api-envelope';
 import { DIMENSIONS } from '../application/dtos/catalog-write.dto';
 import { CatalogCauseDetailResponse, CatalogControlDetailResponse, CatalogEvidenceTemplateResponse, CatalogRiskDetailResponse, CatalogTestDetailResponse, FrameworkPointOfFocusResponse } from './catalog-admin.responses';
+import { clientIp } from '../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const uuid = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
-const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 
 // contracts/modules/monkey-admin-catalog.md — escritura del catálogo maestro, exclusiva de admin_monkey. Crear, editar y dar de baja (nunca borrar), y vincular
 // elementos entre sí. Cada respuesta trae el elemento ya actualizado; cada cambio deja su rastro `catalog.*` en la auditoría.

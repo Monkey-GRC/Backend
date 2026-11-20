@@ -14,10 +14,11 @@ import { Responsible } from '../../domain/responsibles/responsible.repository';
 import { API_TAGS } from '../../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiNoBody, ApiPaged } from '../../../../common/swagger/api-envelope';
 import { ResponsibleResponse } from './responsible.responses';
+import { clientIp } from '../../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
-const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 const toResponse = (r: Responsible) => ({ id: r.id, type: r.type, person_name: r.personName, is_in_use: r.isInUse });
 
 // Cargos responsables de la organización (contracts/modules/compliance-responsibles.md, MD-133). Los ven todos los roles de la empresa; los gestiona

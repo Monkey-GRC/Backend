@@ -3,6 +3,6 @@
   "read": "Detalle de la causa.",
   "created": "Listo, registramos la causa.",
   "updated": "Listo, actualizamos la causa.",
-  "control_linked": "Listo, vinculamos la causa con la acción de protección.",
+  "control_linked": "Listo, vinculamos la causa con el control.",
   "inactive": "Esta causa está dada de baja."
 }

@@ -1,7 +1,7 @@
 {
   "not_contracted": "Your company has not contracted that framework yet. Contact us and we will enable it.",
   "contracted": "Frameworks contracted by your company.",
-  "not_available": "That framework is not available to contract yet. We are working on it.",
+  "not_available": "That framework is not available to contract yet.",
   "scope": {
     "gdpr": "European regulation on the protection of personal data; applies to anyone who processes the data of people in the EU.",
     "hipaa": "Administrative, physical and technical safeguards to protect electronic health information in the US.",

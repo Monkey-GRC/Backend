@@ -2,11 +2,11 @@
   "queued": "Done, the assessment is queued.",
   "in_progress": "An assessment is already running for this system. Wait for it to finish.",
   "not_running": "This assessment is no longer running.",
-  "output_invalid": "The automatic assessment result does not have the expected format.",
+  "output_invalid": "The automatic assessment could not complete. Try again; if it happens again, contact support.",
   "timed_out": "The assessment took too long and was cancelled. Try again.",
   "list": "Assessment history.",
   "completed": "Assessment completed.",
-  "failed": "The assessment could not be completed.",
+  "failed": "The automatic assessment could not complete. Try again; if it happens again, contact support.",
   "engine_failed": "The automatic assessment could not be completed. Try again; if it keeps happening, contact us.",
   "engine_timeout": "The assessment took longer than allowed and was cancelled. Try again.",
   "probe_version_unsupported": "Automatic assessment is under maintenance and could not be completed. Try again later; if it keeps happening, contact us."

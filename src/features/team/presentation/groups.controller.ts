@@ -14,10 +14,11 @@ import { CreateGroupDto, ListGroupsQuery, RenameGroupDto } from '../application/
 import { CreateGroupUseCase, ListGroupsUseCase, RenameGroupUseCase } from '../application/use-cases/team-groups.use-cases';
 import { toGroup } from './team.mapper';
 import { GroupResponse } from './team.responses';
+import { clientIp } from '../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
-const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 
 // Los grupos de la empresa (contracts/gestion-usuarios.md · Grupos, D102 y D104). `admin_empresa` lista todos, crea grupos de responsables o el equipo de un responsable y renombra;
 // el `responsable` lista el suyo y crea el suyo (uno solo). Mover a un delegado de equipo es `PATCH /v1/users/{id}`.

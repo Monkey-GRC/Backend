@@ -193,7 +193,7 @@
   "connection_method": {
     "readonly_role": "Rol de solo lectura (recomendado)",
     "access_keys": "Llaves de acceso (menos seguro)",
-    "agent": "Agente instalado",
+    "agent": "Sonda instalada",
     "identity_federation": "Federación de identidad, sin claves (GCP)"
   },
   "os_version": {
@@ -350,7 +350,7 @@
       "readonly_role": "Monkey asume un rol de solo lectura que creas en tu cuenta. No guarda llaves y puedes revocarlo cuando quieras.",
       "access_keys": "Pegas una llave de acceso de solo lectura. Funciona, pero exige custodiar un secreto de larga duración.",
       "identity_federation": "Tu proyecto confía en la identidad de Monkey. No se crean ni se guardan claves.",
-      "agent": "Instalas un agente ligero en el equipo, que reporta su estado a Monkey."
+      "agent": "Instalas la sonda de Monkey en el equipo; reporta su estado a Monkey."
     },
     "gcp_connection_scope": {
       "project": "Conecta un proyecto, o unos pocos, de Google Cloud. Es el alcance con el que empezar.",

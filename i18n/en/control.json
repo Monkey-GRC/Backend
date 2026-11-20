@@ -1,6 +1,6 @@
 {
-  "list": "Protection actions of your service.",
-  "read": "Protection action detail.",
+  "list": "Controls of your service.",
+  "read": "Control detail.",
   "test": {
     "policy": "Document review",
     "server": "Server check",
@@ -8,7 +8,7 @@
     "app": "Application check",
     "cloud": "Cloud check"
   },
-  "created": "Done, we created your protection action. It counts from now on.",
+  "created": "Done, we created your custom control. It now counts toward compliance.",
   "updated": "Done, we saved the control changes.",
   "retired": "This control has already been retired."
 }

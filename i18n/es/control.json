@@ -1,6 +1,6 @@
 {
-  "list": "Acciones de protección de tu servicio.",
-  "read": "Detalle de la acción de protección.",
+  "list": "Controles de tu servicio.",
+  "read": "Detalle del control.",
   "test": {
     "policy": "Revisión documental",
     "server": "Prueba de servidores",
@@ -8,7 +8,7 @@
     "app": "Prueba de aplicación",
     "cloud": "Prueba de nube"
   },
-  "created": "Listo, creamos tu acción de protección. Cuenta desde ya.",
+  "created": "Listo, creamos tu control propio. Ya cuenta para el cumplimiento.",
   "updated": "Listo, guardamos los cambios del control.",
   "retired": "Este control ya fue dado de baja."
 }

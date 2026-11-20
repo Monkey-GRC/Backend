@@ -1,9 +1,9 @@
 {
-  "bad_request": "Solicitud incorrecta.",
+  "bad_request": "No pudimos procesar los datos enviados. Revisa el formulario e inténtalo de nuevo.",
   "unauthenticated": "Debes iniciar sesión.",
   "forbidden": "No tienes permiso para esta acción.",
-  "not_found": "Recurso no encontrado.",
-  "conflict": "La solicitud choca con el estado actual.",
+  "not_found": "Eso ya no existe o no tienes acceso. Recarga la página.",
+  "conflict": "Alguien cambió esto mientras lo editabas. Recarga la página e inténtalo de nuevo.",
   "rate_limited": "Hiciste demasiadas peticiones en poco tiempo. Espera un momento e inténtalo de nuevo.",
-  "internal_error": "Error interno del servidor."
+  "internal_error": "Tuvimos un error en el servidor y no se guardó nada. Inténtalo de nuevo; si se repite, escribe a soporte."
 }

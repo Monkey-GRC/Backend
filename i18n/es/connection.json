@@ -7,7 +7,7 @@
   "regions_missing": "Aún no declaraste en qué regiones evaluar. Elige al menos una.",
   "not_configured": "Este activo todavía no tiene su conexión configurada.",
   "provider_not_supported": "Esta plataforma aún no está disponible para conectar.",
-  "method_not_supported_by_runner": "Este tipo de conexión se evalúa de otra forma y no desde aquí.",
+  "method_not_supported_by_runner": "Este tipo de conexión no se evalúa desde aquí.",
   "method_not_applicable": "Ese tipo de conexión no está disponible para este activo.",
   "agent_not_found": "No encontramos la sonda de este servidor. Vuelve a generar el comando de instalación y ejecútalo de nuevo.",
   "agent_no_scan_yet": "La sonda de este servidor todavía no entregó su primera evaluación. Espera unos minutos y vuelve a intentarlo.",
@@ -38,5 +38,5 @@
     "step_3": "Si tu red limita las conexiones de salida, permite la que te indicamos junto al comando.",
     "step_4": "Espera unos minutos. Cuando el programa se conecte, el estado de este servidor cambiará a «Conectado»."
   },
-  "permission_denied": "El usuario no tiene permisos suficientes para la evaluación automática."
+  "permission_denied": "El usuario o rol no tiene permisos de solo lectura suficientes. Revisa que tenga SecurityAudit y ViewOnlyAccess."
 }
