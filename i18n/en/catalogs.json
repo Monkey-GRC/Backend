@@ -193,7 +193,7 @@
   "connection_method": {
     "readonly_role": "Read-only role (recommended)",
     "access_keys": "Access keys (less secure)",
-    "agent": "Installed agent",
+    "agent": "Installed probe",
     "identity_federation": "Identity federation, no keys (GCP)"
   },
   "os_version": {
@@ -350,7 +350,7 @@
       "readonly_role": "Monkey assumes a read-only role that you create in your account. It stores no keys and you can revoke it at any time.",
       "access_keys": "You paste a read-only access key. It works, but you have to safeguard a long-lived secret.",
       "identity_federation": "Your project trusts the Monkey identity. No keys are created or stored.",
-      "agent": "You install a lightweight agent on the machine, which reports its status to Monkey."
+      "agent": "You install the Monkey probe on the machine; it reports its status to Monkey."
     },
     "gcp_connection_scope": {
       "project": "Connect one Google Cloud project, or a few. This is the scope to start with.",

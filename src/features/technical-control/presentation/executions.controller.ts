@@ -15,9 +15,10 @@ import { toExecutionResponse, toReadinessResponse } from './scan-response.mapper
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiPaged } from '../../../common/swagger/api-envelope';
 import { AssetReadinessResponse, ExecutionResponse, QueuedExecutionResponse } from './technical-control.responses';
+import { clientIp } from '../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
-const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 
 // Operación continua de un activo de nube (contracts/modules/control-tecnico.md): evaluar ahora, historial y estado de preparación.

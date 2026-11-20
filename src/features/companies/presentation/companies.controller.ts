@@ -42,6 +42,7 @@ import {
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiItems, ApiPaged } from '../../../common/swagger/api-envelope';
 import { CompanyDetailResponse, CompanyListItemResponse, PendingPurgeCompanyResponse, RegisteredAccessKeyResponse, RegisteredCompanyResponse } from './company.responses';
+import { clientIp } from '../../../common/http/client-ip';
 
 const t = (key: string): string =>
   (I18nContext.current()?.t(key) as string | undefined) ?? key;
@@ -81,7 +82,7 @@ export class CompaniesController {
         maxUsers: dto.max_users,
         frameworkCodes: dto.framework_codes ?? [...DEFAULT_CONTRACTED_FRAMEWORKS],
       },
-      { ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '', language: mailLanguageOf(I18nContext.current()?.lang) },
+      { ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '', language: mailLanguageOf(I18nContext.current()?.lang) },
     );
     return new ResponseDto(
       HttpStatus.CREATED,
@@ -101,7 +102,7 @@ export class CompaniesController {
     @Req() req: Request,
   ) {
     const { accessKey, deliveryStatus } = await this.regenerateAccessKey.execute(principal, id, {
-      ipAddress: req.ip ?? '',
+      ipAddress: clientIp(req),
       userAgent: req.get('user-agent') ?? '',
       language: mailLanguageOf(I18nContext.current()?.lang),
     });
@@ -159,7 +160,7 @@ export class CompaniesController {
     @Body() dto: UpdateMaxUsersDto,
     @Req() req: Request,
   ) {
-    const detail = await this.updateMaxUsers.execute(principal, id, dto.max_users, { ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+    const detail = await this.updateMaxUsers.execute(principal, id, dto.max_users, { ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
     return new ResponseDto(HttpStatus.OK, t('company.max_users_updated'), toCompanyDetail(detail));
   }
 
@@ -181,7 +182,7 @@ export class CompaniesController {
       principal,
       id,
       { confirmName: dto.confirm_name, reasonCode: dto.reason_code, reason: dto.reason, retentionDays: dto.retention_days, totpCode: dto.totp_code },
-      { ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' },
+      { ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' },
     );
     return new ResponseDto(HttpStatus.OK, t('company.deactivated'), toCompanyDetail(detail));
   }
@@ -204,7 +205,7 @@ export class CompaniesController {
       principal,
       id,
       { reason: dto.reason, totpCode: dto.totp_code },
-      { ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' },
+      { ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' },
     );
     return new ResponseDto(HttpStatus.OK, t('company.reactivated'), toCompanyDetail(detail));
   }

@@ -1,5 +1,5 @@
 {
-  "required": "Adjunta un archivo en el campo «file».",
+  "required": "Adjunta un archivo.",
   "too_large": "El archivo supera el máximo de 25 MB.",
   "unsupported_type": "No aceptamos este tipo de archivo, o su contenido no coincide con su extensión. Revisa los tipos permitidos.",
   "storage_unavailable": "Por ahora no podemos guardar archivos en tu cuenta. Comparte el enlace al documento mientras tanto.",

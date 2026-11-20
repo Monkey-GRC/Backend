@@ -1,13 +1,4 @@
 {
-  "CREATED": "Risk created successfully.",
-  "UPDATED": "Risk updated successfully.",
-  "DELETED": "Risk deleted successfully.",
-  "READ.ONE": "Risk retrieved successfully.",
-  "READ.ALL": "Risks retrieved successfully.",
-  "CREATE_FAILED": "Failed to create risk.",
-  "UPDATE_FAILED": "Failed to update risk.",
-  "DELETE_FAILED": "Failed to delete risk.",
-  "NOT_FOUND": "Risk not found.",
   "list": "Risks of your service.",
   "read": "Risk detail.",
   "created": "Done, we registered the risk.",

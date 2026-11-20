@@ -16,10 +16,11 @@ import { toEvaluationEntry, toRiskTreatment } from './risk-response.mapper';
 import { API_TAGS } from '../../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiPaged } from '../../../../common/swagger/api-envelope';
 import { RiskEvaluationEntryResponse, RiskTreatmentResponse } from './risk.responses';
+import { clientIp } from '../../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
-const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 
 // Evaluación 5×5 y tratamiento de un riesgo (contracts/modules/compliance-risks.md, MD-123). Evalúa y trata solo el administrador de la empresa; el
 // auditor lee. El `responsable` y el `delegado` leen los tratamientos de un riesgo suyo, pero no el historial de evaluaciones. `admin_monkey` no entra al cumplimiento de una empresa por aquí.

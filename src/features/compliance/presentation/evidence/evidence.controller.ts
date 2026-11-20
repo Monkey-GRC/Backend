@@ -18,10 +18,11 @@ import { toRequirement, toSubmission, toTestEvidence } from './evidence-response
 import { API_TAGS } from '../../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiItems, ApiPaged } from '../../../../common/swagger/api-envelope';
 import { EvidenceDownloadResponse, EvidenceRequirementResponse, EvidenceSubmissionResponse, ServiceEvidenceItemResponse, TestEvidenceResponse } from './evidence.responses';
+import { clientIp } from '../../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
-const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 
 // Evidencias de un control (contracts/modules/compliance-evidence.md, MD-126). Los cuatro roles de la empresa leen y descargan (el `responsable`, solo lo de sus controles);
 // suben el `responsable` responsable y, si hace falta, `admin_empresa`. Subir no valida: la validación es del admin_empresa (MD-127, D96).

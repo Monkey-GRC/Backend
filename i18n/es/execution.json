@@ -2,11 +2,11 @@
   "queued": "Listo, la evaluación quedó en cola.",
   "in_progress": "Ya hay una evaluación en curso para este activo. Espera a que termine.",
   "not_running": "Esta evaluación ya no está en curso.",
-  "output_invalid": "El resultado de la evaluación automática no tiene el formato esperado.",
+  "output_invalid": "La evaluación automática no pudo completarse. Inténtalo de nuevo; si se repite, escribe a soporte.",
   "timed_out": "La evaluación tardó demasiado y se canceló. Inténtalo de nuevo.",
   "list": "Historial de evaluaciones.",
   "completed": "Evaluación completada.",
-  "failed": "La evaluación no pudo completarse.",
+  "failed": "La evaluación automática no pudo completarse. Inténtalo de nuevo; si se repite, escribe a soporte.",
   "engine_failed": "La evaluación automática no pudo completarse. Inténtalo de nuevo; si se repite, contáctanos.",
   "engine_timeout": "La evaluación tardó más de lo permitido y se canceló. Inténtalo de nuevo.",
   "probe_version_unsupported": "La evaluación automática está en mantenimiento y no pudo completarse. Inténtalo más tarde; si se repite, contáctanos."

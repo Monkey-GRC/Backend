@@ -1,5 +1,6 @@
 import { CookieOptions, Request, Response } from 'express';
 import { RequestMeta } from '../../../common/http/request-meta';
+import { clientIp } from '../../../common/http/client-ip';
 
 // Auth por cookie httpOnly (conventions.md): el frontend nunca toca los tokens.
 // Admin y Platform comparten host de API y navegador: sin juegos de cookies distintos, iniciar sesión en una pisaría la sesión de la otra.
@@ -83,7 +84,7 @@ export const readMfaCookie = (req: Request) => readCookie(req, cookieNames(req).
 
 export function requestMeta(req: Request): RequestMeta {
   return {
-    ipAddress: req.ip ?? '',
+    ipAddress: clientIp(req),
     userAgent: req.get('user-agent') ?? '',
   };
 }

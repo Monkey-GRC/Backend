@@ -1,12 +1,17 @@
 import { INestApplication, RequestMethod, ValidationPipe } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { json } from 'express';
 import cookieParser from 'cookie-parser';
+import { parseTrustProxy } from './common/http/trust-proxy';
 import { ValidationException } from './common/errors/validation.exception';
 
 // Lo que hace que la app se comporte como la API del contrato (prefijo, cookies, validación 422). Vive aparte de
 // main.ts para que las pruebas e2e levanten la app configurada EXACTAMENTE igual que en producción.
 export function configureApp(app: INestApplication): void {
   // La API interna del trabajador (D57, SEG-47) NO lleva el prefijo público: vive en /internal/runner y solo se alcanza por la red interna.
+  // MD-485 (DT-37 / I9): saltos de proxy de confianza para resolver `req.ip` (por defecto apagado).
+  (app as NestExpressApplication).set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY));
+
   app.setGlobalPrefix('v1', { exclude: [{ path: 'internal/{*path}', method: RequestMethod.ALL }] });
 
   // El resultado de un escaneo pesa megas, y el límite por defecto de Express (100 kb) lo rechazaría. Se sube SOLO para esa ruta interna,

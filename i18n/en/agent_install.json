@@ -3,10 +3,10 @@
   "started": "We are preparing the installation for this server.",
   "revealed": "Install command. Copy it now: it is not shown again.",
   "regenerated": "We are preparing a new command for this server.",
-  "not_agent": "This asset is not connected with a program installed on the server.",
+  "not_agent": "This asset is not connected with a probe installed on the server.",
   "not_ready": "The install command is not ready yet, was already shown or has expired. If you did not get to copy it, generate a new one.",
-  "already_linked": "That program is already connected to another server. Generate a new command.",
+  "already_linked": "That probe is already connected to another server. Generate a new command.",
   "not_linked": "The data received does not belong to this server. Nothing was saved.",
   "group_mismatch": "The data received belongs to another company. Nothing was saved.",
-  "unavailable": "Server installation is not available on this Monkey installation yet. We will let you know when you can do it."
+  "unavailable": "Server connections are not available in your account yet. We will let you know."
 }

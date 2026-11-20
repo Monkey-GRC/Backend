@@ -14,10 +14,11 @@ import { IssueVerdictDto, ListVerdictsQuery, ReviewVerdictDto } from '../../appl
 import { IssueVerdictUseCase, ListVerdictsUseCase, ReviewVerdictUseCase } from '../../application/verdicts/verdict.use-cases';
 import { toVerdict } from './verdict-response.mapper';
 import { VerdictResponse } from './verdict.responses';
+import { clientIp } from '../../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
-const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 
 // El veredicto de un test manual que no es documental (contracts/cumplimiento/veredictos.md, D85, D102, D121). Lo registra el ejecutor, el dueño o el admin_empresa y lo revisan el dueño y el
 // admin_empresa; el historial lo leen el admin_empresa, el auditor y el dueño y ejecutor del control. Es del test en el servicio: cuenta en todos los controles que lo llevan, si está aprobado.

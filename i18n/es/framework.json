@@ -1,7 +1,7 @@
 {
   "not_contracted": "Tu empresa aún no tiene contratado ese marco. Escríbenos y lo habilitamos.",
   "contracted": "Marcos contratados por tu empresa.",
-  "not_available": "Ese marco todavía no está disponible para contratar. Estamos trabajando en él.",
+  "not_available": "Ese marco aún no está disponible para contratar.",
   "scope": {
     "gdpr": "Reglamento europeo de protección de datos personales; aplica a quien trate datos de personas en la UE.",
     "hipaa": "Salvaguardas administrativas, físicas y técnicas para proteger la información de salud electrónica en EE. UU.",

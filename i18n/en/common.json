@@ -1,9 +1,9 @@
 {
-  "bad_request": "Bad request.",
+  "bad_request": "We could not process the data you sent. Check the form and try again.",
   "unauthenticated": "You must sign in.",
   "forbidden": "You don't have permission for this action.",
-  "not_found": "Resource not found.",
-  "conflict": "The request conflicts with the current state.",
+  "not_found": "That no longer exists or you do not have access. Reload the page.",
+  "conflict": "Someone changed this while you were editing. Reload and try again.",
   "rate_limited": "You made too many requests in a short time. Wait a moment and try again.",
-  "internal_error": "Internal server error."
+  "internal_error": "Our server had an error and nothing was saved. Try again; if it happens again, contact support."
 }

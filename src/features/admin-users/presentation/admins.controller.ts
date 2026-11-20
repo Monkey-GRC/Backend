@@ -15,10 +15,11 @@ import { DeactivateAdminDto, InviteAdminDto, ListAdminsQuery } from '../applicat
 import { DeactivateAdminUseCase, InviteAdminUseCase, ListAdminsUseCase, ReactivateAdminUseCase, ReissueAdminCodeUseCase } from '../application/use-cases/admin-accounts.use-cases';
 import { toAdmin, toInvitation, toInvitedAdmin } from './admin.mapper';
 import { AdminAccountResponse, AdminInvitedResponse, AdminReissuedResponse } from './admin.responses';
+import { clientIp } from '../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
-const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '', language: mailLanguageOf(I18nContext.current()?.lang) });
+const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '', language: mailLanguageOf(I18nContext.current()?.lang) });
 
 // contracts/gestion-usuarios/administradores.md (D117) · Todo el módulo es exclusivo de `admin_monkey`: cualquier otro rol recibe 403.
 @ApiTags(API_TAGS.admins)

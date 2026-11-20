@@ -12,9 +12,10 @@ import { ApiData, ApiDomainErrors } from '../../../common/swagger/api-envelope';
 import { SetExecutorDto, SetOwnerDto } from '../application/dtos/assignment.dto';
 import { SetControlExecutorUseCase, SetControlOwnerUseCase } from '../application/use-cases/team-assignments.use-cases';
 import { AssignmentUpdatedResponse } from './team.responses';
+import { clientIp } from '../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
-const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 
 // Asignar dueño y ejecutor (contracts/gestion-usuarios.md · Asignación de controles, SEG-73). El listado (`GET /v1/assignments`) vive en `compliance`: necesita el estado de cada control.
 @ApiTags(API_TAGS.team)

@@ -9,7 +9,7 @@
   "not_activated": "This person has not activated their account yet. Meanwhile you can resend the invitation.",
   "already_active": "This account is already activated: it does not need another invitation.",
   "limit_reached": "Your company has reached the number of users it contracted. Deactivate an account or ask to raise the limit.",
-  "has_assignments": "This person has assigned controls. If you continue, the ones they execute are left without an executor and stay with their owner, and the ones they own are left unassigned; confirm to proceed.",
+  "has_assignments": "They have assigned controls: the ones they run will have no executor and the ones they own no owner. Confirm to continue.",
   "responsible_has_delegates": "This manager still has active or pending delegates on their team. Move them to another team or deactivate them first.",
   "team_leader_inactive": "This delegate's manager is no longer active. Move the delegate to another team before reactivating them."
 }

@@ -22,6 +22,7 @@ import { ListControlTestsUseCase } from '../../application/controls/list-control
 import { API_TAGS } from '../../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiNoBody, ApiPaged } from '../../../../common/swagger/api-envelope';
 import { ControlDetailResponse, ControlListItemResponse } from './control.responses';
+import { clientIp } from '../../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 
@@ -79,7 +80,7 @@ export class ControlsController {
   @Roles('admin_empresa')
   @HttpCode(HttpStatus.CREATED)
   async create(@CurrentUser() principal: Principal, @Param('serviceId', idPipe) serviceId: string, @Body() dto: CreateControlDto, @Req() req: Request) {
-    const meta: RequestMeta = { ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' };
+    const meta: RequestMeta = { ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' };
     const detail = await this.createControl.execute(principal, serviceId, dto, meta);
     return new ResponseDto(HttpStatus.CREATED, t('control.created'), toControlDetail(detail, t));
   }
@@ -98,7 +99,7 @@ export class ControlsController {
   @Patch('controls/:id')
   @Roles('admin_empresa')
   async update(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Body() dto: EditClientControlDto, @Req() req: Request) {
-    const meta: RequestMeta = { ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' };
+    const meta: RequestMeta = { ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' };
     const detail = await this.updateControl.execute(principal, id, dto, meta);
     return new ResponseDto(HttpStatus.OK, t('control.updated'), toControlDetail(detail, t));
   }
@@ -110,7 +111,7 @@ export class ControlsController {
   @Roles('admin_empresa')
   @HttpCode(HttpStatus.NO_CONTENT)
   async retire(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Req() req: Request) {
-    const meta: RequestMeta = { ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' };
+    const meta: RequestMeta = { ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' };
     await this.retireControl.execute(principal, id, meta);
   }
 }

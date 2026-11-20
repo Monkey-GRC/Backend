@@ -9,7 +9,7 @@
   "not_activated": "Esta persona aún no activó su cuenta. Mientras tanto puedes reenviarle la invitación.",
   "already_active": "Esta cuenta ya está activada: no necesita otra invitación.",
   "limit_reached": "Tu empresa llegó al número de usuarios contratado. Desactiva una cuenta o pide ampliar el cupo.",
-  "has_assignments": "Esta persona tiene controles asignados. Si continúas, los que ejecuta quedan sin ejecutor y siguen con su dueño, y los que son suyos quedan sin asignar; confirma para seguir.",
+  "has_assignments": "Tiene controles asignados: los que ejecuta quedarán sin ejecutor y los suyos sin dueño. Confirma para seguir.",
   "responsible_has_delegates": "Este responsable aún tiene delegados activos o pendientes en su equipo. Muévelos a otro equipo o desactívalos primero.",
   "team_leader_inactive": "El responsable de este delegado ya no está vigente. Mueve al delegado a otro equipo antes de reactivarlo."
 }

@@ -16,9 +16,10 @@ import { AGENT_INSTALL_PS1, AGENT_INSTALL_PS1_PARAMS } from '../infrastructure/t
 import { AGENT_INSTALL_SH } from '../infrastructure/templates/agent-install.sh.template';
 import { toInstallRevealResponse, toInstallStateResponse } from './agent-install-response.mapper';
 import { AgentInstallRevealResponse, AgentInstallStateResponse } from './technical-control.responses';
+import { clientIp } from '../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
-const metaOf = (req: Request): RequestMeta => ({ ipAddress: req.ip ?? '', userAgent: req.get('user-agent') ?? '' });
+const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 
 const TEMPLATES = { linuxScript: AGENT_INSTALL_SH, windowsScript: AGENT_INSTALL_PS1, windowsParamsBlock: AGENT_INSTALL_PS1_PARAMS };

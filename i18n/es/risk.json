@@ -1,13 +1,4 @@
 {
-  "CREATED": "Riesgo creado exitosamente.",
-  "UPDATED": "Riesgo actualizado exitosamente.",
-  "DELETED": "Riesgo eliminado exitosamente.",
-  "READ.ONE": "Riesgo obtenido exitosamente.",
-  "READ.ALL": "Riesgos obtenidos exitosamente.",
-  "CREATE_FAILED": "Error al crear el riesgo.",
-  "UPDATE_FAILED": "Error al actualizar el riesgo.",
-  "DELETE_FAILED": "Error al eliminar el riesgo.",
-  "NOT_FOUND": "Riesgo no encontrado.",
   "list": "Riesgos de tu servicio.",
   "read": "Detalle del riesgo.",
   "created": "Listo, registramos el riesgo.",

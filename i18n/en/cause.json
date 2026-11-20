@@ -3,6 +3,6 @@
   "read": "Cause detail.",
   "created": "Done, we registered the cause.",
   "updated": "Done, we updated the cause.",
-  "control_linked": "Done, we linked the cause to the protection action.",
+  "control_linked": "Done, we linked the cause to the control.",
   "inactive": "This cause has been retired."
 }
