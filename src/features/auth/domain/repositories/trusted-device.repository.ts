@@ -30,6 +30,9 @@ export abstract class TrustedDeviceRepository {
   // Cerrar sesión sin sesión (venció o no hay cookie de sesión): el dispositivo se halla solo por su huella y se revoca con su rastro, en una transacción. `false` si no hay uno vigente.
   abstract revokeByTokenHash(tokenHash: string, now: Date, audit: AuditIntent<TrustedDevice>): Promise<boolean>;
 
+  // ¿Hay un dispositivo vigente con esa huella, de quien sea? La función de la base ya filtra vencidos y revocados. Solo para decidir si la cookie se borra al cerrar sesión; no devuelve datos.
+  abstract existsActiveByTokenHash(tokenHash: string): Promise<boolean>;
+
   abstract listActive(scope: TenantScope, userId: string, now: Date): Promise<TrustedDevice[]>;
 
   // `null` si no existe, ya no está vigente o es de otra persona. Con `audit` en la misma transacción.

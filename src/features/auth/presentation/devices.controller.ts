@@ -63,7 +63,7 @@ export class DevicesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async forgetOne(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
     const { wasCurrent } = await this.revokeOne.execute(principal, id, readDeviceCookie(req), requestMeta(req));
-    if (wasCurrent) clearDeviceCookie(res);
+    if (wasCurrent) clearDeviceCookie(req, res);
   }
 
   @ApiOperation({ summary: 'Olvidar todos mis dispositivos', description: 'Revoca todos los dispositivos recordados de la persona en sesión y borra la cookie `mnk_device`. Idempotente. Deja rastro `auth.device_revoked` (`scope: all`, `count`) solo si olvidó al menos uno. `admin_monkey` recibe 403.' })
@@ -73,6 +73,6 @@ export class DevicesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async forgetAll(@CurrentUser() principal: Principal, @Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
     await this.revokeAll.execute(principal, requestMeta(req));
-    clearDeviceCookie(res);
+    clearDeviceCookie(req, res);
   }
 }
