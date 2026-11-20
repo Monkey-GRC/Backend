@@ -291,6 +291,83 @@ describe('cerrar sesión', () => {
     expect(await vigentes(uno.id)).toBe(1);
     expect(await audits(uno.id, 'auth.device_revoked')).toHaveLength(0);
     expect(await audits(dos.id, 'auth.device_revoked')).toHaveLength(0);
+    // MD-489 · la cookie de `uno` sigue vigente: B no la borra.
+    expect(deviceCookie(out)).toBeUndefined();
+  });
+
+  it('con sesión, la cookie que no sirve a nadie (inválida, revocada o vencida) sí se borra', async () => {
+    const p = await persona();
+    const revocado = await entrar(request.agent(app.getHttpServer()), p, true);
+    const vencido = await entrar(request.agent(app.getHttpServer()), p, true);
+    const [d1, d2] = await devices(p.id);
+    await owner('update platform.trusted_devices set revoked_at = now() where id = $1', [d1.id]);
+    await owner(`update platform.trusted_devices set expires_at = now() - interval '1 minute' where id = $1`, [d2.id]);
+    for (const token of ['basura', deviceToken(revocado), deviceToken(vencido)]) {
+      const agent = request.agent(app.getHttpServer());
+      await entrar(agent, p, false);
+      const out = await agent.post('/v1/auth/logout').set('Cookie', `mnk_device=${token}`);
+      expect(out.status).toBe(204);
+      expect(deviceCookie(out)).toMatch(/mnk_device=;/);
+    }
+  });
+});
+
+// MD-489 · Admin comparte host y navegador con Platform: con `X-Monkey-Client: admin` la API no toca `mnk_device`.
+describe('cliente Admin (X-Monkey-Client: admin)', () => {
+  const admin = { 'X-Monkey-Client': 'admin' };
+
+  it('cerrar sesión no borra la cookie ni revoca el dispositivo de Platform, con o sin sesión', async () => {
+    const p = await persona();
+    const m = await persona('admin_monkey');
+    const agent = request.agent(app.getHttpServer());
+    const trusted = await entrar(agent, p, true);
+    const first = await agent.post('/v1/auth/login').set(admin).send({ email: m.email, password: PASSWORD });
+    expect(first.body.data.next_step).toBe('mfa_verify');
+    expect((await agent.post('/v1/auth/mfa/verify').set(admin).send({ code: await code(m.email, m.secret) })).status).toBe(200);
+    const out = await agent.post('/v1/auth/logout').set(admin);
+    expect(out.status).toBe(204);
+    expect(deviceCookie(out)).toBeUndefined();
+    expect(await vigentes(p.id)).toBe(1);
+    const sin = await http().post('/v1/auth/logout').set(admin).set('Cookie', `mnk_device=${deviceToken(trusted)}`);
+    expect(sin.status).toBe(204);
+    expect(deviceCookie(sin)).toBeUndefined();
+    expect(await vigentes(p.id)).toBe(1);
+    expect(await audits(p.id, 'auth.device_revoked')).toHaveLength(0);
+  });
+
+  it('entrar con la cookie vigente de un usuario de Platform pide el código y no toca el dispositivo', async () => {
+    const p = await persona();
+    const trusted = await entrar(request.agent(app.getHttpServer()), p, true);
+    const [antes] = await devices(p.id);
+    const res = await http().post('/v1/auth/login').set(admin).set('Cookie', `mnk_device=${deviceToken(trusted)}`).send({ email: p.email, password: PASSWORD });
+    expect(res.status).toBe(200);
+    expect(res.body.data.next_step).toBe('mfa_verify');
+    const [despues] = await devices(p.id);
+    expect(despues.last_used_at).toEqual(antes.last_used_at);
+    expect(despues.revoked_at).toBeNull();
+  });
+
+  it('mfa/setup/confirm con remember_device: se ignora, sin fila y sin cookie', async () => {
+    const p = await persona('responsable', false);
+    const agent = request.agent(app.getHttpServer());
+    await agent.post('/v1/auth/login').set(admin).send({ email: p.email, password: PASSWORD });
+    const secret = (await agent.post('/v1/auth/mfa/setup').set(admin).send()).body.data.secret;
+    const res = await agent.post('/v1/auth/mfa/setup/confirm').set(admin).send({ code: totpAt(secret, new Date()), remember_device: true });
+    expect(res.status).toBe(200);
+    expect(deviceCookie(res)).toBeUndefined();
+    expect(await devices(p.id)).toHaveLength(0);
+  });
+
+  it('mfa/verify con remember_device: se ignora, sin 422, sin fila y sin cookie', async () => {
+    for (const role of ['responsable', 'admin_monkey'] as const) {
+      const p = await persona(role);
+      const agent = request.agent(app.getHttpServer());
+      expect((await agent.post('/v1/auth/login').set(admin).send({ email: p.email, password: PASSWORD })).body.data.next_step).toBe('mfa_verify');
+      const res = await agent.post('/v1/auth/mfa/verify').set(admin).send({ code: await code(p.email, p.secret), remember_device: true });
+      expect(res.status).toBe(200);
+      expect(deviceCookie(res)).toBeUndefined();
+      expect(await devices(p.id)).toHaveLength(0);
+    }
   });
 });
 
