@@ -13,7 +13,9 @@ export class LogoutUseCase {
   ) {}
 
   // Idempotente: sin token o con una sesión ya cerrada, el logout igual "funciona" (204).
-  async execute(refreshToken: string | undefined, deviceToken: string | undefined, meta: RequestMeta): Promise<void> {
+  // Devuelve si el controlador debe borrar `mnk_device`: sí cuando el dispositivo era de quien cierra sesión (y se olvidó) o la cookie ya no sirve a nadie;
+  // no cuando es el dispositivo vigente de OTRA persona (mismo navegador): esa cookie no es de quien sale y su dispositivo no se toca.
+  async execute(refreshToken: string | undefined, deviceToken: string | undefined, meta: RequestMeta): Promise<{ clearDeviceCookie: boolean }> {
     const session = refreshToken ? await this.sessions.findByRefreshTokenHash(this.tokens.hash(refreshToken)) : null;
     if (!session) {
       // D123 · Sin sesión (venció, o no hay cookie de sesión) el dispositivo de la cookie igual se olvida: se halla por su huella.
@@ -29,12 +31,16 @@ export class LogoutUseCase {
           afterState: { device_id: device.id, scope: 'logout' },
         }));
       }
-      return;
+      return { clearDeviceCookie: true };
     }
+    const now = new Date();
+    const deviceHash = deviceToken ? this.tokens.hash(deviceToken) : undefined;
+    const isOwn = deviceHash ? (await this.devices.findActiveByTokenHash({ companyId: session.companyId, userId: session.userId }, session.userId, deviceHash, now)) !== null : false;
+    const clearDeviceCookie = !deviceHash || isOwn || !(await this.devices.existsActiveByTokenHash(deviceHash));
     // D123 · Cerrar sesión también olvida el dispositivo recordado de este navegador, en la misma transacción. Si la sesión ya estaba cerrada, el dispositivo igual se olvida.
-    const forget = deviceToken
+    const forget = deviceHash && isOwn
       ? {
-          tokenHash: this.tokens.hash(deviceToken),
+          tokenHash: deviceHash,
           audit: (device: { id: string }) => ({
             tenantId: session.companyId,
             userId: session.userId,
@@ -47,7 +53,7 @@ export class LogoutUseCase {
           }),
         }
       : undefined;
-    if (session.revokedAt && !forget) return;
+    if (session.revokedAt && !forget) return { clearDeviceCookie };
 
     // El cierre y su rastro se confirman juntos (SEG-36).
     await this.sessions.revoke(
@@ -66,5 +72,6 @@ export class LogoutUseCase {
       }),
       forget,
     );
+    return { clearDeviceCookie };
   }
 }

@@ -36,6 +36,7 @@ import {
   clearAuthCookies,
   clearDeviceCookie,
   clearMfaChallengeCookie,
+  isAdminClient,
   readDeviceCookie,
   readMfaCookie,
   readRefreshCookie,
@@ -159,10 +160,10 @@ export class AuthController {
   @Post('mfa/verify')
   @HttpCode(HttpStatus.OK)
   async verify(@Body() dto: VerifyMfaDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const result = await this.verifyMfa.execute({ challengeToken: readMfaCookie(req), code: dto.code, recoveryCode: dto.recovery_code, rememberDevice: dto.remember_device }, requestMeta(req));
+    const result = await this.verifyMfa.execute({ challengeToken: readMfaCookie(req), code: dto.code, recoveryCode: dto.recovery_code, rememberDevice: dto.remember_device && !isAdminClient(req) }, requestMeta(req));
     clearMfaChallengeCookie(req, res);
     setAuthCookies(req, res, result, this.policy.accessTokenTtl, result.session.expiresAt);
-    if (result.deviceToken) setDeviceCookie(res, result.deviceToken);
+    if (result.deviceToken) setDeviceCookie(req, res, result.deviceToken);
     const onboarding = await this.getOnboardingProgress.execute(result.user);
     return new ResponseDto(HttpStatus.OK, t('auth.logged_in'), {
       ...toAuthResponse(result.user, onboarding),
@@ -193,10 +194,10 @@ export class AuthController {
   @Post('mfa/setup/confirm')
   @HttpCode(HttpStatus.OK)
   async setupConfirm(@Body() dto: MfaCodeDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const result = await this.confirmMfaSetup.execute({ challengeToken: readMfaCookie(req), code: dto.code, rememberDevice: dto.remember_device }, requestMeta(req));
+    const result = await this.confirmMfaSetup.execute({ challengeToken: readMfaCookie(req), code: dto.code, rememberDevice: dto.remember_device && !isAdminClient(req) }, requestMeta(req));
     clearMfaChallengeCookie(req, res);
     setAuthCookies(req, res, result, this.policy.accessTokenTtl, result.session.expiresAt);
-    if (result.deviceToken) setDeviceCookie(res, result.deviceToken);
+    if (result.deviceToken) setDeviceCookie(req, res, result.deviceToken);
     const onboarding = await this.getOnboardingProgress.execute(result.user);
     return new ResponseDto(HttpStatus.OK, t('auth.mfa_enabled'), { ...toAuthResponse(result.user, onboarding), recovery_codes: result.recoveryCodes });
   }
@@ -293,14 +294,14 @@ export class AuthController {
   }
 
   @Public()
-  @ApiOperation({ summary: 'Cerrar la sesión', description: 'Sin cuerpo. Invalida la sesión y limpia las cookies (`mnk_` o, para Admin, `mnka_`). También olvida el dispositivo recordado de este navegador (D123) y borra `mnk_device`. Es idempotente: sin sesión también responde 204.' })
+  @ApiOperation({ summary: 'Cerrar la sesión', description: 'Sin cuerpo. Invalida la sesión y limpia las cookies (`mnk_` o, para Admin, `mnka_`). También olvida el dispositivo recordado de este navegador (D123) y borra `mnk_device`, salvo que la cookie sea el dispositivo vigente de otra persona o el cliente sea Admin (`X-Monkey-Client: admin`), que no toca `mnk_device`. Es idempotente: sin sesión también responde 204.' })
   @ApiNoBody('Sesión cerrada. No hay cuerpo.')
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   async signOut(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
-    await this.logout.execute(readRefreshCookie(req), readDeviceCookie(req), requestMeta(req));
+    const { clearDeviceCookie: forgetCookie } = await this.logout.execute(readRefreshCookie(req), readDeviceCookie(req), requestMeta(req));
     clearAuthCookies(req, res);
-    clearDeviceCookie(res);
+    if (forgetCookie) clearDeviceCookie(req, res);
   }
 
   @ApiOperation({ summary: 'Usuario en sesión', description: 'Lo primero que llama el frontend al arrancar: dice si hay sesión, quién es y dónde continuar el onboarding.' })

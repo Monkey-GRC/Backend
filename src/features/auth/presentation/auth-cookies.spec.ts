@@ -208,8 +208,8 @@ describe('cookie mnk_device (D123, SEG-84)', () => {
   ])('en %s: HttpOnly, SameSite=Lax, ruta /v1/auth, 30 días y Secure=%s, al escribirla y al borrarla', (env, secure) => {
     process.env['NODE_ENV'] = env;
     const { res, set, cleared } = fakeResponse();
-    setDeviceCookie(res, 'token-opaco');
-    clearDeviceCookie(res);
+    setDeviceCookie(fakeRequest(), res, 'token-opaco');
+    clearDeviceCookie(fakeRequest(), res);
     expect(set).toHaveLength(1);
     expect(set[0]).toMatchObject({ name: 'mnk_device', value: 'token-opaco' });
     expect(set[0].options).toMatchObject({ httpOnly: true, sameSite: 'lax', path: '/v1/auth', maxAge: 30 * 24 * 60 * 60 * 1000 });
@@ -219,9 +219,14 @@ describe('cookie mnk_device (D123, SEG-84)', () => {
     expect(Boolean(cleared[0].options.secure)).toBe(secure);
   });
 
-  it('se lee siempre con el mismo nombre, también con el header de Admin', () => {
+  it('con el header de Admin no se lee, ni se escribe, ni se borra (MD-489)', () => {
+    const { res, set, cleared } = fakeResponse();
     expect(readDeviceCookie(fakeRequest(undefined, { mnk_device: 'x' }))).toBe('x');
-    expect(readDeviceCookie(fakeRequest('admin', { mnk_device: 'y' }))).toBe('y');
+    expect(readDeviceCookie(fakeRequest('admin', { mnk_device: 'y' }))).toBeUndefined();
+    setDeviceCookie(fakeRequest('admin'), res, 'token');
+    clearDeviceCookie(fakeRequest('admin'), res);
+    expect(set).toHaveLength(0);
+    expect(cleared).toHaveLength(0);
     expect(readDeviceCookie(fakeRequest(undefined, {}))).toBeUndefined();
   });
 });

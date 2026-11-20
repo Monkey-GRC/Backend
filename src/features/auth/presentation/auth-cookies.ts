@@ -10,9 +10,13 @@ export const CLIENT_HEADER = 'x-monkey-client';
 const PLATFORM_COOKIES: CookieNames = { access: 'mnk_access', refresh: 'mnk_refresh', mfa: 'mnk_mfa' };
 const ADMIN_COOKIES: CookieNames = { access: 'mnka_access', refresh: 'mnka_refresh', mfa: 'mnka_mfa' };
 
+export function isAdminClient(req: Request): boolean {
+  return req.get(CLIENT_HEADER)?.trim().toLowerCase() === 'admin';
+}
+
 // D94 · `mfa` es el desafío del segundo factor (entre la contraseña y la sesión): dura lo que el desafío y la persona nunca lo ve.
 export function cookieNames(req: Request): CookieNames {
-  return req.get(CLIENT_HEADER)?.trim().toLowerCase() === 'admin' ? ADMIN_COOKIES : PLATFORM_COOKIES;
+  return isAdminClient(req) ? ADMIN_COOKIES : PLATFORM_COOKIES;
 }
 
 // El refresh token solo viaja a los endpoints de auth, no en cada request.
@@ -53,16 +57,19 @@ export function clearMfaChallengeCookie(req: Request, res: Response): void {
   res.clearCookie(cookieNames(req).mfa, { ...base(), path: MFA_PATH });
 }
 
-// D123 · «Recordar este dispositivo»: una sola cookie por navegador y siempre con este nombre (Monkey Admin no la usa: `admin_monkey` no recuerda dispositivos).
+// D123 · «Recordar este dispositivo»: una sola cookie por navegador y siempre con este nombre. Monkey Admin comparte host y la cookie viaja en sus peticiones,
+// pero no es suya: con `X-Monkey-Client: admin` la API ni la lee, ni la escribe, ni la borra (MD-489).
 // Escribir una nueva pisa la anterior. Vive en la misma ruta que el refresh: solo viaja a los endpoints de auth.
 export const DEVICE_COOKIE = 'mnk_device';
 export const DEVICE_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
-export function setDeviceCookie(res: Response, token: string): void {
+export function setDeviceCookie(req: Request, res: Response, token: string): void {
+  if (isAdminClient(req)) return;
   res.cookie(DEVICE_COOKIE, token, { ...base(), path: REFRESH_PATH, maxAge: DEVICE_COOKIE_MAX_AGE_MS });
 }
 
-export function clearDeviceCookie(res: Response): void {
+export function clearDeviceCookie(req: Request, res: Response): void {
+  if (isAdminClient(req)) return;
   res.clearCookie(DEVICE_COOKIE, { ...base(), path: REFRESH_PATH });
 }
 
@@ -79,7 +86,7 @@ function readCookie(req: Request, name: string): string | undefined {
 
 export const readAccessCookie = (req: Request) => readCookie(req, cookieNames(req).access);
 export const readRefreshCookie = (req: Request) => readCookie(req, cookieNames(req).refresh);
-export const readDeviceCookie = (req: Request) => readCookie(req, DEVICE_COOKIE);
+export const readDeviceCookie = (req: Request) => (isAdminClient(req) ? undefined : readCookie(req, DEVICE_COOKIE));
 export const readMfaCookie = (req: Request) => readCookie(req, cookieNames(req).mfa);
 
 export function requestMeta(req: Request): RequestMeta {

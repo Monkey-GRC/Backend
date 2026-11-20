@@ -34,6 +34,13 @@ export class TrustedDevicePrismaRepository extends TrustedDeviceRepository {
     return revoked !== null;
   }
 
+  async existsActiveByTokenHash(tokenHash: string): Promise<boolean> {
+    const rows = await this.prisma.$queryRaw<{ id: string }[]>`
+      SELECT id FROM platform.find_trusted_device(${tokenHash})
+    `;
+    return rows.length > 0;
+  }
+
   async listActive(scope: TenantScope, userId: string, now: Date): Promise<TrustedDevice[]> {
     const rows = await this.prisma.withScope(scope, (tx) =>
       tx.trustedDevice.findMany({ where: { userId, revokedAt: null, expiresAt: { gt: now } }, orderBy: [{ createdAt: 'desc' }, { id: 'asc' }] }),
