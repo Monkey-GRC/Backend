@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { INestApplication } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
@@ -5,6 +7,8 @@ import { dosEmpresas, Tenant } from '../support/escenario';
 import { asignarControl } from '../support/asignaciones';
 
 // MD-122 · Riesgos y causas de un servicio (contracts/modules/compliance-risks.md).
+// Las cifras salen del JSON versionado, que es lo que carga la plantilla de la base.
+const catalog = JSON.parse(readFileSync(resolve(__dirname, '../../prisma/seed/data/catalog-v2.json'), 'utf8'));
 type Agent = Awaited<ReturnType<typeof login>>;
 let app: INestApplication;
 let a: Tenant;
@@ -84,11 +88,12 @@ describe('Lo que trae un servicio recién clonado', () => {
 
   it('las causas se listan, se filtran por categoría y por riesgo, y traen sus riesgos y acciones', async () => {
     const list = await all(a.agent, causes(a));
-    expect(list.length).toBe(56);
+    expect(list.length).toBe(catalog.causes.length);
     const withRisk = list.find((c) => c.risks.length > 0)!;
-    expect(withRisk).toMatchObject({ code: expect.stringMatching(/^F\d{3}$/), origin: 'catalog', is_active: true, failure_category: expect.any(String) });
+    expect(withRisk).toMatchObject({ code: expect.stringMatching(/^F\d{3}$/), origin: 'catalog', is_active: true, failure_category: null });
     expect((await all(a.agent, causes(a, `?risk_id=${withRisk.risks[0].id}`))).map((c) => c.id)).toContain(withRisk.id);
-    expect((await all(a.agent, causes(a, '?failure_category=governance'))).every((c) => c.failure_category === 'governance')).toBe(true);
+    // v2: la causa del catálogo ya no trae categoría de falla (la reemplazan origen y tipo): ninguna cae en un filtro por categoría.
+    expect(await all(a.agent, causes(a, '?failure_category=governance'))).toEqual([]);
   });
 });
 
@@ -105,10 +110,10 @@ describe('Crear y vincular (el árbol se lee completo)', () => {
     expect(row).toEqual({ potential_impact: ['Reputacional', 'Pérdida financiera'], risk_id: null });
   });
 
-  it('crea una causa propia (F057), la vincula al riesgo y a una acción, y el árbol queda completo', async () => {
+  it('crea una causa propia (F101), la vincula al riesgo y a una acción, y el árbol queda completo', async () => {
     const cause = (await a.agent.post(causes(a)).send(CAUSE).expect(201)).body.data;
     causeId = cause.id;
-    expect(cause).toMatchObject({ code: 'F057', origin: 'own', risks: [], controls: [] });
+    expect(cause).toMatchObject({ code: 'F101', origin: 'own', risks: [], controls: [] });
     controlId = (await all(a.agent, `/v1/services/${a.serviceId}/controls`))[0].id;
 
     await a.agent.post(`/v1/risks/${riskId}/causes`).send({ cause_id: causeId }).expect(201).expect((r) => expect(r.body.data).toEqual({ risk_id: riskId, cause_id: causeId }));
@@ -117,7 +122,7 @@ describe('Crear y vincular (el árbol se lee completo)', () => {
 
     const tree = (await a.agent.get(`/v1/risks/${riskId}`).expect(200)).body.data;
     expect(tree.causes).toHaveLength(1);
-    expect(tree.causes[0]).toMatchObject({ id: causeId, code: 'F057', failure_category: 'information_technology' });
+    expect(tree.causes[0]).toMatchObject({ id: causeId, code: 'F101', failure_category: 'information_technology' });
     expect(tree.causes[0].controls).toEqual([{ control_id: controlId, code: expect.stringMatching(/^[A-Z]+-\d+$/), own_code: null, name: expect.any(String), is_mandatory: true, effect: 'probability' }]);
     expect((await a.agent.get(`/v1/causes/${causeId}`).expect(200)).body.data.risks).toEqual([{ id: riskId, code: 'R011', name: RISK.name }]);
     expect((await all(a.agent, risks(a, '?origin=own')))[0].causes_count).toBe(1);

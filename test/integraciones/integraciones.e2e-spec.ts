@@ -226,7 +226,7 @@ describe('GET /v1/integrations/{code}', () => {
     expect(d.permissions).toHaveLength(3);
   });
 
-  it('admin_empresa: una coming_soon (con o sin plataforma) llega con prerequisitos, permisos, seguridad y recursos vacíos, y coverage null', async () => {
+  it('admin_empresa: una coming_soon (con o sin plataforma) llega con prerequisitos, permisos, seguridad y recursos vacíos; coverage null (solo las available tienen cobertura)', async () => {
     for (const code of ['azure', 'microsoft_365', 'google_workspace', 'github', 'jira']) {
       const d = (await detail(a.agent, code).expect(200)).body.data;
       expect(d).toMatchObject({ availability: 'coming_soon', status: null, connections: [], prerequisites: [], permissions: [], resource_types: [], security: [] });
@@ -250,7 +250,8 @@ describe('GET /v1/integrations/{code}', () => {
         group by f.code order by f.code`,
     );
     expect(seededTest).not.toBeNull();
-    expect(d.coverage.tests.map((t: any) => t.code)).toEqual(tests.map((t) => t.code));
+    // La base ordena con su colación (ignora los guiones) y la API con el orden de las cadenas: se comparan ordenadas igual.
+    expect(d.coverage.tests.map((t: any) => t.code).sort()).toEqual(tests.map((t) => t.code).sort());
     expect(d.coverage.tests.length).toBeGreaterThan(0);
     for (const t of d.coverage.tests) expect(t.name).toEqual(expect.any(String));
     expect(d.coverage.controls_count).toBe(controls.n);
@@ -260,9 +261,19 @@ describe('GET /v1/integrations/{code}', () => {
   });
 
   it('coverage.tests[].name sigue el idioma: inglés con display_name_en, español en es', async () => {
-    const name = async (lang: string) => ((await detail(a.agent, 'aws', lang).expect(200)).body.data.coverage.tests as any[]).find((t) => t.code === 'T-CLD-001').name;
-    expect(await name('en')).toBe('Assessment of IAM, MFA and privileged accounts at the cloud provider');
-    expect(await name('es')).toBe('Evaluación de IAM, MFA y cuentas privilegiadas en el proveedor cloud');
+    // El catálogo v2 no trae nombres en inglés (P50): se le pone uno a la primera prueba de la cobertura y se quita al terminar.
+    const [t] = await owner<{ code: string; display_name: string }>(
+      `select t.code, t.display_name from catalog.tests t join catalog.test_checks tc on tc.test_id = t.id join catalog.checks c on c.id = tc.check_id where t.is_active and c.platform = 'aws' order by t.code limit 1`,
+    );
+    const NAME_EN = 'Neutral name in English (test)';
+    await owner(`update catalog.tests set display_name_en = $2 where code = $1`, [t.code, NAME_EN]);
+    try {
+      const name = async (lang: string) => ((await detail(a.agent, 'aws', lang).expect(200)).body.data.coverage.tests as any[]).find((x) => x.code === t.code).name;
+      expect(await name('en')).toBe(NAME_EN);
+      expect(await name('es')).toBe(t.display_name);
+    } finally {
+      await owner(`update catalog.tests set display_name_en = null where code = $1`, [t.code]);
+    }
   });
 
   it('auditor: 200 en una conectada y 404 INTEGRATION_NOT_FOUND en una que la empresa no tiene, igual que un código inexistente', async () => {

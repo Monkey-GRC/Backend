@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { FileStorage } from '../../src/common/storage/file-storage';
+import { controlPropioConPruebas } from '../support/controles';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
@@ -45,16 +46,9 @@ beforeAll(async () => {
   await cuenta(a.companyId, `auditor-evt-${RUN}@cumplimiento.test`, 'auditor');
   auditor = await login(app, `auditor-evt-${RUN}@cumplimiento.test`);
 
-  // Un control cuya única prueba documental es la que se va a entregar: así validarla mueve al control entero.
-  const [c] = await owner<{ control: string; test: string }>(
-    `select cc.id control, (array_agg(x.test_id))[1] test from tenant.client_controls cc
-       join tenant.client_control_tests x on x.client_control_id = cc.id
-       join catalog.tests t on t.id = x.test_id
-      where cc.service_id = $1 and cc.is_active
-      group by cc.id, cc.own_code having count(*) = 1 and bool_and(t.dimension = 'policy') order by cc.own_code limit 1`,
-    [a.serviceId],
-  );
-  expect(c).toBeDefined();
+  // Un control cuya única prueba es la documental que se va a entregar: así validarla mueve al control entero.
+  const [doc] = await owner<{ id: string }>(`select id from catalog.tests where code like 'T-DOC-%' order by code limit 1`);
+  const c = { control: await controlPropioConPruebas(a.companyId, a.serviceId, `E${RUN.toUpperCase()}`, [doc.id]), test: doc.id };
   controlId = c.control;
   testId = c.test;
 });

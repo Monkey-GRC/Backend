@@ -1,4 +1,4 @@
-// Comprobación del clonado (MD-80) contra una base REAL con el catálogo de SOC 2 sembrado.
+// Comprobación del clonado (MD-80) contra una base REAL con el catálogo v2 de SOC 2 sembrado (las cifras salen de prisma/seed/data/catalog-v2.json).
 // Todo ocurre dentro de una transacción que se REVIERTE al final: no deja ningún rastro.
 //
 //   npm run clone:verify     (usa DATABASE_URL, el rol dueño)
@@ -8,10 +8,17 @@ import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client';
+import { readCatalogJson } from '../prisma/seed/db';
 import { CloneCatalogService } from '../src/features/onboarding/application/clone-catalog.service';
 
 class Rollback extends Error {}
 type Tx = Parameters<Parameters<PrismaClient['$transaction']>[0]>[0];
+
+const cat = readCatalogJson();
+// Los controles de un criterio de confianza: los de los puntos de enfoque de sus criterios (el prefijo del código dice a cuál pertenece).
+const PREFIX: Record<string, string> = { A: 'availability', C: 'confidentiality', CC: 'security', P: 'privacy', PI: 'integrity' };
+const controlsOf = (criterion: string) =>
+  new Set(cat.pointOfFocusControls.filter((p) => PREFIX[/^[A-Z]+/.exec(p.requirementCode)![0]] === criterion).map((p) => p.controlCode));
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 const ok = (m: string) => console.log('  ✓ ' + m);
@@ -71,22 +78,27 @@ async function main() {
     console.log('    ', JSON.stringify(first));
     assert.equal(first.clientControls, expectedControls.size);
     ok(`${first.clientControls} controles: exactamente los de los puntos de enfoque de Seguridad`);
-    assert.equal(first.clientRisks, 10);
-    assert.equal(first.clientCauses, 56);
-    assert.equal(first.clientRiskCauses, 92);
-    ok('set base de riesgos (10), causas (56) y relaciones riesgo↔causa (92)');
+    assert.equal(expectedControls.size, controlsOf('security').size);
+    assert.equal(first.clientRisks, cat.risks.length);
+    assert.equal(first.clientCauses, cat.causes.length);
+    assert.equal(first.clientRiskCauses, cat.riskCauses.length);
+    ok(`set base de riesgos (${cat.risks.length}), causas (${cat.causes.length}) y relaciones riesgo↔causa (${cat.riskCauses.length})`);
     assert.ok(first.clientControlTests > 0 && first.evidenceRequirements > 0 && first.clientControlDimensions > first.clientControls);
     ok('dimensiones, vínculo con pruebas y evidencias requeridas clonados');
 
     assert.equal(await tx.clientControl.count({ where: { serviceId: service.id } }), expectedControls.size);
     assert.equal(await tx.clientControl.count({ where: { serviceId: service.id, controlId: null } }), 0);
-    assert.equal(await tx.clientControl.count({ where: { serviceId: service.id, ownCode: 'CPL-1' } }), 0);
-    ok('CPL-1 (sin punto de enfoque) no se clona; todos quedan ligados a su plantilla');
+    ok('todos quedan ligados a su plantilla del catálogo');
+    // v2: una evidencia requerida por documento y control (control_documents), de dimensión documental y ligada a su T-DOC.
+    const docsOfSecurity = cat.controlDocuments.filter((d) => expectedControls.size > 0 && controlsOf('security').has(d.controlCode)).length;
+    assert.equal(first.evidenceRequirements, docsOfSecurity);
+    ok(`${first.evidenceRequirements} evidencias requeridas: una por documento y control`);
     assert.equal(await tx.evidenceRequirement.count({ where: { clientControl: { serviceId: service.id }, responsibleId: { not: null } } }), 0);
     assert.equal(await tx.evidenceRequirement.count({ where: { clientControl: { serviceId: service.id }, validityWithinPeriod: { not: '12 meses' } } }), 0);
     ok('evidencias sin responsable y con el periodo de evaluación del marco');
-    assert.equal(await tx.clientControlDimension.count({ where: { clientControl: { serviceId: service.id }, dimension: 'app' } }), 0);
-    ok('ninguna dimensión de aplicación (0 pruebas T-APP, P9)');
+    const dimsOfSecurity = cat.controlDimensions.filter((d) => controlsOf('security').has(d.controlCode)).length;
+    assert.equal(first.clientControlDimensions, dimsOfSecurity);
+    ok(`${first.clientControlDimensions} dimensiones: las que dice el libro («TEST …» = Definido), con las nuevas incluidas`);
 
     const second = await svc.cloneForServiceFramework(tx, sf.id);
     assert.ok(Object.values(second).every((n) => n === 0));
@@ -140,7 +152,7 @@ async function main() {
     await tx.$executeRaw`select set_config('app.tenant_id', ${company.id}, true), set_config('app.user_role', 'admin_empresa', true)`;
     await tx.$executeRawUnsafe('SET LOCAL ROLE monkey_app');
     const r = await svc.cloneForServiceFramework(tx, sf.id);
-    assert.equal(r.clientControls, 79);
+    assert.equal(r.clientControls, controlsOf('security').size);
     ok(`el clonado escribe ${r.clientControls} controles y el resto con las políticas RLS de tenant`);
     const again = await svc.cloneForServiceFramework(tx, sf.id);
     assert.ok(Object.values(again).every((n) => n === 0));

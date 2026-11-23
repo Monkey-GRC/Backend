@@ -8,9 +8,9 @@ import { awsBody, dosEmpresas, Tenant } from '../support/escenario';
 const ACCOUNT = '123456789012';
 const ROLE_ARN = `arn:aws:iam::${ACCOUNT}:role/MonkeyReadOnly`;
 const CHECKS = [
-  { id: 'iam_root_mfa_enabled', test: 'T-CLD-001' },
-  { id: 'ec2_securitygroup_allow_ingress_from_internet_to_tcp_port_22', test: 'T-CLD-002' },
-  { id: 'cloudtrail_multi_region_enabled', test: 'T-CLD-003' },
+  { id: 'iam_root_mfa_enabled' },
+  { id: 'ec2_securitygroup_allow_ingress_from_internet_to_tcp_port_22' },
+  { id: 'cloudtrail_multi_region_enabled' },
 ];
 
 let app: INestApplication;
@@ -38,19 +38,6 @@ const findings = () => [
 beforeAll(async () => {
   app = await bootApp();
   ({ a, b } = await dosEmpresas(app));
-  for (const c of CHECKS) {
-    await owner(
-      `insert into catalog.checks (id, platform, policy_id, check_id, title_en, condition, remediation, origin, mapping_provenance, mapping_confidence)
-       values (gen_random_uuid(), 'aws', 'cloud_configuration', $1, 't', 'c', 'r', 'engine_native', 'test', 'low') on conflict do nothing`,
-      [c.id],
-    );
-    await owner(
-      `insert into catalog.test_checks (id, test_id, check_id)
-       select gen_random_uuid(), t.id, ch.id from catalog.tests t, catalog.checks ch
-       where t.code = $1 and ch.platform = 'aws' and ch.policy_id = 'cloud_configuration' and ch.check_id = $2 on conflict do nothing`,
-      [c.test, c.id],
-    );
-  }
   const created = await a.agent.post('/v1/assets').send(awsBody(a, `aws-api-${RUN}`));
   assetId = created.body.data.id;
   await a.agent.patch(`/v1/assets/${assetId}/connection`).send({ role_arn: ROLE_ARN }).expect(200);

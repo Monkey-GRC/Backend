@@ -5,6 +5,7 @@ import { FileStorage } from '../../src/common/storage/file-storage';
 import { PrismaService } from '../../src/infrastructure/database/prisma.service';
 import { Agent, bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { asignarControl, controlesDe } from '../support/asignaciones';
+import { controlPropioConPruebas } from '../support/controles';
 import { dosEmpresas, servicePayload, Tenant } from '../support/escenario';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
@@ -56,15 +57,18 @@ const sesion = async (companyId: string, role: 'responsable' | 'delegado', name:
   const u = await cuenta(companyId, role, name);
   return { id: u.id, session: await login(app, u.email) };
 };
-/** Controles del servicio con solo pruebas documentales (sin ninguna otra), con ese número de pruebas. */
-const soloDocumentales = (serviceId: string, docs: number) =>
-  owner<{ id: string }>(
-    `select cc.id from tenant.client_controls cc where cc.service_id = $1 and cc.is_active
-        and not exists (select 1 from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = cc.id and t.dimension <> 'policy')
-        and (select count(*) from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = cc.id and t.dimension = 'policy') = $2
-      order by cc.own_code`,
-    [serviceId, docs],
-  ).then((r) => r.map((x) => x.id));
+/**
+ * Controles del servicio con solo pruebas documentales, con ese número de pruebas. En la v2 todo control del catálogo lleva además pruebas operativas, así que se
+ * crean controles propios (D79) con las T-DOC pedidas.
+ */
+let pruebasDoc: string[] = [];
+let propios = 0;
+const soloDocumentales = async (companyId: string, serviceId: string, docs: number, cantidad: number): Promise<string[]> => {
+  if (!pruebasDoc.length) pruebasDoc = (await owner<{ id: string }>(`select id from catalog.tests where code like 'T-DOC-%' order by code limit 12`)).map((r) => r.id);
+  const out: string[] = [];
+  for (let i = 0; i < cantidad; i++) out.push(await controlPropioConPruebas(companyId, serviceId, `T${RUN.toUpperCase()}${propios++}`, pruebasDoc.slice(i, i + docs)));
+  return out;
+};
 
 beforeAll(async () => {
   app = await bootApp({}, (builder) => builder.overrideProvider(FileStorage).useValue(storage));
@@ -79,20 +83,18 @@ beforeAll(async () => {
   rB = await sesion(b.companyId, 'responsable', 'Bruno');
 
   servicio2 = (await a.agent.post('/v1/services').send(servicePayload(`Otro servicio ${RUN}`)).expect(201)).body.data.id;
-  const uno = await soloDocumentales(a.serviceId, 1);
-  const dos = await soloDocumentales(a.serviceId, 2);
-  expect(uno.length).toBeGreaterThanOrEqual(7);
-  expect(dos.length).toBeGreaterThanOrEqual(1);
+  const uno = await soloDocumentales(a.companyId, a.serviceId, 1, 7);
+  const dos = await soloDocumentales(a.companyId, a.serviceId, 2, 1);
   const manual = await owner<{ control: string; test: string }>(
     `select cc.id control, x.test_id test from tenant.client_controls cc
-       join tenant.client_control_dimensions d on d.client_control_id = cc.id and d.dimension = 'cloud' and d.type = 'technical_manual'
+       join tenant.client_control_dimensions d on d.client_control_id = cc.id and d.dimension = 'cloud' and d.type = 'manual'
        join tenant.client_control_tests x on x.client_control_id = cc.id join catalog.tests t on t.id = x.test_id and t.dimension = 'cloud'
       where cc.service_id = $1 and cc.is_active order by cc.own_code, t.code`,
     [a.serviceId],
   );
   expect(manual.length).toBeGreaterThan(0);
   manualTest = manual[0].test;
-  const s2 = (await soloDocumentales(servicio2, 1))[0];
+  const s2 = (await soloDocumentales(a.companyId, servicio2, 1, 1))[0];
   c = { c1: uno[0], c2: uno[1], c3: uno[2], c4: uno[3], c5: dos[0], c7: uno[4], c8: uno[5], c9: uno[6], m: manual[0].control, s2, b1: (await controlesDe(b.serviceId))[0] };
 
   for (const k of ['c1', 'c2', 'c3', 'c5', 'm', 's2'] as const) await asignarControl(a.companyId, c[k], r1.id, d1.id);

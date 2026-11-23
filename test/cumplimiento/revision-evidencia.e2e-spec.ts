@@ -105,7 +105,8 @@ describe('D88 · la persona sube su documento para UNA prueba, y solo esa prueba
     submission1 = res.body.data.id;
     expect(res.body.data).toMatchObject({ version: 1, evidence_state: 'pending' });
     const slot = await requirementOfTest(controlX, t1.id);
-    expect(slot).toMatchObject({ origin: 'own', dimension: 'policy', test: { id: t1.id, code: t1.code } });
+    // v2: el lugar de cada documento ya lo creó el clonado (origen del catálogo): la entrega no crea uno nuevo.
+    expect(slot).toMatchObject({ origin: 'catalog', dimension: 'policy', test: { id: t1.id, code: t1.code } });
     expect(res.body.data.requirement_id).toBe(slot.id);
     for (const s of Object.values(await docStates(controlX))) expect(s).toBe('pending');
   });
@@ -215,11 +216,9 @@ describe('D88 · reglas de la subida por prueba', () => {
     expect(new Set(results.map((r) => r.body.data.version)).size).toBe(2);
   });
 
-  it('deja el rastro de la creación del lugar y de la entrega', async () => {
-    const [row] = await owner<{ after_state: Record<string, unknown> }>(
-      `select after_state from audit.audit_logs where tenant_id = $1 and action = 'evidence_requirement.create' order by created_at desc limit 1`, [a.companyId]);
-    expect(row.after_state).toMatchObject({ dimension: 'policy' });
-    expect(row.after_state.test_id).toBeTruthy();
+  it('deja el rastro de la entrega (el lugar ya existía: lo creó el clonado, así que no hay un `evidence_requirement.create` por subirla)', async () => {
+    const [row] = await owner<{ n: number }>(`select count(*)::int n from audit.audit_logs where tenant_id = $1 and action = 'evidence.submit'`, [a.companyId]);
+    expect(row.n).toBeGreaterThan(0);
   });
 });
 

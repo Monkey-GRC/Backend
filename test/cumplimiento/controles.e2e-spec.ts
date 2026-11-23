@@ -203,6 +203,7 @@ describe('Detalle de una acción', () => {
       expect(rich.evidence[0]).toMatchObject({ responsible: null, latest_submission: null, description: expect.any(String) });
     }
     expect(Array.isArray(rich.causes)).toBe(true);
+    // v2: la causa no trae nombre corto (se muestra su descripción).
     for (const cause of rich.causes) expect(cause).toEqual({ id: expect.any(String), code: expect.stringMatching(/^F\d+$/), name: expect.any(String) });
     expect(rich).not.toHaveProperty('technical');
   });

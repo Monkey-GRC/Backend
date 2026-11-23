@@ -76,8 +76,13 @@ describe('Grupo de responsables por omisión', () => {
 });
 
 describe('Vigencia de la evidencia (validity_within_period)', () => {
+  const NAME_EN = 'Neutral name in English (test)';
+  let testName: { id: string; es: string };
   let controlId: string;
   let requirementIds: string[] = [];
+  afterAll(async () => {
+    await owner(`update catalog.tests set display_name_en = null where id = $1`, [testName.id]);
+  });
   beforeAll(async () => {
     const list = (await a.agent.get(`/v1/services/${a.serviceId}/controls?page_size=100`).expect(200)).body.data.items as Array<{ id: string }>;
     const [row] = await owner<{ id: string; test_id: string | null }>(
@@ -85,7 +90,10 @@ describe('Vigencia de la evidencia (validity_within_period)', () => {
       [a.serviceId, list.map((c) => c.id)],
     );
     controlId = row.id;
-    const [t] = await owner<{ id: string; display_name: string }>(`select id, display_name from catalog.tests where code = 'T-CLD-001'`);
+    // El catálogo v2 no trae nombres en inglés (P50): se le pone uno a una prueba y se quita al terminar.
+    const [t] = await owner<{ id: string; display_name: string }>(`select id, display_name from catalog.tests where origin = 'committee' and control_id is not null order by code limit 1`);
+    testName = { id: t.id, es: t.display_name };
+    await owner(`update catalog.tests set display_name_en = $2 where id = $1`, [t.id, NAME_EN]);
     const ins = async (code: string, validity: string, description: string, testId: string | null) =>
       (
         await owner<{ id: string }>(
@@ -113,8 +121,8 @@ describe('Vigencia de la evidencia (validity_within_period)', () => {
   it('un requerimiento que copió el nombre de la prueba lo muestra en el idioma pedido; el texto de la empresa no se toca', async () => {
     const es = await requirements('es');
     const en = await requirements('en');
-    expect(es[1].description).toBe('Evaluación de IAM, MFA y cuentas privilegiadas en el proveedor cloud');
-    expect(en[1].description).toBe('Assessment of IAM, MFA and privileged accounts at the cloud provider');
+    expect(es[1].description).toBe(testName.es);
+    expect(en[1].description).toBe(NAME_EN);
     expect(en[0].description).toBe('Texto de la empresa');
   });
 });

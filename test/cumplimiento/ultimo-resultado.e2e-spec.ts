@@ -107,17 +107,18 @@ describe('El último resultado no depende del largo del histórico', () => {
   it('una exclusión pendiente o rechazada no superpone «excluida»; la aprobada sí', async () => {
     const c = links[0];
     const [user] = await owner<{ id: string }>(`select id from platform.users where company_id = $1 limit 1`, [a.companyId]);
-    const insertar = (status: string) =>
+    const insertar = (status: string, testId = c.test_id) =>
       owner(
         `insert into tenant.exclusions (id, tenant_id, service_id, test_id, asset_id, proposed_by, decided_by, decided_at, decision_note, status, justification, valid_from, valid_until)
          values (gen_random_uuid(), $1, $2, $3, $4, $5, $6, case when $6::uuid is null then null else now() end, case when $7 = 'rejected' then 'no procede' end, $7::tenant.exclusion_status, 'prueba', current_date - 1, current_date + 30)`,
-        [a.companyId, a.serviceId, c.test_id, a.assetId, user.id, status === 'pending' ? null : user.id, status],
+        [a.companyId, a.serviceId, testId, a.assetId, user.id, status === 'pending' ? null : user.id, status],
       );
     const base = (await a.agent.get(path()).expect(200)).body.data;
     await insertar('pending');
     await insertar('rejected');
     expect((await a.agent.get(path()).expect(200)).body.data).toEqual(base);
-    await insertar('approved');
+    // Un control de la v2 lleva varias pruebas de nube sobre el mismo activo: se excluyen todas para que el cambio se vea en el resumen.
+    for (const testId of new Set(links.map((l) => l.test_id))) await insertar('approved', testId);
     expect((await a.agent.get(path()).expect(200)).body.data).not.toEqual(base);
   });
 

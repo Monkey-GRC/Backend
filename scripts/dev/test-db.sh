@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Postgres persistente para las pruebas e2e: un contenedor fijo con una base PLANTILLA (migraciones + catálogos +
-# datos de referencia + contraseña de monkey_app). El globalSetup de jest la clona en una base por worker.
+# Postgres persistente para las pruebas e2e: un contenedor fijo con una base PLANTILLA (migraciones + datos de referencia +
+# checks de la sonda y del motor de nube + catálogo v2 + contraseña de monkey_app). El globalSetup de jest la clona en una base por worker.
 #   up       arranca el contenedor y reconstruye la plantilla solo si cambió la huella (idempotente)
 #   rebuild  reconstruye la plantilla aunque la huella no haya cambiado
 #   clean    borra el contenedor y su volumen
@@ -51,8 +51,10 @@ build_template() {
     export DATABASE_URL="${URL}/${TEMPLATE}"
     npx prisma migrate deploy >/dev/null
     psql_admin -d postgres -c "alter role monkey_app with login password '${APP_PASSWORD}'"
-    npm run -s catalog:load -- --apply >/dev/null
     npm run -s reference:load -- --apply >/dev/null
+    npm run -s sonda:load -- --apply >/dev/null
+    npm run -s cloud:load -- --apply >/dev/null
+    npm run -s catalog:load -- --apply >/dev/null
   )
   psql_admin -d postgres -c "comment on database ${TEMPLATE} is '${fp}'" -c "alter database ${TEMPLATE} is_template true"
   echo "Plantilla lista."

@@ -266,8 +266,10 @@ describe('GET /v1/assignments · filtros, orden y paginación', () => {
     expect(ids(porCodigo)).toContain(primero.client_control_id);
     const porRequisito = await todos(a.agent, `q=${encodeURIComponent(primero.requirement_codes[0].toLowerCase())}`);
     expect(ids(porRequisito)).toContain(primero.client_control_id);
-    expect(ids(await todos(a.agent, 'q=REVISIÓN TRIMESTRAL'))).toEqual([controlPropio]);
-    expect(ids(await todos(a.agent, 'q=revision%20trimestral'))).toEqual([controlPropio]);
+    // En la v2 los requisitos de varios controles del catálogo también dicen «revisión trimestral»: el propio tiene que estar, igual con o sin acento y mayúsculas.
+    const conAcento = ids(await todos(a.agent, 'q=REVISIÓN TRIMESTRAL'));
+    expect(conAcento).toContain(controlPropio);
+    expect(ids(await todos(a.agent, 'q=revision%20trimestral')).sort()).toEqual([...conAcento].sort());
     expect(await todos(a.agent, 'q=zzz-no-existe')).toEqual([]);
   });
 
