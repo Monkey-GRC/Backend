@@ -5,6 +5,7 @@ import { ValidationException } from '../../../../common/errors/validation.except
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
+import { EvaluationParametersPort } from '../../domain/engine/v2/parameters';
 import { ControlAccess, ControlEdit, ControlEditRepository, ControlSnapshot, DimensionState, OwnControlCreated, OwnControlInput } from '../../domain/controls/control-edit.repository';
 import { captureControlStates, recordControlStateChanges } from '../shared/control-state-events';
 
@@ -18,7 +19,7 @@ const dimensionsJson = (s: ControlSnapshot) => s.dimensions.map((d) => ({ dimens
 
 @Injectable()
 export class ControlEditPrismaRepository extends ControlEditRepository {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(private readonly prisma: PrismaService, private readonly evaluationParameters: EvaluationParametersPort) {
     super();
   }
 
@@ -99,7 +100,7 @@ export class ControlEditPrismaRepository extends ControlEditRepository {
 
       const dimensionsChange = !!edit.dimensions?.some((d) => before.dimensions.find((x) => x.dimension === d.dimension)?.reasonNotApplicable !== d.reasonNotApplicable);
       // Quitar o poner una dimensión cambia lo que se mide: si mueve el estado de algún control, queda su evento.
-      const states = dimensionsChange ? await captureControlStates(tx, found.serviceId) : null;
+      const states = dimensionsChange ? await captureControlStates(tx, found.serviceId, await this.evaluationParameters.load()) : null;
 
       if (edit.interpretation !== undefined) await tx.clientControl.update({ where: { id: controlId }, data: { clientInterpretation: edit.interpretation } });
       for (const d of edit.dimensions ?? []) {
@@ -124,7 +125,7 @@ export class ControlEditPrismaRepository extends ControlEditRepository {
       }
       await insertAuditLog(tx, audit({ before, after }));
       if (states) {
-        await recordControlStateChanges(tx, {
+        await recordControlStateChanges(tx, { parameters: await this.evaluationParameters.load(),
           tenantId: scope.companyId, serviceId: found.serviceId, before: states, cause: 'control_updated',
           actor: { userId: actor.userId, ipAddress: actor.meta.ipAddress, userAgent: actor.meta.userAgent },
         });

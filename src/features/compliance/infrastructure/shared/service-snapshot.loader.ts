@@ -1,69 +1,129 @@
+import { Prisma } from '../../../../../generated/prisma/client';
 import { TransactionClient } from '../../../../infrastructure/database/prisma.service';
-import { Dimension, ReadoutControl, dimensionOfAssetType, resultKey } from '../../domain/controls/control-readout';
+import {
+  ControlEvidenceItem, Dimension, NO_LINKS, ReadoutControl, ReadoutRequirement, ReadoutTest, TestLinks, dimensionOfAssetType, resultKey, testAssetKey,
+} from '../../domain/controls/control-readout';
 import { AssetResult } from '../../domain/engine/states';
 import { ServiceReadoutData } from '../../domain/controls/control.repository';
-import { DocumentaryEvidence } from '../../domain/evidence/evidence';
+import { ManualVerdict } from '../../domain/engine/v2/manual-test';
+import { EvaluationParameters } from '../../domain/engine/v2/parameters';
+import { ModuleFacts, exceptionEndsOn } from '../../domain/engine/v2/technical-test';
+import { Periodicity, TestType } from '../../domain/engine/v2/types';
 import { verdictStateOf } from '../../domain/verdicts/test-verdict';
 import { NO_ACCESS } from '../../domain/controls/control-access';
 import { loadControlAccess } from './control-access.loader';
 import { latestEvaluations, latestVerdicts } from './latest-results.query';
-import { ALL_REVIEWS, requirementState } from '../evidence/evidence-review.mapper';
+import { ALL_REVIEWS, requirementState, versionOf } from '../evidence/evidence-review.mapper';
 
 // Orden canónico de las categorías (enums.md `trust_criterion`).
 const CRITERIA_ORDER = ['security', 'availability', 'confidentiality', 'integrity', 'privacy'];
 
-// La foto de un servicio que el motor lee: controles, activos y el último resultado de cada activo en cada test. La usan las lecturas (controles, resumen) y quien registra
-// los cambios de estado de un control (`control-state-events.ts`, D91), así que vive aparte del repositorio.
-// Un número fijo de consultas, sin importar cuántos controles tenga el servicio.
-export async function loadServiceSnapshot(tx: TransactionClient, serviceId: string, onlyControlId?: string): Promise<ServiceReadoutData> {
-  const contractedCriteria = new Set(
-    (await tx.serviceTrustCriterion.findMany({ where: { serviceId }, select: { trustCriterion: { select: { criterion: true } } } })).map((r) => r.trustCriterion.criterion),
-  );
-  const contractedFrameworks = new Set((await tx.serviceFramework.findMany({ where: { serviceId }, select: { frameworkId: true } })).map((r) => r.frameworkId));
+const TEST_SELECT = {
+  id: true, code: true, dimension: true, displayName: true, displayNameEn: true, displayDescription: true, type: true,
+  testChecks: { select: { role: true, checkId: true, ownerControlId: true, moduleRef: true, provenance: true } },
+} satisfies Prisma.TestSelect;
 
+type TestRow = Prisma.TestGetPayload<{ select: typeof TEST_SELECT }>;
+
+/** Los vínculos de una prueba con sus checks y módulos (T-04 a T-06). Solo cuentan los que el comité ratificó (D56). */
+function linksOf(test: TestRow): TestLinks {
+  const links: TestLinks = { directCheckCount: 0, complementaryCheckIds: [], modules: [], dependencies: [], directKeys: [] };
+  for (const l of test.testChecks) {
+    if (l.provenance !== 'committee_ratified') continue;
+    const key = l.checkId ? `check:${l.checkId}` : l.moduleRef ? `module:${l.moduleRef}` : null;
+    if (!key) continue;
+    if (l.role === 'dependency') {
+      if (l.ownerControlId) links.dependencies.push({ ownerControlId: l.ownerControlId, key });
+    } else if (l.role === 'direct') {
+      links.directKeys.push(key);
+      if (l.checkId) links.directCheckCount++;
+      else links.modules.push({ role: 'direct', ref: l.moduleRef as string });
+    } else if (l.checkId) links.complementaryCheckIds.push(l.checkId);
+    else links.modules.push({ role: 'complementary', ref: l.moduleRef as string });
+  }
+  return links;
+}
+
+const toReadoutTest = (t: TestRow): ReadoutTest => ({
+  testId: t.id, code: t.code, displayName: t.displayName, displayNameEn: t.displayNameEn, displayDescription: t.displayDescription, testType: t.type, dimension: t.dimension as Dimension,
+  mandatory: true, active: true, links: linksOf(t),
+});
+
+// Los controles del servicio con sus requisitos y las pruebas de cada uno, y la evidencia que se ha entregado. Un número fijo de consultas, sin importar cuántos controles haya.
+async function loadControls(
+  tx: TransactionClient,
+  serviceId: string,
+  only: string | undefined,
+  contracted: { criteria: Set<string>; frameworks: Set<string> },
+): Promise<ReadoutControl[]> {
   const rows = await tx.clientControl.findMany({
-    where: { serviceId, isActive: true, ...(onlyControlId ? { id: onlyControlId } : {}) },
+    where: { serviceId, isActive: true, ...(only ? { id: only } : {}) },
     select: {
-      id: true, serviceId: true, ownCode: true, name: true, trustCriterion: true, type: true, clientInterpretation: true,
+      id: true, serviceId: true, ownCode: true, name: true, trustCriterion: true, type: true, clientInterpretation: true, controlId: true,
       control: {
         select: {
-          code: true, name: true, description: true,
+          code: true, name: true, description: true, periodicity: true,
           pointOfFocusControls: {
             select: { pointOfFocus: { select: { number: true, requirement: { select: { code: true, frameworkId: true, trustCriterion: { select: { criterion: true } } } } } } },
           },
         },
       },
       dimensions: { select: { dimension: true, type: true, reasonNotApplicable: true } },
-      tests: { select: { testId: true, test: { select: { code: true, dimension: true, displayName: true, displayNameEn: true, displayDescription: true, type: true } } } },
+      requirements: {
+        select: {
+          id: true, periodicity: true, isApplicable: true,
+          controlRequirement: {
+            select: { code: true, text: true, type: true, pointNumber: true, periodicity: true, tests: { select: { test: { select: TEST_SELECT } } } },
+          },
+        },
+      },
     },
   });
 
   // D102 · Dueño y ejecutor de cada control: de ahí sale lo que ven el responsable y el delegado.
   const accessOf = await loadControlAccess(tx, rows.map((r) => r.id));
 
-  // D88 · Las evidencias requeridas de estas acciones, con el estado de su última entrega según la combinación de las revisiones de cada rol (la que consume el motor, D102): de ellas sale el estado
-  // de cada prueba documental en su control. Una sola consulta para todo el servicio.
-  const documentaryRows = rows.length
+  // DT-114 · La evidencia que se sube hoy para cada prueba manual (D88), con el estado de su entrega más reciente según la combinación de las revisiones de cada rol (D102) y su fecha.
+  // Un control propio se mide con TODA su evidencia como un requisito documental único. Una sola consulta para el servicio.
+  const evidenceRows = rows.length
     ? await tx.evidenceRequirement.findMany({
-        // Solo lo entregado PARA una prueba (D88): un documento que el catálogo sugiere sin decir a qué prueba sirve no cuenta para ninguna.
-        where: { clientControlId: { in: rows.map((r) => r.id) }, dimension: 'policy', testId: { not: null } },
-        select: { clientControlId: true, testId: true, submissions: { select: { version: true, aiVerdict: true, reviews: ALL_REVIEWS } } },
+        where: { clientControlId: { in: rows.map((r) => r.id) } },
+        select: { clientControlId: true, testId: true, submissions: { select: { version: true, aiVerdict: true, submittedAt: true, reviews: ALL_REVIEWS } } },
       })
     : [];
-  const documentaryOf = new Map<string, DocumentaryEvidence[]>();
-  for (const d of documentaryRows) documentaryOf.set(d.clientControlId, [...(documentaryOf.get(d.clientControlId) ?? []), { testId: d.testId as string, state: requirementState(d.submissions) }]);
+  const evidenceOf = new Map<string, ControlEvidenceItem[]>();
+  for (const e of evidenceRows) {
+    const latest = [...e.submissions].sort((a, b) => versionOf(b.version) - versionOf(a.version))[0];
+    const item: ControlEvidenceItem = { testId: e.testId, state: requirementState(e.submissions), submittedAt: latest?.submittedAt ?? null };
+    evidenceOf.set(e.clientControlId, [...(evidenceOf.get(e.clientControlId) ?? []), item]);
+  }
 
-  const controls: ReadoutControl[] = rows.map((c) => {
+  return rows.map((c) => {
     const criteria = new Set<string>();
     const requirementCodes = new Set<string>();
     const pointsOfFocus = new Set<string>();
     for (const link of c.control?.pointOfFocusControls ?? []) {
       const req = link.pointOfFocus.requirement;
-      if (!contractedFrameworks.has(req.frameworkId) || !contractedCriteria.has(req.trustCriterion.criterion)) continue;
+      if (!contracted.frameworks.has(req.frameworkId) || !contracted.criteria.has(req.trustCriterion.criterion)) continue;
       criteria.add(req.trustCriterion.criterion);
       requirementCodes.add(req.code);
       pointsOfFocus.add(`${req.code}-POF${link.pointOfFocus.number}`);
     }
+    const requirements: ReadoutRequirement[] = c.requirements
+      .map((r) => ({
+        id: r.id,
+        code: r.controlRequirement.code,
+        text: r.controlRequirement.text,
+        type: r.controlRequirement.type as TestType,
+        periodicity: (r.periodicity ?? r.controlRequirement.periodicity ?? null) as Periodicity | null,
+        isApplicable: r.isApplicable,
+        tests: r.controlRequirement.tests.map((t) => toReadoutTest(t.test)).sort((a, b) => a.code.localeCompare(b.code)),
+        point: r.controlRequirement.pointNumber ?? 0,
+      }))
+      .sort((a, b) => a.point - b.point || a.code.localeCompare(b.code))
+      .map(({ point: _point, ...rest }) => rest);
+    const tests = new Map<string, ReadoutTest>();
+    for (const r of requirements) for (const t of r.tests) if (!tests.has(t.testId)) tests.set(t.testId, t);
     return {
       id: c.id,
       serviceId: c.serviceId,
@@ -74,49 +134,107 @@ export async function loadServiceSnapshot(tx: TransactionClient, serviceId: stri
       interpretation: c.clientInterpretation,
       catalogDescription: c.control?.description ?? null,
       dimensions: c.dimensions.map((d) => ({ dimension: d.dimension as Dimension, applies: d.reasonNotApplicable === null, type: d.type, reasonNotApplicable: d.reasonNotApplicable })),
-      // `client_control_tests` todavía no guarda «obligatorio» ni «vigente» (D68): hasta entonces todo test vinculado es obligatorio y vigente.
-      tests: c.tests.map((t) => ({ testId: t.testId, code: t.test.code, displayName: t.test.displayName, displayNameEn: t.test.displayNameEn, displayDescription: t.test.displayDescription, testType: t.test.type, dimension: t.test.dimension as Dimension, mandatory: true, active: true })),
+      tests: [...tests.values()],
       // Un control propio no llega a ningún requisito: su categoría es la que eligió la empresa.
       trustCriteria: c.control ? [...criteria].sort((a, b) => CRITERIA_ORDER.indexOf(a) - CRITERIA_ORDER.indexOf(b)) : c.trustCriterion ? [c.trustCriterion] : [],
       access: accessOf.get(c.id) ?? NO_ACCESS,
-      approval: 'approved',
+      approval: 'approved' as const,
       catalogCode: c.control?.code ?? null,
       requirementCodes: [...requirementCodes].sort(),
       pointsOfFocus: [...pointsOfFocus].sort(),
-      documentary: documentaryOf.get(c.id) ?? [],
+      evidence: evidenceOf.get(c.id) ?? [],
+      catalogControlId: c.controlId,
+      periodicity: (c.control?.periodicity ?? null) as Periodicity | null,
+      requirements,
     };
   });
+}
+
+// La foto de un servicio que el motor lee: controles, activos y todo lo que el motor v2 necesita para calcular. La usan las lecturas (controles, resumen) y quien registra
+// los cambios de estado de un control (`control-state-events.ts`, D91), así que vive aparte del repositorio. Un número fijo de consultas, sin importar cuántos controles tenga el servicio.
+export async function loadServiceSnapshot(
+  tx: TransactionClient,
+  serviceId: string,
+  parameters: EvaluationParameters,
+  onlyControlId?: string,
+): Promise<ServiceReadoutData> {
+  const contracted = {
+    criteria: new Set((await tx.serviceTrustCriterion.findMany({ where: { serviceId }, select: { trustCriterion: { select: { criterion: true } } } })).map((r) => r.trustCriterion.criterion)),
+    frameworks: new Set((await tx.serviceFramework.findMany({ where: { serviceId }, select: { frameworkId: true } })).map((r) => r.frameworkId)),
+  };
+
+  const controls = await loadControls(tx, serviceId, onlyControlId, contracted);
+  // T-06 · Una Dependencia lee la prueba del control dueño: si se lee un solo control que depende de otros, se cargan los demás del servicio.
+  const needsPool = !!onlyControlId && controls.some((c) => c.tests.some((t) => (t.links ?? NO_LINKS).dependencies.length > 0));
+  const pool = needsPool ? await loadControls(tx, serviceId, undefined, contracted) : undefined;
+  const everyControl = pool ?? controls;
 
   const assets = (await tx.serviceAsset.findMany({ where: { serviceId, asset: { status: 'active' } }, select: { asset: { select: { id: true, name: true, type: true } } } })).map((r) => r.asset);
+  const technicalAssets = assets.filter((a) => dimensionOfAssetType(a.type) !== null);
 
   // El último resultado de cada (control, test, activo): el histórico es inmutable y la lectura toma el más reciente. Las evaluaciones de origen `manual` son las de antes de D121 (ya
   // migradas a `test_verdicts`): el motor ya no las lee, un veredicto manual solo cuenta si está aprobado.
-  const latest = controls.length ? await latestEvaluations(tx, serviceId, controls.map((c) => c.id)) : [];
+  const latest = everyControl.length ? await latestEvaluations(tx, serviceId, everyControl.map((c) => c.id)) : [];
   const results = new Map<string, AssetResult>(latest.map((e) => [resultKey(e.clientControlId, e.testId, e.assetId), e.result as AssetResult]));
+  const resultDates = new Map<string, Date>(latest.map((e) => [resultKey(e.clientControlId, e.testId, e.assetId), e.evaluatedAt]));
 
-  // D85, D121 · El estado de una prueba manual no documental sale del ÚLTIMO veredicto del test en el servicio: si está aprobado, su resultado vale en todos los controles que llevan el test y
-  // sobre todos los activos de su dimensión; si está pendiente o rechazado el test queda pendiente (sin resultado), aunque uno anterior haya estado aprobado. Una sola consulta para el servicio.
-  const verdicts = controls.length ? await latestVerdicts(tx, [serviceId]) : [];
-  const controlsWithTest = new Map<string, { control: ReadoutControl; dimension: Dimension }[]>();
-  for (const c of controls) for (const t of c.tests) controlsWithTest.set(t.testId, [...(controlsWithTest.get(t.testId) ?? []), { control: c, dimension: t.dimension }]);
-  for (const v of verdicts) {
-    if (verdictStateOf(v.decisions.map((decision) => ({ decision }))) !== 'approved') continue;
-    for (const { control, dimension } of controlsWithTest.get(v.testId) ?? []) {
-      for (const a of assets) if (dimensionOfAssetType(a.type) === dimension) results.set(resultKey(control.id, v.testId, a.id), v.result as AssetResult);
-    }
+  // D85, D121 · El último veredicto del test en el servicio: solo cuenta el aprobado, y vale para todos los controles que llevan la prueba. Una sola consulta para el servicio.
+  const verdictRows = everyControl.length ? await latestVerdicts(tx, [serviceId]) : [];
+  const verdicts = new Map<string, ManualVerdict>();
+  for (const v of verdictRows) {
+    if (verdictStateOf(v.decisions.map((decision) => ({ decision }))) === 'approved') verdicts.set(v.testId, { result: v.result as ManualVerdict['result'], at: v.registeredAt });
   }
 
-  // Una exclusión APROBADA y vigente saca al activo del universo del test (su resultado es `excluded`, RN-05); la pendiente, la rechazada y la vencida no cambian nada:
-  // el activo sigue contando. El veredicto de la sonda no se toca: la exclusión se superpone al leer (MD-144, D78).
-  const day = new Date();
-  const now = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate()));
-  const excluded = await tx.exclusion.findMany({
-    where: { serviceId, status: 'approved', assetId: { not: null }, validFrom: { lte: now }, validUntil: { gte: now } },
-    select: { testId: true, assetId: true },
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+  // D135 · Una excepción APROBADA y vigente (de 90 días como máximo, PR-04) deja pasar un FAIL de un activo en una prueba, marcado. La pendiente, la rechazada y la vencida no cambian nada.
+  const exceptionRows = await tx.exclusion.findMany({
+    where: { serviceId, status: 'approved', assetId: { not: null }, validFrom: { lte: today }, validUntil: { gte: today } },
+    select: { testId: true, assetId: true, validFrom: true, validUntil: true },
   });
-  for (const x of excluded) {
-    for (const { control } of controlsWithTest.get(x.testId) ?? []) results.set(resultKey(control.id, x.testId, x.assetId as string), 'excluded');
+  const exceptions = new Set<string>();
+  for (const x of exceptionRows) if (exceptionEndsOn(x.validFrom, x.validUntil, parameters).getTime() >= today.getTime()) exceptions.add(testAssetKey(x.testId, x.assetId as string));
+
+  // S-04 · Los checks Complementarios en FAIL del último resultado de cada activo (de la última corrida completada).
+  const complementaryByCheck = new Map<string, string[]>();
+  for (const c of everyControl) for (const t of c.tests) for (const id of t.links?.complementaryCheckIds ?? []) complementaryByCheck.set(id, [...new Set([...(complementaryByCheck.get(id) ?? []), t.testId])]);
+  const complementaryFails = new Set<string>();
+  if (complementaryByCheck.size > 0 && technicalAssets.length > 0) {
+    const failed = await tx.$queryRaw<{ assetId: string; checkId: string }[]>(Prisma.sql`
+      SELECT DISTINCT sa.asset_id AS "assetId", cr.check_id AS "checkId"
+        FROM tenant.service_assets sa
+       CROSS JOIN LATERAL (SELECT x.id FROM tenant.executions x
+                            WHERE x.asset_id = sa.asset_id AND x.kind = 'assessment' AND x.status = 'completed'
+                            ORDER BY x.started_at DESC NULLS LAST, x.queued_at DESC LIMIT 1) ex
+        JOIN tenant.check_results cr ON cr.execution_id = ex.id
+       WHERE sa.service_id = ${serviceId}::uuid AND cr.result = 'failed' AND cr.check_id = ANY(${[...complementaryByCheck.keys()]}::uuid[])`);
+    for (const f of failed) for (const testId of complementaryByCheck.get(f.checkId) ?? []) complementaryFails.add(testAssetKey(testId, f.assetId));
   }
 
-  return { serviceId, controls, assets, results };
+  // D141 · Los hallazgos críticos y altos abiertos de cada activo (vulnerabilidades activas y hallazgos abiertos), solo de los activos con una corrida completada: sin ella no hay dato y nunca se asume cero.
+  // El puntaje global (D146) no se guarda todavía en ninguna tabla: sin dato.
+  const moduleFacts = new Map<string, ModuleFacts>();
+  const needsModules = everyControl.some((c) => c.tests.some((t) => (t.links?.modules.length ?? 0) > 0));
+  if (needsModules && technicalAssets.length > 0) {
+    const ids = technicalAssets.map((a) => a.id);
+    const high = ['critical', 'high'] as const;
+    const [scanned, vulnerabilities, findings] = await Promise.all([
+      tx.execution.groupBy({ by: ['assetId'], where: { assetId: { in: ids }, kind: 'assessment', status: 'completed' }, _count: { _all: true } }),
+      tx.vulnerability.groupBy({ by: ['assetId'], where: { assetId: { in: ids }, status: 'active', severity: { in: [...high] } }, _count: { _all: true } }),
+      tx.finding.groupBy({ by: ['assetId'], where: { assetId: { in: ids }, status: 'open', severity: { in: [...high] } }, _count: { _all: true } }),
+    ]);
+    const open = new Map<string, number>();
+    for (const r of [...vulnerabilities, ...findings]) open.set(r.assetId, (open.get(r.assetId) ?? 0) + r._count._all);
+    for (const s of scanned) moduleFacts.set(s.assetId, { openCriticalHigh: open.get(s.assetId) ?? 0, scorePercent: null });
+  }
+
+  return {
+    serviceId,
+    controls,
+    assets,
+    results,
+    signals: { now, parameters, resultDates, exceptions, complementaryFails, moduleFacts, verdicts },
+    ...(pool ? { pool } : {}),
+  };
 }

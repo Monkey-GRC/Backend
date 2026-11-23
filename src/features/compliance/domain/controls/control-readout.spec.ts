@@ -1,16 +1,5 @@
-import { AssetResult } from '../engine/states';
-import { compareOwnCode, dimensionOfAssetType, readControl, ReadoutAsset, ReadoutControl, ReadoutTest, readinessOf, resultKey, ResultsIndex } from './control-readout';
-
-const test = (id: string, dimension: ReadoutTest['dimension'], patch: Partial<ReadoutTest> = {}): ReadoutTest => ({
-  testId: id, code: `T-${id}`, displayName: null, displayNameEn: null, displayDescription: null, dimension, mandatory: true, active: true, ...patch,
-});
-const asset = (id: string, type: string): ReadoutAsset => ({ id, name: `activo-${id}`, type });
-const control = (tests: ReadoutTest[], patch: Partial<ReadoutControl> = {}): ReadoutControl => ({
-  id: 'c1', serviceId: 's1', ownCode: 'C01', name: 'Control', origin: 'catalog', type: 'hybrid', interpretation: 'x', catalogDescription: 'x',
-  dimensions: [], tests, trustCriteria: ['security'], access: { owner: null, executor: null }, approval: 'approved', catalogCode: 'IAC-1', requirementCodes: ['CC6.1'], pointsOfFocus: [], documentary: [], ...patch,
-});
-const results = (entries: Array<[string, string, AssetResult]>): ResultsIndex => new Map(entries.map(([t, a, r]) => [resultKey('c1', t, a), r]));
-const NONE: ResultsIndex = new Map();
+import { compareOwnCode, dimensionOfAssetType, legacyTestState, readControl, readinessOf } from './control-readout';
+import { asset, control, data, readoutTest, requirement } from './readout.fixtures';
 
 describe('dimensionOfAssetType (§2, D5)', () => {
   it('servidor, base de datos, servicio en nube y aplicación son dimensiones', () => {
@@ -21,172 +10,66 @@ describe('dimensionOfAssetType (§2, D5)', () => {
   });
 });
 
-describe('readControl — un servicio sin ningún resultado', () => {
-  it('queda «Sin medir»: lo que no se midió no es cumplimiento ni fallo', () => {
-    const r = readControl(control([test('a', 'cloud'), test('b', 'policy')]), [asset('1', 'cloud_service')], NONE);
-    expect(r.readiness).toBe('not_measured');
-    expect(r.state).toBe('evaluating');
-    expect(r.progress).toEqual({ done: 0, total: 2 });
-    expect(r.coverage).toEqual({ measured: 0, applicable: 2 });
-    expect(r.failing).toEqual([]);
+describe('readControl · el control con el motor v2', () => {
+  it('sin ningún resultado queda «Sin medir»: lo que no se midió no es cumplimiento ni fallo', () => {
+    const c = control([requirement('r1', [readoutTest('a', 'technical', { dimension: 'cloud' })]), requirement('r2', [readoutTest('b', 'documentary')])]);
+    const r = readControl(c, data([c], [asset('1', 'cloud_service')]));
+    expect(r).toMatchObject({ readiness: 'not_measured', state: 'evaluating', level: 'not_evaluated', progress: { done: 0, total: 2 }, coverage: { measured: 0, applicable: 2 }, failing: [] });
   });
-
-  it('un test de nube sin ningún activo de nube no tiene sobre qué correr y tampoco cumple', () => {
-    const r = readControl(control([test('a', 'cloud')]), [asset('1', 'server')], NONE);
-    expect(r.tests[0].state).toBe('no_assets');
-    expect(r.readiness).toBe('not_measured');
-    expect(r.state).not.toBe('effective');
+  it('los campos de siempre se derivan del nivel: progress es el C%, el semáforo sale del avance', () => {
+    const c = control(
+      Array.from({ length: 5 }, (_, i) => requirement(`r${i}`, [readoutTest(`d${i}`, 'operational')])),
+      { evidence: [0, 1, 2, 3].map((i) => ({ testId: `d${i}`, state: 'compliant' as const, submittedAt: new Date('2026-11-10T00:00:00Z') })) },
+    );
+    const r = readControl(c, data([c], []));
+    expect(r).toMatchObject({ progress: { done: 4, total: 5 }, coverage: { measured: 4, applicable: 5 }, cPercent: 80, level: 'partial', complies: false, readiness: 'almost_ready' });
+    expect(r.blockingRequirements.map((b) => b.requirement.id)).toEqual(['r4']);
   });
-
-  it('un control sin tests ni dimensiones queda «Sin tests» y «Sin medir»', () => {
-    const r = readControl(control([]), [], NONE);
-    expect(r.state).toBe('no_tests');
-    expect(r.readiness).toBe('not_measured');
-    expect(r.progress).toEqual({ done: 0, total: 0 });
+  it('un requisito marcado No aplica sale del cálculo', () => {
+    const c = control([requirement('r1', [readoutTest('a', 'operational')], { isApplicable: false }), requirement('r2', [readoutTest('b', 'operational')])]);
+    expect(readControl(c, data([c], [])).progress).toEqual({ done: 0, total: 1 });
   });
-});
-
-describe('readControl — con resultados', () => {
-  const two = [asset('1', 'cloud_service'), asset('2', 'cloud_service')];
-
-  it('todos los activos de la dimensión cumplen → el test cumple, pero la documental pendiente impide «Preparado»', () => {
-    const r = readControl(control([test('a', 'cloud'), test('b', 'policy')]), two, results([['a', '1', 'compliant'], ['a', '2', 'compliant']]));
-    expect(r.tests.find((t) => t.test.testId === 'a')?.state).toBe('compliant');
-    expect(r.progress).toEqual({ done: 1, total: 2 });
-    expect(r.readiness).toBe('almost_ready'); // todo lo medido cumple, algo sigue pendiente
+  it('las pruebas salen con el estado de siempre derivado de test_status, sin repetirse', () => {
+    const shared = readoutTest('shared', 'operational');
+    const c = control([requirement('r1', [shared]), requirement('r2', [shared, readoutTest('x', 'operational')])], {
+      evidence: [{ testId: 'shared', state: 'compliant', submittedAt: new Date('2026-11-10T00:00:00Z') }],
+    });
+    const r = readControl(c, data([c], []));
+    expect(r.tests.map((t) => [t.test.testId, t.state, t.status])).toEqual([['shared', 'compliant', 'correct'], ['x', 'pending', 'pending']]);
   });
-
-  it('un solo activo que falla hace que el test no cumpla y lo señala', () => {
-    const r = readControl(control([test('a', 'cloud')]), two, results([['a', '1', 'compliant'], ['a', '2', 'non_compliant']]));
-    expect(r.state).toBe('ineffective');
-    expect(r.failing).toEqual([{ dimension: 'cloud', affected: [{ kind: 'asset', id: '2', name: 'activo-2' }] }]);
-    expect(r.readiness).toBe('needs_work');
+  it('el detalle de una prueba manual da window_end de su periodicidad', () => {
+    const c = control([requirement('r1', [readoutTest('a', 'operational')], { periodicity: 'quarterly' })]);
+    expect(readControl(c, data([c], [])).requirements[0].tests[0]).toMatchObject({ status: 'pending', windowEnd: '2026-12-31', checks: null, assetCoverage: null });
   });
-
-  it('un activo que todavía no dijo su resultado deja el test «en evaluación»: 45 de 50 no cumple', () => {
-    const r = readControl(control([test('a', 'cloud')]), two, results([['a', '1', 'compliant']]));
-    expect(r.tests[0].state).toBe('evaluating');
-    expect(r.state).toBe('evaluating');
-    expect(r.coverage).toEqual({ measured: 0, applicable: 1 });
-  });
-
-  it('todo cumple y nada pendiente → Preparado', () => {
-    const r = readControl(control([test('a', 'cloud')]), two, results([['a', '1', 'compliant'], ['a', '2', 'compliant']]));
-    expect(r.state).toBe('effective');
-    expect(r.readiness).toBe('ready');
-    expect(r.progress).toEqual({ done: 1, total: 1 });
-  });
-
-  it('un activo excluido sale del universo del test (C5)', () => {
-    const r = readControl(control([test('a', 'cloud')]), two, results([['a', '1', 'compliant'], ['a', '2', 'excluded']]));
-    expect(r.tests[0].state).toBe('compliant');
-  });
-
-  it('los endpoints no son dimensión: no entran al universo de ningún test', () => {
-    const r = readControl(control([test('a', 'server')]), [asset('9', 'endpoint')], NONE);
-    expect(r.tests[0].state).toBe('no_assets');
-  });
-
-  it('un test documental sin evidencias está pendiente: la ausencia de evidencia nunca es cumplimiento', () => {
-    const r = readControl(control([test('b', 'policy', { displayName: 'Revisión periódica de accesos' })]), [], NONE);
-    expect(r.tests[0].state).toBe('pending');
-    expect(r.failing).toEqual([]);
+  it('una prueba en Excepción o Vencida sin activo que señalar aparece en «en qué falla» con su prueba', () => {
+    const c = control([requirement('r1', [readoutTest('a', 'operational', { dimension: 'process' })])], { evidence: [{ testId: 'a', state: 'non_compliant', submittedAt: null }] });
+    const r = readControl(c, data([c], []));
+    expect(r.failing).toEqual([{ dimension: 'process', affected: [{ kind: 'test', id: 'a', displayName: null, displayNameEn: null, testCode: 'T-a' }] }]);
   });
 });
 
-// D88 · una prueba documental se calcula por control, con la evidencia que la persona entregó PARA ESA PRUEBA en ese control.
-describe('readControl — pruebas documentales por control (D88)', () => {
-  const policies = [test('d1', 'policy'), test('d2', 'policy')];
-  const stateOf = (r: ReturnType<typeof readControl>, id: string) => r.tests.find((t) => t.test.testId === id)?.state;
-
-  it('la evidencia de una prueba solo mueve esa prueba: la otra sigue pendiente', () => {
-    const r = readControl(control(policies, { documentary: [{ testId: 'd1', state: 'compliant' }] }), [], NONE);
-    expect(stateOf(r, 'd1')).toBe('compliant');
-    expect(stateOf(r, 'd2')).toBe('pending');
-    expect(r.state).toBe('evaluating');
-    expect(r.progress).toEqual({ done: 1, total: 2 });
-  });
-
-  it('cuando cada prueba tiene su evidencia validada, el control es efectivo', () => {
-    const r = readControl(control(policies, { documentary: [{ testId: 'd1', state: 'compliant' }, { testId: 'd2', state: 'compliant' }] }), [], NONE);
-    expect(r.state).toBe('effective');
-  });
-
-  it('con varias evidencias de la misma prueba manda la peor (RN-04): una que no cumple, o una pendiente, impide cumplir', () => {
-    const noCumple = readControl(control(policies, { documentary: [{ testId: 'd1', state: 'compliant' }, { testId: 'd1', state: 'non_compliant' }] }), [], NONE);
-    expect(stateOf(noCumple, 'd1')).toBe('non_compliant');
-    expect(noCumple.state).toBe('ineffective');
-    expect(noCumple.failing).toEqual([{ dimension: 'policy', affected: expect.arrayContaining([{ kind: 'test', id: 'd1', displayName: null, displayNameEn: null, testCode: 'T-d1' }]) }]);
-
-    const pendiente = readControl(control(policies, { documentary: [{ testId: 'd1', state: 'compliant' }, { testId: 'd1', state: 'pending' }] }), [], NONE);
-    expect(stateOf(pendiente, 'd1')).toBe('pending');
-  });
-
-  it('una evidencia vencida o en revisión se refleja en la prueba, y ninguna cumple por omisión', () => {
-    expect(stateOf(readControl(control(policies, { documentary: [{ testId: 'd1', state: 'expired' }] }), [], NONE), 'd1')).toBe('expired');
-    expect(stateOf(readControl(control(policies, { documentary: [{ testId: 'd1', state: 'in_review' }] }), [], NONE), 'd1')).toBe('in_review');
-  });
-
-  it('el control A no se entera de las evidencias del control B (cada control trae las suyas)', () => {
-    const a = readControl(control(policies, { documentary: [{ testId: 'd1', state: 'compliant' }] }), [], NONE);
-    const b = readControl(control(policies, { documentary: [] }), [], NONE);
-    expect(stateOf(a, 'd1')).toBe('compliant');
-    expect(stateOf(b, 'd1')).toBe('pending');
-  });
-
-  it('la evidencia de otra prueba no cuenta para esta', () => {
-    const r = readControl(control(policies, { documentary: [{ testId: 'otra-prueba', state: 'compliant' }] }), [], NONE);
-    expect(policies.map((p) => stateOf(r, p.testId))).toEqual(['pending', 'pending']);
-  });
-
-  it('una evidencia «no aplica» no cuenta; si todas no aplican, la prueba no aplica', () => {
-    const r = readControl(control(policies, { documentary: [{ testId: 'd1', state: 'not_applicable' }] }), [], NONE);
-    expect(stateOf(r, 'd1')).toBe('not_applicable');
-  });
-});
-describe('readControl — dimensiones y vigencia de los tests', () => {
-  const dims = (...d: Array<[ReadoutTest['dimension'], boolean]>) => d.map(([dimension, applies]) => ({ dimension, applies, type: 'manual' as const, reasonNotApplicable: applies ? null : 'No aplica.' }));
-
-  it('una dimensión exigida sin ningún test vigente deja el control INCOMPLETO y suma al total (RN-14)', () => {
-    const r = readControl(control([test('a', 'cloud')], { dimensions: dims(['cloud', true], ['database', true]) }), [asset('1', 'cloud_service')], results([['a', '1', 'compliant']]));
-    expect(r.state).toBe('incomplete');
-    expect(r.progress).toEqual({ done: 1, total: 2 });
-    expect(r.readiness).toBe('almost_ready');
-  });
-
-  it('una dimensión que no aplica no exige nada', () => {
-    const r = readControl(control([test('a', 'cloud')], { dimensions: dims(['cloud', true], ['database', false]) }), [asset('1', 'cloud_service')], results([['a', '1', 'compliant']]));
-    expect(r.state).toBe('effective');
-  });
-
-  it('un test no obligatorio o no vigente no cuenta', () => {
-    const r = readControl(control([test('a', 'cloud'), test('b', 'cloud', { mandatory: false }), test('c', 'cloud', { active: false })]), [asset('1', 'cloud_service')], results([['a', '1', 'compliant']]));
-    expect(r.progress).toEqual({ done: 1, total: 1 });
-    expect(r.state).toBe('effective');
+describe('legacyTestState · test_status → test_state', () => {
+  it('correct y observation → compliant · exception → non_compliant · el resto igual', () => {
+    expect((['correct', 'observation', 'exception', 'expired', 'not_applicable', 'pending'] as const).map(legacyTestState)).toEqual(['compliant', 'compliant', 'non_compliant', 'expired', 'not_applicable', 'pending']);
   });
 });
 
-describe('readinessOf — el semáforo (§9)', () => {
-  const base = { state: 'ineffective' as const, measured: 5, failingTests: 1 };
-  it.each([
-    [{ ...base, state: 'effective' as const, done: 5, total: 5, failingTests: 0 }, 'ready'],
-    [{ ...base, done: 4, total: 5 }, 'almost_ready'],
-    [{ ...base, done: 3, total: 5 }, 'needs_work'],
-    [{ ...base, done: 79, total: 100 }, 'needs_work'],
-    [{ ...base, done: 80, total: 100 }, 'almost_ready'],
-    [{ ...base, state: 'evaluating' as const, done: 1, total: 10, failingTests: 0 }, 'almost_ready'],
-    [{ ...base, done: 0, total: 5, measured: 0, failingTests: 0 }, 'not_measured'],
-    [{ ...base, state: 'no_tests' as const, done: 0, total: 0, measured: 0, failingTests: 0 }, 'not_measured'],
-  ])('%j → %s', (input, expected) => {
-    expect(readinessOf(input)).toBe(expected);
+describe('readinessOf · el semáforo (D62, P16)', () => {
+  const base = { done: 0, total: 5, measured: 0, failingTests: 0 };
+  it('sin nada medido, o sin requisitos, es «Sin medir»', () => {
+    expect(readinessOf({ ...base, state: 'evaluating' })).toBe('not_measured');
+    expect(readinessOf({ ...base, state: 'no_tests', measured: 3 })).toBe('not_measured');
+  });
+  it('Preparado solo si el control cumple', () => expect(readinessOf({ state: 'effective', done: 5, total: 5, measured: 5, failingTests: 0 })).toBe('ready'));
+  it('Casi listo: nada falla, o el avance llega al 80 %; Requiere trabajo, menos', () => {
+    expect(readinessOf({ state: 'evaluating', done: 2, total: 5, measured: 2, failingTests: 0 })).toBe('almost_ready');
+    expect(readinessOf({ state: 'ineffective', done: 4, total: 5, measured: 5, failingTests: 1 })).toBe('almost_ready');
+    expect(readinessOf({ state: 'ineffective', done: 3, total: 5, measured: 5, failingTests: 2 })).toBe('needs_work');
   });
 });
 
 describe('compareOwnCode', () => {
-  it('ordena por el número, no como texto: C2 antes que C10', () => {
-    expect(['C10', 'C2', 'C1', 'C100', 'C20'].sort(compareOwnCode)).toEqual(['C1', 'C2', 'C10', 'C20', 'C100']);
-  });
-  it('un código del catálogo se ordena por su prefijo y luego por su número', () => {
-    expect(['IAC-10', 'IAC-2', 'AST-1', 'C2', 'C10', 'AST-12'].sort(compareOwnCode)).toEqual(['AST-1', 'AST-12', 'C2', 'C10', 'IAC-2', 'IAC-10']);
+  it('ordena por prefijo y por número, no por texto: IAC-2 antes que IAC-10', () => {
+    expect(['IAC-10', 'C02', 'IAC-2', 'C10'].sort(compareOwnCode)).toEqual(['C02', 'C10', 'IAC-2', 'IAC-10']);
   });
 });

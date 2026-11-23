@@ -16,7 +16,7 @@ export class GetControlUseCase {
     const mode = viewModeOf(principal, view);
     const data = await this.controls.loadControl({ companyId: principal.companyId, userId: principal.userId, role: principal.role }, controlId);
     if (!data || data.controls.length === 0) throw new DomainError('NOT_FOUND');
-    const readout = readControl(data.controls[0], data.assets, data.results);
+    const readout = readControl(data.controls[0], data);
     // Un control de la propia empresa del que no es dueño ni ejecutor: no es de otra empresa (eso sería 404), es que no le toca (403).
     if (!canSeeControl(principal, readout.control.access)) throw new DomainError('FORBIDDEN');
     return { view: mode, readout, evidence: data.evidence, causes: data.causes };

@@ -8,6 +8,7 @@ import { Page, PageRequest } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
+import { EvaluationParametersPort } from '../../../compliance/domain/engine/v2/parameters';
 import { captureControlStates, recordControlStateChanges } from '../../../compliance/infrastructure/shared/control-state-events';
 import { RUNNER_POOL } from '../../application/runner-pool';
 import { FailedRow } from '../../domain/scan/findings';
@@ -69,6 +70,7 @@ const chunks = <T>(items: T[], size = CHUNK): T[][] => Array.from({ length: Math
 export class ScanPrismaRepository extends ScanRepository {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly evaluationParameters: EvaluationParametersPort,
     private readonly config: ConfigService,
     @Inject(RUNNER_POOL) private readonly runnerPool: string,
   ) {
@@ -513,7 +515,7 @@ export class ScanPrismaRepository extends ScanRepository {
       });
       if (links.length === 0) continue;
       // D91 · Si lo que la sonda midió mueve el estado de un control, queda su evento: sin persona detrás (usuario nulo).
-      const before = await captureControlStates(tx, serviceId);
+      const before = await captureControlStates(tx, serviceId, await this.evaluationParameters.load());
       const read = await this.executionResults(tx, executionId, serviceId);
       const results = source === 'cloud' ? read : read.map((r) => ({ ...r, checkId: r.checkUuid }));
       const rows = links.flatMap((l) => {
@@ -539,7 +541,7 @@ export class ScanPrismaRepository extends ScanRepository {
       });
       for (const part of chunks(rows)) await tx.evaluation.createMany({ data: part });
       written += rows.length;
-      await recordControlStateChanges(tx, { tenantId: scope.companyId, serviceId, before, cause: 'probe_result', actor: { userId: null, ipAddress: null, userAgent: null } });
+      await recordControlStateChanges(tx, { parameters: await this.evaluationParameters.load(), tenantId: scope.companyId, serviceId, before, cause: 'probe_result', actor: { userId: null, ipAddress: null, userAgent: null } });
     }
     return written;
   }

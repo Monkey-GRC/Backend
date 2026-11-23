@@ -1,6 +1,11 @@
 import { ControlState, RollupState } from './states';
 
-export type ControlRef = { controlId: string; state: ControlState };
+export type ControlRef = {
+  controlId: string;
+  state: ControlState;
+  /** v2: un control está decidido si su nivel no es «No evaluado» y ningún requisito sigue pendiente. Sin el dato, se decide por el estado. */
+  decided?: boolean;
+};
 
 export type CategoryInput = {
   /** Una categoría que no está en el alcance no afecta el resultado (RN-17). */
@@ -13,6 +18,8 @@ export type CategoryInput = {
  * categoría del catálogo, no del código.
  */
 export const isCategoryInScope = (category: { mandatory: boolean; selected: boolean }): boolean => category.mandatory || category.selected;
+
+const isDecided = (c: ControlRef): boolean => c.decided ?? (c.state === 'effective' || c.state === 'ineffective' || c.state === 'expired');
 
 /** El criterio de la categoría y del marco es el mismo (RN-17, RN-19): se cumple solo cuando todos sus controles son efectivos. */
 function rollupOf(controls: readonly ControlRef[]): Exclude<RollupState, 'out_of_scope'> {
@@ -68,8 +75,8 @@ export function evaluateFramework(categories: readonly CategoryInput[]): Framewo
     state: rollupOf(controls),
     uniqueControls: controls.length,
     progress: controls.length > 0 ? count('effective') / controls.length : null,
-    coverage: controls.length > 0 ? count('effective', 'ineffective', 'expired') / controls.length : null,
+    coverage: controls.length > 0 ? controls.filter(isDecided).length / controls.length : null,
     failing: ids((c) => c.state === 'ineffective' || c.state === 'expired'),
-    pending: ids((c) => c.state !== 'effective' && c.state !== 'ineffective' && c.state !== 'expired'),
+    pending: ids((c) => !isDecided(c)),
   };
 }

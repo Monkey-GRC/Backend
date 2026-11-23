@@ -1,5 +1,5 @@
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
-import { ReadoutAsset, ReadoutControl, ResultsIndex } from './control-readout';
+import { ReadoutAsset, ReadoutControl, ReadoutSignals, ResultsIndex } from './control-readout';
 import type { EvidenceState } from '../evidence/evidence';
 
 // Las acciones de protección de UN servicio (tenant.client_controls) y todo lo que hace falta para leerlas, cargado EN BLOQUE: la lista de un
@@ -12,6 +12,10 @@ export type ServiceReadoutData = {
   assets: ReadoutAsset[];
   /** El último resultado de cada activo en cada test de cada control. */
   results: ResultsIndex;
+  /** El reloj, los parámetros y los datos de la sonda y de las personas que el motor v2 lee (MD-498). */
+  signals: ReadoutSignals;
+  /** Todos los controles del servicio, cuando `controls` trae solo uno: la Dependencia (T-06) lee la prueba del control dueño. */
+  pool?: ReadoutControl[];
 };
 
 export type ControlEvidence = {

@@ -20,7 +20,7 @@ export class GetOverviewUseCase {
     if (!data) throw new DomainError('NOT_FOUND');
     const scoped = isScopedRole(principal.role);
     // D118 · El `responsable` y el `delegado` reciben el resumen de SUS controles, calculado con el mismo motor.
-    const readouts = data.controls.filter((c) => canSeeControl(principal, c.access)).map((c) => readControl(c, data.assets, data.results));
+    const readouts = data.controls.filter((c) => canSeeControl(principal, c.access)).map((c) => readControl(c, data));
     const frameworks = buildOverview({
       readouts,
       frameworks: data.frameworks,

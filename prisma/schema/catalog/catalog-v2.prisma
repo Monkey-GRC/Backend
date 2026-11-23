@@ -45,6 +45,7 @@ model ControlRequirement {
   control   Control                      @relation(fields: [controlId], references: [id])
   tests     ControlRequirementTest[]
   documents ControlRequirementDocument[]
+  clientRequirements ClientControlRequirement[]
 
   @@index([controlId])
   @@map("control_requirements")

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../../generated/prisma/client';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
+import { EvaluationParametersPort } from '../../domain/engine/v2/parameters';
 import { AssignedPerson, AssignmentListingData, AssignmentLoadFilters, AssignmentRecord, AssignmentRepository, AssignmentServiceData } from '../../domain/assignments/assignment.repository';
 import { loadServiceSnapshot } from '../shared/service-snapshot.loader';
 
@@ -13,7 +14,7 @@ const toPerson = (u: { id: string; name: string | null; lastName: string | null;
 
 @Injectable()
 export class AssignmentPrismaRepository extends AssignmentRepository {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(private readonly prisma: PrismaService, private readonly evaluationParameters: EvaluationParametersPort) {
     super();
   }
 
@@ -43,7 +44,7 @@ export class AssignmentPrismaRepository extends AssignmentRepository {
       });
 
       const loaded: AssignmentServiceData[] = [];
-      for (const s of services) loaded.push({ id: s.id, name: s.name, readout: await loadServiceSnapshot(tx, s.id) });
+      for (const s of services) loaded.push({ id: s.id, name: s.name, readout: await loadServiceSnapshot(tx, s.id, await this.evaluationParameters.load()) });
       const controlIds = loaded.flatMap((s) => s.readout.controls.map((c) => c.id));
 
       const rows = controlIds.length

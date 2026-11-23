@@ -1,5 +1,6 @@
 import { buildOverview, readinessOfRollup } from './compliance-overview';
-import { ReadoutAsset, ReadoutControl, ReadoutTest, readControl, resultKey, ResultsIndex } from '../controls/control-readout';
+import { ReadoutAsset, ReadoutControl, readControl, resultKey, ResultsIndex } from '../controls/control-readout';
+import { control as v2Control, data, readoutTest, requirement } from '../controls/readout.fixtures';
 import { AssetResult } from '../engine/states';
 import type { OverviewCriterionData, OverviewFrameworkData, Placement } from '../controls/control.repository';
 
@@ -14,18 +15,15 @@ const CRITERIA: OverviewCriterionData[] = [
   { criterion: 'privacy', mandatory: false, selected: false },
 ];
 
-const test = (id: string): ReadoutTest => ({ testId: id, code: `T-${id}`, displayName: null, displayNameEn: null, displayDescription: null, dimension: 'cloud', mandatory: true, active: true });
-const control = (id: string, patch: Partial<ReadoutControl> = {}): ReadoutControl => ({
-  id, serviceId: 's1', ownCode: id.toUpperCase(), name: `Control ${id}`, origin: 'catalog', type: 'automated', interpretation: 'x', catalogDescription: 'x', dimensions: [],
-  tests: [test(`t-${id}`)], trustCriteria: ['security'], access: { owner: null, executor: null }, approval: 'approved', catalogCode: `IAC-${id}`, requirementCodes: ['CC6.1'], pointsOfFocus: [], documentary: [], ...patch,
-});
+const control = (id: string, patch: Partial<ReadoutControl> = {}): ReadoutControl =>
+  v2Control([requirement(`r-${id}`, [readoutTest(`t-${id}`, 'technical', { dimension: 'cloud' })])], { id, ownCode: id.toUpperCase(), name: `Control ${id}`, type: 'automated', catalogCode: `IAC-${id}`, ...patch });
 const ASSETS: ReadoutAsset[] = [{ id: 'a1', name: 'cuenta-aws', type: 'cloud_service' }];
 const outcome = (c: ReadoutControl, result: AssetResult | null): ResultsIndex => (result ? new Map([[resultKey(c.id, `t-${c.id}`, 'a1'), result]]) : new Map());
 
 /** Arma el servicio: cada control con su resultado y su ubicación (marco y categoría). */
 function overview(entries: Array<{ c: ReadoutControl; result: AssetResult | null; places: string[] }>, fw: OverviewFrameworkData = framework(), scoped = false) {
   const results: ResultsIndex = new Map(entries.flatMap((e) => [...outcome(e.c, e.result)]));
-  const readouts = entries.map((e) => readControl(e.c, ASSETS, results));
+  const readouts = entries.map((e) => readControl(e.c, data(entries.map((x) => x.c), ASSETS, { results })));
   const placements = new Map<string, Placement[]>(entries.map((e) => [e.c.id, e.places.map((criterion) => ({ frameworkId: FW, criterion }))]));
   return buildOverview({ readouts, frameworks: [fw], criteria: CRITERIA, placements, scoped })[0];
 }
@@ -109,8 +107,8 @@ describe('buildOverview — qué falla', () => {
   });
 
   it('un control propio se nombra con su código propio y lo devuelve como own_code', () => {
-    const own = control('9', { origin: 'own', catalogCode: null, ownCode: 'C09', requirementCodes: [] });
-    const o = overview([{ c: own, result: 'non_compliant', places: ['security'] }]);
+    const own = control('9', { origin: 'own', catalogCode: null, ownCode: 'C09', requirementCodes: [], evidence: [{ testId: null, state: 'non_compliant', submittedAt: null }] });
+    const o = overview([{ c: own, result: null, places: ['security'] }]);
     expect(o.categories[0].failingControls[0]).toMatchObject({ code: 'C09', ownCode: 'C09' });
   });
 

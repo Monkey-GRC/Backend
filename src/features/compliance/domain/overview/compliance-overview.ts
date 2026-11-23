@@ -43,7 +43,6 @@ export type OverviewFramework = {
   technical: { state: RollupState; uniqueControls: number; failing: string[]; pending: string[] };
 };
 
-const isDecided = (s: ControlState) => s === 'effective' || s === 'ineffective' || s === 'expired';
 const isFailing = (s: ControlState) => s === 'ineffective' || s === 'expired';
 
 /** El código con el que se nombra un control (D80): el del catálogo (`IAC-12`) o el propio (`C01`). */
@@ -62,7 +61,7 @@ export function readinessOfRollup(input: { total: number; measured: number; done
 
 const ratioOf = (controls: readonly ControlReadout[]): { progress: Ratio; coverage: Coverage; failing: number } => ({
   progress: { done: controls.filter((c) => c.state === 'effective').length, total: controls.length },
-  coverage: { measured: controls.filter((c) => isDecided(c.state)).length, applicable: controls.length },
+  coverage: { measured: controls.filter((c) => c.decided).length, applicable: controls.length },
   failing: controls.filter((c) => isFailing(c.state)).length,
 });
 
@@ -73,7 +72,9 @@ const ratioOf = (controls: readonly ControlReadout[]): { progress: Ratio; covera
 export function summarizeControls(readouts: readonly ControlReadout[], measured = true): { readiness: Readiness; progress: Ratio; coverage: Coverage } {
   if (!measured) return { readiness: 'not_measured', progress: { done: 0, total: readouts.length }, coverage: { measured: 0, applicable: readouts.length } };
   const { progress, coverage, failing } = ratioOf(readouts);
-  return { readiness: readinessOfRollup({ total: progress.total, measured: coverage.measured, done: progress.done, failing }), progress, coverage };
+  // «Sin medir» es que nada tiene resultado todavía: un control con algún resultado ya se midió aunque otros requisitos sigan pendientes, aunque aún no cuente como «decidido» en la cobertura.
+  const started = readouts.filter((r) => r.level !== 'not_evaluated').length;
+  return { readiness: readinessOfRollup({ total: progress.total, measured: started, done: progress.done, failing }), progress, coverage };
 }
 
 const blockingTests = (r: ControlReadout): OverviewControlLine['blockingTests'] =>
@@ -116,7 +117,7 @@ export function buildOverview(input: OverviewInput): OverviewFramework[] {
       const controls = input.readouts.filter((r) => (input.placements.get(r.control.id) ?? []).some((p) => p.frameworkId === fw.frameworkId && p.criterion === criterion));
       const mandatory = input.criteria.find((c) => c.criterion === criterion)?.mandatory ?? false;
       if (controls.length === 0 && (!mandatory || input.scoped)) continue;
-      const evaluation = evaluateCategory({ inScope: true, controls: controls.map((r) => ({ controlId: r.control.id, state: r.state })) });
+      const evaluation = evaluateCategory({ inScope: true, controls: controls.map((r) => ({ controlId: r.control.id, state: r.state, decided: r.decided })) });
       const shown = summarizeControls(controls, defined);
       const failing = !defined ? [] : controls.filter((r) => isFailing(r.state));
       categories.push({

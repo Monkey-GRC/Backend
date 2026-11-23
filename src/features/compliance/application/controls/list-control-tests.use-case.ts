@@ -32,7 +32,7 @@ export class ListControlTestsUseCase {
     const { tests, shared, last } = await this.tx.run(scope, async () => {
       const data = await this.controls.loadControl(scope, controlId);
       if (!data || data.controls.length === 0) throw new DomainError('NOT_FOUND');
-      const readout = readControl(data.controls[0], data.assets, data.results);
+      const readout = readControl(data.controls[0], data);
       const tests = [...readout.tests].sort((a, b) => a.test.code.localeCompare(b.test.code));
       const shared = await this.controls.sharedControlsOfTests(scope, controlId, tests.map((t) => t.test.testId));
       const last = await this.verdicts.latestByControl(scope, controlId);

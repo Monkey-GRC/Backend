@@ -1,7 +1,7 @@
 import { ControlStateSnapshot, diffControlStates } from './control-state-events';
 
 const snap = (state: ControlStateSnapshot['state'], readiness: ControlStateSnapshot['readiness'], done = 0, total = 4): ControlStateSnapshot => ({
-  code: 'IAC-12', state, readiness, progress: { done, total },
+  code: 'IAC-12', state, readiness, progress: { done, total }, level: 'weak', levelValue: 2,
 });
 
 describe('diffControlStates · el historial de cambios de estado de un control (D91)', () => {
@@ -12,6 +12,11 @@ describe('diffControlStates · el historial de cambios de estado de un control (
 
   it('si solo cambia el semáforo, también es un cambio', () => {
     expect(diffControlStates(new Map([['c1', snap('ineffective', 'needs_work', 1)]]), new Map([['c1', snap('ineffective', 'almost_ready', 3)]]))).toHaveLength(1);
+  });
+
+  it('si solo cambia el nivel (v2), también es un cambio', () => {
+    const was = snap('evaluating', 'almost_ready', 3);
+    expect(diffControlStates(new Map([['c1', was]]), new Map([['c1', { ...was, level: 'partial', levelValue: 3 }]]))).toHaveLength(1);
   });
 
   it('si solo cambia el avance y no el estado ni el semáforo, no lo es', () => {

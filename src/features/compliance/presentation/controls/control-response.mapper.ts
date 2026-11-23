@@ -36,8 +36,34 @@ const base = (r: ControlReadout) => ({
 const technicalBlock = (r: ControlReadout) => ({
   points_of_focus: r.control.pointsOfFocus,
   control_state: r.state,
+  level: r.level,
+  level_value: r.levelValue,
+  complies: r.complies,
+  c_percent: r.cPercent,
   tests_count: r.tests.length,
 });
+
+const checksBlock = (c: { directPass: number; directFail: number; directException: number; noData: number; complementaryFail: number } | null) =>
+  c ? { direct_pass: c.directPass, direct_fail: c.directFail, direct_exception: c.directException, no_data: c.noData, complementary_fail: c.complementaryFail } : null;
+
+const requirementsBlock = (r: ControlReadout, t: Translate) =>
+  r.requirements.map((x) => ({
+    id: x.requirement.id,
+    code: x.requirement.code,
+    text: x.requirement.text,
+    type: x.requirement.type,
+    periodicity: x.requirement.periodicity,
+    status: x.status,
+    tests: x.tests.map((y) => ({
+      test_id: y.test.testId,
+      test_code: y.test.code,
+      display_name: neutralName(y.test, y.test.dimension, t),
+      status: y.status,
+      window_end: y.windowEnd,
+      checks: checksBlock(y.checks),
+      asset_coverage: y.assetCoverage ? { with_result: y.assetCoverage.withResult, in_scope: y.assetCoverage.inScope } : null,
+    })),
+  }));
 
 export const toControlListItem = (r: ControlReadout, technical: boolean) => ({ ...base(r), ...(technical ? { technical: technicalBlock(r) } : {}) });
 
@@ -68,6 +94,7 @@ export function toControlDetail(d: ControlDetail, t: Translate) {
       ? {
           technical: {
             ...technicalBlock(r),
+            requirements: requirementsBlock(r, t),
             tests: r.tests.map((x) => ({ test_id: x.test.testId, test_code: x.test.code, display_name: neutralName(x.test, x.test.dimension, t), display_description: x.test.displayDescription, dimension: x.test.dimension, state: x.state })),
           },
         }
