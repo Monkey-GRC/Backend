@@ -14,16 +14,15 @@
 set -euo pipefail
 
 : "${MIGRATE_DATABASE_URL:?Falta MIGRATE_DATABASE_URL (rol dueño, el de las migraciones)}"
-DB_CONTAINER="${DB_CONTAINER:-postgres-staging}"
-DB_NAME="${DB_NAME:-monkey}"
-DB_SUPERUSER="${DB_SUPERUSER:-postgres}"
 NETWORK="${NETWORK:-proxy_net}"
+# Consulta la base POR SU URL (la misma que se migra), no un contenedor local: la base dev vive en otro servidor.
+PG_CLIENT_IMAGE="${PG_CLIENT_IMAGE:-postgres:17-alpine}"
 IMAGE="${IMAGE:-monkey-backend-tools}"
 CONTEXT="${CONTEXT:-$(cd "$(dirname "$0")/../.." && pwd)}"
 MIGRATIONS_DIR="${MIGRATIONS_DIR:-$CONTEXT/prisma/migrations}"
 
 # La tabla puede no existir todavía (base vacía): entonces no hay nada fallido.
-failed="$(docker exec "$DB_CONTAINER" psql -U "$DB_SUPERUSER" -d "$DB_NAME" -Atc \
+failed="$(docker run --rm --network "$NETWORK" -e MIGRATE_DATABASE_URL "$PG_CLIENT_IMAGE" sh -c 'psql "$MIGRATE_DATABASE_URL" -Atc "$0"' \
   "select migration_name from public._prisma_migrations where finished_at is null and rolled_back_at is null order by started_at" 2>/dev/null || true)"
 
 if [ -z "$failed" ]; then
