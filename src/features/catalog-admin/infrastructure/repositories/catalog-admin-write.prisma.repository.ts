@@ -19,19 +19,19 @@ const isUnique = (e: unknown) => (e as { code?: string })?.code === 'P2002';
 const strip = <T extends Record<string, unknown>>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 
 // Snapshots de lo que la auditoría guarda de cada elemento (sin textos largos del comité: el rastro dice QUÉ cambió, no copia el catálogo).
-const controlSnap = (c: { code: string; name: string; domain: string; description: string; sourceRef: string | null; isActive: boolean; origin: string }): Snapshot => ({
+const controlSnap = (c: { code: string; name: string; domain: string | null; description: string; sourceRef: string | null; isActive: boolean; origin: string }): Snapshot => ({
   code: c.code, name: c.name, domain: c.domain, description: c.description, source_ref: c.sourceRef, is_active: c.isActive, origin: c.origin,
 });
 const riskSnap = (r: { code: string; name: string; description: string; trustCriterion: string; potentialImpact: unknown; isActive: boolean; origin: string }): Snapshot => ({
   code: r.code, name: r.name, description: r.description, trust_criterion: r.trustCriterion, potential_impact: r.potentialImpact, is_active: r.isActive, origin: r.origin,
 });
-const causeSnap = (c: { code: string; name: string; description: string; failureCategory: string; isActive: boolean; origin: string }): Snapshot => ({
+const causeSnap = (c: { code: string; name: string | null; description: string; failureCategory: string | null; isActive: boolean; origin: string }): Snapshot => ({
   code: c.code, name: c.name, description: c.description, failure_category: c.failureCategory, is_active: c.isActive, origin: c.origin,
 });
 const templateSnap = (t: { code: string; description: string; dimension: string; isActive: boolean; origin: string }): Snapshot => ({
   code: t.code, description: t.description, dimension: t.dimension, is_active: t.isActive, origin: t.origin,
 });
-const testSnap = (t: { code: string; dimension: string; name: string; displayName: string | null; displayDescription: string | null; objective: string; type: string; isActive: boolean; origin: string }): Snapshot => ({
+const testSnap = (t: { code: string; dimension: string; name: string | null; displayName: string | null; displayDescription: string | null; objective: string; type: string | null; isActive: boolean; origin: string }): Snapshot => ({
   code: t.code, dimension: t.dimension, name: t.name, display_name: t.displayName, display_description: t.displayDescription, objective: t.objective, type: t.type, is_active: t.isActive, origin: t.origin,
 });
 
@@ -153,7 +153,7 @@ export class CatalogAdminWritePrismaRepository extends CatalogAdminWriteReposito
             displayName: input.displayName,
             displayDescription: input.displayDescription,
             objective: input.objective,
-            type: input.type,
+            type: input.type as never,
             tool: input.tool ?? '',
             population: input.population ?? '',
             period: input.period ?? '',
@@ -162,7 +162,7 @@ export class CatalogAdminWritePrismaRepository extends CatalogAdminWriteReposito
             selectionMethod: input.selectionMethod ?? '',
             evidenceToRequest: input.evidenceToRequest ?? '',
             prerequisites: input.prerequisites ?? '',
-            stepByStep: input.stepByStep ?? [],
+            stepByStep: input.stepByStep?.join('\n') ?? null,
             attributesToValidate: input.attributesToValidate ?? [],
             complianceCriterion: input.complianceCriterion ?? '',
             exceptions: input.exceptions ?? '',
@@ -314,7 +314,7 @@ export class CatalogAdminWritePrismaRepository extends CatalogAdminWriteReposito
       const [risk, cause] = await Promise.all([tx.risk.findUnique({ where: { id: riskId } }), tx.cause.findUnique({ where: { id: causeId } })]);
       if (!risk || !cause) return null;
       if (await tx.riskCause.findUnique({ where: { riskId_causeId: { riskId, causeId } } })) throw new DomainError('LINK_ALREADY_EXISTS');
-      const code = await nextCode((await tx.riskCause.findMany({ select: { code: true } })).map((r) => r.code), 'RC');
+      const code = await nextCode((await tx.riskCause.findMany({ select: { code: true } })).flatMap((r) => (r.code ? [r.code] : [])), 'RC');
       try {
         await tx.riskCause.create({ data: { code, riskId, causeId } });
       } catch (e) {

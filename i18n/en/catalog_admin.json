@@ -15,5 +15,6 @@
   "created": "Done, it was added to the catalog.",
   "updated": "Done, the changes were saved.",
   "linked": "Done, it is linked.",
-  "item_in_use": "Not possible: another active catalog item needs it. Retire or change that item first."
+  "item_in_use": "Not possible: another active catalog item needs it. Retire or change that item first.",
+  "read_only": "The catalog can only be changed by the committee load. For now, administration is read-only."
 }

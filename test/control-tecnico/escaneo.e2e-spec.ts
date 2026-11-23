@@ -13,12 +13,11 @@ import { bootApp, owner, RUN } from '../support/app';
 import { awsBody, dosEmpresas, Tenant } from '../support/escenario';
 
 // D56, D57: una corrida de la sonda de nube se guarda entera o no se guarda (con su rastro, SEG-36), vive bajo RLS, sigue un ciclo de vida
-// (en cola → en curso → completada o fallida) y de ella se deriva el estado de preparación. Los checks usados existen en el catálogo real;
-// aquí solo se aseguran por si la base no trae el seed de nube.
+// (en cola → en curso → completada o fallida) y de ella se deriva el estado de preparación. Los checks y sus pruebas (vínculos `direct`) vienen del catálogo v2 de la plantilla.
 const CHECKS = [
-  { id: 'iam_root_mfa_enabled', test: 'T-CLD-001' },
-  { id: 'ec2_securitygroup_allow_ingress_from_internet_to_tcp_port_22', test: 'T-CLD-002' },
-  { id: 'cloudtrail_multi_region_enabled', test: 'T-CLD-003' },
+  { id: 'iam_root_mfa_enabled' },
+  { id: 'ec2_securitygroup_allow_ingress_from_internet_to_tcp_port_22' },
+  { id: 'cloudtrail_multi_region_enabled' },
 ];
 const ACCOUNT = '123456789012';
 const ROLE_ARN = `arn:aws:iam::${ACCOUNT}:role/MonkeyReadOnly`;
@@ -97,19 +96,6 @@ beforeAll(async () => {
   complete = app.get(CompleteExecutionUseCase);
   fail = app.get(FailExecutionUseCase);
   aUserId = (await owner<{ id: string }>('select id from platform.users where email = $1', [a.email]))[0].id;
-  for (const c of CHECKS) {
-    await owner(
-      `insert into catalog.checks (id, platform, policy_id, check_id, title_en, condition, remediation, origin, mapping_provenance, mapping_confidence)
-       values (gen_random_uuid(), 'aws', 'cloud_configuration', $1, 't', 'c', 'r', 'engine_native', 'test', 'low') on conflict do nothing`,
-      [c.id],
-    );
-    await owner(
-      `insert into catalog.test_checks (id, test_id, check_id)
-       select gen_random_uuid(), t.id, ch.id from catalog.tests t, catalog.checks ch
-       where t.code = $1 and ch.platform = 'aws' and ch.policy_id = 'cloud_configuration' and ch.check_id = $2 on conflict do nothing`,
-      [c.test, c.id],
-    );
-  }
 });
 afterAll(async () => {
   await drainQueue();
@@ -149,8 +135,10 @@ describe('Importar una corrida: se guarda y se lee bajo RLS', () => {
     expect(out!.ofMeasured).toEqual({ compliant: 1, notCompliant: 1 });
   });
 
-  it('en modo producción, sin mapeos ratificados, no cuenta nada: «Sin medir», no un fallo', async () => {
-    expect((await readiness.execute({ companyId: a.companyId }, assetId, { includeProposed: false }))!.readiness).toBe('not_measured');
+  it('en modo producción cuenta lo que el comité ratificó: los vínculos directos de la v2 lo están, así que da lo mismo que con propuestos', async () => {
+    const out = await readiness.execute({ companyId: a.companyId }, assetId, { includeProposed: false });
+    expect(out!.readiness).toBe('needs_work');
+    expect(out!.areas.map((x) => x.area)).toEqual(['identity_access', 'data_network', 'logging_backup']);
   });
 
   it('otra empresa no ve la corrida ni puede escribir sobre el activo (RLS)', async () => {

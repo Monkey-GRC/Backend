@@ -1,27 +1,41 @@
-// Checks del motor de nube y su mapeo al modelo de Monkey (D53, D56). Funciones puras: sin base de datos ni archivos.
-//
-// El motor mapea check → requisito de CADA marco. Monkey evalúa check → prueba → control → punto de enfoque → requisito, y
-// el eslabón check → prueba es del comité. Aquí se PROPONE (`monkey_proposed`) desde las categorías del motor y los atributos
-// de cada prueba T-CLD; el mapeo propio del motor se guarda con su procedencia (`engine_native`). Gana siempre el del comité.
+// Checks del motor de nube y su mapeo a los marcos (D53, D56), leídos de la hoja «Checks prowler» de la VF18 (motor 5.45.0, 20 plataformas).
+// Funciones puras: sin base de datos ni archivos. Los vínculos prueba–check ya no se proponen aquí: los define el comité en TEST_CHECKS (DEV-12) y los cruza
+// `catalog/checks-cross.ts` con las claves de estos datasets.
+import { normalizeSoc2Requirement } from '../catalog/parse';
 
-export type Platform = 'aws' | 'gcp';
-export const PLATFORMS: Platform[] = ['aws', 'gcp'];
+// Código de cada plataforma del motor (clave `checks.platform`) por su etiqueta en el libro. Los códigos de las 18 plataformas nuevas son de desarrollo.
+export const PLATFORM_BY_LABEL = {
+  AWS: 'aws',
+  Azure: 'azure',
+  'Microsoft 365': 'microsoft_365',
+  GCP: 'gcp',
+  Kubernetes: 'kubernetes',
+  'Alibaba Cloud': 'alibaba_cloud',
+  'Google Workspace': 'google_workspace',
+  'Oracle Cloud (OCI)': 'oracle_cloud',
+  OpenStack: 'openstack',
+  Cloudflare: 'cloudflare',
+  Okta: 'okta',
+  'E2E Networks': 'e2e_networks',
+  GitHub: 'github',
+  'Huawei Cloud': 'huawei_cloud',
+  Vercel: 'vercel',
+  'Linode (Akamai)': 'linode',
+  'MongoDB Atlas': 'mongodb_atlas',
+  STACKIT: 'stackit',
+  'NHN Cloud': 'nhn_cloud',
+  Scaleway: 'scaleway',
+} as const;
+
+export type Platform = (typeof PLATFORM_BY_LABEL)[keyof typeof PLATFORM_BY_LABEL];
+export const PLATFORMS: Platform[] = Object.values(PLATFORM_BY_LABEL);
+export const platformOfLabel = (label: string): Platform | null => (PLATFORM_BY_LABEL as Record<string, Platform>)[label] ?? null;
+
 // El motor de nube no tiene «política» como la sonda (que agrupa checks en un benchmark): una constante mantiene la clave
 // de tres partes (platform + policy_id + check_id) sin inventar una agrupación.
 export const POLICY_ID = 'cloud_configuration';
 
-export type EngineCheckMeta = {
-  CheckID: string;
-  CheckTitle: string;
-  ServiceName: string;
-  Severity: string;
-  ResourceType: string;
-  Description: string;
-  Categories?: string[];
-  Remediation?: { Recommendation?: { Text?: string } };
-};
-export type EngineRequirement = { Id: string; Checks: string[] };
-export type EngineFramework = { Framework: string; Version: string; Requirements: EngineRequirement[] };
+export type EngineRow = Record<string, unknown>;
 
 export type SeedCheck = {
   platform: string;
@@ -36,197 +50,98 @@ export type SeedCheck = {
   mappingProvenance: string;
   mappingConfidence: 'high' | 'low';
   serviceName: string;
-  resourceType: string;
+  // La hoja del libro no trae el tipo de recurso ni las categorías del motor.
+  resourceType: string | null;
   engineSeverity: string;
   categories: string[];
 };
 export type SeedMapping = { checkId: string; frameworkCode: string; frameworkVersion: string; requirementCode: string; provenance: 'engine_native' };
-export type SeedTestCheck = { testCode: string; checkId: string; provenance: 'monkey_proposed'; confidence: 'high' | 'medium' | 'low'; rationale: string };
 
-// Marcos que el motor no trae para una plataforma: su ausencia es un aviso, no un error. En AWS el motor trae todos.
-export const ABSENT_FRAMEWORKS: Record<Platform, string[]> = { aws: [], gcp: ['gdpr', 'nist_csf'] };
-
-// Los marcos que Monkey ofrece (D50) y que el motor mapea. Los demás (43 en total) se descartan: se agregan cuando se activen.
-export const OFFERED_FRAMEWORKS: { engineName: string; version: string; code: string; codeVersion: string }[] = [
-  { engineName: 'SOC2', version: '', code: 'soc2', codeVersion: '2017' },
-  { engineName: 'ISO27001', version: '2022', code: 'iso27001', codeVersion: '2022' },
-  { engineName: 'HIPAA', version: '', code: 'hipaa', codeVersion: '' },
-  { engineName: 'GDPR', version: '', code: 'gdpr', codeVersion: '' },
-  { engineName: 'PCI', version: '4.0', code: 'pci_dss', codeVersion: '4.0' },
-  { engineName: 'NIST-CSF', version: '2.0', code: 'nist_csf', codeVersion: '2.0' },
+// Columnas de marcos del libro que Monkey ofrece (D50) → código del marco. Las demás columnas de la hoja (43 marcos) se descartan: se agregan cuando se activen.
+export const OFFERED_COLUMNS: { column: string; code: string; codeVersion: string }[] = [
+  { column: 'SOC 2', code: 'soc2', codeVersion: '2017' },
+  { column: 'ISO 27001:2022', code: 'iso27001', codeVersion: '2022' },
+  { column: 'HIPAA', code: 'hipaa', codeVersion: '' },
+  { column: 'GDPR', code: 'gdpr', codeVersion: '' },
+  { column: 'PCI DSS v4.0', code: 'pci_dss', codeVersion: '4.0' },
+  { column: 'NIST CSF 2.0', code: 'nist_csf', codeVersion: '2.0' },
 ];
 
-// El motor escribe SOC 2 como `cc_6_6`, `cc_a_1_1`, `cc_c_1_1`, `pi_1_3`; el catálogo del comité, como `CC6.6`, `A1.1`, `C1.1`, `PI1.3`.
-export function normalizeSoc2Requirement(id: string): string | null {
-  let m = /^cc_(\d+)_(\d+)$/.exec(id);
-  if (m) return `CC${m[1]}.${m[2]}`;
-  m = /^cc_a_(\d+)_(\d+)$/.exec(id);
-  if (m) return `A${m[1]}.${m[2]}`;
-  m = /^cc_c_(\d+)_(\d+)$/.exec(id);
-  if (m) return `C${m[1]}.${m[2]}`;
-  m = /^pi_(\d+)_(\d+)$/.exec(id);
-  if (m) return `PI${m[1]}.${m[2]}`;
-  return null;
-}
+export type CloudDataset = { engineVersion: string; sourceSha256: string; checks: SeedCheck[]; mappings: SeedMapping[] };
 
-export type Soc2Source = {
-  controlTests: { controlCode: string; testCode: string }[];
-  pointOfFocusControls: { requirementCode: string; controlCode: string }[];
-};
+const text = (v: unknown): string => (v === null || v === undefined ? '' : String(v).replace(/\r\n?/g, '\n').trim());
+const list = (v: unknown): string[] => text(v).split(',').map((s) => s.trim()).filter(Boolean);
 
-/** Requisitos a los que llega cada prueba: prueba → controles → puntos de enfoque → requisitos. */
-export function requirementsByTest(src: Soc2Source): Map<string, Set<string>> {
-  const byControl = new Map<string, Set<string>>();
-  for (const p of src.pointOfFocusControls) {
-    if (!byControl.has(p.controlCode)) byControl.set(p.controlCode, new Set());
-    byControl.get(p.controlCode)!.add(p.requirementCode);
-  }
-  const out = new Map<string, Set<string>>();
-  for (const ct of src.controlTests) {
-    if (!out.has(ct.testCode)) out.set(ct.testCode, new Set());
-    for (const r of byControl.get(ct.controlCode) ?? []) out.get(ct.testCode)!.add(r);
-  }
-  return out;
-}
-
-type Rule = { tests: string[]; confidence: 'medium' | 'low'; rationale: string };
-
-/**
- * Propone a qué pruebas T-CLD alimenta un check, por orden: nombre (los casos que la categoría no distingue) y luego
- * categoría del motor. Devuelve vacío si ninguna prueba de nube aplica: el check queda sin prueba (cobertura no alcanzada).
- */
-export function proposeTests(c: EngineCheckMeta, platform: Platform = 'aws'): Rule[] {
-  const id = c.CheckID;
-  const cats = new Set(c.Categories ?? []);
-  const out: Rule[] = [];
-  const add = (r: Rule) => out.push(r);
-
-  if (platform === 'aws' && id.startsWith('iam_password_policy')) add({ tests: ['T-CLD-011'], confidence: 'medium', rationale: 'Parámetro de la política de contraseñas (longitud, complejidad, historial, expiración) → T-CLD-011.' });
-  if (platform === 'aws' && /^iam_(root_)?(hardware_)?mfa|mfa_enabled|administrator_access_with_mfa/.test(id)) {
-    add({ tests: ['T-CLD-001', 'T-CLD-011'], confidence: 'medium', rationale: 'MFA en cuentas: «MFA en cuentas privilegiadas» (T-CLD-001) y «exigencia de MFA» (T-CLD-011).' });
-  }
-  if (platform === 'gcp') {
-    if (/2fa/.test(id)) add({ tests: ['T-CLD-001', 'T-CLD-011'], confidence: 'medium', rationale: 'Verificación en dos pasos (2FA) en cuentas: «MFA en cuentas privilegiadas» (T-CLD-001) y «exigencia de MFA» (T-CLD-011).' });
-    else if (/subnet_flow_logs/.test(id)) add({ tests: ['T-CLD-010'], confidence: 'medium', rationale: 'Registros de flujo de la red → monitoreo de red de T-CLD-010.' });
-    else if (/log_metric_filter_and_alert/.test(id)) add({ tests: ['T-CLD-003'], confidence: 'medium', rationale: 'Filtro de métrica y alerta sobre el registro de actividad → T-CLD-003.' });
-    else if (/multiple_zones|high_availability|load_balancer_attached|autohealing/.test(id)) add({ tests: ['T-CLD-009'], confidence: 'medium', rationale: 'Distribución multi-zona / alta disponibilidad de recursos críticos → T-CLD-009.' });
-    else if (/soft_delete|auto_delete_disabled/.test(id)) add({ tests: ['T-CLD-003'], confidence: 'medium', rationale: 'Retención ante borrado (soft delete) de datos y respaldos → T-CLD-003.' });
-    else if (/container_scanning|container_analysis/.test(id)) add({ tests: ['T-CLD-010'], confidence: 'low', rationale: 'Escaneo de vulnerabilidades de contenedores → detección de T-CLD-010, a revisar.' });
-    else if (/rsasha1/.test(id)) add({ tests: ['T-CLD-002'], confidence: 'medium', rationale: 'Algoritmo de firma DNSSEC débil (RSASHA1) → cifrado de T-CLD-002.' });
-  }
-  if (out.length === 0) {
-    if (/backup|snapshot|replica|versioning|retention|deletion_protection|point_in_time/.test(id)) {
-      add({ tests: id.startsWith('backup_') ? ['T-CLD-003', 'T-CLD-008'] : ['T-CLD-003'], confidence: 'medium', rationale: 'Respaldos/replicación activos → T-CLD-003 (y T-CLD-008 si es el servicio de respaldos).' });
-    } else if (/multi_?az|different_az|cross_region|multiaz|multiple_az/.test(id)) {
-      add({ tests: ['T-CLD-009'], confidence: 'medium', rationale: 'Distribución multi-zona de recursos críticos → T-CLD-009.' });
-    } else if (cats.has('threat-detection') || /^(guardduty|networkfirewall|waf|shield|inspector2|securityhub)_|vpc_flow_logs/.test(id)) {
-      add({ tests: ['T-CLD-010'], confidence: 'medium', rationale: 'Detección de amenazas / monitoreo de red → T-CLD-010.' });
-    } else if (cats.has('identity-access') || cats.has('privilege-escalation')) {
-      add({ tests: ['T-CLD-001'], confidence: 'medium', rationale: 'Categoría del motor «identity-access» → mínimo privilegio y llaves de T-CLD-001.' });
-    } else if (cats.has('logging') || cats.has('forensics-ready')) {
-      add({ tests: ['T-CLD-003'], confidence: 'medium', rationale: 'Categoría «logging»/«forensics-ready» → registro de actividad de T-CLD-003.' });
-    } else if (cats.has('encryption') || cats.has('secrets') || cats.has('internet-exposed') || cats.has('trust-boundaries')) {
-      add({ tests: ['T-CLD-002'], confidence: 'medium', rationale: 'Categoría «encryption»/«secrets»/«internet-exposed»/«trust-boundaries» → cifrado, red y exposición de T-CLD-002.' });
-    } else if (cats.has('ec2-imdsv1')) {
-      add({ tests: ['T-CLD-002'], confidence: 'low', rationale: 'Exposición de credenciales de instancia (IMDS) → T-CLD-002, a revisar.' });
-    }
-  }
-  return out;
-}
-
-export type CloudDataset = { checks: SeedCheck[]; mappings: SeedMapping[]; testChecks: SeedTestCheck[]; engineVersion: string };
-
-export function buildCloudDataset(
-  engineVersion: string,
-  metas: EngineCheckMeta[],
-  frameworks: EngineFramework[],
-  soc2: Soc2Source,
-  platform: Platform = 'aws',
-): { dataset: CloudDataset; errors: string[]; warnings: string[] } {
+/** Un dataset por plataforma a partir de las filas de la hoja del motor de nube. */
+export function buildCloudDatasets(
+  rows: readonly EngineRow[],
+  source: { engineVersion: string; sourceSha256: string },
+): { datasets: Map<Platform, CloudDataset>; errors: string[] } {
   const errors: string[] = [];
-  const warnings: string[] = [];
-  const ids = new Set<string>();
-  for (const m of metas) {
-    if (ids.has(m.CheckID)) errors.push(`check duplicado en el motor: ${m.CheckID}`);
-    ids.add(m.CheckID);
-  }
-
-  const mappings: SeedMapping[] = [];
+  const datasets = new Map<Platform, CloudDataset>();
   const seen = new Set<string>();
-  const nativeSoc2 = new Map<string, Set<string>>(); // check → requisitos SOC 2 que cita el motor
-  for (const offered of OFFERED_FRAMEWORKS) {
-    const fw = frameworks.find((f) => f.Framework === offered.engineName && (f.Version || '') === offered.version);
-    if (!fw) {
-      const msg = `el motor no trae el marco ${offered.engineName} ${offered.version}`.trim();
-      if (ABSENT_FRAMEWORKS[platform].includes(offered.code)) warnings.push(`${msg} para ${platform}`);
-      else errors.push(msg);
+  for (const r of rows) {
+    const label = text(r['Plataforma']);
+    const platform = platformOfLabel(label);
+    const checkId = text(r['Check ID']);
+    if (!platform) {
+      errors.push(`La plataforma «${label}» (check ${checkId}) no tiene código en el catálogo.`);
       continue;
     }
-    for (const r of fw.Requirements) {
-      const code = offered.code === 'soc2' ? normalizeSoc2Requirement(r.Id) : r.Id;
-      if (!code) {
-        errors.push(`requisito SOC 2 del motor con formato desconocido: ${r.Id}`);
-        continue;
-      }
-      for (const checkId of r.Checks) {
-        if (!ids.has(checkId)) {
-          errors.push(`${offered.code} ${r.Id} cita un check que no está en el catálogo del motor: ${checkId}`);
+    if (!checkId) {
+      errors.push(`Un check de ${label} no tiene id.`);
+      continue;
+    }
+    if (seen.has(`${platform}|${checkId}`)) {
+      errors.push(`El check ${checkId} de ${label} está repetido.`);
+      continue;
+    }
+    seen.add(`${platform}|${checkId}`);
+    const titleEn = text(r['Título']);
+    if (!titleEn) {
+      errors.push(`El check ${checkId} de ${label} no tiene título.`);
+      continue;
+    }
+    const ds = datasets.get(platform) ?? { engineVersion: source.engineVersion, sourceSha256: source.sourceSha256, checks: [], mappings: [] };
+    datasets.set(platform, ds);
+
+    let nativeSoc2 = false;
+    const mapped = new Set<string>();
+    for (const o of OFFERED_COLUMNS) {
+      for (const id of list(r[o.column])) {
+        const code = o.code === 'soc2' ? normalizeSoc2Requirement(id) : id;
+        if (!code) {
+          errors.push(`${label} · ${checkId}: requisito SOC 2 con formato desconocido: ${id}`);
           continue;
         }
-        const key = `${checkId}|${offered.code}|${offered.codeVersion}|${code}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        mappings.push({ checkId, frameworkCode: offered.code, frameworkVersion: offered.codeVersion, requirementCode: code, provenance: 'engine_native' });
-        if (offered.code === 'soc2') {
-          if (!nativeSoc2.has(checkId)) nativeSoc2.set(checkId, new Set());
-          nativeSoc2.get(checkId)!.add(code);
-        }
+        const key = `${o.code}|${o.codeVersion}|${code}`;
+        if (mapped.has(key)) continue;
+        mapped.add(key);
+        ds.mappings.push({ checkId, frameworkCode: o.code, frameworkVersion: o.codeVersion, requirementCode: code, provenance: 'engine_native' });
+        if (o.code === 'soc2') nativeSoc2 = true;
       }
     }
-  }
-
-  const checks: SeedCheck[] = metas
-    .map((m) => ({
+    ds.checks.push({
       platform,
       policyId: POLICY_ID,
-      checkId: m.CheckID,
-      titleEn: m.CheckTitle,
+      checkId,
+      titleEn,
       titleEs: null,
-      condition: m.Description,
-      remediation: m.Remediation?.Recommendation?.Text ?? '',
+      condition: text(r['Qué evalúa']),
+      remediation: text(r['Remediación']),
       verificationRule: null,
-      origin: 'engine_native' as const,
-      mappingProvenance: `engine:${platform}:${engineVersion}`,
-      mappingConfidence: (nativeSoc2.has(m.CheckID) ? 'high' : 'low') as 'high' | 'low',
-      serviceName: m.ServiceName,
-      resourceType: m.ResourceType,
-      engineSeverity: m.Severity,
-      categories: m.Categories ?? [],
-    }))
-    .sort((a, b) => a.checkId.localeCompare(b.checkId));
-
-  // check → prueba. La confianza sube a `high` cuando el requisito SOC 2 que el propio motor cita para el check es alcanzable
-  // desde la prueba propuesta (dos fuentes independientes coinciden); si no, queda la de la regla.
-  const reach = requirementsByTest(soc2);
-  const testChecks: SeedTestCheck[] = [];
-  for (const m of metas) {
-    const seenTests = new Set<string>();
-    for (const rule of proposeTests(m, platform)) {
-      for (const testCode of rule.tests) {
-        if (seenTests.has(testCode)) continue;
-        seenTests.add(testCode);
-        if (!reach.has(testCode)) {
-          errors.push(`la prueba ${testCode} propuesta para ${m.CheckID} no existe en el catálogo del comité`);
-          continue;
-        }
-        const native = nativeSoc2.get(m.CheckID);
-        const corroborated = !!native && [...native].some((r) => reach.get(testCode)!.has(r));
-        testChecks.push({ testCode, checkId: m.CheckID, provenance: 'monkey_proposed', confidence: corroborated ? 'high' : rule.confidence, rationale: rule.rationale + (corroborated ? ' El requisito SOC 2 que cita el motor es alcanzable desde esta prueba.' : '') });
-      }
-    }
+      origin: 'engine_native',
+      mappingProvenance: `engine:${platform}:${source.engineVersion}`,
+      mappingConfidence: nativeSoc2 ? 'high' : 'low',
+      serviceName: text(r['Servicio']),
+      resourceType: null,
+      engineSeverity: text(r['Severidad']),
+      categories: [],
+    });
   }
-  testChecks.sort((a, b) => a.testCode.localeCompare(b.testCode) || a.checkId.localeCompare(b.checkId));
-
-  mappings.sort((a, b) => a.frameworkCode.localeCompare(b.frameworkCode) || a.requirementCode.localeCompare(b.requirementCode) || a.checkId.localeCompare(b.checkId));
-  return { dataset: { checks, mappings, testChecks, engineVersion }, errors, warnings };
+  for (const ds of datasets.values()) {
+    ds.checks.sort((a, b) => a.checkId.localeCompare(b.checkId));
+    ds.mappings.sort((a, b) => a.frameworkCode.localeCompare(b.frameworkCode) || a.requirementCode.localeCompare(b.requirementCode) || a.checkId.localeCompare(b.checkId));
+  }
+  return { datasets, errors };
 }

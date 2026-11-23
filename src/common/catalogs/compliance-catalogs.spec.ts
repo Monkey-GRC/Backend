@@ -38,6 +38,18 @@ const POSTGRES_ENUM: Record<string, string> = {
   dimension: 'Dimension',
   control_type: 'ControlDimensionType',
   catalog_origin: 'CatalogOrigin',
+  catalog_control_type: 'ControlType',
+  periodicity: 'Periodicity',
+  requirement_type: 'RequirementType',
+  test_primary_source: 'TestPrimarySource',
+  test_level: 'TestLevel',
+  test_automation: 'TestAutomation',
+  check_role: 'CheckRole',
+  cause_origin: 'CauseOrigin',
+  cause_type: 'CauseType',
+  document_type: 'DocumentType',
+  document_origin: 'DocumentOrigin',
+  document_acceptance: 'DocumentAcceptance',
 };
 
 describe('catálogos de Cumplimiento', () => {

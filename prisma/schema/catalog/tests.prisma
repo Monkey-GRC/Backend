@@ -3,7 +3,57 @@ enum TestPlanOrigin {
   custom
 
   @@map("test_plan_origin")
+  @@schema("catalog")
+}
 
+enum TestType {
+  documentary
+  population
+  operational
+  technical
+
+  @@map("test_type")
+  @@schema("catalog")
+}
+
+enum TestPrimarySource {
+  document
+  manual
+  probe
+  cloud_engine
+  probe_and_cloud_engine
+  integration
+
+  @@map("test_primary_source")
+  @@schema("catalog")
+}
+
+enum TestLevel {
+  design
+  implementation
+  effectiveness
+  implementation_and_effectiveness
+
+  @@map("test_level")
+  @@schema("catalog")
+}
+
+enum TestAutomation {
+  manual
+  semi_automated
+  automated
+
+  @@map("test_automation")
+  @@schema("catalog")
+}
+
+// Qué hace el check en su prueba (D129): solo `direct` decide.
+enum CheckRole {
+  direct
+  complementary
+  dependency
+
+  @@map("check_role")
   @@schema("catalog")
 }
 
@@ -15,7 +65,6 @@ enum CheckOrigin {
   engine_native
 
   @@map("check_origin")
-
   @@schema("catalog")
 }
 
@@ -50,6 +99,7 @@ model TestPlan {
   origin        TestPlanOrigin
 
   control Control @relation(fields: [controlId], references: [id])
+
   @@index([controlId])
   @@map("test_plans")
   @@schema("catalog")
@@ -62,7 +112,7 @@ model Test {
   id                             String    @id @default(uuid()) @db.Uuid
   code                           String    @unique
   dimension                      Dimension
-  name                           String
+  name                          String?
   // El nombre neutro que ve el cliente (D70): lo escribe Monkey. `name` es del comité y puede nombrar al proveedor del motor, así que nunca sale de la API.
   displayName                    String?   @map("display_name")
   // El mismo nombre neutro en inglés. Nullable: solo las pruebas que ya lo tienen traducido; sin él, se muestra `display_name` (MD-211).
@@ -72,33 +122,54 @@ model Test {
   objective                      String    @db.Text
   // Texto libre a propósito: en la hoja Pruebas del comité mezcla "Manual", "Mixta", "Técnica" y
   // descripciones largas ("Prueba de diseño y efectividad operativa (control automatizado…)").
-  type                           String
-  tool                           String
-  population                     String
-  period                         String
+  // v2: documentary|population|operational|technical.
+  type                          TestType?
+  tool                          String?
+  population                    String?
+  period                        String?
   // TEXTO, no enteros: en la hoja Pruebas son frases ("Por determinar con base en el inventario de
   // proveedores", "N<5 → 100%; si no, 10% de la población (mín. 5, máx. 25)"). D8: el muestreo se guarda
   // como dato ahora y el cálculo de la muestra concreta se construye después.
-  populationSize                 String    @map("population_size") @db.Text
-  suggestedSampleSize            String    @map("suggested_sample_size") @db.Text
-  selectionMethod                String    @map("selection_method")
-  evidenceToRequest              String    @map("evidence_to_request") @db.Text
-  prerequisites                  String    @db.Text
-  stepByStep                     Json      @map("step_by_step")
-  attributesToValidate           Json      @map("attributes_to_validate")
-  complianceCriterion            String    @map("compliance_criterion") @db.Text
+  populationSize                String?            @map("population_size") @db.Text
+  suggestedSampleSize           String?            @map("suggested_sample_size") @db.Text
+  selectionMethod               String?            @map("selection_method")
+  evidenceToRequest             String?            @map("evidence_to_request") @db.Text
+  prerequisites                 String?            @db.Text
+  // v2: texto. En la v1 era una lista JSON; la migración la convierte a texto.
+  stepByStep                    String?            @map("step_by_step") @db.Text
+  attributesToValidate          Json?              @map("attributes_to_validate")
+  complianceCriterion           String?            @map("compliance_criterion") @db.Text
   // "EXCEPCIONES / DESVIACIONES": qué se considera excepción. Es distinta de exceptions_handling
   // ("TRATAMIENTO DE EXCEPCIONES"): la hoja trae las dos y el schema solo guardaba una.
-  exceptions                     String    @db.Text
-  exceptionsHandling             String    @map("exceptions_handling") @db.Text
-  evidenceToRetain               String    @map("evidence_to_retain") @db.Text
-  automatedCoverage              String    @map("automated_coverage") @db.Text
-  complementaryManualValidation  String    @map("complementary_manual_validation") @db.Text
-  limitations                    String    @db.Text
+  exceptions                    String?            @db.Text
+  exceptionsHandling            String?            @map("exceptions_handling") @db.Text
+  evidenceToRetain              String?            @map("evidence_to_retain") @db.Text
+  automatedCoverage             String?            @map("automated_coverage") @db.Text
+  complementaryManualValidation String?            @map("complementary_manual_validation") @db.Text
+  limitations                   String?            @db.Text
+  // Catálogo v2 (VF18, hoja TEST). `control_id` es nulo en las T-DOC (su control es el de sus documentos).
+  controlId                     String?            @map("control_id") @db.Uuid
+  primarySource                 TestPrimarySource? @map("primary_source")
+  standardProcedureId           String?            @map("standard_procedure_id") @db.Uuid
+  whyItMatters                  String?            @map("why_it_matters") @db.Text
+  correctIf                     String?            @map("correct_if") @db.Text
+  exceptionIf                   String?            @map("exception_if") @db.Text
+  observationIf                 String?            @map("observation_if") @db.Text
+  level                         TestLevel?
+  frequencySample               String?            @map("frequency_sample") @db.Text
+  integrationCategoryId         String?            @map("integration_category_id") @db.Uuid
+  automation                    TestAutomation?
+  displayNameReviewed           Boolean            @default(false) @map("display_name_reviewed")
   // De dónde viene la fila: el Excel del comité o Monkey Admin (contracts/modules/monkey-admin-catalog.md). El seed no toca las `monkey_admin`.
   origin      CatalogOrigin @default(committee)
   // Dar de baja no borra: las copias de cada empresa y las evaluaciones apuntan al catálogo.
   isActive    Boolean @default(true) @map("is_active")
+
+  control             Control?                 @relation("TestControl", fields: [controlId], references: [id], onDelete: Restrict)
+  standardProcedure   StandardProcedure?       @relation(fields: [standardProcedureId], references: [id], onDelete: Restrict)
+  integrationCategory IntegrationCategory?     @relation(fields: [integrationCategoryId], references: [id], onDelete: Restrict)
+  requirementTests    ControlRequirementTest[]
+  document            Document?
 
   controlTests ControlTest[]
   testChecks   TestCheck[]
@@ -110,6 +181,9 @@ model Test {
   controlEvidenceTemplates ControlEvidenceTemplate[]
   evidenceRequirements     EvidenceRequirement[]
 
+  @@index([controlId])
+  @@index([standardProcedureId])
+  @@index([integrationCategoryId])
   @@map("tests")
   @@schema("catalog")
 }
@@ -180,17 +254,25 @@ model Check {
 model TestCheck {
   id      String @id @default(uuid()) @db.Uuid
   testId  String @map("test_id") @db.Uuid
-  checkId String @map("check_id") @db.Uuid
+  // Nulo solo en los vínculos «N/A» de la v2 (módulo o puntaje global): guardan `module_ref` y el motor los ignora (CHECK en la migración).
+  checkId         String?            @map("check_id") @db.Uuid
+  role            CheckRole          @default(direct)
+  commonObjective String?            @map("common_objective") @db.Text
+  ownerControlId  String?            @map("owner_control_id") @db.Uuid
+  appliesWhen     String?            @map("applies_when") @db.Text
+  moduleRef       String?            @map("module_ref")
   // Quién asignó el check a la prueba y con qué confianza (D56). La asignación es del comité; hasta que la ratifique, es propuesta.
   provenance MappingProvenance @default(monkey_proposed)
   confidence MappingConfidence?
   rationale  String?           @db.Text
 
   test  Test  @relation(fields: [testId], references: [id])
-  check Check @relation(fields: [checkId], references: [id])
+  check        Check?   @relation(fields: [checkId], references: [id], onDelete: Restrict)
+  ownerControl Control? @relation("TestCheckOwner", fields: [ownerControlId], references: [id], onDelete: Restrict)
 
   @@unique([testId, checkId])
   @@index([checkId])
+  @@index([ownerControlId])
   @@map("test_checks")
   @@schema("catalog")
 }
@@ -204,6 +286,7 @@ model CheckMapping {
   provenance       MappingProvenance @default(engine_native)
 
   check Check @relation(fields: [checkId], references: [id])
+
   @@unique([checkId, frameworkCode, frameworkVersion, requirementCode])
   @@index([checkId])
   @@index([frameworkCode, requirementCode])
@@ -243,7 +326,6 @@ model ScaPolicy {
   assetAgents AssetAgent[]
 
   @@index([osCode, isOfferable])
-
   @@map("sca_policies")
   @@schema("catalog")
 }

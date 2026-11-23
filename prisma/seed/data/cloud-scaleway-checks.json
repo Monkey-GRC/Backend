@@ -1,0 +1,24 @@
+{
+  "engineVersion": "5.45.0",
+  "sourceSha256": "93e16a861e9902e1b855a1882cd332e430a19387eb15e2b62ea2f77876dc378b",
+  "checks": [
+    {
+      "platform": "scaleway",
+      "policyId": "cloud_configuration",
+      "checkId": "iam_api_keys_no_root_owned",
+      "titleEn": "Scaleway IAM API keys must not be owned by the account root user",
+      "titleEs": null,
+      "condition": "Scaleway API keys are checked to ensure none is bound to the account root user. The account root user is the original Scaleway account owner; its credentials bypass IAM policies and grant unrestricted access to the entire organization.",
+      "remediation": "Never use API keys owned by the account root user for automation. Create scoped IAM users or applications, attach least-privilege policies, and rotate any existing root API keys to that new bearer.",
+      "verificationRule": null,
+      "origin": "engine_native",
+      "mappingProvenance": "engine:scaleway:5.45.0",
+      "mappingConfidence": "low",
+      "serviceName": "iam",
+      "resourceType": null,
+      "engineSeverity": "critical",
+      "categories": []
+    }
+  ],
+  "mappings": []
+}

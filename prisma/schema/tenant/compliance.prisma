@@ -696,8 +696,10 @@ model ClientCause {
   serviceId       String          @map("service_id") @db.Uuid
   causeId         String?         @map("cause_id") @db.Uuid
   code            String
-  name            String
-  failureCategory FailureCategory @map("failure_category")
+  name            String?
+  failureCategory FailureCategory? @map("failure_category")
+  origin          CauseOrigin?
+  causeType       CauseType?      @map("cause_type")
   description     String          @db.Text
   isActive        Boolean         @default(true) @map("is_active") // baja lógica, como client_risks
   createdAt       DateTime        @default(now()) @map("created_at")

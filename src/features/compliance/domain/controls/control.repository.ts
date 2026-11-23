@@ -28,7 +28,7 @@ export type ControlEvidence = {
 
 export type ControlDetailData = ServiceReadoutData & {
   evidence: ControlEvidence[];
-  causes: Array<{ id: string; code: string; name: string }>;
+  causes: Array<{ id: string; code: string; name: string | null }>;
 };
 
 // Lo que el resumen del servicio necesita además de los controles: los marcos contratados con su evaluación, qué categorías están en alcance y en qué marco y

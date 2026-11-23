@@ -10,11 +10,11 @@ import { dosEmpresas, Tenant } from '../support/escenario';
 type Agent = Awaited<ReturnType<typeof dosEmpresas>>['monkey'];
 type Row = Record<string, any>;
 
-const catalog = JSON.parse(readFileSync(resolve(__dirname, '../../prisma/seed/data/soc2-catalog.json'), 'utf8'));
-const withEvidence = new Set<string>(catalog.controlEvidenceTemplates.map((r: { controlCode: string }) => r.controlCode));
-// Los controles del marco son los vinculados a algún requisito (marco → requisito → punto de enfoque → control); CPL-1 no lo está.
+const catalog = JSON.parse(readFileSync(resolve(__dirname, '../../prisma/seed/data/catalog-v2.json'), 'utf8'));
+// Los controles del marco son los vinculados a algún requisito (marco → requisito → punto de enfoque → control). En la v2 lo son los 114.
 const linked = new Set<string>(catalog.pointOfFocusControls.map((l: { controlCode: string }) => l.controlCode));
-const controlsWithoutEvidence = [...linked].filter((code) => !withEvidence.has(code)).length;
+// v2 (MD-491): las plantillas de evidencia se retiraron (la evidencia sale de los documentos), así que ningún control las tiene.
+const controlsWithoutEvidence = linked.size;
 
 let app: INestApplication;
 let a: Tenant;
@@ -78,11 +78,21 @@ describe('Controles del marco', () => {
     const page = await data(path('?page_size=10'));
     expect(page).toMatchObject({ page: 1, page_size: 10, total: linked.size, total_pages: Math.ceil(linked.size / 10) });
     expect(page.items).toHaveLength(10);
+    const row = page.items[0];
+    expect(row.domains.length).toBeGreaterThan(0);
+    expect(row.domain).toBe(row.domains[0]);
+    expect(new Set(row.domains).size).toBe(row.domains.length);
+    const ordered = catalog.pointOfFocusControls
+      .filter((l: { controlCode: string }) => l.controlCode === row.code)
+      .sort((x: { requirementCode: string; pointNumber: number }, y: { requirementCode: string; pointNumber: number }) => x.requirementCode.localeCompare(y.requirementCode) || x.pointNumber - y.pointNumber);
+    expect(row.domains).toEqual([...new Set(ordered.map((l: { domain: string }) => l.domain))]);
     expect(page.items[0]).toEqual({
       id: expect.any(String),
       code: expect.any(String),
       name: expect.any(String),
+      // v2: el dominio es de la fila control + punto de enfoque; `domain` es el primero de `domains`.
       domain: expect.any(String),
+      domains: expect.any(Array),
       origin: 'committee',
       is_active: true,
       dimensions: expect.any(Array),
@@ -99,14 +109,14 @@ describe('Controles del marco', () => {
     expect(withTemplate.total).toBe(linked.size - controlsWithoutEvidence);
   });
 
-  it('busca por código o nombre y filtra por dominio y por requisito', async () => {
-    const first = catalog.controls[0];
+  it('busca por código o nombre y filtra por requisito', async () => {
+    const first = { ...catalog.controls[0], domain: catalog.pointOfFocusControls.find((l: { controlCode: string }) => l.controlCode === catalog.controls[0].code).domain };
     const byCode = await data(path(`?search=${encodeURIComponent(first.code.toLowerCase())}`));
     expect(byCode.items.some((c: Row) => c.code === first.code)).toBe(true);
 
-    const byDomain = await data(path(`?domain=${encodeURIComponent(first.domain)}&page_size=100`));
-    expect(byDomain.items.length).toBeGreaterThan(0);
-    expect(byDomain.items.every((c: Row) => c.domain === first.domain)).toBe(true);
+    // El filtro por dominio coincide si cualquiera de los dominios de los puntos de enfoque del control coincide.
+    const withDomain = new Set(catalog.pointOfFocusControls.filter((l: { domain: string; controlCode: string }) => l.domain === first.domain && linked.has(l.controlCode)).map((l: { controlCode: string }) => l.controlCode));
+    expect((await data(path(`?domain=${encodeURIComponent(first.domain)}&page_size=100`))).total).toBe(withDomain.size);
 
     const requirement = catalog.pointOfFocusControls.find((l: { controlCode: string }) => l.controlCode === first.code).requirementCode;
     const byRequirement = await data(path(`?requirement_code=${encodeURIComponent(requirement)}&page_size=100`));
@@ -155,7 +165,7 @@ describe('Riesgos, causas, pruebas y plantillas de evidencia', () => {
     const tests = await data('/v1/catalog/tests?page_size=100&origin=committee');
     expect(tests.total).toBe(catalog.tests.length);
     const test = await data(`/v1/catalog/tests/${tests.items[0].id}`);
-    expect(test.committee).toMatchObject({ objective: expect.any(String), tool: expect.any(String), step_by_step: expect.anything() });
+    expect(test.committee).toMatchObject({ objective: expect.any(String), step_by_step: expect.any(String) });
     expect(test.display_name).toEqual(expect.any(String));
     expect(test.display_description).toEqual(expect.any(String));
 
@@ -167,8 +177,7 @@ describe('Riesgos, causas, pruebas y plantillas de evidencia', () => {
 
   it('las plantillas de evidencia dicen a cuántos controles sirven', async () => {
     const templates = await data('/v1/catalog/evidence-templates?page_size=100&origin=committee');
-    expect(templates.total).toBe(catalog.evidenceTemplates.length);
-    expect(templates.items[0]).toEqual({ id: expect.any(String), code: expect.any(String), description: expect.any(String), dimension: 'policy', origin: 'committee', is_active: true, controls_count: expect.any(Number) });
+    expect(templates.total).toBe(0);
   });
 
   it('ninguna fila del comité está dada de baja', async () => {
@@ -180,7 +189,7 @@ describe('Riesgos, causas, pruebas y plantillas de evidencia', () => {
 });
 
 describe('Controles de todo el catálogo', () => {
-  it('la lista global trae también los controles que no cuelgan de ningún requisito, como CPL-1', async () => {
+  it('la lista global trae también los controles que no cuelgan de ningún requisito (en la v2 no hay ninguno)', async () => {
     const all = await data('/v1/catalog/controls?page_size=100&origin=committee');
     expect(all.total).toBe(catalog.controls.length);
     const unlinked = await data('/v1/catalog/controls?unlinked=true&origin=committee');

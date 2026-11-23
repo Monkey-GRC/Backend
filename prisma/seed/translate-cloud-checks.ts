@@ -5,8 +5,8 @@
 //
 // Escribe `title_es`, `remediation_es` y `translation_origin = 'machine'` desde data/cloud-checks-es.json (AWS) y data/cloud-<plataforma>-checks-es.json (--platform aws|gcp; por defecto, las plataformas con dataset) (traducción automática, sin revisar). Nunca pisa una traducción
 // que una persona ya revisó (`reviewed`) y solo actualiza lo que cambió. No crea ni borra checks y se niega a correr como `monkey_app`.
-import { readFileSync } from 'node:fs';
-import { connectAsOwner } from './soc2/db';
+import { existsSync, readFileSync } from 'node:fs';
+import { connectAsOwner } from './db';
 import { Platform } from './cloud/build';
 import { selectedPlatforms, translationsPath } from './cloud/datasets';
 import { CheckTranslation, validateTranslations } from './cloud/translations';
@@ -19,7 +19,7 @@ type Plan = { platform: Platform; items: CheckTranslation[]; byKey: Map<string, 
 
 // Solo lee y calcula: nunca escribe ni sale del proceso.
 async function planPlatform(prisma: Prisma, platform: Platform): Promise<Plan> {
-  const items = JSON.parse(readFileSync(translationsPath(platform), 'utf8')) as CheckTranslation[];
+  const items = existsSync(translationsPath(platform)) ? (JSON.parse(readFileSync(translationsPath(platform), 'utf8')) as CheckTranslation[]) : [];
   const dbChecks = await prisma.check.findMany({ where: { platform, policyId: 'cloud_configuration' }, select: { id: true, checkId: true, titleEs: true, remediationEs: true, translationOrigin: true } });
   const byKey = new Map(dbChecks.map((c) => [c.checkId, c]));
   const errors = validateTranslations(items, new Set(byKey.keys())).slice(0, 30).map((p) => `[${platform}] ${p}`);

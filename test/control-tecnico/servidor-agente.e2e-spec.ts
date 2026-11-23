@@ -10,9 +10,10 @@ let app: INestApplication;
 let a: Tenant;
 let b: Tenant;
 
-const UBUNTU = `ubuntu_22_04_lts`;
-const UBUNTU_OLD = `ubuntu_14_04_lts`;
-const WIN = `windows_server_2022`;
+// La plantilla trae el catálogo REAL de la sonda (con sus versiones ofrecidas): los códigos de la prueba llevan el sufijo de la corrida para no chocar con él.
+const UBUNTU = `ubuntu_22_04_lts_e2e_${RUN}`;
+const UBUNTU_OLD = `ubuntu_14_04_lts_e2e_${RUN}`;
+const WIN = `windows_server_2022_e2e_${RUN}`;
 const SCA_IDS = [`e2e_ubuntu22_${RUN}`, `e2e_ubuntu14_${RUN}`, `e2e_win2022_${RUN}`];
 
 type PolicyRow = { sca_id: string; os: string; distribution: string; name: string; version: string; code: string; offerable: boolean; sort: number };

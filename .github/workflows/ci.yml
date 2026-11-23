@@ -23,7 +23,7 @@ concurrency:
 jobs:
   verificar:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     services:
       # Postgres desechable: nace vacío en cada corrida, así que también se prueba que las migraciones aplican desde cero.
@@ -82,13 +82,18 @@ jobs:
         run: |
           # Las migraciones crean monkey_app sin contraseña (igual que en staging).
           node -e "const {Client}=require('pg');(async()=>{const c=new Client({connectionString:process.env.DATABASE_URL});await c.connect();await c.query(\"ALTER ROLE monkey_app PASSWORD 'ci'\");await c.end()})()"
-          npm run catalog:load -- --apply
+          # Mismo orden que el reset y la plantilla de pruebas (scripts/dev/test-db.sh): el catálogo v2 apunta a los checks de la sonda y del motor de nube (MD-491).
           npm run reference:load -- --apply
+          npm run sonda:load -- --apply
+          npm run cloud:load -- --apply
+          npm run catalog:load -- --apply
 
       - name: Verificar catálogos, clonado y audit trail contra la base real
         run: |
           npm run catalog:verify
           npm run reference:verify
+          npm run sonda:verify
+          npm run cloud:verify
           npm run clone:verify
           npm run audit:verify
 

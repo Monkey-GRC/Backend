@@ -7,7 +7,7 @@ const r = (checkId: string, result: CheckResultValue, severity: string | null = 
 const link = (testCode: string, checkId: string, provenance: TestCheckLink['provenance'] = 'monkey_proposed'): TestCheckLink => ({ testCode, checkId, provenance });
 
 describe('computeReadiness', () => {
-  const links = [link('T-CLD-001', 'iam'), link('T-CLD-002', 'net'), link('T-CLD-003', 'log')];
+  const links = [link('T-IDA-4-04', 'iam'), link('T-RED-4-05', 'net'), link('T-TRD-1-06', 'log')];
 
   it('Preparado cuando nada falla y todo lo esperado se midió', () => {
     const out = computeReadiness([r('iam', 'passed'), r('net', 'passed'), r('log', 'passed')], links, { includeProposed: true });
@@ -43,7 +43,7 @@ describe('computeReadiness', () => {
   it('en modo producción solo cuenta lo que el comité ratificó', () => {
     const results = [r('iam', 'failed', 'critical')];
     expect(computeReadiness(results, links, { includeProposed: false }).readiness).toBe('not_measured');
-    expect(computeReadiness(results, [link('T-CLD-001', 'iam', 'committee_ratified')], { includeProposed: false }).readiness).toBe('needs_work');
+    expect(computeReadiness(results, [link('T-IDA-4-04', 'iam', 'committee_ratified')], { includeProposed: false }).readiness).toBe('needs_work');
   });
 
   it('un check sin prueba asignada no cuenta (cobertura no alcanzada)', () => {
@@ -53,13 +53,13 @@ describe('computeReadiness', () => {
   });
 
   it('una evaluación que alimenta dos pruebas de la misma área cuenta una vez en el área y en los totales', () => {
-    const out = computeReadiness([r('mfa', 'passed')], [link('T-CLD-001', 'mfa'), link('T-CLD-011', 'mfa')], { includeProposed: true });
+    const out = computeReadiness([r('mfa', 'passed')], [link('T-IDA-4-04', 'mfa'), link('T-IDA-7-06', 'mfa')], { includeProposed: true });
     expect(out.coverage.measured).toBe(1);
     expect(out.areas.find((a) => a.area === 'identity_access')?.compliant).toBe(1);
   });
 
   it('una evaluación que alimenta dos áreas cuenta en cada área pero una sola vez en los totales', () => {
-    const out = computeReadiness([r('x', 'failed', 'low')], [link('T-CLD-001', 'x'), link('T-CLD-002', 'x')], { includeProposed: true });
+    const out = computeReadiness([r('x', 'failed', 'low')], [link('T-IDA-4-04', 'x'), link('T-RED-4-05', 'x')], { includeProposed: true });
     expect(out.coverage.measured).toBe(1);
     expect(out.ofMeasured.notCompliant).toBe(1);
     expect(out.areas.filter((a) => a.openFindings === 1).map((a) => a.area).sort()).toEqual(['data_network', 'identity_access']);

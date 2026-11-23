@@ -5,7 +5,7 @@
 #
 # Te pide las claves (no se muestran ni quedan en el historial) y hace, en orden:
 #   1. Le pone contraseña al rol `monkey_app` (las migraciones lo crean SIN contraseña).
-#   2. Carga el catálogo de SOC 2 y los catálogos de referencia, y los verifica con `monkey_app`.
+#   2. Carga el catálogo v2 y los catálogos de referencia (si el deploy ya los cargó, no hace nada), y los verifica con `monkey_app`.
 #   3. Crea la empresa interna de Monkey y el primer `admin_monkey`.
 # Al final te imprime la línea `APP_DATABASE_URL` que debe ir en el `.env` del servidor (se pone con `scripts/deploy/set-env.sh`).
 #
@@ -55,7 +55,7 @@ exists="$(docker exec "$DB_CONTAINER" psql -U "$DB_SUPERUSER" -d "$DB_NAME" -Atc
 docker exec "$DB_CONTAINER" psql -U "$DB_SUPERUSER" -d "$DB_NAME" -qc "ALTER ROLE monkey_app PASSWORD '${APPPW}'"
 echo "    Listo."
 
-echo; echo "== 2/4 Catálogo de SOC 2 y catálogos de referencia"
+echo; echo "== 2/4 Catálogo v2 y catálogos de referencia"
 run npm run --silent catalog:load -- --apply
 run npm run --silent reference:load -- --apply
 

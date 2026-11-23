@@ -16,8 +16,9 @@ const HOST = 'sonda.monkey.test';
 const INSTALLER = 'https://api.monkey.test/v1/install';
 const ENV = { SONDA_MANAGER_HOST: HOST, SONDA_AGENT_VERSION: '4.14.6', AGENT_INSTALLER_BASE_URL: INSTALLER, AGENT_INSTALL_KEY_TTL_MINUTES: '15' };
 
-const UBUNTU = 'ubuntu_22_04_lts';
-const WIN = 'windows_server_2022';
+// La plantilla trae el catálogo REAL de la sonda: los códigos de la prueba llevan el sufijo de la corrida para no chocar con él.
+const UBUNTU = `ubuntu_22_04_lts_e2e_${RUN}`;
+const WIN = `windows_server_2022_e2e_${RUN}`;
 const SCA_IDS = [`e2e_inst_ubuntu_${RUN}`, `e2e_inst_win_${RUN}`];
 
 let app: INestApplication;

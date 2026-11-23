@@ -508,7 +508,8 @@ export class ScanPrismaRepository extends ScanRepository {
       if (!framework) continue;
       const links = await tx.clientControlTest.findMany({
         where: { clientControl: { serviceId, isActive: true }, test: { dimension: source === 'cloud' ? { equals: 'cloud' as const } : { in: ['server' as const, 'database' as const, 'app' as const] } } },
-        select: { clientControlId: true, testId: true, test: { select: { dimension: true, testChecks: { select: { provenance: true, check: { select: { id: true, checkId: true } } } } } } },
+        // v2 (RC-04): solo los vínculos `direct` deciden la prueba; los de módulo («N/A», `check_id` nulo) los ignora el motor.
+        select: { clientControlId: true, testId: true, test: { select: { dimension: true, testChecks: { where: { role: 'direct' as const, checkId: { not: null } }, select: { provenance: true, check: { select: { id: true, checkId: true } } } } } } },
       });
       if (links.length === 0) continue;
       // D91 · Si lo que la sonda midió mueve el estado de un control, queda su evento: sin persona detrás (usuario nulo).
@@ -516,7 +517,7 @@ export class ScanPrismaRepository extends ScanRepository {
       const read = await this.executionResults(tx, executionId, serviceId);
       const results = source === 'cloud' ? read : read.map((r) => ({ ...r, checkId: r.checkUuid }));
       const rows = links.flatMap((l) => {
-        const checkIds = new Set(l.test.testChecks.filter((t) => includeProposed || t.provenance === 'committee_ratified').map((t) => (source === 'cloud' ? t.check.checkId : t.check.id)));
+        const checkIds = new Set(l.test.testChecks.flatMap((t) => (t.check && (includeProposed || t.provenance === 'committee_ratified') ? [source === 'cloud' ? t.check.checkId : t.check.id] : [])));
         if (checkIds.size === 0) return []; // sin checks ratificados, la sonda no mide este test: queda pendiente, no «no aplica»
         const out = interpretTestResult(checkIds, results);
         return [
@@ -556,10 +557,10 @@ export class ScanPrismaRepository extends ScanRepository {
 
       const checkUuids = [...new Set(results.map((r) => r.checkUuid))];
       const linkRows = await tx.testCheck.findMany({
-        where: { checkId: { in: checkUuids }, test: { code: { startsWith: 'T-CLD-' } } },
+        where: { checkId: { in: checkUuids }, role: 'direct', test: { dimension: 'cloud' } },
         select: { provenance: true, check: { select: { checkId: true } }, test: { select: { code: true } } },
       });
-      const links: TestCheckLink[] = linkRows.map((l) => ({ testCode: l.test.code, checkId: l.check.checkId, provenance: l.provenance }));
+      const links: TestCheckLink[] = linkRows.flatMap((l) => (l.check ? [{ testCode: l.test.code, checkId: l.check.checkId, provenance: l.provenance }] : []));
 
       return { executionId: execution.id, finishedAt: execution.finishedAt, engineVersion: execution.engineVersion, regions: execution.regions, checksExecuted: execution.checksExecuted, results: results.map(({ checkUuid: _checkUuid, ...r }) => r), links };
     });
@@ -714,10 +715,10 @@ export class ScanPrismaRepository extends ScanRepository {
         select: { assetId: true, asset: { select: { name: true, agent: { select: { id: true } } } } },
       });
       const links = await tx.testCheck.findMany({
-        where: { testId: input.testId, ...(input.includeProposed ? {} : { provenance: 'committee_ratified' as const }) },
+        where: { testId: input.testId, role: 'direct' as const, checkId: { not: null }, ...(input.includeProposed ? {} : { provenance: 'committee_ratified' as const }) },
         select: { checkId: true },
       });
-      const checkIds = links.map((l) => l.checkId);
+      const checkIds = links.flatMap((l) => (l.checkId ? [l.checkId] : []));
       let measuredAt: Date | null = null;
       const rows: FailedRow[] = [];
       if (checkIds.length === 0) return { measuredAt, rows };

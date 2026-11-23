@@ -47,7 +47,8 @@ export class CatalogControlResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ example: 'CAP-1', description: 'Código del control en el catálogo.' }) code!: string;
   @ApiProperty() name!: string;
-  @ApiProperty({ description: 'Uno de los dominios del catálogo.' }) domain!: string;
+  @ApiProperty({ type: String, nullable: true, description: 'El primero de `domains` (compatibilidad). Nulo si el control no tiene dominio.' }) domain!: string | null;
+  @ApiProperty({ type: String, isArray: true, description: 'Dominios distintos de los puntos de enfoque del control, en el orden de esos puntos (el dominio es de cada punto, no del control).' }) domains!: string[];
   @ApiProperty({ enum: ORIGIN, description: ORIGIN_DOC }) origin!: string;
   @ApiProperty({ description: 'Los controles no se borran: se dan de baja.' }) is_active!: boolean;
   @ApiProperty({ enum: DIMENSIONS, isArray: true, description: 'Dimensiones en que se evalúa.' }) dimensions!: string[];
@@ -106,7 +107,8 @@ export class CatalogControlDetailResponse {
   @ApiProperty({ example: 'CAP-1' }) code!: string;
   @ApiProperty() name!: string;
   @ApiProperty() description!: string;
-  @ApiProperty({ description: 'Uno de los dominios del catálogo.' }) domain!: string;
+  @ApiProperty({ type: String, nullable: true, description: 'El primero de `domains` (compatibilidad). Nulo si el control no tiene dominio.' }) domain!: string | null;
+  @ApiProperty({ type: String, isArray: true, description: 'Dominios distintos de los puntos de enfoque del control, en el orden de esos puntos (el dominio es de cada punto, no del control).' }) domains!: string[];
   @ApiProperty({ nullable: true, description: 'Referencia de origen (por ejemplo, hoja del Excel del comité).' }) source_ref!: string | null;
   @ApiProperty({ enum: ORIGIN, description: ORIGIN_DOC }) origin!: string;
   @ApiProperty() is_active!: boolean;

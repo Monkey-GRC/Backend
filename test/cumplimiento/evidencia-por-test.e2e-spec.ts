@@ -64,6 +64,20 @@ beforeAll(async () => {
   controlY = (await owner<{ id: string }>(`select client_control_id id from tenant.client_control_tests where test_id = $1 and client_control_id <> $2 and client_control_id in (select id from tenant.client_controls where service_id = $3 and is_active) limit 1`, [docTest.id, controlX, a.serviceId]))[0].id;
   await asignarServicio(a.companyId, a.serviceId, docId);
 
+  // En la v2 una prueba que no es documental es de un solo control: se le suma un segundo control (con su dimensión) para que dos controles la lleven.
+  const [seed] = await owner<{ test_id: string; control_id: string; dimension: string }>(
+    `select x.test_id, x.client_control_id control_id, t.dimension::text dimension from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id
+       join tenant.client_controls cc on cc.id = x.client_control_id and cc.service_id = $1 and cc.is_active
+      where t.dimension not in ('policy', 'process') order by t.code limit 1`,
+    [a.serviceId],
+  );
+  const [second] = await owner<{ id: string }>(
+    `select cc.id from tenant.client_controls cc join tenant.client_control_dimensions d on d.client_control_id = cc.id and d.dimension = $2::catalog.dimension
+      where cc.service_id = $1 and cc.is_active and cc.id <> $3 order by cc.own_code limit 1`,
+    [a.serviceId, seed.dimension, seed.control_id],
+  );
+  await owner(`insert into tenant.client_control_tests (id, tenant_id, client_control_id, test_id) values (gen_random_uuid(), $1, $2, $3)`, [a.companyId, second.id, seed.test_id]);
+
   // Un test no documental que lleven al menos dos controles vigentes: se marca como manual en esos controles y se les pone un requerimiento que lo sirva.
   const shared = await owner<{ id: string; code: string; dimension: string }>(
     `select t.id, t.code, t.dimension from catalog.tests t join tenant.client_control_tests x on x.test_id = t.id join tenant.client_controls cc on cc.id = x.client_control_id and cc.service_id = $1 and cc.is_active
@@ -109,7 +123,8 @@ describe('MD-177 · la evidencia de una prueba documental, en su control (D88)',
 
   it('otro control que lleva la misma prueba no ve esa evidencia: cada control tiene la suya', async () => {
     const res = await listOf(a.agent, controlY, docTest.id).expect(200);
-    expect(res.body.data.items).toEqual([]);
+    // v2: el clonado le da a cada control su propio lugar para el documento; ninguna entrega del otro control llega aquí.
+    expect(res.body.data.items.every((i: any) => i.control.id === controlY && i.submissions.length === 0)).toBe(true);
     expect(res.body.data.shared_with).toEqual([]);
   });
 
@@ -265,7 +280,7 @@ describe('MD-177 · las pruebas de un control, con lo que comparten (D85, D88)',
     expect(res.body.data.total).toBe(detail.technical.tests.length);
     expect(items.map((i) => i.test_code)).toEqual([...items.map((i) => i.test_code)].sort((x, y) => x.localeCompare(y)));
     expect(items[0]).toEqual({
-      test_id: expect.any(String), test_code: expect.any(String), display_name: expect.any(String), dimension: expect.any(String), type: expect.any(String),
+      test_id: expect.any(String), test_code: expect.any(String), display_name: expect.any(String), dimension: expect.any(String), type: expect.stringMatching(/^(documentary|population|operational|technical)$/),
       is_mandatory: expect.any(Boolean), is_active: expect.any(Boolean), shared_with: expect.any(Array), state: expect.any(String), last_verdict: null, ai_suggestion: null,
     });
     expect(items.find((i) => i.test_id === docTest.id)).toMatchObject({ dimension: 'policy', shared_with: [] }); // D88: una prueba documental es de su control
@@ -293,7 +308,7 @@ describe('MD-177 · las pruebas de un control, con lo que comparten (D85, D88)',
   it('last_verdict trae el último veredicto del admin_empresa sobre una prueba manual', async () => {
     const [manual] = await owner<{ control: string; test: string }>(
       `select cc.id control, x.test_id test from tenant.client_controls cc
-         join tenant.client_control_dimensions d on d.client_control_id = cc.id and d.dimension = 'cloud'::catalog.dimension and d.type = 'technical_manual'::catalog.control_dimension_type
+         join tenant.client_control_dimensions d on d.client_control_id = cc.id and d.dimension = 'cloud'::catalog.dimension and d.type = 'manual'::catalog.control_dimension_type
          join tenant.client_control_tests x on x.client_control_id = cc.id join catalog.tests t on t.id = x.test_id and t.dimension = 'cloud'::catalog.dimension
         where cc.service_id = $1 and cc.is_active order by cc.own_code, t.code limit 1`,
       [a.serviceId],

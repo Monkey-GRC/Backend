@@ -43,8 +43,8 @@ export class RiskControlLinkResponse {
 export class RiskCauseInRiskResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ example: 'F001' }) code!: string;
-  @ApiProperty() name!: string;
-  @ApiProperty({ enum: FAILURE_CATEGORIES, enumName: 'FailureCategory' }) failure_category!: string;
+  @ApiProperty({ type: String, nullable: true, description: 'Nombre de la causa. Nulo en las causas del catálogo v2.' }) name!: string | null;
+  @ApiProperty({ enum: FAILURE_CATEGORIES, enumName: 'FailureCategory', nullable: true }) failure_category!: string | null;
   @ApiProperty({ type: RiskControlLinkResponse, isArray: true, description: 'Controles que tratan la causa.' }) controls!: RiskControlLinkResponse[];
   @ApiProperty({ type: RiskTechnicalResponse, required: false }) technical?: RiskTechnicalResponse;
 }
@@ -93,9 +93,9 @@ export class CauseResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ format: 'uuid' }) service_id!: string;
   @ApiProperty({ example: 'F001' }) code!: string;
-  @ApiProperty() name!: string;
+  @ApiProperty({ type: String, nullable: true, description: 'Nombre de la causa. Nulo en las causas del catálogo v2.' }) name!: string | null;
   @ApiProperty() description!: string;
-  @ApiProperty({ enum: FAILURE_CATEGORIES, enumName: 'FailureCategory' }) failure_category!: string;
+  @ApiProperty({ enum: FAILURE_CATEGORIES, enumName: 'FailureCategory', nullable: true }) failure_category!: string | null;
   @ApiProperty({ enum: ['catalog', 'own'], enumName: 'ControlOrigin' }) origin!: string;
   @ApiProperty() is_active!: boolean;
   @ApiProperty({ type: CauseRiskRefResponse, isArray: true, description: 'Riesgos activos a los que contribuye.' }) risks!: CauseRiskRefResponse[];

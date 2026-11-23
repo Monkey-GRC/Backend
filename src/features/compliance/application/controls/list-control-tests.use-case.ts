@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Principal } from '../../../../common/auth/principal';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { Page } from '../../../../common/pagination/page';
-import { ControlType, ReadoutTest, readControl } from '../../domain/controls/control-readout';
+import { ReadoutTest, readControl } from '../../domain/controls/control-readout';
 import type { TestState } from '../../domain/engine/states';
 import { ControlRepository } from '../../domain/controls/control.repository';
 import { LastVerdict, TestVerdictRepository } from '../../domain/verdicts/test-verdict.repository';
@@ -11,7 +11,8 @@ import { viewModeOf } from '../shared/view-access';
 
 export type ControlTestItem = {
   test: ReadoutTest;
-  type: ControlType | null;
+  /** `tests.type` (v2): documentary, population, operational o technical. */
+  type: string | null;
   state: TestState;
   /** Los otros controles del servicio que llevan el test (D85). Siempre vacío en una prueba documental: su estado es de este control (D88). */
   sharedWith: Array<{ id: string; code: string }>;
@@ -28,18 +29,18 @@ export class ListControlTestsUseCase {
     viewModeOf(p, 'technical');
     const scope = { companyId: p.companyId, userId: p.userId, role: p.role };
     // Una sola transacción: sus consultas van en serie, no en paralelo.
-    const { readout, tests, shared, last } = await this.tx.run(scope, async () => {
+    const { tests, shared, last } = await this.tx.run(scope, async () => {
       const data = await this.controls.loadControl(scope, controlId);
       if (!data || data.controls.length === 0) throw new DomainError('NOT_FOUND');
       const readout = readControl(data.controls[0], data.assets, data.results);
       const tests = [...readout.tests].sort((a, b) => a.test.code.localeCompare(b.test.code));
       const shared = await this.controls.sharedControlsOfTests(scope, controlId, tests.map((t) => t.test.testId));
       const last = await this.verdicts.latestByControl(scope, controlId);
-      return { readout, tests, shared, last };
+      return { tests, shared, last };
     }, { timeoutMs: 30_000 });
     const all = tests.map((t): ControlTestItem => ({
       test: t.test,
-      type: readout.control.dimensions.find((d) => d.dimension === t.test.dimension)?.type ?? null,
+      type: t.test.testType ?? null,
       state: t.state,
       sharedWith: t.test.dimension === 'policy' ? [] : (shared.get(t.test.testId) ?? []),
       lastVerdict: last.get(t.test.testId) ?? null,

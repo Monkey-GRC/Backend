@@ -205,7 +205,7 @@ describe('Resumen del servicio — quién puede pedir qué', () => {
     const lines = fw.categories.flatMap((c: any) => c.technical.controls);
     const blocked = lines.find((l: any) => l.state === 'ineffective');
     expect(blocked).toBeTruthy();
-    expect(blocked.blocking_tests.some((t: any) => t.state === 'non_compliant' && /^T-[A-Z]{3}-\d{3}$/.test(t.test_code))).toBe(true);
+    expect(blocked.blocking_tests.some((t: any) => t.state === 'non_compliant' && /^T-[A-Z]{3}-\d+-\d+$/.test(t.test_code))).toBe(true);
     expect(fw.technical.state).toBe('non_compliant');
     expect(fw.technical.failing).toContain(blocked.control_code);
   });

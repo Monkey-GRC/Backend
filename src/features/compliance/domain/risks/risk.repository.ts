@@ -60,9 +60,10 @@ export type CauseNode = {
   id: string;
   serviceId: string;
   code: string;
-  name: string;
+  // v2 (MD-491): la causa del catálogo ya no trae nombre ni categoría de falla; llegan nulos.
+  name: string | null;
   description: string;
-  failureCategory: string;
+  failureCategory: string | null;
   origin: 'catalog' | 'own';
   isActive: boolean;
   riskIds: string[];
@@ -73,7 +74,7 @@ export type RiskGraph = { serviceId: string; risks: RiskNode[]; causes: CauseNod
 export type GraphRef = { serviceId: string } | { riskId: string } | { causeId: string };
 
 export type RiskRecord = { id: string; code: string; name: string; description: string; trustCriterion: string; potentialImpact: unknown; isActive: boolean };
-export type CauseRecord = { id: string; code: string; name: string; description: string; failureCategory: string; isActive: boolean };
+export type CauseRecord = { id: string; code: string; name: string | null; description: string; failureCategory: string | null; isActive: boolean };
 export type Changed<T> = { before: T; after: T };
 
 export type RiskInput = { code?: string; name: string; description: string; trustCriterion: string; potentialImpact: string[] };

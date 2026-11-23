@@ -102,6 +102,29 @@ describe('buildClonePlan (MD-80)', () => {
     expect(ev.map((e) => [e.code, e.testId])).toEqual([['DOC-a', null], ['DOC-b', 't1']]);
   });
 
+  it('catálogo v2: las evidencias salen de los documentos del control, uno por documento, documentales y ligadas a su T-DOC (MD-491)', () => {
+    const snapshot = catalog();
+    snapshot.evidenceTemplates = [];
+    snapshot.documents = [
+      { controlId: 'k1', code: 'PRO-002', name: 'Procedimiento B', testId: 't-doc-2' },
+      { controlId: 'k1', code: 'POL-001', name: 'Política A', testId: 't-doc-1' },
+      { controlId: 'k3', code: 'POL-001', name: 'Política A', testId: 't-doc-1' },
+    ];
+    const ev = buildClonePlan(input({ catalog: snapshot })).evidenceRequirements;
+    const ofK1 = ev.filter((e) => e.sourceRef === 'POL-001' || e.sourceRef === 'PRO-002');
+    expect(ofK1.map((e) => [e.code, e.sequence, e.dimension, e.testId, e.description])).toEqual(
+      expect.arrayContaining([['POL-001', 1, 'policy', 't-doc-1', 'Política A'], ['PRO-002', 2, 'policy', 't-doc-2', 'Procedimiento B']]),
+    );
+    expect(ev).toHaveLength(2); // k3 es de otro criterio de confianza y no se clona
+  });
+
+  it('catálogo v2: una causa sin nombre ni categoría de falla se clona con su origen y su tipo', () => {
+    const snapshot = catalog();
+    snapshot.causes = [{ id: 'c1', code: 'CA-001', name: null, failureCategory: null, origin: 'internal', causeType: 'human', description: 'd' }];
+    const [cause] = buildClonePlan(input({ catalog: snapshot })).clientCauses;
+    expect(cause).toMatchObject({ name: null, failureCategory: null, origin: 'internal', causeType: 'human' });
+  });
+
   it('clona el set base completo de riesgos y causas, aunque la causa no tenga riesgo', () => {
     const plan = buildClonePlan(input());
     expect(plan.clientRisks.map((r) => r.code)).toEqual(['R001']);

@@ -10,7 +10,7 @@ export const READINESS_DOC =
   '`ready` Preparado (100 %) · `almost_ready` Casi listo (80 % o más, o todo lo medido cumple pero falta algo) · `needs_work` Requiere trabajo (menos de 80 %) · `not_measured` Sin medir (aún nada con resultado: un hueco de cobertura, no un fallo).';
 export const TRUST_CRITERIA = ['security', 'availability', 'confidentiality', 'integrity', 'privacy'] as const;
 export const CONTROL_TYPES = ['manual', 'automated', 'hybrid', 'technical_manual'] as const;
-export const DIMENSIONS = ['policy', 'server', 'database', 'app', 'cloud'] as const;
+export const DIMENSIONS = ['policy', 'server', 'database', 'app', 'cloud', 'network', 'endpoint', 'physical', 'process'] as const;
 export const CONTROL_STATES = ['effective', 'ineffective', 'expired', 'error', 'incomplete', 'evaluating', 'no_tests'] as const;
 export const TEST_STATES = ['compliant', 'non_compliant', 'pending', 'evaluating', 'in_review', 'expired', 'error', 'no_assets', 'not_applicable', 'deactivated'] as const;
 export const ROLLUP_STATES = ['compliant', 'non_compliant', 'evaluating', 'no_controls', 'out_of_scope'] as const;
@@ -107,7 +107,7 @@ export class EvidenceRequirementSummaryResponse {
 export class ControlCauseRefResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ example: 'F001', description: 'Código de la causa (D80).' }) code!: string;
-  @ApiProperty() name!: string;
+  @ApiProperty({ type: String, nullable: true, description: 'Nombre de la causa. Nulo en las causas del catálogo v2.' }) name!: string | null;
 }
 
 export class ControlDetailResponse extends ControlListItemResponse {

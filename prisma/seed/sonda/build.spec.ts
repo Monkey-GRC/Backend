@@ -1,4 +1,4 @@
-import { buildSondaDataset, BuildInput, ExcelCheckRow, RATIONALE, RulesetPolicy } from './build';
+import { buildSondaDataset, BuildInput, ExcelCheckRow, RulesetPolicy } from './build';
 
 const UBU22 = 'CIS Ubuntu Linux 22.04 LTS Benchmark v2.0.0.';
 const UBU24 = 'CIS Ubuntu Linux 24.04 LTS Benchmark v1.0.0.';
@@ -17,20 +17,20 @@ const RULESET: RulesetPolicy[] = [
 ];
 
 const row = (platform: string, policy: string, id: string, extra: ExcelCheckRow = {}): ExcelCheckRow => ({
-  Plataforma: platform, Política: policy, 'Check ID': id, TEST: 'T-SRV-001', Título: `Title ${id}`, Condición: 'all', Remediación: 'Fix it', 'Regla de verificación': 'f:/etc/x -> r:^a', 'SOC 2': 'CC6.3, CC6.6', TSC: '', 'Título (español)': `Título ${id}`, 'Remediación (español)': '', ...extra,
+  Plataforma: platform, Política: policy, 'Check ID': id, Título: `Title ${id}`, Condición: 'all', Remediación: 'Fix it', 'Regla de verificación': 'f:/etc/x -> r:^a', 'SOC 2': 'CC6.3, CC6.6', TSC: '', 'Título (español)': `Título ${id}`, 'Remediación (español)': '', ...extra,
 });
 
 const ROWS: ExcelCheckRow[] = [
-  row('Ubuntu', UBU22, '28500'), row('Ubuntu', UBU22, '28501', { TEST: 'T-SRV-001, T-SRV-010', 'SOC 2': '', TSC: 'CC6.1' }),
+  row('Ubuntu', UBU22, '28500'), row('Ubuntu', UBU22, '28501', { 'SOC 2': '', TSC: 'CC6.1' }),
   row('Ubuntu', UBU22, '28502', { 'SOC 2': '' }),
   row('Ubuntu', UBU24, '90000'),
-  row('Windows', WIN22, '10001', { TEST: 'T-SRV-001,T-SRV-005,T-SRV-008' }),
+  row('Windows', WIN22, '10001'),
   row('HP-UX', HPUX_A, '1'), row('HP-UX', HPUX_B, '1'),
-  row('Aplicaciones', PG, 'p1', { TEST: 'T-BD-001' }),
+  row('Aplicaciones', PG, 'p1'),
 ];
 
 const input = (over: Partial<BuildInput> = {}): BuildInput => ({
-  rows: ROWS, ruleset: RULESET, soc2RequirementCodes: new Set(['CC6.1', 'CC6.3', 'CC6.6']), source: { file: 'x.xlsx', sha256: 'abc', sondaVersion: '4.14.6', rulesetRef: 'v4.14.6' }, ...over,
+  rows: ROWS, ruleset: RULESET, soc2RequirementCodes: new Set(['CC6.1', 'CC6.3', 'CC6.6']), source: { file: 'x.xlsx', sha256: 'abc', sondaVersion: '4.14.7', rulesetRef: 'v4.14.7' }, ...over,
 });
 
 describe('buildSondaDataset', () => {
@@ -108,17 +108,8 @@ describe('buildSondaDataset', () => {
     });
   });
 
-  describe('asignación a las pruebas', () => {
-    it('la columna TEST admite varias pruebas por check (separadas por coma, con o sin espacio) y entra como PROPUESTA de Monkey', () => {
-      const tests = (id: string, pol: string) => ds.testChecks.filter((t) => t.checkId === id && t.policyId === pol).map((t) => t.testCode).sort();
-      expect(tests('28501', 'cis_ubuntu22-04')).toEqual(['T-SRV-001', 'T-SRV-010']);
-      expect(tests('10001', 'cis_win2022')).toEqual(['T-SRV-001', 'T-SRV-005', 'T-SRV-008']);
-      expect(ds.testChecks.every((t) => t.provenance === 'monkey_proposed' && t.confidence === null && t.rationale === RATIONALE)).toBe(true);
-    });
-
-    it('el motivo dice que la hoja no es la versión final', () => {
-      expect(RATIONALE).toMatch(/no es la versión final/);
-    });
+  it('ya no propone vínculos con las pruebas: los define el comité en TEST_CHECKS', () => {
+    expect(ds).not.toHaveProperty('testChecks');
   });
 
   describe('lo que no se puede construir falla en voz alta', () => {
@@ -138,6 +129,6 @@ describe('buildSondaDataset', () => {
   });
 
   it('el resumen cuenta lo que hay', () => {
-    expect(ds.meta.counts).toEqual({ policies: 6, offerable: 4, checks: 8, mappings: ds.mappings.length, testChecks: ds.testChecks.length });
+    expect(ds.meta.counts).toEqual({ policies: 6, offerable: 4, checks: 8, mappings: ds.mappings.length });
   });
 });

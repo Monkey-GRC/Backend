@@ -1,0 +1,194 @@
+// Catálogo v2 (VF18, RC-01, MD-491). Estrategia aditiva: las tablas v1 se conservan y quedan vacías hasta que las fases 2 y 3 las retiren.
+// Contrato: contracts/catalogo-maestro.md «Carga del catálogo v2».
+
+enum DocumentType {
+  policy
+  procedure
+  matrix
+  manual
+  document
+
+  @@map("document_type")
+  @@schema("catalog")
+}
+
+enum DocumentOrigin {
+  internal
+  external
+
+  @@map("document_origin")
+  @@schema("catalog")
+}
+
+enum DocumentAcceptance {
+  users_who_apply
+  all_users
+  not_required
+
+  @@map("document_acceptance")
+  @@schema("catalog")
+}
+
+// El requisito del control (hoja REQUISITOS) es la unidad de cálculo (D129). No es `requirements` (el criterio del marco).
+model ControlRequirement {
+  id           String          @id @default(uuid()) @db.Uuid
+  code         String          @unique // IDA-11-L3
+  controlId    String          @map("control_id") @db.Uuid
+  pointNumber  Int?            @map("point_number")
+  text         String          @db.Text
+  type         RequirementType
+  periodicity  Periodicity?
+  isMandatory  Boolean         @default(true) @map("is_mandatory")
+  // Observación de armado: interna, nunca al cliente.
+  assemblyNote String?         @map("assembly_note") @db.Text
+
+  control   Control                      @relation(fields: [controlId], references: [id])
+  tests     ControlRequirementTest[]
+  documents ControlRequirementDocument[]
+
+  @@index([controlId])
+  @@map("control_requirements")
+  @@schema("catalog")
+}
+
+model ControlRequirementTest {
+  id                   String @id @default(uuid()) @db.Uuid
+  controlRequirementId String @map("control_requirement_id") @db.Uuid
+  testId               String @map("test_id") @db.Uuid
+
+  controlRequirement ControlRequirement @relation(fields: [controlRequirementId], references: [id])
+  test               Test               @relation(fields: [testId], references: [id], onDelete: Restrict)
+
+  @@unique([controlRequirementId, testId])
+  @@index([testId])
+  @@map("control_requirement_tests")
+  @@schema("catalog")
+}
+
+model ControlRequirementDocument {
+  id                   String @id @default(uuid()) @db.Uuid
+  controlRequirementId String @map("control_requirement_id") @db.Uuid
+  documentId           String @map("document_id") @db.Uuid
+
+  controlRequirement ControlRequirement @relation(fields: [controlRequirementId], references: [id])
+  document           Document           @relation(fields: [documentId], references: [id])
+
+  @@unique([controlRequirementId, documentId])
+  @@index([documentId])
+  @@map("control_requirement_documents")
+  @@schema("catalog")
+}
+
+model StandardProcedure {
+  id              String  @id @default(uuid()) @db.Uuid
+  code            String  @unique
+  name            String
+  whenUsed        String? @map("when_used") @db.Text
+  genericSteps    String? @map("generic_steps") @db.Text
+  typicalEvidence String? @map("typical_evidence") @db.Text
+
+  tests                 Test[]
+  integrationCategories IntegrationCategoryProcedure[]
+
+  @@map("standard_procedures")
+  @@schema("catalog")
+}
+
+// Categoría de herramienta que el cliente puede integrar (hoja INTEGRACIONES). NO es `catalog.integrations` (D110).
+model IntegrationCategory {
+  id               String  @id @default(uuid()) @db.Uuid
+  name             String  @unique
+  exampleTools     String? @map("example_tools") @db.Text
+  evidenceProvided String? @map("evidence_provided") @db.Text
+
+  // La categoría cita uno o varios procedimientos («PE-INT-01; PE-ACC-01»).
+  procedures IntegrationCategoryProcedure[]
+  controls   IntegrationCategoryControl[]
+  tests      Test[]
+
+  @@map("integration_categories")
+  @@schema("catalog")
+}
+
+model IntegrationCategoryProcedure {
+  id                    String @id @default(uuid()) @db.Uuid
+  integrationCategoryId String @map("integration_category_id") @db.Uuid
+  standardProcedureId   String @map("standard_procedure_id") @db.Uuid
+
+  integrationCategory IntegrationCategory @relation(fields: [integrationCategoryId], references: [id])
+  standardProcedure   StandardProcedure   @relation(fields: [standardProcedureId], references: [id])
+
+  @@unique([integrationCategoryId, standardProcedureId])
+  @@index([standardProcedureId])
+  @@map("integration_category_procedures")
+  @@schema("catalog")
+}
+
+model IntegrationCategoryControl {
+  id                    String @id @default(uuid()) @db.Uuid
+  integrationCategoryId String @map("integration_category_id") @db.Uuid
+  controlId             String @map("control_id") @db.Uuid
+
+  integrationCategory IntegrationCategory @relation(fields: [integrationCategoryId], references: [id])
+  control             Control             @relation(fields: [controlId], references: [id])
+
+  @@unique([integrationCategoryId, controlId])
+  @@index([controlId])
+  @@map("integration_category_controls")
+  @@schema("catalog")
+}
+
+// El documento del catálogo (§11.1). Reemplaza a `policies` y a `evidence_templates` de la v1 (D129).
+model Document {
+  id                    String             @id @default(uuid()) @db.Uuid
+  code                  String             @unique // POL-001, PRO-012, MAT-001, DOC-008
+  type                  DocumentType
+  name                  String
+  description           String?            @db.Text
+  minimumContent        String?            @map("minimum_content") @db.Text
+  reviewPeriodicity     Periodicity?       @map("review_periodicity")
+  suggestedApproverRole String?            @map("suggested_approver_role") @db.Text
+  suggestedOwnerRole    String?            @map("suggested_owner_role") @db.Text
+  origin                DocumentOrigin
+  suggestedAcceptance   DocumentAcceptance @map("suggested_acceptance")
+  // Su T-DOC: la prueba documental con que se prueba.
+  testId                String?            @unique @map("test_id") @db.Uuid
+
+  test         Test?                        @relation(fields: [testId], references: [id], onDelete: Restrict)
+  controls     ControlDocument[]
+  requirements ControlRequirementDocument[]
+
+  @@map("documents")
+  @@schema("catalog")
+}
+
+model ControlDocument {
+  id         String @id @default(uuid()) @db.Uuid
+  controlId  String @map("control_id") @db.Uuid
+  documentId String @map("document_id") @db.Uuid
+
+  control  Control  @relation(fields: [controlId], references: [id])
+  document Document @relation(fields: [documentId], references: [id])
+
+  @@unique([controlId, documentId])
+  @@index([documentId])
+  @@map("control_documents")
+  @@schema("catalog")
+}
+
+// A qué requisito de cada marco responde el control (hoja MAPEO_MARCOS). Hoy solo SOC 2.
+model ControlFrameworkMapping {
+  id             String  @id @default(uuid()) @db.Uuid
+  controlId      String  @map("control_id") @db.Uuid
+  frameworkCode  String  @map("framework_code")
+  requirementRef String  @map("requirement_ref")
+  relationType   String  @default("direct") @map("relation_type")
+  justification  String? @db.Text
+
+  control Control @relation(fields: [controlId], references: [id])
+
+  @@index([controlId])
+  @@index([frameworkCode, requirementRef])
+  @@map("control_framework_mappings")
+  @@schema("catalog")
+}

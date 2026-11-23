@@ -20,8 +20,8 @@ const asJson = (v: string[]) => v as unknown as Prisma.InputJsonValue;
 const riskRecord = (r: { id: string; code: string; name: string; description: string; trustCriterion: string; potentialImpact: unknown; isActive: boolean }): RiskRecord => ({
   id: r.id, code: r.code, name: r.name, description: r.description, trustCriterion: r.trustCriterion, potentialImpact: r.potentialImpact, isActive: r.isActive,
 });
-const causeRecord = (c: { id: string; code: string; name: string; description: string; failureCategory: string; isActive: boolean }): CauseRecord => ({
-  id: c.id, code: c.code, name: c.name, description: c.description, failureCategory: c.failureCategory, isActive: c.isActive,
+const causeRecord = (c: { id: string; code: string; name: string | null; description: string; failureCategory: string | null; isActive: boolean }): CauseRecord => ({
+  id: c.id, code: c.code, name: c.name ?? c.description, description: c.description, failureCategory: c.failureCategory, isActive: c.isActive,
 });
 
 type TreatmentRow = {
@@ -78,7 +78,7 @@ export class RiskPrismaRepository extends RiskRepository {
           inherentRiskLevel: r.inherentRiskLevel, treatment: r.riskTreatments[0] ? toTreatment(r.riskTreatments[0]) : null, causeIds: r.riskCauses.map((x) => x.clientCauseId),
         })),
         causes: causes.map<CauseNode>((c) => ({
-          id: c.id, serviceId, code: c.code, name: c.name, description: c.description, failureCategory: c.failureCategory, origin: c.causeId ? 'catalog' : 'own',
+          id: c.id, serviceId, code: c.code, name: c.name ?? c.description, description: c.description, failureCategory: c.failureCategory, origin: c.causeId ? 'catalog' : 'own',
           isActive: c.isActive, riskIds: c.riskCauses.map((x) => x.clientRiskId),
           controls: c.causeControls
             .filter((l) => l.clientControl.isActive)

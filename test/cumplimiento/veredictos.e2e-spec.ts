@@ -25,7 +25,7 @@ let delegado: Agent; // ejecutor del control manual
 let delegadoId: string;
 let delegadoAjeno: Agent; // otro delegado: no lo ejecuta
 
-let manualControl: string; // un control con un test de nube que se resuelve a mano (`technical_manual`)
+let manualControl: string; // un control con un test de nube que se resuelve a mano (`manual`)
 let manualTest: string;
 let automaticTest: { control: string; test: string }; // un test de nube que la sonda mide (`hybrid`)
 let noAssetsTest: { control: string; test: string } | null; // un test manual de una dimensión sin activos en el servicio (base de datos)
@@ -81,14 +81,14 @@ beforeAll(async () => {
   delegado = await login(app, `delegado-ver-${RUN}@cumplimiento.test`);
   delegadoAjeno = await login(app, `delegado2-ver-${RUN}@cumplimiento.test`);
 
-  const manual = await pick('cloud', 'technical_manual');
+  const manual = await pick('cloud', 'manual');
   expect(manual.length).toBeGreaterThan(0);
   ({ control: manualControl, test: manualTest } = manual[0]);
   await asignarControl(a.companyId, manualControl, responsableId, delegadoId);
   const automatic = await pick('cloud', 'hybrid');
   expect(automatic.length).toBeGreaterThan(0);
   automaticTest = automatic[0];
-  noAssetsTest = (await pick('database', 'technical_manual'))[0] ?? null;
+  noAssetsTest = (await pick('database', 'manual'))[0] ?? null;
   const doc = await owner<{ control: string; test: string }>(
     `select cc.id control, x.test_id test from tenant.client_controls cc join tenant.client_control_tests x on x.client_control_id = cc.id
        join catalog.tests t on t.id = x.test_id and t.dimension = 'policy' where cc.service_id = $1 and cc.is_active order by cc.own_code limit 1`,
