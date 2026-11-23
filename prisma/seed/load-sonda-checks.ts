@@ -49,6 +49,9 @@ async function main() {
       const d = dbCheckByKey.get(ck(s));
       if (!d) return true;
       for (const f of ['titleEn', 'titleEs', 'condition', 'remediation', 'remediationEs', 'translationOrigin', 'verificationRule', 'origin', 'mappingProvenance', 'mappingConfidence'] as const) {
+        // Sin guía en español en la fuente, esas dos columnas las escribe después `sonda:translate`: no son una diferencia con la fuente. Si la fuente trae la
+        // guía (la del comité), sí se compara.
+        if ((f === 'remediationEs' || f === 'translationOrigin') && s.remediationEs == null) continue;
         if (!same(d[f], s[f])) conflicts.push(`check ${s.policyId}/${s.checkId}: ${f}  BD=${short(d[f])}  fuente=${short(s[f])}`);
       }
       return false;
