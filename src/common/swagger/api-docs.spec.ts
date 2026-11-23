@@ -20,6 +20,10 @@ function controllerFiles(dir: string): string[] {
   });
 }
 
+// Estas pruebas arrancan la aplicación entera (todos los controladores): en el runner del CI la primera paga además la compilación y
+// pasa de los 5 s por defecto de jest (MD-491). No es lentitud de la app: es el arranque en frío de la prueba.
+jest.setTimeout(30_000);
+
 async function bootDocsApp(env: Record<string, string | undefined>): Promise<{ app: INestApplication; documented: boolean }> {
   const saved = { ...process.env };
   delete process.env.API_DOCS_ENABLED;
