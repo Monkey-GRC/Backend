@@ -20,10 +20,11 @@ export class PasswordNotifier {
 
   async sendResetLink(email: string, role: UserRole, token: string, language: MailLanguage = 'es'): Promise<void> {
     // Monkey Admin y Monkey Platform son apps distintas: el enlace lleva a la de quien lo pidió.
-    const admin = role === 'admin_monkey' ? appUrl(this.config, 'ADMIN_APP_URL') : undefined;
-    const base = admin || platformAppUrl(this.config);
+    // Sin respaldo cruzado: un admin_monkey sin ADMIN_APP_URL no recibe un enlace a Platform.
+    const admin = role === 'admin_monkey';
+    const base = admin ? appUrl(this.config, 'ADMIN_APP_URL') : platformAppUrl(this.config);
     // Sin dirección de la app no hay a dónde mandar a la persona: se avisa en el log y no se envía un enlace roto.
-    if (!base) return this.logger.warn('No se envió el enlace de recuperación: falta PLATFORM_APP_URL.');
+    if (!base) return this.logger.warn(`No se envió el enlace de recuperación: falta ${admin ? 'ADMIN_APP_URL' : 'PLATFORM_APP_URL'}.`);
     // En Monkey Admin las pantallas de acceso cuelgan de /auth; en Platform, de la raíz.
     const path = admin ? '/auth/reset-password' : '/reset-password';
     await this.deliver(buildPasswordResetLinkEmail({ to: email, resetUrl: `${base}${path}?token=${encodeURIComponent(token)}`, minutes: PASSWORD_RESET_TOKEN_MINUTES, language }));

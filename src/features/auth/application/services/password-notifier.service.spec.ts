@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { MailMessage, Mailer } from '../../../../common/mail/mailer';
 import { PasswordNotifier } from './password-notifier.service';
@@ -28,10 +29,13 @@ describe('PasswordNotifier (D101)', () => {
     expect(sent[0].text).toContain('https://admin.monkey.test/auth/reset-password?token=tok');
   });
 
-  it('sin ADMIN_APP_URL (vacía) admin_monkey cae a la dirección de Platform', async () => {
+  it('sin ADMIN_APP_URL admin_monkey no recibe enlace a Platform: no se envía y se avisa (MD-492)', async () => {
     const { notifier, sent } = build({ PLATFORM_APP_URL: 'https://app.monkey.test', ADMIN_APP_URL: '' });
+    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
     await notifier.sendResetLink('root@monkey.co', 'admin_monkey', 'tok');
-    expect(sent[0].text).toContain('https://app.monkey.test/reset-password?token=tok');
+    expect(sent).toHaveLength(0);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('falta ADMIN_APP_URL'));
+    warn.mockRestore();
   });
 
   it('sin ninguna dirección no envía un enlace roto', async () => {
