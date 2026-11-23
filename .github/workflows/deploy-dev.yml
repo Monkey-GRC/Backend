@@ -24,8 +24,8 @@ jobs:
       - name: Comprobar el entorno, migrar la base y (re)desplegar
         uses: appleboy/ssh-action@v1.0.3
         env:
-          # Rol DUEÑO de la base de staging, solo para migrar. NO va en el .env del backend (que solo lleva
-          # APP_DATABASE_URL, el rol monkey_app). Formato: postgresql://postgres:<clave>@postgres-staging:5432/monkey
+          # Rol DUEÑO de la base dev (la misma que usan el backend y el entorno local), solo para migrar. NO va en el .env del backend
+          # (que solo lleva APP_DATABASE_URL, el rol monkey_app). Formato: postgresql://postgres:<clave>@<servidor de la base dev>:5432/monkey
           # (la clave con caracteres especiales va codificada como URL).
           MIGRATE_DATABASE_URL: ${{ secrets.MIGRATE_DATABASE_URL }}
         with:

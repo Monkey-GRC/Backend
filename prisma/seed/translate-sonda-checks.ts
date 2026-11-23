@@ -57,13 +57,16 @@ async function main() {
       console.log('\nDry-run: nada se escribió. Repite con -- --apply para cargarlas.');
       return;
     }
-    await prisma.$transaction(
-      async (tx) => {
-        for (const t of changed) await tx.check.update({ where: { id: byKey.get(`${t.policyId}|${t.checkId}`)!.id }, data: { remediationEs: t.remediationEs, translationOrigin: 'machine' } });
-      },
-      { timeout: 300000 },
-    );
-    console.log(`\n✓ Escritas ${changed.length} guías en una sola transacción.`);
+    // Una sola consulta (UPDATE … FROM unnest): con una fila por viaje, contra una base remota las 4.016 guías pasaban de los 5 min de la transacción.
+    // Una sentencia es atómica por sí misma: o se escriben todas o ninguna.
+    const ids = changed.map((t) => byKey.get(`${t.policyId}|${t.checkId}`)!.id);
+    const texts = changed.map((t) => t.remediationEs);
+    const written = await prisma.$executeRaw`
+      UPDATE catalog.checks AS c
+      SET remediation_es = v.remediation_es, translation_origin = 'machine'::catalog.check_translation_origin
+      FROM unnest(${ids}::uuid[], ${texts}::text[]) AS v(id, remediation_es)
+      WHERE c.id = v.id`;
+    console.log(`\n✓ Escritas ${written} guías en una sola consulta.`);
   } finally {
     await prisma.$disconnect();
   }
