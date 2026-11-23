@@ -39,8 +39,10 @@ beforeAll(async () => {
   ({ a } = await dosEmpresas(app));
   await owner(`update tenant.service_frameworks set period_start = '2026-01-01', period_end = '2026-12-31', cutoff_date = '2026-10-14' where service_id = $1`, [a.serviceId]);
   links = await owner(
-    `select distinct c.id, cct.test_id, sf.catalog_version_id from tenant.client_controls c join tenant.client_control_tests cct on cct.client_control_id = c.id
-       join catalog.tests t on t.id = cct.test_id and t.dimension = 'cloud' join tenant.service_frameworks sf on sf.service_id = c.service_id
+    `select distinct c.id, crt.test_id, sf.catalog_version_id from tenant.client_controls c
+       join tenant.client_control_requirements ccr on ccr.client_control_id = c.id
+       join catalog.control_requirement_tests crt on crt.control_requirement_id = ccr.control_requirement_id
+       join catalog.tests t on t.id = crt.test_id and t.dimension = 'cloud' join tenant.service_frameworks sf on sf.service_id = c.service_id
       where c.service_id = $1 and c.is_active`,
     [a.serviceId],
   );

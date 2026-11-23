@@ -73,10 +73,13 @@ describe('Resumen del servicio — con la evaluación definida y resultados', ()
     const rows = await owner<{ id: string; test_id: string; catalog_version_id: string }>(
       `select c.id, t.id as test_id, sf.catalog_version_id
          from tenant.client_controls c
-         join tenant.client_control_tests cct on cct.client_control_id = c.id
-         join catalog.tests t on t.id = cct.test_id and t.dimension = 'cloud'
+         join tenant.client_control_requirements ccr on ccr.client_control_id = c.id
+         join catalog.control_requirement_tests crt on crt.control_requirement_id = ccr.control_requirement_id
+         join catalog.tests t on t.id = crt.test_id and t.dimension = 'cloud' and t.type = 'technical'
          join tenant.service_frameworks sf on sf.service_id = c.service_id
-        where c.service_id = $1 and c.is_active order by c.own_code limit 1`,
+        where c.service_id = $1 and c.is_active
+          and exists (select 1 from catalog.test_checks tc where tc.test_id = t.id and tc.role = 'direct' and tc.check_id is not null)
+        order by c.own_code limit 1`,
       [a.serviceId],
     );
     const c = rows[0];
@@ -101,7 +104,8 @@ describe('Resumen del servicio — con la evaluación definida y resultados', ()
     expect(failing[0]).toMatchObject({ code: expect.stringMatching(/^[A-Z]+-\d+$/), requirement_codes: expect.any(Array), own_code: null, readiness: expect.stringMatching(/needs_work|almost_ready/) });
     expect(failing[0].failing).toEqual([{ dimension: 'cloud', affected: [{ kind: 'asset', id: a.assetId, name: a.assetName }] }]);
     expect(fw.readiness).not.toBe('not_measured');
-    expect(fw.coverage.measured).toBe(1);
+    // v2 (MD-498): un control está «decidido» cuando ningún requisito sigue pendiente; este tiene una excepción pero otros requisitos pendientes.
+    expect(fw.coverage.measured).toBe(0);
   });
 
   it('el marco cuenta controles únicos: el total no supera la suma de las categorías', async () => {
@@ -151,7 +155,7 @@ describe('Resumen del servicio — con la evaluación definida y resultados', ()
       const admin = soc2(await read(a.agent));
       expect(own.progress.total).toBe(2);
       expect(own.progress.total).toBeLessThan(admin.progress.total);
-      expect(own.coverage).toEqual({ measured: 1, applicable: 2 });
+      expect(own.coverage).toEqual({ measured: 0, applicable: 2 });
       expect(own.evaluation).toEqual(admin.evaluation);
       expect(own.categories.length).toBeGreaterThan(0);
       for (const c of own.categories) expect(c.progress.total).toBeLessThanOrEqual(2);
@@ -197,7 +201,7 @@ describe('Resumen del servicio — quién puede pedir qué', () => {
     const category = fw.categories[0];
     expect(category.technical.state).toEqual(expect.any(String));
     const line = category.technical.controls[0];
-    expect(line).toEqual({ control_id: expect.any(String), control_code: expect.stringMatching(/^[A-Z]+-\d+$/), state: expect.any(String), progress: { done: expect.any(Number), total: expect.any(Number) }, blocking_tests: expect.any(Array) });
+    expect(line).toEqual({ control_id: expect.any(String), control_code: expect.stringMatching(/^[A-Z]+-\d+$/), state: expect.any(String), progress: { done: expect.any(Number), total: expect.any(Number) }, level: expect.stringMatching(/^(not_evaluated|ineffective|weak|partial|adequate|solid)$/), level_value: expect.any(Number), complies: expect.any(Boolean), c_percent: { asymmetricMatch: (v: unknown) => v === null || typeof v === 'number' }, blocking_requirements: expect.any(Array), blocking_tests: expect.any(Array) });
   });
 
   it('el control que no cumple lista, en la vista técnica, los tests que lo bloquean', async () => {

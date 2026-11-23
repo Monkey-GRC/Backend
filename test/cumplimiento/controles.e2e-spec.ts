@@ -42,6 +42,9 @@ afterAll(async () => {
 
 const items = async (agent: Agent, query = '') => (await agent.get(`${listPath}${query}`).expect(200)).body.data.items as Array<Record<string, any>>;
 
+// Un valor que puede ser nulo o cumplir el comparador.
+const nullOr = (matcher: { asymmetricMatch(v: unknown): boolean }) => ({ asymmetricMatch: (v: unknown) => v === null || matcher.asymmetricMatch(v) });
+
 describe('Lista de acciones de protección', () => {
   it('el administrador de la empresa recibe la lista paginada, con la forma del contrato', async () => {
     const res = await a.agent.get(listPath).expect(200);
@@ -127,6 +130,10 @@ describe('Quién puede pedir qué', () => {
     expect(admin[0].technical).toEqual({
       points_of_focus: expect.any(Array),
       control_state: expect.any(String),
+      level: expect.stringMatching(/^(not_evaluated|ineffective|weak|partial|adequate|solid)$/),
+      level_value: expect.any(Number),
+      complies: expect.any(Boolean),
+      c_percent: nullOr(expect.any(Number)),
       tests_count: expect.any(Number),
     });
     // Una prueba de una dimensión sin activos conectados sale igual, como «Sin activos»; las documentales, pendientes.
@@ -141,6 +148,32 @@ describe('Quién puede pedir qué', () => {
     expect(description === null || typeof description === 'string').toBe(true);
     expect(adminDetail.technical.tests.some((t: any) => t.state === 'no_assets' || t.state === 'pending')).toBe(true);
     expect(adminDetail.technical).toEqual((await detailOf(auditor, withTests.id)).technical);
+    // MD-498 · el detalle técnico trae los requisitos del control con su estado y sus pruebas.
+    expect(adminDetail.technical.requirements.length).toBeGreaterThan(0);
+    const requirement = adminDetail.technical.requirements[0];
+    expect(requirement).toEqual({
+      id: expect.any(String), code: expect.stringMatching(/-L\d+$/), text: expect.any(String), type: expect.any(String), periodicity: nullOr(expect.any(String)),
+      status: expect.stringMatching(/^(compliant|non_compliant|pending|expired|not_applicable)$/),
+      tests: expect.any(Array),
+    });
+    expect(requirement.tests[0]).toEqual({
+      test_id: expect.any(String), test_code: expect.any(String), display_name: expect.any(String), status: expect.stringMatching(/^(pending|correct|observation|exception|not_applicable|expired)$/),
+      window_end: nullOr(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)), checks: nullOr(expect.any(Object)), asset_coverage: nullOr(expect.any(Object)),
+    });
+    expect(JSON.stringify(adminDetail)).not.toMatch(/wazuh|prowler/i);
+  });
+
+  it('los requisitos del control solo viajan con view=technical: sin ella, ni el bloque técnico ni el nivel salen', async () => {
+    const id = (await items(a.agent))[0].id;
+    const plain = (await a.agent.get(`/v1/controls/${id}`).expect(200)).body.data;
+    expect(plain.technical).toBeUndefined();
+    expect(JSON.stringify(plain)).not.toMatch(/"requirements"|"level"|"c_percent"|"blocking_requirements"/);
+    const listed = (await items(a.agent))[0];
+    expect(listed.technical).toBeUndefined();
+    const technical = (await a.agent.get(`/v1/controls/${id}?view=technical`).expect(200)).body.data.technical;
+    expect(Array.isArray(technical.requirements)).toBe(true);
+    // la lista técnica trae el nivel pero no el detalle de los requisitos
+    expect((await items(a.agent, '?view=technical'))[0].technical.requirements).toBeUndefined();
   });
 
   it('el auditor de la empresa ve todas las acciones, también con el bloque técnico', async () => {
@@ -149,6 +182,10 @@ describe('Quién puede pedir qué', () => {
     expect(technical[0].technical).toEqual({
       points_of_focus: expect.any(Array),
       control_state: expect.any(String),
+      level: expect.stringMatching(/^(not_evaluated|ineffective|weak|partial|adequate|solid)$/),
+      level_value: expect.any(Number),
+      complies: expect.any(Boolean),
+      c_percent: nullOr(expect.any(Number)),
       tests_count: expect.any(Number),
     });
     expect(technical.some((c) => c.requirement_codes.some((r: string) => /^CC\d/.test(r)))).toBe(true);
@@ -229,10 +266,13 @@ describe('El estado sale de los resultados guardados', () => {
     const rows = await owner<{ id: string; test_id: string; catalog_version_id: string }>(
       `select c.id, t.id as test_id, sf.catalog_version_id
          from tenant.client_controls c
-         join tenant.client_control_tests cct on cct.client_control_id = c.id
-         join catalog.tests t on t.id = cct.test_id and t.dimension = 'cloud'
+         join tenant.client_control_requirements ccr on ccr.client_control_id = c.id
+         join catalog.control_requirement_tests crt on crt.control_requirement_id = ccr.control_requirement_id
+         join catalog.tests t on t.id = crt.test_id and t.dimension = 'cloud' and t.type = 'technical'
          join tenant.service_frameworks sf on sf.service_id = c.service_id
-        where c.service_id = $1 and c.is_active order by c.own_code limit 1`,
+        where c.service_id = $1 and c.is_active
+          and exists (select 1 from catalog.test_checks tc where tc.test_id = t.id and tc.role = 'direct' and tc.check_id is not null)
+        order by c.own_code limit 1`,
       [a.serviceId],
     );
     return rows[0];
@@ -244,23 +284,29 @@ describe('El estado sale de los resultados guardados', () => {
       [a.companyId, a.serviceId, c.id, c.test_id, a.assetId, c.catalog_version_id, result],
     );
 
-  it('un resultado que cumple suma al avance; uno posterior que falla lo señala; el más reciente manda', async () => {
+  const cloudTest = (d: any, testId: string) => d.technical.requirements.flatMap((r: any) => r.tests).find((t: any) => t.test_id === testId);
+
+  it('un resultado que cumple deja su prueba Correcta; uno posterior que falla la pasa a Excepción; el más reciente manda', async () => {
     const c = await targetControl();
     const before = (await auditor.get(`/v1/controls/${c.id}?view=technical`).expect(200)).body.data;
+    expect(cloudTest(before, c.test_id).status).toBe('pending');
 
     await record(c, 'compliant');
     const passed = (await auditor.get(`/v1/controls/${c.id}?view=technical`).expect(200)).body.data;
-    expect(passed.progress.done).toBe(before.progress.done + 1);
-    expect(passed.coverage.measured).toBe(before.coverage.measured + 1);
-    expect(passed.readiness).not.toBe('not_measured');
+    // Un requisito técnico lleva pruebas de varias dimensiones (T-05): el requisito cumple cuando todas cumplen, no solo la de nube.
+    expect(cloudTest(passed, c.test_id)).toMatchObject({ status: 'correct', checks: { direct_pass: 1, direct_fail: 0 }, asset_coverage: { with_result: 1, in_scope: 1 } });
     expect(passed.technical.tests.some((t: any) => t.dimension === 'cloud' && t.state === 'compliant')).toBe(true);
     expect(passed.failing).toEqual([]);
 
     await record(c, 'non_compliant');
     const failed = (await auditor.get(`/v1/controls/${c.id}?view=technical`).expect(200)).body.data;
-    expect(failed.progress.done).toBe(before.progress.done);
+    expect(cloudTest(failed, c.test_id)).toMatchObject({ status: 'exception', checks: { direct_pass: 0, direct_fail: 1 } });
+    expect(failed.technical.requirements.some((r: any) => r.status === 'non_compliant')).toBe(true);
     expect(failed.technical.control_state).toBe('ineffective');
+    expect(failed.complies).toBeUndefined();
+    expect(failed.technical.complies).toBe(false);
     expect(failed.failing).toEqual([{ dimension: 'cloud', affected: [{ kind: 'asset', id: a.assetId, name: a.assetName }] }]);
+    expect(failed.coverage.measured).toBeGreaterThan(before.coverage.measured);
     expect(failed.readiness).toMatch(/needs_work|almost_ready/);
     // el cliente ve en qué falla, con el código del control y sin códigos de prueba
     const business = (await a.agent.get(`/v1/controls/${c.id}`).expect(200)).body.data;

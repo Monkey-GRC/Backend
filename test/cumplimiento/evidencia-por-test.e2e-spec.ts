@@ -19,6 +19,7 @@ let responsableDoc: Agent; // dueño de todos los controles del servicio (D102)
 let responsableOtro: Agent; // sin controles asignados
 let adminId: string;
 let controlX: string;
+let seededRequirementTest: string | undefined;
 let controlY: string;
 let docTest: TestRef;
 let sharedTest: TestRef; // un test manual no documental que llevan al menos dos controles
@@ -77,6 +78,12 @@ beforeAll(async () => {
     [a.serviceId, seed.dimension, seed.control_id],
   );
   await owner(`insert into tenant.client_control_tests (id, tenant_id, client_control_id, test_id) values (gen_random_uuid(), $1, $2, $3)`, [a.companyId, second.id, seed.test_id]);
+  // v2 (MD-498): las pruebas de un control salen de los requisitos del catálogo; para que el segundo control la lleve también, un requisito suyo la suma (se retira en afterAll).
+  seededRequirementTest = (await owner<{ id: string }>(
+    `insert into catalog.control_requirement_tests (id, control_requirement_id, test_id)
+     select gen_random_uuid(), ccr.control_requirement_id, $2 from tenant.client_control_requirements ccr where ccr.client_control_id = $1 order by ccr.control_requirement_id limit 1 returning id`,
+    [second.id, seed.test_id],
+  ))[0].id;
 
   // Un test no documental que lleven al menos dos controles vigentes: se marca como manual en esos controles y se les pone un requerimiento que lo sirva.
   const shared = await owner<{ id: string; code: string; dimension: string }>(
@@ -97,6 +104,7 @@ beforeAll(async () => {
   }
 });
 afterAll(async () => {
+  if (seededRequirementTest) await owner(`delete from catalog.control_requirement_tests where id = $1`, [seededRequirementTest]);
   await app?.close();
 });
 

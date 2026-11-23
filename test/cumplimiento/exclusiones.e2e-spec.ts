@@ -73,9 +73,27 @@ beforeAll(async () => {
     [a.serviceId],
   );
   const byDimension = (d: string) => tests.find((t) => t.dimension === d)!;
-  testId = byDimension('cloud').id;
-  testCode = byDimension('cloud').code;
-  controlId = byDimension('cloud').client_control_id;
+  // v2 (MD-498, D135): una excepción deja pasar un FAIL, así que la prueba de nube debe decidirla un check Directo y tener un resultado que falle.
+  const cloud = (await owner<{ id: string; code: string; client_control_id: string; catalog_version_id: string }>(
+    `select t.id, t.code, cc.id client_control_id, sf.catalog_version_id
+       from tenant.client_controls cc
+       join tenant.client_control_requirements ccr on ccr.client_control_id = cc.id
+       join catalog.control_requirement_tests crt on crt.control_requirement_id = ccr.control_requirement_id
+       join catalog.tests t on t.id = crt.test_id and t.dimension = 'cloud' and t.type = 'technical'
+       join tenant.service_frameworks sf on sf.service_id = cc.service_id
+      where cc.service_id = $1 and cc.is_active
+        and exists (select 1 from catalog.test_checks tc where tc.test_id = t.id and tc.role = 'direct' and tc.check_id is not null)
+      order by t.code, cc.own_code limit 1`,
+    [a.serviceId],
+  ))[0];
+  testId = cloud.id;
+  testCode = cloud.code;
+  controlId = cloud.client_control_id;
+  await owner(
+    `insert into tenant.evaluations (id, tenant_id, service_id, client_control_id, test_id, asset_id, catalog_version_id, dimension, result, origin)
+     values (gen_random_uuid(), $1, $2, $3, $4, $5, $6, 'cloud', 'non_compliant'::tenant.evaluation_result, 'automated')`,
+    [a.companyId, a.serviceId, controlId, testId, a.assetId, cloud.catalog_version_id],
+  );
   serverTestId = byDimension('server').id;
   policyTestId = byDimension('policy').id;
 });
@@ -92,8 +110,8 @@ describe('Crear una exclusión (el admin_empresa la crea y la decide en un solo 
     await definePeriod(day(120));
   });
 
-  it('nace aprobada, con la vigencia de hoy al fin del período, y el activo deja de medirse', async () => {
-    expect(await stateOfTest()).not.toBe('no_assets');
+  it('nace aprobada, con la vigencia de hoy al fin del período, y el FAIL del activo pasa a contar como PASS marcado (D135)', async () => {
+    expect(await stateOfTest()).toBe('non_compliant');
     const res = await create(a.agent).expect(201);
     expect(res.body.data).toEqual({
       id: expect.any(String),
@@ -112,19 +130,25 @@ describe('Crear una exclusión (el admin_empresa la crea y la decide en un solo 
       decision_note: null,
       decided_at: expect.any(String),
     });
-    // La única cuenta de nube de la empresa quedó excluida de ese test: el test no tiene sobre qué correr.
-    expect(await stateOfTest()).toBe('no_assets');
+    // La única cuenta de nube de la empresa falla ese check con una excepción vigente: cuenta como PASS y se muestra marcada; el activo sigue en el alcance y en la cobertura.
+    expect(await stateOfTest()).toBe('compliant');
+    const technical = (await a.agent.get(`/v1/controls/${controlId}?view=technical`).expect(200)).body.data.technical;
+    const test = technical.requirements.flatMap((r: any) => r.tests).find((t: any) => t.test_code === testCode);
+    expect(test).toMatchObject({ status: 'correct', checks: { direct_pass: 0, direct_fail: 0, direct_exception: 1 }, asset_coverage: { with_result: 1, in_scope: 1 } });
   });
 
   it('deja su rastro, su evento de cumplimiento y, si mueve el control, el evento de su estado (D91)', async () => {
     const eventsBefore = await approvalEvents(a.companyId);
     const controlBefore = await controlState();
+    const stateEventsOf = () =>
+      owner<{ previous_value: any; new_value: any; user_id: string }>(
+        `select previous_value, new_value, user_id from audit.compliance_events where tenant_id = $1 and changed_field = 'control.state' and new_value->>'cause' = 'exclusion_approved' and new_value->>'control_id' = $2 order by created_at`,
+        [a.companyId, controlId],
+      );
+    const already = (await stateEventsOf()).length;
     const id = (await create(a.agent).expect(201)).body.data.id;
     const controlAfter = await controlState();
-    const stateEvents = await owner<{ previous_value: any; new_value: any; user_id: string }>(
-      `select previous_value, new_value, user_id from audit.compliance_events where tenant_id = $1 and changed_field = 'control.state' and new_value->>'cause' = 'exclusion_approved' and new_value->>'control_id' = $2`,
-      [a.companyId, controlId],
-    );
+    const stateEvents = (await stateEventsOf()).slice(already);
     // Crearla mueve el estado del control, o no; y el historial lo dice exactamente: un evento si cambió, ninguno si no.
     if (controlBefore.state === controlAfter.state && controlBefore.readiness === controlAfter.readiness) expect(stateEvents).toHaveLength(0);
     else {
@@ -199,9 +223,9 @@ describe('Vencer y renovar', () => {
 
   it('una aprobada cuya vigencia pasó deja de excluir: el activo vuelve a contar, y se puede renovar con una nueva', async () => {
     const id = (await create(a.agent).expect(201)).body.data.id;
-    expect(await stateOfTest()).toBe('no_assets');
+    expect(await stateOfTest()).toBe('compliant');
     await owner(`update tenant.exclusions set valid_from = $2, valid_until = $3 where id = $1`, [id, day(-30), day(-1)]);
-    expect(await stateOfTest()).not.toBe('no_assets');
+    expect(await stateOfTest()).toBe('non_compliant');
     const listed = (await a.agent.get(list(a)).expect(200)).body.data.items.find((e: any) => e.id === id);
     expect(listed).toMatchObject({ status: 'approved', is_expired: true });
     await create(a.agent).expect(201); // se revalida, no se hereda
