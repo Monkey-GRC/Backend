@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { appUrl, platformAppUrl } from '../../../common/mail/app-url';
+import { appUrl } from '../../../common/mail/app-url';
 import { Mailer } from '../../../common/mail/mailer';
 import { Invitation } from '../domain/admin-account';
 import { AdminInvitationEmailInput, buildAdminInvitationEmail } from './admin-invitation-email';
@@ -19,8 +19,9 @@ export class AdminInvitationDelivery {
   ) {}
 
   async deliver(input: AdminInvitationDeliveryInput): Promise<Invitation['deliveryStatus']> {
-    // El enlace va a Monkey Admin; sin ADMIN_APP_URL cae a PLATFORM_APP_URL, como el correo de recuperar la contraseña.
-    const url = appUrl(this.config, 'ADMIN_APP_URL') ?? platformAppUrl(this.config) ?? null;
+    // El enlace va solo a Monkey Admin: sin ADMIN_APP_URL el correo sale sin enlace (nunca a Platform) y se avisa en el log.
+    const url = appUrl(this.config, 'ADMIN_APP_URL') ?? null;
+    if (!url) this.logger.warn('La invitación de administrador sale sin enlace: falta ADMIN_APP_URL.');
     try {
       await this.mailer.send(buildAdminInvitationEmail({ ...input, appUrl: url }));
       return 'sent';
