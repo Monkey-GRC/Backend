@@ -1,10 +1,10 @@
-// Construye, a partir de la hoja «Checks» del Excel del comité y del conjunto de reglas de la sonda, el catálogo de políticas y checks de servidores (D113).
+// Construye, a partir de la hoja «Checks Wazuh» de la VF18 y del conjunto de reglas de la sonda, el catálogo de políticas y checks de servidores (D113).
 // Dominio puro: sin Excel, sin archivos y sin base de datos (los scripts de extracción y de carga se los pasan). Así se prueba con datos chicos.
 //
 // Reglas que no se rompen:
 //  - Una política del catálogo SIN su par en la sonda (o al revés) es un error: no se ofrece nada que la sonda no entregue (D113).
 //  - Una política que no se reconoce como sistema operativo ni como base de datos/aplicación es un error: no se adivina su etiqueta.
-//  - La asignación check → prueba entra como `monkey_proposed`: la hoja del comité no es la versión final (Carlos, 2026-11-11).
+//  - Los vínculos prueba → check ya no se proponen aquí: los define el comité en TEST_CHECKS y los cruza `catalog/checks-cross.ts` (DEV-12).
 import { classifyPolicy, compareNewestFirst, PolicyClass, versionCode } from './classify-policy';
 
 export type ExcelCheckRow = Record<string, unknown>;
@@ -45,19 +45,15 @@ export type SeedCheck = {
 };
 
 export type SeedMapping = { policyId: string; checkId: string; frameworkCode: 'soc2'; frameworkVersion: '2017'; requirementCode: string; provenance: 'engine_native' };
-export type SeedTestCheck = { testCode: string; policyId: string; checkId: string; provenance: 'monkey_proposed'; confidence: null; rationale: string };
 
 export type SondaDataset = {
   meta: { sourceFile: string; sourceSha256: string; sondaVersion: string; rulesetRef: string; counts: Record<string, number> };
   policies: SeedPolicy[];
   checks: SeedCheck[];
   mappings: SeedMapping[];
-  testChecks: SeedTestCheck[];
   // Lo que se vio y NO impide cargar, pero hay que mirar.
   warnings: string[];
 };
-
-export const RATIONALE = 'Hoja «Checks» del Excel del comité (VF2). La hoja no es la versión final: queda propuesta hasta que el comité la ratifique.';
 
 // Valor de la columna «Plataforma» → `platform` del catálogo. «Ol» es cómo el comité abrevió Oracle Linux; el resto se pasa a minúsculas con guion bajo.
 const PLATFORM_SLUG: Record<string, string> = {
@@ -77,7 +73,7 @@ const slug = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').
 export type BuildInput = {
   rows: readonly ExcelCheckRow[];
   ruleset: readonly RulesetPolicy[];
-  // Requisitos de SOC 2 que existen en el catálogo cargado: un código que no está se informa (no se descarta en silencio).
+  // Criterios de SOC 2 de 8_MATRIZ_MAESTRA: un código que no está se informa (no se descarta en silencio).
   soc2RequirementCodes: ReadonlySet<string>;
   source: { file: string; sha256: string; sondaVersion: string; rulesetRef: string };
 };
@@ -162,11 +158,10 @@ export function buildSondaDataset(input: BuildInput): SondaDataset {
     })
     .sort((a, b) => a.sortOrder - b.sortOrder || a.scaId.localeCompare(b.scaId));
 
-  // 3. Checks, su mapeo a SOC 2 (la sonda etiqueta `tsc` en unas políticas y `soc_2` en otras: es el mismo marco) y su asignación propuesta a las pruebas.
+  // 3. Checks y su mapeo a SOC 2 (la sonda etiqueta `tsc` en unas políticas y `soc_2` en otras: es el mismo marco).
   const scaIdOf = new Map(drafts.map((d) => [`${d.g.platformLabel}||${d.g.name}`, d.scaId]));
   const checks: SeedCheck[] = [];
   const mappings: SeedMapping[] = [];
-  const testChecks: SeedTestCheck[] = [];
   const unknownRequirements = new Map<string, number>();
   const seen = new Set<string>();
 
@@ -205,7 +200,6 @@ export function buildSondaDataset(input: BuildInput): SondaDataset {
         mappingConfidence: known.length > 0 ? 'high' : 'low',
       });
       for (const code of known) mappings.push({ policyId, checkId, frameworkCode: 'soc2', frameworkVersion: '2017', requirementCode: code, provenance: 'engine_native' });
-      for (const testCode of [...new Set(list(r['TEST']))]) testChecks.push({ testCode, policyId, checkId, provenance: 'monkey_proposed', confidence: null, rationale: RATIONALE });
     }
   }
   if (unknownRequirements.size > 0) {
@@ -220,12 +214,11 @@ export function buildSondaDataset(input: BuildInput): SondaDataset {
       sourceSha256: input.source.sha256,
       sondaVersion: input.source.sondaVersion,
       rulesetRef: input.source.rulesetRef,
-      counts: { policies: policies.length, offerable: policies.filter((p) => p.isOfferable).length, checks: checks.length, mappings: mappings.length, testChecks: testChecks.length },
+      counts: { policies: policies.length, offerable: policies.filter((p) => p.isOfferable).length, checks: checks.length, mappings: mappings.length },
     },
     policies,
     checks,
     mappings,
-    testChecks,
     warnings,
   };
 }

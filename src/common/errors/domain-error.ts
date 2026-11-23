@@ -46,6 +46,8 @@ export type DomainErrorCode =
   | 'LINK_ALREADY_EXISTS'
   // Monkey Admin, catálogo maestro (contracts/modules/monkey-admin-catalog.md): lo que se quiere dar de baja o desvincular lo necesita otro elemento activo.
   | 'CATALOG_ITEM_IN_USE'
+  // MD-491 · El catálogo v2 solo lo cambia la carga; la administración queda en solo lectura (contracts/catalogo-maestro.md).
+  | 'CATALOG_READ_ONLY'
   | 'RISK_INACTIVE'
   | 'CAUSE_INACTIVE'
   // Exclusiones (contracts/modules/compliance-audit.md, MD-144).

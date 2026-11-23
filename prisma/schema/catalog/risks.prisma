@@ -6,6 +6,7 @@ enum FailureCategory {
   infrastructure        // Infraestructura
   external              // Externos
   governance            // Gobierno
+
   @@map("failure_category")
   @@schema("catalog")
 }
@@ -24,6 +25,7 @@ enum RiskCriterion {
   fraud
   reputation
   operations
+
   @@map("risk_criterion")
   @@schema("catalog")
 }
@@ -35,7 +37,41 @@ enum RiskLevel {
   moderate
   high
   critical
+
   @@map("risk_level")
+  @@schema("catalog")
+}
+
+// Catálogo v2 (D129): reemplazan a failure_category.
+enum CauseOrigin {
+  internal
+  external
+
+  @@map("cause_origin")
+  @@schema("catalog")
+}
+
+enum CauseType {
+  human
+  processes
+  information
+  measurement
+  technology
+  physical_infrastructure
+  criminal_security
+  third_parties
+  legal_regulatory
+  environmental
+  organizational_governance
+  internal_financial
+  strategic
+  external_technology
+  climate
+  biological
+  political
+  economic
+
+  @@map("cause_type")
   @@schema("catalog")
 }
 
@@ -66,8 +102,12 @@ model Risk {
 model Cause {
   id              String          @id @default(uuid()) @db.Uuid
   code            String          @unique
-  name            String
-  failureCategory FailureCategory @map("failure_category")
+  // v2: nulos (la causa ya no trae nombre ni categoría de falla).
+  name            String?
+  failureCategory FailureCategory? @map("failure_category")
+  // v2. Ojo: `origin` (abajo) ya es catalog_origin; el origen interno/externo de la causa va en `cause_origin`.
+  causeOrigin     CauseOrigin?     @map("cause_origin")
+  causeType       CauseType?       @map("cause_type")
   description     String          @db.Text
   // De dónde viene la fila: el Excel del comité o Monkey Admin (contracts/modules/monkey-admin-catalog.md). El seed no toca las `monkey_admin`.
   origin      CatalogOrigin @default(committee)
@@ -84,7 +124,8 @@ model Cause {
 
 model RiskCause {
   id      String @id @default(uuid()) @db.Uuid
-  code    String @unique
+  // Nulo en la v2.
+  code    String? @unique
   riskId  String @map("risk_id") @db.Uuid
   causeId String @map("cause_id") @db.Uuid
 

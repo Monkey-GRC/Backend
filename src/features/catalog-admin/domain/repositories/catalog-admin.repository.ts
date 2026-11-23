@@ -35,7 +35,9 @@ export type FrameworkDetail = FrameworkSummary & {
 
 export type ControlSummary = Stamped & {
   name: string;
-  domain: string;
+  domain: string | null;
+  /** Los dominios distintos de sus puntos de enfoque, en orden; `domain` es el primero. */
+  domains: string[];
   isActive: boolean;
   dimensions: string[];
   testsCount: number;
@@ -45,7 +47,9 @@ export type ControlSummary = Stamped & {
 export type ControlDetail = Stamped & {
   name: string;
   description: string;
-  domain: string;
+  domain: string | null;
+  /** Los dominios distintos de sus puntos de enfoque, en orden; `domain` es el primero. */
+  domains: string[];
   sourceRef: string | null;
   isActive: boolean;
   pointsOfFocus: Array<{ id: string; frameworkCode: string; requirementCode: string; number: number; description: string }>;
@@ -53,7 +57,7 @@ export type ControlDetail = Stamped & {
   tests: Array<{ id: string; code: string; dimension: string; displayName: string | null; isActive: boolean }>;
   evidenceTemplates: Array<{ id: string; code: string; description: string; sequence: number }>;
   policies: Array<{ name: string; requiresEmployeeAcceptance: boolean }>;
-  causes: Array<{ id: string; code: string; name: string }>;
+  causes: Array<{ id: string; code: string; name: string | null }>;
 };
 
 export type RiskSummary = Stamped & { name: string; trustCriterion: string; isActive: boolean; causesCount: number };
@@ -64,15 +68,15 @@ export type RiskDetail = Stamped & {
   trustCriterion: string;
   potentialImpact: unknown;
   isActive: boolean;
-  causes: Array<{ id: string; code: string; name: string }>;
+  causes: Array<{ id: string; code: string; name: string | null }>;
 };
 
-export type CauseSummary = Stamped & { name: string; failureCategory: string; isActive: boolean; risksCount: number; controlsCount: number };
+export type CauseSummary = Stamped & { name: string | null; failureCategory: string | null; isActive: boolean; risksCount: number; controlsCount: number };
 
 export type CauseDetail = Stamped & {
-  name: string;
+  name: string | null;
   description: string;
-  failureCategory: string;
+  failureCategory: string | null;
   isActive: boolean;
   risks: Array<{ id: string; code: string; name: string }>;
   controls: Array<{ id: string; code: string; name: string }>;
@@ -80,9 +84,9 @@ export type CauseDetail = Stamped & {
 
 export type TestSummary = Stamped & {
   dimension: string;
-  name: string;
+  name: string | null;
   displayName: string | null;
-  type: string;
+  type: string | null;
   isActive: boolean;
   controlsCount: number;
 };
@@ -90,30 +94,30 @@ export type TestSummary = Stamped & {
 // Los textos del comité se ven aquí porque quien lee es `admin_monkey`; al cliente no salen nunca (D70).
 export type TestDetail = Stamped & {
   dimension: string;
-  name: string;
+  name: string | null;
   displayName: string | null;
   displayDescription: string | null;
   isActive: boolean;
   committee: {
     objective: string;
-    type: string;
-    tool: string;
-    population: string;
-    period: string;
-    populationSize: string;
-    suggestedSampleSize: string;
-    selectionMethod: string;
-    evidenceToRequest: string;
-    prerequisites: string;
+    type: string | null;
+    tool: string | null;
+    population: string | null;
+    period: string | null;
+    populationSize: string | null;
+    suggestedSampleSize: string | null;
+    selectionMethod: string | null;
+    evidenceToRequest: string | null;
+    prerequisites: string | null;
     stepByStep: unknown;
     attributesToValidate: unknown;
-    complianceCriterion: string;
-    exceptions: string;
-    exceptionsHandling: string;
-    evidenceToRetain: string;
-    automatedCoverage: string;
-    complementaryManualValidation: string;
-    limitations: string;
+    complianceCriterion: string | null;
+    exceptions: string | null;
+    exceptionsHandling: string | null;
+    evidenceToRetain: string | null;
+    automatedCoverage: string | null;
+    complementaryManualValidation: string | null;
+    limitations: string | null;
   };
   controls: Array<{ id: string; code: string; name: string }>;
 };

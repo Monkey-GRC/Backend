@@ -1,15 +1,15 @@
-// Políticas, checks, su mapeo a SOC 2 y su asignación PROPUESTA a las pruebas de servidores (D113) → base de datos.
+// Políticas, checks y su mapeo a SOC 2 (D113) → base de datos. Los vínculos prueba–check los carga `catalog:load` (TEST_CHECKS, DEV-12).
 //
 //   npm run sonda:load              # dry-run
 //   npm run sonda:load -- --apply   # escribe, en UNA transacción
 //   npm run sonda:verify            # solo lectura; sale con código 1 si algo no cuadra
 //
 // Mismas reglas que los otros seeds: solo inserta lo que falta, aborta con diff si una fila existe con contenido distinto, no borra nada y se niega a
-// correr como `monkey_app`. Requiere el catálogo de SOC 2 ya cargado (las pruebas T-SRV y T-BD).
+// correr como `monkey_app`.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { gunzipSync } from 'node:zlib';
-import { connectAsOwner, short } from './soc2/db';
+import { connectAsOwner, short } from './db';
 import { SondaDataset } from './sonda/build';
 
 const apply = process.argv.includes('--apply');
@@ -17,8 +17,6 @@ const verify = process.argv.includes('--verify');
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const chunks = <T>(xs: T[], n: number): T[][] => Array.from({ length: Math.ceil(xs.length / n) }, (_v, i) => xs.slice(i * n, (i + 1) * n));
 const CHUNK = 2000;
-// Las pruebas de la dimensión Aplicación no existen todavía en el catálogo (P9): sus asignaciones no se pueden cargar y se informan, no se inventan.
-const ABSENT_TESTS = /^T-APP-/;
 
 async function main() {
   const ds = JSON.parse(gunzipSync(readFileSync(resolve('prisma/seed/data/sonda-checks.json.gz'))).toString('utf8')) as SondaDataset;
@@ -30,19 +28,6 @@ async function main() {
       console.error('✗ Conectado como monkey_app: el seed usa el rol dueño (DATABASE_URL), no el de la app.');
       process.exit(1);
     }
-
-    // Pruebas: las que faltan en la base y no son de las ausentes por diseño impiden cargar.
-    const tests = await prisma.test.findMany({ select: { id: true, code: true } });
-    const testIdByCode = new Map(tests.map((t) => [t.code, t.id]));
-    const needed = [...new Set(ds.testChecks.map((t) => t.testCode))];
-    const absent = needed.filter((c) => !testIdByCode.has(c) && ABSENT_TESTS.test(c));
-    const missingTests = needed.filter((c) => !testIdByCode.has(c) && !ABSENT_TESTS.test(c));
-    if (missingTests.length) {
-      console.error(`✗ Faltan en la base las pruebas ${missingTests.join(', ')}. Carga primero el catálogo (npm run catalog:load -- --apply).`);
-      process.exit(1);
-    }
-    const testChecks = ds.testChecks.filter((t) => testIdByCode.has(t.testCode));
-    const skipped = ds.testChecks.length - testChecks.length;
 
     // Políticas.
     const conflicts: string[] = [];
@@ -77,24 +62,10 @@ async function main() {
     const dbMapKeys = new Set(dbMaps.map((m) => { const [p, c] = keyOfId.get(m.checkId)!.split('|'); return mapKey({ ...m, policyId: p, checkId: c }); }));
     const mapMissing = ds.mappings.filter((m) => !dbMapKeys.has(mapKey(m)));
 
-    const dbTcs = dbChecks.length ? await prisma.testCheck.findMany({ where: { checkId: { in: dbChecks.map((c) => c.id) } }, include: { test: { select: { code: true } } } }) : [];
-    const tcKey = (t: { testCode: string; policyId: string; checkId: string }) => `${t.testCode}|${t.policyId}|${t.checkId}`;
-    const dbTcByKey = new Map(dbTcs.map((t) => { const [p, c] = keyOfId.get(t.checkId)!.split('|'); return [tcKey({ testCode: t.test.code, policyId: p, checkId: c }), t] as const; }));
-    const tcMissing = testChecks.filter((t) => {
-      const d = dbTcByKey.get(tcKey(t));
-      if (!d) return true;
-      // Una asignación que el comité ya ratificó no se pisa con la propuesta (gana el comité).
-      if (d.provenance === 'committee_ratified') return false;
-      for (const f of ['provenance', 'confidence', 'rationale'] as const) if (!same(d[f], t[f])) conflicts.push(`asignación ${t.testCode}←${t.policyId}/${t.checkId}: ${f}  BD=${short(d[f])}  fuente=${short(t[f])}`);
-      return false;
-    });
-
     console.log('\ntabla            fuente   a insertar');
     console.log(`sca_policies     ${String(ds.policies.length).padStart(6)}   ${String(policyMissing.length).padStart(10)}`);
     console.log(`checks           ${String(ds.checks.length).padStart(6)}   ${String(checkMissing.length).padStart(10)}`);
     console.log(`check_mappings   ${String(ds.mappings.length).padStart(6)}   ${String(mapMissing.length).padStart(10)}`);
-    console.log(`test_checks      ${String(testChecks.length).padStart(6)}   ${String(tcMissing.length).padStart(10)}`);
-    if (skipped) console.log(`\n  ⚠ ${skipped} asignaciones a pruebas que no existen todavía (${absent.join(', ')}) no se cargan: la dimensión Aplicación está pendiente (P9).`);
     ds.warnings.forEach((w) => console.warn('  ⚠ ' + w));
     orphans.slice(0, 10).forEach((m) => console.warn('  ⚠ ' + m + ' (NO se toca)'));
     if (conflicts.length) {
@@ -103,13 +74,13 @@ async function main() {
       process.exit(1);
     }
 
-    const total = policyMissing.length + checkMissing.length + mapMissing.length + tcMissing.length;
+    const total = policyMissing.length + checkMissing.length + mapMissing.length;
     if (verify) {
       if (total || orphans.length) {
         console.error(`\n✗ La base no coincide con la fuente (faltan ${total} filas, ${orphans.length} huérfanas).`);
         process.exit(1);
       }
-      console.log(`\n✓ sca_policies = ${ds.policies.length}, checks = ${ds.checks.length}, check_mappings = ${ds.mappings.length}, test_checks = ${testChecks.length}: idénticos a la fuente.`);
+      console.log(`\n✓ sca_policies = ${ds.policies.length}, checks = ${ds.checks.length}, check_mappings = ${ds.mappings.length}: idénticos a la fuente.`);
       return;
     }
     if (total === 0) {
@@ -137,9 +108,6 @@ async function main() {
         const ids = new Map((await tx.check.findMany({ where: { policyId: { in: ds.policies.map((p) => p.scaId) } }, select: { id: true, policyId: true, checkId: true } })).map((c) => [`${c.policyId}|${c.checkId}`, c.id]));
         for (const part of chunks(mapMissing, CHUNK)) {
           await tx.checkMapping.createMany({ data: part.map((m) => ({ checkId: ids.get(`${m.policyId}|${m.checkId}`)!, frameworkCode: m.frameworkCode, frameworkVersion: m.frameworkVersion, requirementCode: m.requirementCode, provenance: m.provenance })) });
-        }
-        for (const part of chunks(tcMissing, CHUNK)) {
-          await tx.testCheck.createMany({ data: part.map((t) => ({ testId: testIdByCode.get(t.testCode)!, checkId: ids.get(`${t.policyId}|${t.checkId}`)!, provenance: t.provenance, confidence: t.confidence, rationale: t.rationale })) });
         }
       },
       { timeout: 600000 },

@@ -294,7 +294,11 @@
     "server": "Server",
     "database": "Database",
     "app": "Application",
-    "cloud": "Cloud"
+    "cloud": "Cloud",
+    "network": "Network",
+    "endpoint": "Endpoint",
+    "physical": "Physical and environmental",
+    "process": "Process"
   },
   "control_type": {
     "manual": "Manual",
@@ -360,5 +364,91 @@
       "cloud_shell": "You paste a command into Cloud Shell, inside the Google Cloud console. It is the fastest way and installs nothing.",
       "terraform": "You apply the configuration as code in your own infrastructure. For teams that already use Terraform."
     }
+  },
+  "catalog_control_type": {
+    "manual": "Manual",
+    "it_dependent_manual": "IT-dependent manual",
+    "automated": "Automated"
+  },
+  "periodicity": {
+    "permanent": "Permanent",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "bimonthly": "Every two months",
+    "quarterly": "Quarterly",
+    "semiannual": "Semiannual",
+    "annual": "Annual",
+    "on_demand": "When required"
+  },
+  "requirement_type": {
+    "documentary": "Documentary",
+    "population": "Population",
+    "operational": "Operational",
+    "technical": "Technical"
+  },
+  "test_primary_source": {
+    "document": "Document",
+    "manual": "Manual",
+    "probe": "Probe",
+    "cloud_engine": "Cloud engine",
+    "probe_and_cloud_engine": "Probe and cloud engine",
+    "integration": "Integration"
+  },
+  "test_level": {
+    "design": "Design",
+    "implementation": "Implementation",
+    "effectiveness": "Effectiveness",
+    "implementation_and_effectiveness": "Implementation and effectiveness"
+  },
+  "test_automation": {
+    "manual": "Manual",
+    "semi_automated": "Semi-automated",
+    "automated": "Automated"
+  },
+  "check_role": {
+    "direct": "Direct",
+    "complementary": "Complementary",
+    "dependency": "Dependency"
+  },
+  "cause_origin": {
+    "internal": "Internal",
+    "external": "External"
+  },
+  "cause_type": {
+    "human": "Human (people)",
+    "processes": "Processes and methods",
+    "information": "Information and data",
+    "measurement": "Measurement and monitoring",
+    "technology": "Technology (systems)",
+    "physical_infrastructure": "Physical infrastructure and assets",
+    "criminal_security": "Criminal and security",
+    "third_parties": "Third parties and supply chain",
+    "legal_regulatory": "Legal and regulatory",
+    "environmental": "Environmental / natural",
+    "organizational_governance": "Organizational and governance",
+    "internal_financial": "Internal financial",
+    "strategic": "Strategic",
+    "external_technology": "External technology",
+    "climate": "Climate (physical and transition)",
+    "biological": "Biological / public health",
+    "political": "Political and geopolitical",
+    "economic": "Economic and market"
+  },
+  "document_type": {
+    "policy": "Policy",
+    "procedure": "Procedure",
+    "matrix": "Matrix",
+    "manual": "Manual",
+    "document": "Document"
+  },
+  "document_origin": {
+    "internal": "Internal",
+    "external": "External"
+  },
+  "document_acceptance": {
+    "users_who_apply": "Users who apply it",
+    "all_users": "All users",
+    "not_required": "Not required"
   }
 }

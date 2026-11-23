@@ -1,0 +1,187 @@
+{
+  "engineVersion": "5.45.0",
+  "sourceSha256": "93e16a861e9902e1b855a1882cd332e430a19387eb15e2b62ea2f77876dc378b",
+  "checks": [
+    {
+      "platform": "nhn_cloud",
+      "policyId": "cloud_configuration",
+      "checkId": "compute_instance_login_user",
+      "titleEn": "Check for Administrative Login Users in NHN Compute Instances",
+      "titleEs": null,
+      "condition": "Checks if NHN Compute instances have administrative login users.",
+      "remediation": "Review the login users configured for each VM instance.",
+      "verificationRule": null,
+      "origin": "engine_native",
+      "mappingProvenance": "engine:nhn_cloud:5.45.0",
+      "mappingConfidence": "low",
+      "serviceName": "compute",
+      "resourceType": null,
+      "engineSeverity": "high",
+      "categories": []
+    },
+    {
+      "platform": "nhn_cloud",
+      "policyId": "cloud_configuration",
+      "checkId": "compute_instance_public_ip",
+      "titleEn": "Check for Public IP in NHN Compute Instances",
+      "titleEs": null,
+      "condition": "Check if a floating(public) IP is assigned to an NHN compute instance.",
+      "remediation": "Remove or unassign floating IP if not required to reduce external exposure.",
+      "verificationRule": null,
+      "origin": "engine_native",
+      "mappingProvenance": "engine:nhn_cloud:5.45.0",
+      "mappingConfidence": "low",
+      "serviceName": "compute",
+      "resourceType": null,
+      "engineSeverity": "low",
+      "categories": []
+    },
+    {
+      "platform": "nhn_cloud",
+      "policyId": "cloud_configuration",
+      "checkId": "compute_instance_security_groups",
+      "titleEn": "Check NHN Compute Security Group Configuration",
+      "titleEs": null,
+      "condition": "Checks if NHN Compute VM instances are using appropriate security group configurations. Using only the default security group can pose a security risk.",
+      "remediation": "Review and modify security group rules for each VM instance.",
+      "verificationRule": null,
+      "origin": "engine_native",
+      "mappingProvenance": "engine:nhn_cloud:5.45.0",
+      "mappingConfidence": "low",
+      "serviceName": "compute",
+      "resourceType": null,
+      "engineSeverity": "medium",
+      "categories": []
+    },
+    {
+      "platform": "nhn_cloud",
+      "policyId": "cloud_configuration",
+      "checkId": "network_vpc_has_empty_routingtables",
+      "titleEn": "Check if VPC has empty routing tables",
+      "titleEs": null,
+      "condition": "Check if VPC has empty routing tables. Having empty routing tables may indicate misconfiguration or incomplete network setup.",
+      "remediation": "Ensure that VPC has properly configured routing tables with necessary routes to ensure proper network connectivity. If not needed, delete the empty routing tables.",
+      "verificationRule": null,
+      "origin": "engine_native",
+      "mappingProvenance": "engine:nhn_cloud:5.45.0",
+      "mappingConfidence": "low",
+      "serviceName": "network",
+      "resourceType": null,
+      "engineSeverity": "medium",
+      "categories": []
+    },
+    {
+      "platform": "nhn_cloud",
+      "policyId": "cloud_configuration",
+      "checkId": "network_vpc_subnet_enable_dhcp",
+      "titleEn": "Check if DHCP is enabled for subnets in VPC",
+      "titleEs": null,
+      "condition": "Check if DHCP is enabled for the subnets in the VPC.",
+      "remediation": "Ensure that DHCP is enabled for all subnets where automatic IP address allocation is needed.",
+      "verificationRule": null,
+      "origin": "engine_native",
+      "mappingProvenance": "engine:nhn_cloud:5.45.0",
+      "mappingConfidence": "low",
+      "serviceName": "network",
+      "resourceType": null,
+      "engineSeverity": "medium",
+      "categories": []
+    },
+    {
+      "platform": "nhn_cloud",
+      "policyId": "cloud_configuration",
+      "checkId": "network_vpc_subnet_has_external_router",
+      "titleEn": "Check for External Router in NHN VPC Subnet",
+      "titleEs": null,
+      "condition": "Checks if VPC allows access from the public internet, by verifying if an external router is configured.",
+      "remediation": "Review the external router settings for the VPC Subnet.",
+      "verificationRule": null,
+      "origin": "engine_native",
+      "mappingProvenance": "engine:nhn_cloud:5.45.0",
+      "mappingConfidence": "low",
+      "serviceName": "network",
+      "resourceType": null,
+      "engineSeverity": "medium",
+      "categories": []
+    }
+  ],
+  "mappings": [
+    {
+      "checkId": "compute_instance_login_user",
+      "frameworkCode": "iso27001",
+      "frameworkVersion": "2022",
+      "requirementCode": "A.5.15",
+      "provenance": "engine_native"
+    },
+    {
+      "checkId": "compute_instance_login_user",
+      "frameworkCode": "iso27001",
+      "frameworkVersion": "2022",
+      "requirementCode": "A.5.18",
+      "provenance": "engine_native"
+    },
+    {
+      "checkId": "compute_instance_login_user",
+      "frameworkCode": "iso27001",
+      "frameworkVersion": "2022",
+      "requirementCode": "A.8.2",
+      "provenance": "engine_native"
+    },
+    {
+      "checkId": "compute_instance_public_ip",
+      "frameworkCode": "iso27001",
+      "frameworkVersion": "2022",
+      "requirementCode": "A.8.20",
+      "provenance": "engine_native"
+    },
+    {
+      "checkId": "compute_instance_security_groups",
+      "frameworkCode": "iso27001",
+      "frameworkVersion": "2022",
+      "requirementCode": "A.8.20",
+      "provenance": "engine_native"
+    },
+    {
+      "checkId": "network_vpc_has_empty_routingtables",
+      "frameworkCode": "iso27001",
+      "frameworkVersion": "2022",
+      "requirementCode": "A.8.20",
+      "provenance": "engine_native"
+    },
+    {
+      "checkId": "network_vpc_subnet_has_external_router",
+      "frameworkCode": "iso27001",
+      "frameworkVersion": "2022",
+      "requirementCode": "A.8.20",
+      "provenance": "engine_native"
+    },
+    {
+      "checkId": "compute_instance_public_ip",
+      "frameworkCode": "iso27001",
+      "frameworkVersion": "2022",
+      "requirementCode": "A.8.22",
+      "provenance": "engine_native"
+    },
+    {
+      "checkId": "network_vpc_subnet_has_external_router",
+      "frameworkCode": "iso27001",
+      "frameworkVersion": "2022",
+      "requirementCode": "A.8.22",
+      "provenance": "engine_native"
+    },
+    {
+      "checkId": "compute_instance_security_groups",
+      "frameworkCode": "iso27001",
+      "frameworkVersion": "2022",
+      "requirementCode": "A.8.9",
+      "provenance": "engine_native"
+    },
+    {
+      "checkId": "network_vpc_subnet_enable_dhcp",
+      "frameworkCode": "iso27001",
+      "frameworkVersion": "2022",
+      "requirementCode": "A.8.9",
+      "provenance": "engine_native"
+    }
+  ]
+}

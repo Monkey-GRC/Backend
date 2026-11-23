@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { CONTROL_TYPES, DIMENSIONS, TEST_STATES } from './control.responses';
+import { DIMENSIONS, TEST_STATES } from './control.responses';
 import { AiSuggestionResponse, EvidenceControlRefResponse } from '../evidence/evidence.responses';
 
 // Forma del `data` de GET /v1/controls/{id}/tests (contracts/modules/compliance-audit.md), solo para la documentación: la arma control-test-response.mapper.ts.
@@ -21,7 +21,7 @@ export class ControlTestItemResponse {
   @ApiProperty({ example: 'T-DOC-001', description: 'Código de la prueba en el catálogo.' }) test_code!: string;
   @ApiProperty({ description: 'Nombre neutro de la prueba (D70); el texto del comité no sale.' }) display_name!: string;
   @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension' }) dimension!: string;
-  @ApiProperty({ enum: CONTROL_TYPES, enumName: 'ControlType', nullable: true, description: 'Cómo se resuelve la dimensión de la prueba en este control: a mano, automática o mixta.' }) type!: string | null;
+  @ApiProperty({ enum: ['documentary', 'population', 'operational', 'technical'], enumName: 'TestType', nullable: true, description: 'Tipo de la prueba en el catálogo: documental, de población, operativa o técnica.' }) type!: string | null;
   @ApiProperty({ description: 'Si la prueba cuenta para el estado del control.' }) is_mandatory!: boolean;
   @ApiProperty({ description: 'Si la prueba está activa; una desactivada no cuenta (D68).' }) is_active!: boolean;
   @ApiProperty({ type: EvidenceControlRefResponse, isArray: true, description: 'Los **otros** controles del servicio que llevan la prueba: su veredicto vale en todos (D85). Vacío en una prueba documental, cuyo estado es de este control (D88).' }) shared_with!: EvidenceControlRefResponse[];

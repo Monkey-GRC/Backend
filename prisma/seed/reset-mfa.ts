@@ -6,7 +6,7 @@
 //
 // Borra el secreto y los códigos de recuperación, cierra todas sus sesiones y anula sus desafíos abiertos; en su próximo ingreso la persona configura el segundo factor
 // de nuevo. Usa el rol dueño (DATABASE_URL). Antes de aplicarlo, Monkey debe comprobar por otro canal que quien lo pide es quien dice ser.
-import { connectAsOwner } from './soc2/db';
+import { connectAsOwner } from './db';
 
 const apply = process.argv.includes('--apply');
 

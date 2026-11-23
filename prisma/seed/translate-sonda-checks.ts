@@ -7,7 +7,7 @@
 // Lee `data/sonda-es/*.json` (un archivo por política), los VALIDA contra el catálogo (los comandos tienen que aparecer igual en el original: ver `sonda/translations.ts`) y escribe
 // `remediation_es` y `translation_origin = 'machine'` (traducción automática, sin revisar). Nunca pisa una traducción que una persona ya revisó (`reviewed`), no toca los títulos,
 // no crea ni borra checks y se niega a correr como `monkey_app`. Es idempotente: repetirlo no cambia nada.
-import { connectAsOwner } from './soc2/db';
+import { connectAsOwner } from './db';
 import { loadSondaSource, loadTranslationFiles, validateSondaTranslations } from './sonda/translations';
 
 const apply = process.argv.includes('--apply');

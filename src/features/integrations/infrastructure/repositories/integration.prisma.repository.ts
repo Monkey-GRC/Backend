@@ -34,7 +34,8 @@ export class IntegrationPrismaRepository extends IntegrationRepository {
       const [catalog, [connections]] = await Promise.all([this.loadCatalog(tx, scope), this.loadConnections(tx, scope, code)]);
       const item = catalog.find((i) => i.code === code);
       if (!item) return null;
-      return { item, connections: connections ?? null, coverage: item.connection ? await this.loadCoverage(tx, item.connection.platform) : null };
+      // Solo las `available` tienen cobertura: una `coming_soon` aún no mide nada, aunque el catálogo ya traiga checks de su plataforma.
+      return { item, connections: connections ?? null, coverage: item.availability === 'available' && item.connection ? await this.loadCoverage(tx, item.connection.platform) : null };
     });
   }
 

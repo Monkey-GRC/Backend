@@ -21,7 +21,7 @@ export class CloneCatalogService {
     });
 
     // Lo que se dio de baja en el catálogo (`is_active = false`, Monkey Admin) deja de ofrecerse a los servicios NUEVOS; las copias que ya tienen las empresas no se tocan (D28).
-    const [criteria, requirements, controls, dimensions, controlTests, templates, risks, causes, riskCauses, causeControls] = await Promise.all([
+    const [criteria, requirements, controls, dimensions, controlTests, templates, controlDocuments, risks, causes, riskCauses, causeControls] = await Promise.all([
       tx.serviceTrustCriterion.findMany({ where: { serviceId: sf.serviceId }, select: { trustCriterionId: true } }),
       tx.requirement.findMany({
         where: { frameworkId: sf.frameworkId },
@@ -31,6 +31,7 @@ export class CloneCatalogService {
       tx.controlDimensionEntry.findMany(),
       tx.controlTest.findMany({ where: { test: { isActive: true } }, select: { controlId: true, testId: true } }),
       tx.controlEvidenceTemplate.findMany({ where: { evidenceTemplate: { isActive: true } }, select: { controlId: true, sequence: true, testId: true, evidenceTemplate: { select: { code: true, description: true, dimension: true } } } }),
+      tx.controlDocument.findMany({ select: { controlId: true, document: { select: { code: true, name: true, testId: true } } } }),
       tx.risk.findMany({ where: { isActive: true } }),
       tx.cause.findMany({ where: { isActive: true } }),
       tx.riskCause.findMany({ select: { riskId: true, causeId: true } }),
@@ -55,8 +56,9 @@ export class CloneCatalogService {
       })),
       controlTests,
       evidenceTemplates: templates.map((t) => ({ controlId: t.controlId, sequence: t.sequence, ...t.evidenceTemplate })),
+      documents: controlDocuments.map((d) => ({ controlId: d.controlId, ...d.document })),
       risks: risks.map((r) => ({ id: r.id, code: r.code, name: r.name, description: r.description, trustCriterion: r.trustCriterion, potentialImpact: r.potentialImpact, isActive: r.isActive })),
-      causes: causes.map((k) => ({ id: k.id, code: k.code, name: k.name, failureCategory: k.failureCategory, description: k.description })),
+      causes: causes.map((k) => ({ id: k.id, code: k.code, name: k.name, failureCategory: k.failureCategory, origin: k.causeOrigin, causeType: k.causeType, description: k.description })),
       riskCauses,
       causeControls,
     };
@@ -80,7 +82,7 @@ export class CloneCatalogService {
     // demás únicos hacen que una carrera entre dos clonados no duplique nada.
     await tx.clientControl.createMany({ data: plan.clientControls, skipDuplicates: true });
     await tx.clientRisk.createMany({ data: plan.clientRisks.map((r) => ({ ...r, trustCriterion: r.trustCriterion as never, potentialImpact: r.potentialImpact as never })), skipDuplicates: true });
-    await tx.clientCause.createMany({ data: plan.clientCauses.map((k) => ({ ...k, failureCategory: k.failureCategory as never })), skipDuplicates: true });
+    await tx.clientCause.createMany({ data: plan.clientCauses.map((k) => ({ ...k, failureCategory: k.failureCategory as never, origin: k.origin as never, causeType: k.causeType as never })), skipDuplicates: true });
     await tx.clientControlDimension.createMany({ data: plan.clientControlDimensions, skipDuplicates: true });
     await tx.clientControlTest.createMany({ data: plan.clientControlTests, skipDuplicates: true });
     await tx.evidenceRequirement.createMany({ data: plan.evidenceRequirements, skipDuplicates: true });

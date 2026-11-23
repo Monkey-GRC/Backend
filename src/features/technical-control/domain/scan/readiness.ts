@@ -1,13 +1,12 @@
 import { InterpretedResult } from './scan.types';
 
-// Las pruebas de nube del comité, agrupadas en lenguaje de negocio (contracts/modules/control-tecnico.md). Agrupación propuesta por
-// desarrollo; falta ratificarla con el comité.
-export const READINESS_AREAS = {
-  identity_access: ['T-CLD-001', 'T-CLD-011'],
-  data_network: ['T-CLD-002'],
-  logging_backup: ['T-CLD-003', 'T-CLD-008', 'T-CLD-009', 'T-CLD-010'],
-} as const;
-export type ReadinessArea = keyof typeof READINESS_AREAS;
+// Las áreas de negocio en que se agrupan las pruebas de nube de la v2 (contracts/modules/control-tecnico.md). Qué pruebas cuentan sale del catálogo: las de
+// dimensión `cloud` con vínculos `direct` a checks del motor. Solo el AGRUPAMIENTO es propuesta de desarrollo (falta ratificarla con el comité): por el prefijo del
+// control al que pertenece la prueba (`T-IDA-4-04` → `IDA`); lo que no es de identidad ni de datos y red se muestra como registro y respaldo.
+export const READINESS_AREAS = ['identity_access', 'data_network', 'logging_backup'] as const;
+const AREA_BY_CONTROL_PREFIX: Record<string, (typeof READINESS_AREAS)[number]> = { IDA: 'identity_access', RED: 'data_network', CIF: 'data_network', CNT: 'data_network' };
+export const areaOfTest = (testCode: string): (typeof READINESS_AREAS)[number] => AREA_BY_CONTROL_PREFIX[testCode.split('-')[1] ?? ''] ?? 'logging_backup';
+export type ReadinessArea = (typeof READINESS_AREAS)[number];
 export type Readiness = 'ready' | 'almost_ready' | 'needs_work' | 'not_measured';
 
 export type TestCheckLink = { testCode: string; checkId: string; provenance: 'engine_native' | 'monkey_proposed' | 'committee_ratified' };
@@ -44,9 +43,8 @@ export function computeReadiness(results: readonly InterpretedResult[], links: r
   }
   const evaluable = results.filter((r) => r.result !== 'not_applicable' && testsByCheck.has(r.checkId));
 
-  const areas: AreaReadiness[] = (Object.keys(READINESS_AREAS) as ReadinessArea[]).map((area) => {
-    const tests = new Set<string>(READINESS_AREAS[area]);
-    const mine = evaluable.filter((r) => [...testsByCheck.get(r.checkId)!].some((t) => tests.has(t)));
+  const areas: AreaReadiness[] = READINESS_AREAS.map((area) => {
+    const mine = evaluable.filter((r) => [...testsByCheck.get(r.checkId)!].some((t) => areaOfTest(t) === area));
     const compliant = mine.filter((r) => r.result === 'passed').length;
     const failed = mine.filter((r) => r.result === 'failed');
     const notMeasured = mine.filter((r) => r.result === 'not_run' || r.result === 'invalid').length;

@@ -13,7 +13,7 @@
 // Idempotente: si ya existe un `admin_monkey` no hace nada y no toca al existente. Usa el rol dueño.
 // Para sumar a otra persona del equipo Monkey: `npm run bootstrap:admin -- --additional --apply` (mismas variables, mismo correo no repetido).
 import bcrypt from 'bcrypt';
-import { connectAsOwner } from './soc2/db';
+import { connectAsOwner } from './db';
 import { passwordProblems } from './bootstrap/password';
 
 const apply = process.argv.includes('--apply');

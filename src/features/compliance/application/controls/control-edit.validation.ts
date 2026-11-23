@@ -4,7 +4,7 @@ import { EditClientControlDto } from './control.dto';
 
 // Las validaciones que dependen del contenido (contracts/modules/compliance-controls.md). Devuelven TODOS los errores a la vez, con el nombre del campo del
 // request y el código corto del contrato.
-const DIMENSIONS = ['policy', 'server', 'database', 'app', 'cloud'];
+const DIMENSIONS = ['policy', 'server', 'database', 'app', 'cloud', 'network', 'endpoint', 'physical', 'process'];
 const REASON_MAX = 500;
 const INTERPRETATION_MAX = 4000;
 

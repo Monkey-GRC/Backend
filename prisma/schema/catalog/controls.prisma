@@ -4,9 +4,13 @@ enum Dimension {
   database
   app
   cloud
+  // Catálogo v2 (RC-05): cuatro dimensiones nuevas, sin fuente automática todavía.
+  network
+  endpoint
+  physical
+  process
 
   @@map("dimension")
-
   @@schema("catalog")
 }
 
@@ -17,7 +21,41 @@ enum ControlDimensionType {
   technical_manual
 
   @@map("control_dimension_type")
+  @@schema("catalog")
+}
 
+// Catálogo v2 (VF18): cómo opera el control. No cambia el cálculo.
+enum ControlType {
+  manual
+  it_dependent_manual
+  automated
+
+  @@map("control_type")
+  @@schema("catalog")
+}
+
+enum Periodicity {
+  permanent
+  daily
+  weekly
+  monthly
+  bimonthly
+  quarterly
+  semiannual
+  annual
+  on_demand
+
+  @@map("periodicity")
+  @@schema("catalog")
+}
+
+enum RequirementType {
+  documentary
+  population
+  operational
+  technical
+
+  @@map("requirement_type")
   @@schema("catalog")
 }
 
@@ -27,10 +65,15 @@ model Control {
   // Uno de los 27 dominios del catálogo ("Gestión de Activos", "Monitoreo Continuo"…). Es del CONTROL,
   // no del requisito: en el Excel del comité cambia dentro de un mismo requisito (41 de 61). No se
   // deriva del prefijo del código (AST tiene dos dominios): se guarda el valor literal.
-  domain      String
+  // Nulo en la v2: el dominio es de la fila control + punto de enfoque (point_of_focus_controls.domain).
+  domain             String?
   name        String
   description String  @db.Text
   sourceRef   String? @map("source_ref")
+  // v2: cómo opera, periodicidad sugerida y rol responsable sugerido (solo una guía).
+  type               ControlType?
+  periodicity        Periodicity?
+  suggestedOwnerRole String?       @map("suggested_owner_role")
   // De dónde viene la fila: el Excel del comité o Monkey Admin (contracts/modules/monkey-admin-catalog.md). El seed no toca las `monkey_admin`.
   origin      CatalogOrigin @default(committee)
   // Dar de baja no borra: las copias de cada empresa y las evaluaciones apuntan al catálogo.
@@ -45,6 +88,12 @@ model Control {
   causeControl         CauseControl[]
   clientControls        ClientControl[] // copias que cada cliente particulariza (tenant.client_controls)
   evidenceTemplates     ControlEvidenceTemplate[]
+  requirements          ControlRequirement[]
+  ownTests              Test[]                       @relation("TestControl")
+  ownedTestChecks       TestCheck[]                  @relation("TestCheckOwner")
+  controlDocuments      ControlDocument[]
+  integrationCategories IntegrationCategoryControl[]
+  frameworkMappings     ControlFrameworkMapping[]
 
   @@map("controls")
   @@schema("catalog")
@@ -54,6 +103,8 @@ model PointOfFocusControl {
   id             String @id @default(uuid()) @db.Uuid
   pointOfFocusId String @map("point_of_focus_id") @db.Uuid
   controlId      String @map("control_id") @db.Uuid
+  // v2: uno de los 25 dominios, literal. Es de la fila, no del control.
+  domain         String?
 
   pointOfFocus PointOfFocus @relation(fields: [pointOfFocusId], references: [id])
   control      Control      @relation(fields: [controlId], references: [id])

@@ -1,6 +1,6 @@
 import { ExecutionSummary } from '../domain/repositories/scan.repository';
 import { Finding } from '../domain/scan/findings';
-import { AssetReadiness, READINESS_AREAS, ReadinessArea } from '../domain/scan/readiness';
+import { AssetReadiness, READINESS_AREAS } from '../domain/scan/readiness';
 
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
 
@@ -43,7 +43,7 @@ export const toReadinessResponse = (assetId: string, r: ReadinessView | null) =>
         includes_proposed_mappings: false,
         coverage: { measured: 0, expected: 0 },
         of_measured: { compliant: 0, not_compliant: 0 },
-        areas: (Object.keys(READINESS_AREAS) as ReadinessArea[]).map((area) => ({ area, readiness: 'not_measured', open_findings: 0, not_measured: 0 })),
+        areas: READINESS_AREAS.map((area) => ({ area, readiness: 'not_measured', open_findings: 0, not_measured: 0 })),
         needs_manual_review: 0,
       };
 

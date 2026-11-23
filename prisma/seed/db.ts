@@ -2,11 +2,11 @@ import 'dotenv/config';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../../../generated/prisma/client';
-import { CATALOG_JSON, Soc2Catalog } from './types';
+import { PrismaClient } from '../../generated/prisma/client';
+import { CatalogV2, CATALOG_V2_JSON } from './catalog/types';
 
-export function readCatalogJson(): Soc2Catalog {
-  return JSON.parse(readFileSync(resolve(CATALOG_JSON), 'utf8')) as Soc2Catalog;
+export function readCatalogJson(): CatalogV2 {
+  return JSON.parse(readFileSync(resolve(CATALOG_V2_JSON), 'utf8')) as CatalogV2;
 }
 
 export function describeTarget(url: string) {

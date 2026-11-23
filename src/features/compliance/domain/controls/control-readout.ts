@@ -8,7 +8,8 @@ import { AssetResult, ControlState, TestState } from '../engine/states';
 // De lo que dice la base a lo que se muestra de una acción de protección (MD-117, modelo-datos.md §9 y contracts/modules/compliance-controls.md).
 // Lógica pura, sin Prisma ni Nest: recibe una foto del servicio y devuelve el estado de cada control con el motor del comité.
 
-export type Dimension = 'policy' | 'server' | 'database' | 'app' | 'cloud';
+// v2 (MD-491): 9 dimensiones. Las cuatro nuevas (network, endpoint, physical, process) aún no tienen fuente automática.
+export type Dimension = 'policy' | 'server' | 'database' | 'app' | 'cloud' | 'network' | 'endpoint' | 'physical' | 'process';
 export type ControlType = 'manual' | 'automated' | 'hybrid' | 'technical_manual';
 export type Readiness = 'ready' | 'almost_ready' | 'needs_work' | 'not_measured';
 
@@ -31,7 +32,7 @@ const DIMENSION_OF_ASSET_TYPE: Record<string, Dimension | null> = {
 };
 export const dimensionOfAssetType = (type: string): Dimension | null => DIMENSION_OF_ASSET_TYPE[type] ?? null;
 
-export type ReadoutTest = { testId: string; code: string; displayName: string | null; displayNameEn: string | null; displayDescription: string | null; dimension: Dimension; mandatory: boolean; active: boolean };
+export type ReadoutTest = { testId: string; code: string; displayName: string | null; displayNameEn: string | null; displayDescription: string | null; /** v2: documentary|population|operational|technical (`tests.type`). */ testType?: string | null; dimension: Dimension; mandatory: boolean; active: boolean };
 export type ReadoutAsset = { id: string; name: string; type: string };
 export type ReadoutDimension = { dimension: Dimension; applies: boolean; type: ControlType; reasonNotApplicable: string | null };
 

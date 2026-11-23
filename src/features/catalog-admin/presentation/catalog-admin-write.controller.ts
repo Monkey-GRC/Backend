@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
@@ -39,6 +39,7 @@ import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiItems, ApiNoBody } from '../../../common/swagger/api-envelope';
 import { DIMENSIONS } from '../application/dtos/catalog-write.dto';
 import { CatalogCauseDetailResponse, CatalogControlDetailResponse, CatalogEvidenceTemplateResponse, CatalogRiskDetailResponse, CatalogTestDetailResponse, FrameworkPointOfFocusResponse } from './catalog-admin.responses';
+import { CatalogReadOnlyGuard } from './catalog-read-only.guard';
 import { clientIp } from '../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
@@ -48,6 +49,7 @@ const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userA
 // contracts/modules/monkey-admin-catalog.md — escritura del catálogo maestro, exclusiva de admin_monkey. Crear, editar y dar de baja (nunca borrar), y vincular
 // elementos entre sí. Cada respuesta trae el elemento ya actualizado; cada cambio deja su rastro `catalog.*` en la auditoría.
 @Roles('admin_monkey')
+@UseGuards(CatalogReadOnlyGuard)
 @Controller('catalog')
 export class CatalogAdminWriteController {
   constructor(

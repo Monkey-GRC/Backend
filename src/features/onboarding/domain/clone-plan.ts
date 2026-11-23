@@ -10,7 +10,8 @@
 //    tests, las dimensiones, las evidencias requeridas, los riesgos y las causas.
 import { randomUUID } from 'node:crypto';
 
-export type Dimension = 'policy' | 'server' | 'database' | 'app' | 'cloud';
+// v2 (MD-491): 9 dimensiones. Las cuatro nuevas (network, endpoint, physical, process) aún no tienen fuente automática.
+export type Dimension = 'policy' | 'server' | 'database' | 'app' | 'cloud' | 'network' | 'endpoint' | 'physical' | 'process';
 export type ControlDimensionType = 'manual' | 'automated' | 'hybrid' | 'technical_manual';
 
 export interface CatalogSnapshot {
@@ -31,8 +32,11 @@ export interface CatalogSnapshot {
   controlTests: { controlId: string; testId: string }[];
   // `testId`: la prueba documental a la que sirve el documento en este control; ausente o nulo = compartido con todas las del control (D88).
   evidenceTemplates: { controlId: string; code: string; description: string; dimension: Dimension; sequence: number; testId?: string | null }[];
+  // v2 (MD-491): los documentos del control (control_documents + documents) son la fuente de las evidencias requeridas; `testId` es su T-DOC.
+  documents?: { controlId: string; code: string; name: string; testId: string | null }[];
   risks: { id: string; code: string; name: string; description: string; trustCriterion: string; potentialImpact: unknown; isActive: boolean }[];
-  causes: { id: string; code: string; name: string; failureCategory: string; description: string }[];
+  // v2: `name` y `failureCategory` llegan nulos; `origin` y `causeType` los trae la causa nueva.
+  causes: { id: string; code: string; name: string | null; failureCategory: string | null; origin?: string | null; causeType?: string | null; description: string }[];
   riskCauses: { riskId: string; causeId: string }[];
   causeControls: { causeId: string; controlId: string }[];
 }
@@ -74,8 +78,8 @@ export interface ClonePlan {
     trustCriterion: string; potentialImpact: unknown; isActive: boolean;
   }[];
   clientCauses: {
-    id: string; tenantId: string; serviceId: string; causeId: string; code: string; name: string;
-    failureCategory: string; description: string;
+    id: string; tenantId: string; serviceId: string; causeId: string; code: string; name: string | null;
+    failureCategory: string | null; origin: string | null; causeType: string | null; description: string;
   }[];
   clientRiskCauses: { tenantId: string; clientRiskId: string; clientCauseId: string }[];
   clientCauseControls: { tenantId: string; clientCauseId: string; clientControlId: string }[];
@@ -112,6 +116,7 @@ export function buildClonePlan(input: CloneInput): ClonePlan {
   const dimsByControl = group(c.dimensions, (d) => d.controlId);
   const testsByControl = group(c.controlTests, (t) => t.controlId);
   const templatesByControl = group(c.evidenceTemplates, (t) => t.controlId);
+  const documentsByControl = group(c.documents ?? [], (d) => d.controlId);
 
   const plan: ClonePlan = {
     clientControls: [], clientControlDimensions: [], clientControlTests: [], evidenceRequirements: [],
@@ -150,6 +155,15 @@ export function buildClonePlan(input: CloneInput): ClonePlan {
         dimension: t.dimension, testId: t.testId ?? null, validityWithinPeriod: input.evaluationPeriod, sourceRef: t.code,
       });
     }
+    // v2: un requisito de evidencia por documento del control, de dimensión documental y ligado a su T-DOC. Siguen a las plantillas v1 si todavía hubiera.
+    let sequence = Math.max(0, ...(templatesByControl.get(controlId) ?? []).map((t) => t.sequence));
+    for (const d of (documentsByControl.get(controlId) ?? []).slice().sort((a, b) => a.code.localeCompare(b.code))) {
+      sequence += 1;
+      plan.evidenceRequirements.push({
+        tenantId, clientControlId: id, responsibleId: null, code: d.code, sequence, description: d.name,
+        dimension: 'policy', testId: d.testId, validityWithinPeriod: input.evaluationPeriod, sourceRef: d.code,
+      });
+    }
   }
 
   // Riesgos y causas: el set base completo, no solo lo aplicable (D28).
@@ -177,7 +191,7 @@ export function buildClonePlan(input: CloneInput): ClonePlan {
     const id = randomUUID();
     clientCauseId.set(k.id, id);
     newCauses.add(k.id);
-    plan.clientCauses.push({ id, tenantId, serviceId, causeId: k.id, code: k.code, name: k.name, failureCategory: k.failureCategory, description: k.description });
+    plan.clientCauses.push({ id, tenantId, serviceId, causeId: k.id, code: k.code, name: k.name, failureCategory: k.failureCategory, origin: k.origin ?? null, causeType: k.causeType ?? null, description: k.description });
   }
 
   // Aristas: solo entre cosas que el cliente tiene, y solo si alguna punta es nueva (si ambas ya existían,

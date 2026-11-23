@@ -37,6 +37,17 @@ function common(filter: CatalogFilter, searchIn: string[], withActive = true): R
 
 // El catálogo es global y de lectura libre para cualquier sesión (RLS en `catalog`, D31): no hace falta tenant, así que se lee sin transacción de alcance,
 // igual que `CompanyPrismaRepository.existingFrameworkCodes`. Quién puede llegar aquí lo decide `@Roles('admin_monkey')` en el controlador.
+/**
+ * v2 (MD-491): el dominio es de la fila control + punto de enfoque, no del control (`controls.domain` es nulo). `domains` son los distintos, en el orden de los puntos de enfoque
+ * (requisito y número); `domain` es el primero, para no romper a quien lee uno solo. Si el control no trae dominios por punto (uno recién creado), vale el de la v1.
+ */
+function domainsOf(c: { domain: string | null; pointOfFocusControls: Array<{ domain: string | null; pointOfFocus: { number: number; requirement: { code: string } } }> }): { domain: string | null; domains: string[] } {
+  const ordered = [...c.pointOfFocusControls].sort((a, b) => a.pointOfFocus.requirement.code.localeCompare(b.pointOfFocus.requirement.code) || a.pointOfFocus.number - b.pointOfFocus.number);
+  const domains = [...new Set(ordered.flatMap((l) => (l.domain ? [l.domain] : [])))];
+  if (domains.length === 0 && c.domain) domains.push(c.domain);
+  return { domain: domains[0] ?? null, domains };
+}
+
 @Injectable()
 export class CatalogAdminPrismaRepository extends CatalogAdminRepository {
   constructor(private readonly prisma: PrismaService) {
@@ -118,7 +129,7 @@ export class CatalogAdminPrismaRepository extends CatalogAdminRepository {
     if (filter.frameworkId) conditions.push(this.inFramework(filter.frameworkId, filter.requirementCode));
     else if (filter.requirementCode) conditions.push({ pointOfFocusControls: { some: { pointOfFocus: { requirement: { code: filter.requirementCode } } } } });
     if (filter.unlinked) conditions.push({ pointOfFocusControls: { none: {} } });
-    if (filter.domain) conditions.push({ domain: filter.domain });
+    if (filter.domain) conditions.push({ OR: [{ domain: filter.domain }, { pointOfFocusControls: { some: { domain: filter.domain } } }] });
     if (filter.hasEvidenceTemplate !== undefined) conditions.push({ evidenceTemplates: filter.hasEvidenceTemplate ? { some: {} } : { none: {} } });
     const where: Prisma.ControlWhereInput = { AND: conditions };
 
@@ -127,7 +138,11 @@ export class CatalogAdminPrismaRepository extends CatalogAdminRepository {
         where,
         orderBy: { code: 'asc' },
         ...paging(filter),
-        include: { dimensions: { select: { dimension: true } }, _count: { select: { controlTests: true, evidenceTemplates: true } } },
+        include: {
+          dimensions: { select: { dimension: true } },
+          pointOfFocusControls: { select: { domain: true, pointOfFocus: { select: { number: true, requirement: { select: { code: true } } } } } },
+          _count: { select: { controlTests: true, evidenceTemplates: true } },
+        },
       }),
       this.prisma.control.count({ where }),
     ]);
@@ -136,7 +151,7 @@ export class CatalogAdminPrismaRepository extends CatalogAdminRepository {
         id: c.id,
         code: c.code,
         name: c.name,
-        domain: c.domain,
+        ...domainsOf(c),
         origin: c.origin,
         isActive: c.isActive,
         dimensions: c.dimensions.map((d) => d.dimension).sort(),
@@ -157,7 +172,7 @@ export class CatalogAdminPrismaRepository extends CatalogAdminRepository {
         controlTests: { include: { test: { select: { id: true, code: true, dimension: true, displayName: true, isActive: true } } } },
         evidenceTemplates: { orderBy: { sequence: 'asc' }, include: { evidenceTemplate: { select: { id: true, code: true, description: true } } } },
         controlPolicies: { include: { policy: { select: { name: true } } } },
-        causeControl: { include: { cause: { select: { id: true, code: true, name: true } } } },
+        causeControl: { include: { cause: { select: { id: true, code: true, name: true, description: true } } } },
       },
     });
     if (!c) return null;
@@ -167,7 +182,7 @@ export class CatalogAdminPrismaRepository extends CatalogAdminRepository {
       origin: c.origin,
       name: c.name,
       description: c.description,
-      domain: c.domain,
+      ...domainsOf(c),
       sourceRef: c.sourceRef,
       isActive: c.isActive,
       pointsOfFocus: c.pointOfFocusControls
@@ -189,7 +204,7 @@ export class CatalogAdminPrismaRepository extends CatalogAdminRepository {
       tests: c.controlTests.map((l) => l.test).sort((a, b) => a.code.localeCompare(b.code)),
       evidenceTemplates: c.evidenceTemplates.map((l) => ({ ...l.evidenceTemplate, sequence: l.sequence })),
       policies: c.controlPolicies.map((l) => ({ name: l.policy.name, requiresEmployeeAcceptance: l.requiresEmployeeAcceptance })).sort((a, b) => a.name.localeCompare(b.name)),
-      causes: c.causeControl.map((l) => l.cause).sort((a, b) => a.code.localeCompare(b.code)),
+      causes: c.causeControl.map((l) => ({ id: l.cause.id, code: l.cause.code, name: l.cause.name ?? l.cause.description })).sort((a, b) => a.code.localeCompare(b.code)),
     };
   }
 
@@ -209,7 +224,7 @@ export class CatalogAdminPrismaRepository extends CatalogAdminRepository {
   }
 
   async findRisk(id: string): Promise<RiskDetail | null> {
-    const r = await this.prisma.risk.findUnique({ where: { id }, include: { riskCauses: { include: { cause: { select: { id: true, code: true, name: true } } } } } });
+    const r = await this.prisma.risk.findUnique({ where: { id }, include: { riskCauses: { include: { cause: { select: { id: true, code: true, name: true, description: true } } } } } });
     if (!r) return null;
     return {
       id: r.id,
@@ -220,14 +235,14 @@ export class CatalogAdminPrismaRepository extends CatalogAdminRepository {
       trustCriterion: r.trustCriterion,
       potentialImpact: r.potentialImpact,
       isActive: r.isActive,
-      causes: r.riskCauses.map((l) => l.cause).sort((a, b) => a.code.localeCompare(b.code)),
+      causes: r.riskCauses.map((l) => ({ id: l.cause.id, code: l.cause.code, name: l.cause.name ?? l.cause.description })).sort((a, b) => a.code.localeCompare(b.code)),
     };
   }
 
   // ---- causas ---------------------------------------------------------------------------------------------------------------------------------------
 
   async listCauses(filter: CatalogFilter): Promise<Page<CauseSummary>> {
-    const where: Prisma.CauseWhereInput = { AND: common(filter, ['code', 'name']) as Prisma.CauseWhereInput[] };
+    const where: Prisma.CauseWhereInput = { AND: common(filter, ['code', 'name', 'description']) as Prisma.CauseWhereInput[] };
     const [rows, total] = await Promise.all([
       this.prisma.cause.findMany({ where, orderBy: { code: 'asc' }, ...paging(filter), include: { _count: { select: { riskCauses: true, causeControls: true } } } }),
       this.prisma.cause.count({ where }),
@@ -237,7 +252,7 @@ export class CatalogAdminPrismaRepository extends CatalogAdminRepository {
         id: c.id,
         code: c.code,
         origin: c.origin,
-        name: c.name,
+        name: c.name ?? c.description,
         failureCategory: c.failureCategory,
         isActive: c.isActive,
         risksCount: c._count.riskCauses,
@@ -261,7 +276,7 @@ export class CatalogAdminPrismaRepository extends CatalogAdminRepository {
       id: c.id,
       code: c.code,
       origin: c.origin,
-      name: c.name,
+      name: c.name ?? c.description,
       description: c.description,
       failureCategory: c.failureCategory,
       isActive: c.isActive,

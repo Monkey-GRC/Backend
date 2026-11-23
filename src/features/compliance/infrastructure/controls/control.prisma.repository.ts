@@ -106,7 +106,7 @@ export class ControlPrismaRepository extends ControlRepository {
       });
       const links = await tx.clientCauseControl.findMany({
         where: { clientControlId: controlId, clientCause: { isActive: true } },
-        select: { clientCause: { select: { id: true, code: true, name: true } } },
+        select: { clientCause: { select: { id: true, code: true, name: true, description: true } } },
       });
 
       return {
@@ -122,7 +122,7 @@ export class ControlPrismaRepository extends ControlRepository {
             latestSubmission: latest ? { id: latest.id, version: Number(latest.version) || 0, evidenceState: evidenceStateOf({ aiVerdict: latest.aiVerdict, reviews: latest.reviews.map(toReviewRecord) }) } : null,
           };
         }),
-        causes: links.map((l) => ({ id: l.clientCause.id, code: l.clientCause.code, name: l.clientCause.name })),
+        causes: links.map((l) => ({ id: l.clientCause.id, code: l.clientCause.code, name: l.clientCause.name ?? l.clientCause.description })),
       };
     }, READ_TRANSACTION);
   }

@@ -7,7 +7,7 @@
 //
 // Mismas reglas que el seed de SOC 2: solo inserta lo que falta, aborta con diff si una fila existe con
 // contenido distinto, no borra nada y se niega a correr como `monkey_app`.
-import { connectAsOwner, short } from './soc2/db';
+import { connectAsOwner, short } from './db';
 import {
   CAPABILITIES,
   CONNECTION_OPTIONS,

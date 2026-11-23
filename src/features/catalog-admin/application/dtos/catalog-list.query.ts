@@ -4,7 +4,7 @@ import { IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, M
 import type { CatalogOrigin } from '../../domain/repositories/catalog-admin.repository';
 
 const ORIGINS: CatalogOrigin[] = ['committee', 'monkey_admin'];
-const DIMENSIONS = ['policy', 'server', 'database', 'app', 'cloud'];
+const DIMENSIONS = ['policy', 'server', 'database', 'app', 'cloud', 'network', 'endpoint', 'physical', 'process'];
 const bool = ({ value }: { value: unknown }) => (value === 'true' ? true : value === 'false' ? false : value);
 
 // contracts/modules/monkey-admin-catalog.md. `forbidNonWhitelisted` está activo: cada clase declara solo los filtros que su lista entiende.
