@@ -83,3 +83,17 @@ describe('nivel del control (§5 del libro, R1 a R6)', () => {
     expect(run([req('compliant', 'correct'), req('pending', 'pending')]).decided).toBe(false);
   });
 });
+
+describe('Sólido exige además el período completo y la cobertura total (R5, R6, MD-500)', () => {
+  const all = [req('compliant', 'correct'), req('compliant', 'correct')];
+  it('Adecuado sin observaciones, con todas las ventanas del período y 100 % de cobertura: Sólido', () => {
+    expect(evaluateControlLevel(all, PARAMS, { periodComplete: true, coverageFull: true }).level).toBe('solid');
+  });
+  it('con una ventana cerrada sin evidencia: Adecuado, y sigue cumpliendo', () => {
+    const r = evaluateControlLevel(all, PARAMS, { periodComplete: false, coverageFull: true });
+    expect([r.level, r.complies]).toEqual(['adequate', true]);
+  });
+  it('sin cobertura total de activos: Adecuado', () => {
+    expect(evaluateControlLevel(all, PARAMS, { periodComplete: true, coverageFull: false }).level).toBe('adequate');
+  });
+});

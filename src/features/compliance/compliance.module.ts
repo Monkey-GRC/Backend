@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { SetEvaluationPeriodUseCase } from './application/periods/evaluation-period.use-cases';
+import { ListEvaluationPeriodsUseCase, RollEvaluationPeriodsUseCase, SetEvaluationPeriodUseCase } from './application/periods/evaluation-period.use-cases';
 import { ListExclusionsUseCase, RequestExclusionUseCase } from './application/exclusions/exclusion.use-cases';
 import {
   AnswerObservationUseCase, CreateObservationUseCase, GetObservationUseCase, ListObservationsUseCase, UpdateObservationUseCase,
@@ -10,7 +10,7 @@ import {
 import { ListAssignmentsUseCase } from './application/assignments/list-assignments.use-case';
 import { ListMyWorkUseCase, TeamWorkloadUseCase } from './application/work/work.use-cases';
 import { CreateControlUseCase } from './application/controls/create-control.use-case';
-import { RetireControlUseCase, UpdateControlUseCase } from './application/controls/edit-control.use-cases';
+import { RetireControlUseCase, SetControlPeriodicityUseCase, UpdateControlUseCase } from './application/controls/edit-control.use-cases';
 import { GetControlUseCase } from './application/controls/get-control.use-case';
 import { ListControlTestsUseCase } from './application/controls/list-control-tests.use-case';
 import { GetOverviewUseCase } from './application/overview/get-overview.use-case';
@@ -26,7 +26,7 @@ import { AssignmentRepository } from './domain/assignments/assignment.repository
 import { ControlEditRepository } from './domain/controls/control-edit.repository';
 import { ControlRepository } from './domain/controls/control.repository';
 import { EvidenceRepository } from './domain/evidence/evidence.repository';
-import { EvaluationPeriodRepository } from './domain/periods/evaluation-period.repository';
+import { EvaluationPeriodRepository, EvaluationPeriodRollover } from './domain/periods/evaluation-period.repository';
 import { WorkRepository } from './domain/work/work.repository';
 import { ExclusionRepository } from './domain/exclusions/exclusion.repository';
 import { ObservationRepository } from './domain/observations/observation.repository';
@@ -36,7 +36,8 @@ import { ResponsibleRepository } from './domain/responsibles/responsible.reposit
 import { AssignmentPrismaRepository } from './infrastructure/assignments/assignment.prisma.repository';
 import { ControlEditPrismaRepository } from './infrastructure/controls/control-edit.prisma.repository';
 import { EvidencePrismaRepository } from './infrastructure/evidence/evidence.prisma.repository';
-import { EvaluationPeriodPrismaRepository } from './infrastructure/periods/evaluation-period.prisma.repository';
+import { EvaluationPeriodPrismaRepository, EvaluationPeriodRolloverPrismaRepository } from './infrastructure/periods/evaluation-period.prisma.repository';
+import { EvaluationPeriodScheduler } from './infrastructure/periods/evaluation-period.scheduler';
 import { ExclusionPrismaRepository } from './infrastructure/exclusions/exclusion.prisma.repository';
 import { ObservationPrismaRepository } from './infrastructure/observations/observation.prisma.repository';
 import { TestVerdictPrismaRepository } from './infrastructure/verdicts/test-verdict.prisma.repository';
@@ -77,6 +78,7 @@ import { DefaultEvaluationParameters } from './infrastructure/shared/default-eva
     CreateControlUseCase,
     UpdateControlUseCase,
     RetireControlUseCase,
+    SetControlPeriodicityUseCase,
     { provide: ResponsibleRepository, useClass: ResponsiblePrismaRepository },
     ListResponsiblesUseCase,
     CreateResponsibleUseCase,
@@ -92,6 +94,10 @@ import { DefaultEvaluationParameters } from './infrastructure/shared/default-eva
     CreateObservationUseCase, ListObservationsUseCase, GetObservationUseCase, UpdateObservationUseCase, AnswerObservationUseCase,
     { provide: EvaluationPeriodRepository, useClass: EvaluationPeriodPrismaRepository },
     SetEvaluationPeriodUseCase,
+    ListEvaluationPeriodsUseCase,
+    { provide: EvaluationPeriodRollover, useClass: EvaluationPeriodRolloverPrismaRepository },
+    RollEvaluationPeriodsUseCase,
+    EvaluationPeriodScheduler,
     { provide: TestVerdictRepository, useClass: TestVerdictPrismaRepository },
     IssueVerdictUseCase, ListVerdictsUseCase, ReviewVerdictUseCase,
     { provide: EvidenceRepository, useClass: EvidencePrismaRepository },

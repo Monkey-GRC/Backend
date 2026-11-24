@@ -1,4 +1,4 @@
-import { effectiveCutoff, isPeriodDefined, utcDay } from './evaluation-period';
+import { effectiveCutoff, hasEnded, isPeriodDefined, isPeriodTooShort, nextPeriod, utcDay } from './evaluation-period';
 
 const d = (s: string) => new Date(`${s}T00:00:00.000Z`);
 const day = (x: Date) => x.toISOString().slice(0, 10);
@@ -40,5 +40,34 @@ describe('El período y la fecha de corte de la evaluación (D87)', () => {
 
   it('hoy es un día UTC, sin la hora', () => {
     expect(utcDay(new Date('2026-10-20T23:59:59.000Z')).toISOString()).toBe('2026-10-20T00:00:00.000Z');
+  });
+});
+
+describe('El período siguiente (D145)', () => {
+  const next = (start: string, end: string) => {
+    const n = nextPeriod({ periodStart: d(start), periodEnd: d(end) });
+    return [day(n.periodStart), day(n.periodEnd)];
+  };
+
+  it('de mes completo a mes completo: empieza el día después y dura los mismos meses de calendario', () => {
+    expect(next('2026-01-01', '2026-06-30')).toEqual(['2026-07-01', '2026-12-31']);
+    expect(next('2026-07-01', '2026-12-31')).toEqual(['2027-01-01', '2027-06-30']);
+    expect(next('2026-01-01', '2026-12-31')).toEqual(['2027-01-01', '2027-12-31']);
+    expect(next('2026-02-01', '2026-04-30')).toEqual(['2026-05-01', '2026-07-31']);
+  });
+
+  it('si el anterior no iba de inicio a fin de mes, dura el mismo número de días', () => {
+    expect(next('2026-03-15', '2026-09-14')).toEqual(['2026-09-15', '2027-03-17']);
+    expect(next('2026-01-01', '2026-06-29')).toEqual(['2026-06-30', '2026-12-26']);
+  });
+
+  it('PR-16: 6 meses es el mínimo; un día menos es demasiado corto', () => {
+    expect(isPeriodTooShort(d('2026-01-01'), d('2026-06-30'), 6)).toBe(false);
+    expect(isPeriodTooShort(d('2026-01-01'), d('2026-06-29'), 6)).toBe(true);
+  });
+
+  it('un período terminó cuando su último día ya pasó', () => {
+    expect(hasEnded(d('2026-10-19'), TODAY)).toBe(true);
+    expect(hasEnded(d('2026-10-20'), TODAY)).toBe(false);
   });
 });

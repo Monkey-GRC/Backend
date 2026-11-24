@@ -16,6 +16,10 @@ export type DimensionState = { dimension: string; applies: boolean; reasonNotApp
 export type ControlEdit = { interpretation?: string; dimensions?: DimensionState[] };
 export type ControlSnapshot = { interpretation: string; dimensions: DimensionState[] };
 
+/** La periodicidad del control (D147): la de sus requisitos y de dónde viene. */
+export type PeriodicityState = { periodicity: string | null; source: 'catalog' | 'client'; justification: string | null };
+export type PeriodicityChange = { changed: boolean; before: PeriodicityState; after: PeriodicityState };
+
 export abstract class ControlEditRepository {
   // Las categorías que el servicio contrató; null si el servicio no existe (o es de otra empresa).
   abstract contractedCriteria(scope: TenantScope, serviceId: string): Promise<string[] | null>;
@@ -35,6 +39,16 @@ export abstract class ControlEditRepository {
     actor: { userId: string; meta: RequestMeta },
     audit: AuditIntent<{ before: ControlSnapshot; after: ControlSnapshot }>,
   ): Promise<{ before: ControlSnapshot; after: ControlSnapshot } | null>;
+
+  // MD-500, D147 · Pone la periodicidad en TODOS los requisitos del control (`null` = copiar otra vez la del catálogo y borrar el cambio). Si ya la tienen, no escribe nada ni deja rastro
+  // (`changed: false`). Si cambia el estado de algún control, deja el evento (D91). null si el control no existe. CONTROL_RETIRED si está dado de baja.
+  abstract setPeriodicity(
+    scope: TenantScope,
+    controlId: string,
+    input: { periodicity: string | null; justification: string },
+    actor: { userId: string; meta: RequestMeta },
+    audit: AuditIntent<{ before: PeriodicityState; after: PeriodicityState }>,
+  ): Promise<PeriodicityChange | null>;
 
   // Baja (`is_active = false`), no borrado. null si no existe. CONTROL_RETIRED si ya estaba de baja.
   abstract retire(scope: TenantScope, controlId: string, actor: { userId: string; meta: RequestMeta }, audit: AuditIntent<{ before: ControlSnapshot & { ownCode: string } }>): Promise<boolean>;

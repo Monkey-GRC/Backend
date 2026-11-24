@@ -450,5 +450,17 @@
     "users_who_apply": "Users who apply it",
     "all_users": "All users",
     "not_required": "Not required"
+  },
+  "evaluation_period_status": {
+    "open": "Open",
+    "closed": "Closed"
+  },
+  "evaluation_period_origin": {
+    "user": "Declared",
+    "system": "Automatic"
+  },
+  "periodicity_source": {
+    "catalog": "Suggested",
+    "client": "Configured"
   }
 }

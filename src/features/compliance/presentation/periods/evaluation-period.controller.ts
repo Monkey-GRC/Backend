@@ -1,4 +1,4 @@
-import { Body, Controller, HttpStatus, Param, ParseUUIDPipe, Put, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Param, ParseUUIDPipe, Put, Req } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
@@ -8,11 +8,11 @@ import { Roles } from '../../../../common/decorators/roles.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { API_TAGS } from '../../../../common/swagger/api-docs.config';
-import { ApiData } from '../../../../common/swagger/api-envelope';
+import { ApiArray, ApiData } from '../../../../common/swagger/api-envelope';
 import { SetEvaluationPeriodDto } from '../../application/periods/evaluation-period.dto';
-import { SetEvaluationPeriodUseCase } from '../../application/periods/evaluation-period.use-cases';
-import { toEvaluationPeriod } from './evaluation-period-response.mapper';
-import { EvaluationPeriodResponse } from './evaluation-period.responses';
+import { ListEvaluationPeriodsUseCase, SetEvaluationPeriodUseCase } from '../../application/periods/evaluation-period.use-cases';
+import { toEvaluationPeriod, toEvaluationPeriodItem } from './evaluation-period-response.mapper';
+import { EvaluationPeriodItemResponse, EvaluationPeriodResponse } from './evaluation-period.responses';
 import { clientIp } from '../../../../common/http/client-ip';
 
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
@@ -20,21 +20,21 @@ const t = (key: string): string => (I18nContext.current()?.t(key) as string | un
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 
-// El período auditado y la fecha de corte de un marco del servicio (contracts/modules/compliance-overview.md, D87, MD-168). Solo `admin_empresa` (D96).
+// El período auditado y la fecha de corte de un marco del servicio (contracts/cumplimiento/resumen.md, D87, D145, MD-168, MD-500). Declararlo, solo `admin_empresa` (D96); el histórico, también el `auditor`.
 @ApiTags(API_TAGS.overview)
-@Roles('admin_empresa')
 @Controller()
 export class EvaluationPeriodController {
-  constructor(private readonly setPeriod: SetEvaluationPeriodUseCase) {}
+  constructor(private readonly setPeriod: SetEvaluationPeriodUseCase, private readonly listPeriods: ListEvaluationPeriodsUseCase) {}
 
   @ApiOperation({
     summary: 'Declarar el período auditado de un marco',
     description:
-      'Solo `admin_empresa`. Declara (o cambia) el período auditado —inicio y fin; pueden ser el mismo día, SOC 2 Tipo I— de un marco contratado del servicio y, si se envía `cutoff_date`, **congela** la fecha de corte. ' +
+      'Solo `admin_empresa`. Declara (o cambia) el período **abierto** —inicio anterior al fin; en SOC 2 dura como mínimo 6 meses (PR-16)— de un marco contratado del servicio y, si se envía `cutoff_date`, **congela** la fecha de corte. ' +
       'Sin `cutoff_date` la fecha de corte es «hoy» (sin salirse del período). La fecha de corte no reinicia nada: no borra evidencia ni veredictos. ' +
       'Con el período definido el resumen deja de responder «Sin medir» por esta causa y se pueden crear exclusiones. Reemplaza lo anterior y se puede repetir. Queda registro de auditoría con el valor anterior y el nuevo.',
   })
   @ApiData(EvaluationPeriodResponse, 'La evaluación del marco: período y fecha de corte efectiva.')
+  @Roles('admin_empresa')
   @Put('services/:serviceId/frameworks/:frameworkCode/evaluation-period')
   async set(
     @CurrentUser() p: Principal,
@@ -45,5 +45,19 @@ export class EvaluationPeriodController {
   ) {
     const view = await this.setPeriod.execute(p, serviceId, frameworkCode, dto, metaOf(req));
     return new ResponseDto(HttpStatus.OK, t('evaluation_period.updated'), toEvaluationPeriod(view));
+  }
+
+  @ApiOperation({
+    summary: 'El histórico de períodos de un marco',
+    description:
+      '`admin_empresa` y `auditor`. El período abierto primero y después los cerrados, del más reciente al más viejo (D145, D148). Sin paginación: hay uno cada 6 meses como mínimo. ' +
+      'El período siguiente lo abre solo una tarea diaria cuando termina el abierto.',
+  })
+  @ApiArray(EvaluationPeriodItemResponse, 'Los períodos del marco: el abierto y los cerrados.')
+  @Roles('admin_empresa', 'auditor')
+  @Get('services/:serviceId/frameworks/:frameworkCode/evaluation-periods')
+  async list(@CurrentUser() p: Principal, @Param('serviceId', idPipe) serviceId: string, @Param('frameworkCode') frameworkCode: string) {
+    const rows = await this.listPeriods.execute(p, serviceId, frameworkCode);
+    return new ResponseDto(HttpStatus.OK, t('evaluation_period.list'), rows.map(toEvaluationPeriodItem));
   }
 }

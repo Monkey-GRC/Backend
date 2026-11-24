@@ -13,6 +13,15 @@ const errors = (input: PeriodInput): Array<[string, string]> => {
   return [];
 };
 
+const errors2 = (input: PeriodInput): Array<[string, string]> => {
+  try {
+    validateEvaluationPeriod(input, NOW, 6);
+  } catch (e) {
+    return (e as ValidationException).fields.map((f) => [f.field, f.code]);
+  }
+  return [];
+};
+
 describe('validateEvaluationPeriod (D87)', () => {
   it('acepta un período con inicio y fin, y sin fecha de corte (será «hoy»)', () => {
     const v = run({ period_start: '2026-01-01', period_end: '2026-12-31' });
@@ -23,9 +32,20 @@ describe('validateEvaluationPeriod (D87)', () => {
     expect(run({ period_start: '2026-01-01', period_end: '2026-12-31', cutoff_date: null }).cutoffDate).toBeNull();
   });
 
-  it('acepta un período de un solo día (SOC 2 Tipo I)', () => {
-    const v = run({ period_start: '2026-10-15', period_end: '2026-10-15' });
-    expect(day(v.periodStart)).toBe(day(v.periodEnd));
+  it('rechaza un período de un solo día: el Tipo I ya no existe (D145)', () => {
+    expect(errors({ period_start: '2026-10-15', period_end: '2026-10-15' })).toEqual([['period_end', 'period.invalid_range']]);
+  });
+
+  it('en SOC 2 el período dura al menos PR-16 (6 meses): el límite justo vale, un día menos no', () => {
+    const six = (end: string) => errors2({ period_start: '2026-01-01', period_end: end });
+    expect(six('2026-06-30')).toEqual([]);
+    expect(six('2026-06-29')).toEqual([['period_end', 'period.too_short']]);
+    expect(errors2({ period_start: '2026-08-31', period_end: '2027-02-26' })).toEqual([['period_end', 'period.too_short']]);
+    expect(errors2({ period_start: '2026-08-31', period_end: '2027-02-27' })).toEqual([]);
+  });
+
+  it('sin mínimo (otro marco) un período corto vale', () => {
+    expect(errors({ period_start: '2026-10-01', period_end: '2026-10-02' })).toEqual([]);
   });
 
   it('congela la fecha de corte si cae dentro del período y no es futura (hoy sí vale)', () => {

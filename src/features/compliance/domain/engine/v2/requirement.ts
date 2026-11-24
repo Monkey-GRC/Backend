@@ -18,3 +18,13 @@ export function evaluateRequirement(input: { isApplicable: boolean; tests: reado
   if (counted.length === 0 || counted.some((s) => s === 'pending')) return 'pending';
   return 'compliant';
 }
+
+/**
+ * El estado de un requisito visto **del período** (R6): el de la fecha, empeorado por las ventanas cerradas del período sin evidencia. Una ventana técnica sin resultado de algún
+ * activo al cerrar es Excepción (D140, T-04 d); una manual sin evidencia válida, Vencido.
+ */
+export function requirementStatusInPeriod(current: RequirementStatus, missing: ReadonlyArray<{ technical: boolean }>): RequirementStatus {
+  if (current === 'not_applicable' || missing.length === 0) return current;
+  if (current === 'non_compliant' || missing.some((m) => m.technical)) return 'non_compliant';
+  return 'expired';
+}

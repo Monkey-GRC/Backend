@@ -135,6 +135,8 @@ describe('Quién puede pedir qué', () => {
       complies: expect.any(Boolean),
       c_percent: nullOr(expect.any(Number)),
       tests_count: expect.any(Number),
+      periodicity_change: null,
+      period: null,
     });
     // Una prueba de una dimensión sin activos conectados sale igual, como «Sin activos»; las documentales, pendientes.
     const detailOf = async (agent: Agent, id: string) => (await agent.get(`/v1/controls/${id}?view=technical`).expect(200)).body.data;
@@ -153,12 +155,13 @@ describe('Quién puede pedir qué', () => {
     const requirement = adminDetail.technical.requirements[0];
     expect(requirement).toEqual({
       id: expect.any(String), code: expect.stringMatching(/-L\d+$/), text: expect.any(String), type: expect.any(String), periodicity: nullOr(expect.any(String)),
+      suggested_periodicity: nullOr(expect.any(String)), periodicity_source: 'catalog',
       status: expect.stringMatching(/^(compliant|non_compliant|pending|expired|not_applicable)$/),
       tests: expect.any(Array),
     });
     expect(requirement.tests[0]).toEqual({
       test_id: expect.any(String), test_code: expect.any(String), display_name: expect.any(String), status: expect.stringMatching(/^(pending|correct|observation|exception|not_applicable|expired)$/),
-      window_end: nullOr(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)), checks: nullOr(expect.any(Object)), asset_coverage: nullOr(expect.any(Object)),
+      window_end: nullOr(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)), alert_at: nullOr(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)), checks: nullOr(expect.any(Object)), asset_coverage: nullOr(expect.any(Object)),
     });
     expect(JSON.stringify(adminDetail)).not.toMatch(/wazuh|prowler/i);
   });
@@ -187,6 +190,8 @@ describe('Quién puede pedir qué', () => {
       complies: expect.any(Boolean),
       c_percent: nullOr(expect.any(Number)),
       tests_count: expect.any(Number),
+      periodicity_change: null,
+      period: null,
     });
     expect(technical.some((c) => c.requirement_codes.some((r: string) => /^CC\d/.test(r)))).toBe(true);
   });

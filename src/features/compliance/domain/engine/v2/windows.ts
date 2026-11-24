@@ -62,3 +62,35 @@ export function isResultCurrent(periodicity: Periodicity | null, evaluatedAt: Da
   const window = currentWindow({ periodicity, now });
   return !window || evaluatedAt.getTime() >= window.start.getTime();
 }
+
+const DAY = 86_400_000;
+const CALENDAR: readonly Periodicity[] = ['daily', 'weekly', 'monthly', 'bimonthly', 'quarterly', 'semiannual'];
+export const isCalendarPeriodicity = (p: Periodicity | null): boolean => p !== null && CALENDAR.includes(p);
+
+/**
+ * Las ventanas de calendario YA CERRADAS que caen por completo dentro del período auditado (G-11, R6). `periodEnd` es inclusivo. Las que solo lo tocan por un borde no cuentan.
+ * Solo las periodicidades de calendario tienen ventanas fijas: la anual (desde la última evidencia), la permanente y la de evento no se enumeran.
+ */
+export function closedWindowsWithin(periodicity: Periodicity | null, period: { start: Date; end: Date }, now: Date): EvaluationWindow[] {
+  if (!isCalendarPeriodicity(periodicity)) return [];
+  const limit = Math.min(now.getTime(), period.end.getTime() + DAY);
+  const out: EvaluationWindow[] = [];
+  let w = currentWindow({ periodicity, now: period.start });
+  while (w && w.end.getTime() <= limit) {
+    if (w.start.getTime() >= period.start.getTime()) out.push(w);
+    w = currentWindow({ periodicity, now: w.end });
+  }
+  return out;
+}
+
+/** El día del aviso previo (PR-06): el cierre de la ventana (`windowEnd`, `YYYY-MM-DD`) menos los días de la periodicidad. `null` si no hay ventana o la periodicidad no avisa. */
+export function alertDate(windowEnd: string | null, periodicity: Periodicity | null, params: EvaluationParameters, now: Date): string | null {
+  const day = (d: Date) => d.toISOString().slice(0, 10);
+  if (periodicity === 'on_demand') {
+    const end = windowEndDate(currentWindow({ periodicity: 'quarterly', now }));
+    return end ? day(new Date(Date.parse(end) - params.onDemandAlertDays * DAY)) : null;
+  }
+  const days = periodicity ? params.alertDaysBefore[periodicity] : undefined;
+  if (!windowEnd || days === undefined) return null;
+  return day(new Date(Date.parse(windowEnd) - days * DAY));
+}

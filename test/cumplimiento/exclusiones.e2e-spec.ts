@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import * as auditInsert from '../../src/infrastructure/audit/audit-log.insert';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
-import { dosEmpresas, Tenant } from '../support/escenario';
+import { definirPeriodo, dosEmpresas, Tenant } from '../support/escenario';
 
 // MD-144, D96 · Excluir un activo de un test: el admin_empresa la crea y la decide en un solo acto (nace aprobada) y vence con el período del servicio
 // (contracts/modules/compliance-audit.md).
@@ -50,7 +50,7 @@ const controlState = async () => {
   return { state: d.technical.control_state as string, readiness: d.readiness as string };
 };
 const definePeriod = (end: string | null) =>
-  owner(`update tenant.service_frameworks set period_start = $2, period_end = $3, cutoff_date = $2 where service_id = $1`, [a.serviceId, end ? day(-30) : null, end]);
+  definirPeriodo(a.serviceId, end ? day(-30) : null, end, end ? day(-30) : null);
 
 
 beforeAll(async () => {

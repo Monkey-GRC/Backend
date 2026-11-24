@@ -78,6 +78,7 @@ export class RequirementTestResponse {
   @ApiProperty({ description: 'Nombre neutro de la prueba.' }) display_name!: string;
   @ApiProperty({ enum: TEST_STATUSES, enumName: 'TestStatus', description: 'Estado de la prueba (§9).' }) status!: string;
   @ApiProperty({ nullable: true, example: '2026-12-31', description: 'Último día de la ventana vigente; `null` si no tiene ventana (permanente, por evento o anual sin evidencia).' }) window_end!: string | null;
+  @ApiProperty({ nullable: true, example: '2026-12-26', description: 'Día del aviso previo (MD-500, PR-06): `window_end` menos los días de aviso de la periodicidad; `null` sin ventana.' }) alert_at!: string | null;
   @ApiProperty({ type: ControlCheckCountsResponse, nullable: true, description: 'Solo en las pruebas técnicas que deciden los checks: el conteo de resultados.' }) checks!: ControlCheckCountsResponse | null;
   @ApiProperty({ type: ControlAssetCoverageResponse, nullable: true, description: 'Solo en las pruebas técnicas que deciden los checks: la cobertura de activos.' }) asset_coverage!: ControlAssetCoverageResponse | null;
 }
@@ -88,8 +89,34 @@ export class ControlRequirementResponse {
   @ApiProperty({ description: 'Texto del requisito.' }) text!: string;
   @ApiProperty({ enum: REQUIREMENT_TYPES, enumName: 'RequirementType', description: 'Tipo del requisito.' }) type!: string;
   @ApiProperty({ enum: PERIODICITIES, enumName: 'Periodicity', nullable: true, description: 'Periodicidad con la que se renueva su evidencia; `null` si no tiene.' }) periodicity!: string | null;
+  @ApiProperty({ enum: PERIODICITIES, enumName: 'Periodicity', nullable: true, description: 'MD-500 · La periodicidad que sugiere el catálogo para el requisito.' }) suggested_periodicity!: string | null;
+  @ApiProperty({ enum: ['catalog', 'client'], enumName: 'PeriodicitySource', description: 'MD-500 · De dónde sale `periodicity`: `catalog` (la sugerida) o `client` (la cambió el `admin_empresa`, D147).' }) periodicity_source!: string;
   @ApiProperty({ enum: REQUIREMENT_STATUSES, enumName: 'RequirementStatus', description: 'Estado del requisito (§9), derivado de sus pruebas.' }) status!: string;
   @ApiProperty({ type: RequirementTestResponse, isArray: true, description: 'Las pruebas que lo prueban.' }) tests!: RequirementTestResponse[];
+}
+
+export class PeriodicityChangeResponse {
+  @ApiProperty({ enum: PERIODICITIES, enumName: 'Periodicity', nullable: true, description: 'La periodicidad que quedó.' }) periodicity!: string | null;
+  @ApiProperty({ example: 'Rotamos accesos cada mes por exigencia del contrato.', description: 'La justificación que escribió el `admin_empresa`.' }) justification!: string;
+  @ApiProperty({ example: '2026-11-23T15:00:00.000Z', description: 'Cuándo se cambió (ISO 8601 UTC).' }) changed_at!: string;
+}
+
+export class PeriodWindowsResponse {
+  @ApiProperty({ example: 5, description: 'Ventanas ya cerradas dentro del período auditado.' }) total!: number;
+  @ApiProperty({ example: 4, description: 'De ellas, las que tuvieron evidencia válida.' }) with_evidence!: number;
+}
+
+export class PeriodMissingWindowResponse {
+  @ApiProperty({ example: 'IAC-12-L2', description: 'Código del requisito.' }) requirement_code!: string;
+  @ApiProperty({ example: '2026-10-01', description: 'Primer día de la ventana (YYYY-MM-DD).' }) window_start!: string;
+  @ApiProperty({ example: '2026-10-31', description: 'Último día de la ventana (YYYY-MM-DD).' }) window_end!: string;
+}
+
+export class ControlPeriodResponse {
+  @ApiProperty({ enum: CONTROL_LEVELS, enumName: 'ControlLevel', description: 'Nivel del control visto sobre todo el período auditado (R6): las ventanas cerradas sin evidencia lo bajan.' }) level!: string;
+  @ApiProperty({ example: false, description: '`true` solo si el período cumple: cada ventana tuvo evidencia válida (R4, R6).' }) complies!: boolean;
+  @ApiProperty({ type: PeriodWindowsResponse, description: 'Cuántas ventanas cerradas tiene el período y cuántas tuvieron evidencia.' }) windows!: PeriodWindowsResponse;
+  @ApiProperty({ type: PeriodMissingWindowResponse, isArray: true, description: 'Las ventanas ya cerradas del período sin evidencia válida.' }) missing!: PeriodMissingWindowResponse[];
 }
 
 export class ControlTechnicalResponse {
@@ -100,6 +127,8 @@ export class ControlTechnicalResponse {
   @ApiProperty({ example: false, description: '`true` solo en los niveles Adecuado y Sólido (R4).' }) complies!: boolean;
   @ApiProperty({ nullable: true, example: 80, description: 'C%: requisitos que cumplen ÷ requisitos aplicables, con dos decimales; `null` si no hay requisitos aplicables.' }) c_percent!: number | null;
   @ApiProperty({ example: 3, description: 'Pruebas del control.' }) tests_count!: number;
+  @ApiProperty({ type: PeriodicityChangeResponse, nullable: true, description: 'MD-500 · El último cambio de periodicidad del control (D147); `null` si usa la sugerida del catálogo.' }) periodicity_change!: PeriodicityChangeResponse | null;
+  @ApiProperty({ type: ControlPeriodResponse, nullable: true, description: 'MD-500 (R6) · La vista del período auditado abierto; `null` si el período no está definido. Los demás campos son la vista a la fecha.' }) period!: ControlPeriodResponse | null;
   @ApiProperty({ type: ControlRequirementResponse, isArray: true, required: false, description: 'Solo en el detalle: los requisitos del control con su estado y sus pruebas.' }) requirements?: ControlRequirementResponse[];
   @ApiProperty({ type: ControlTechnicalTestResponse, isArray: true, required: false, description: 'Solo en el detalle: las pruebas con su estado.' }) tests?: ControlTechnicalTestResponse[];
 }

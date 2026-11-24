@@ -139,7 +139,8 @@ describe('documentación de la API encendida (local)', () => {
     // + 1 de MD-194: revisar un veredicto (`PUT /v1/verdicts/{verdictId}/review`).
     // + 2 de MD-195: `GET /v1/me/work` y `GET /v1/team/workload`.
     // + 3 de MD-217: `GET /v1/auth/devices`, `DELETE /v1/auth/devices/{id}` y `DELETE /v1/auth/devices` (dispositivos recordados, D123).
-    expect(ids.length).toBe(176);
+    // + 2 de MD-500: `PUT /v1/controls/{id}/periodicity` y `GET …/evaluation-periods`.
+    expect(ids.length).toBe(178);
     expect(ids.some((id) => id.includes('/internal/'))).toBe(false);
   });
 

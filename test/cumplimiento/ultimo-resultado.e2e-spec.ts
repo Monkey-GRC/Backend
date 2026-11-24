@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { bootApp, owner } from '../support/app';
 import { connect } from '../support/db';
-import { dosEmpresas, Tenant } from '../support/escenario';
+import { definirPeriodo, dosEmpresas, Tenant } from '../support/escenario';
 import { latestEvaluationsSql, latestVerdictsSql } from '../../src/features/compliance/infrastructure/shared/latest-results.query';
 
 // MD-220 · El último resultado de cada (control, test, activo) no crece con el histórico: la base entrega una fila por clave (DISTINCT ON) y el resumen no cambia por tener 50 corridas.
@@ -37,7 +37,7 @@ async function leidas(): Promise<{ returned: number; rows: { clientControlId: st
 beforeAll(async () => {
   app = await bootApp();
   ({ a } = await dosEmpresas(app));
-  await owner(`update tenant.service_frameworks set period_start = '2026-01-01', period_end = '2026-12-31', cutoff_date = '2026-10-14' where service_id = $1`, [a.serviceId]);
+  await definirPeriodo(a.serviceId, '2026-01-01', '2026-12-31', '2026-10-14');
   links = await owner(
     `select distinct c.id, crt.test_id, sf.catalog_version_id from tenant.client_controls c
        join tenant.client_control_requirements ccr on ccr.client_control_id = c.id

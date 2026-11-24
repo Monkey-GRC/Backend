@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsArray, IsIn, IsNotEmpty, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
 
+export const PERIODICITIES = ['permanent', 'daily', 'weekly', 'monthly', 'bimonthly', 'quarterly', 'semiannual', 'annual', 'on_demand'] as const;
+
 // POST /v1/services/{service_id}/controls (contracts/modules/compliance-controls.md, MD-150)
 export class CreateControlDto {
   @ApiProperty({ description: 'Nombre del control propio (máx. 200).' }) @IsString() @IsNotEmpty() @MaxLength(200) name!: string;
@@ -16,4 +18,12 @@ export class CreateControlDto {
 export class EditClientControlDto {
   @ApiPropertyOptional({ type: Object, description: 'La interpretación nueva: `{ "text": "…" }` (máx. 4000). Queda marcada como personalizada y se conserva el texto del catálogo.' }) @IsOptional() @IsObject() interpretation?: { text?: unknown };
   @ApiPropertyOptional({ type: [Object], description: 'Las dimensiones a cambiar: `[{ "dimension": "database", "applies": false, "reason_not_applicable": "…" }]`. Una que no aplica exige el motivo.' }) @IsOptional() @IsArray() dimensions?: unknown[];
+}
+
+// PUT /v1/controls/{id}/periodicity (MD-500, D147, G-10). El contenido lo valida `validatePeriodicityChange`, que devuelve los códigos del contrato por campo.
+export class SetControlPeriodicityDto {
+  @ApiProperty({ enum: PERIODICITIES, enumName: 'Periodicity', nullable: true, example: 'monthly', description: 'La periodicidad nueva para todos los requisitos del control; `null` vuelve a la sugerida por el catálogo.' })
+  @IsOptional() periodicity?: unknown;
+  @ApiProperty({ example: 'Rotamos accesos cada mes por exigencia del contrato con el banco.', description: 'Por qué se cambia (1 a 1000 caracteres, sin contar los espacios de los extremos). Queda en el rastro.' })
+  @IsOptional() justification?: unknown;
 }

@@ -14,6 +14,8 @@ import {
   DocumentAcceptance,
   DocumentOrigin,
   DocumentType,
+  EvaluationPeriodOrigin,
+  EvaluationPeriodStatus,
   ExclusionStatus,
   FailureCategory,
   OrganizationResponsibleType,
@@ -61,6 +63,10 @@ export const COMPLIANCE_ENUM_CATALOGS = {
   document_type: values(DocumentType),
   document_origin: values(DocumentOrigin),
   document_acceptance: values(DocumentAcceptance),
+  evaluation_period_status: values(EvaluationPeriodStatus),
+  evaluation_period_origin: values(EvaluationPeriodOrigin),
+  // MD-500 · No es un enum de Postgres: se deriva (de si el `admin_empresa` cambió la periodicidad del control, D147).
+  periodicity_source: ['catalog', 'client'],
   // No es un enum de Postgres: el impacto potencial se guarda como texto del comité y la API lo traduce a estos valores (`risk-types.ts`, P9).
   loss_type: [...LOSS_TYPES],
   // La escala de la matriz 5×5: del mínimo al máximo que acepta la evaluación de un riesgo.

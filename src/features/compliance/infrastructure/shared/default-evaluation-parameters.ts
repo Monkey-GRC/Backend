@@ -9,6 +9,10 @@ const DEFAULT_EVALUATION_PARAMETERS: EvaluationParameters = {
   checkExceptionMaxDays: 90,
   freshnessHours: 24,
   scoreThreshold: 80,
+  alertDaysBefore: { daily: 0, weekly: 2, monthly: 5, bimonthly: 10, quarterly: 15, semiannual: 20, annual: 30 },
+  onDemandAlertDays: 15,
+  auditedPeriodMinMonths: 6,
+  solidAssetCoverage: 100,
 };
 
 @Injectable()

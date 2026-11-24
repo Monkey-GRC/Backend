@@ -10,5 +10,6 @@
   },
   "created": "Done, we created your custom control. It now counts toward compliance.",
   "updated": "Done, we saved the control changes.",
+  "periodicity_set": "Done, we changed the control periodicity.",
   "retired": "This control has already been retired."
 }

@@ -89,7 +89,7 @@ export class ExclusionPrismaRepository extends ExclusionRepository {
 
         // La vigencia no la manda el cliente: hoy hasta el fin del período del servicio (P26). Sin período definido (o ya terminado) no hay hasta cuándo excluir.
         const now = today();
-        const ends = (await tx.serviceFramework.findMany({ where: { serviceId, status: 'active', periodEnd: { gte: now } }, select: { periodEnd: true }, orderBy: { periodEnd: 'desc' }, take: 1 }))[0]?.periodEnd;
+        const ends = (await tx.serviceFrameworkPeriod.findMany({ where: { status: 'open', periodEnd: { gte: now }, serviceFramework: { serviceId, status: 'active' } }, select: { periodEnd: true }, orderBy: { periodEnd: 'desc' }, take: 1 }))[0]?.periodEnd;
         if (!ends) throw new DomainError('EVALUATION_NOT_DEFINED');
 
         // Dos exclusiones a la vez de lo mismo se serializan: ya no hay una pendiente que las frene con el índice (D96, nace aprobada).

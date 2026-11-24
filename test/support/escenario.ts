@@ -14,6 +14,18 @@ export type Tenant = {
   assetName: string;
 };
 
+/** MD-500 · Deja como período abierto del servicio (todos sus marcos) el que se pide, o ninguno si `end` es `null`. Escribe directo en la base, con el superusuario de las pruebas. */
+export async function definirPeriodo(serviceId: string, start: string | null, end: string | null, cutoff: string | null = null): Promise<void> {
+  await owner(`delete from tenant.service_framework_periods where service_framework_id in (select id from tenant.service_frameworks where service_id = $1)`, [serviceId]);
+  if (start && end) {
+    await owner(
+      `insert into tenant.service_framework_periods (id, tenant_id, service_framework_id, period_start, period_end, cutoff_date)
+       select gen_random_uuid(), tenant_id, id, $2::date, $3::date, $4::date from tenant.service_frameworks where service_id = $1`,
+      [serviceId, start, end, cutoff],
+    );
+  }
+}
+
 export const servicePayload = (name: string) => ({
   name,
   description: 'Soporte de primer y segundo nivel para clientes corporativos, 24/7.',

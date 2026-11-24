@@ -1,13 +1,14 @@
 import { Prisma } from '../../../../../generated/prisma/client';
 import { TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import {
-  ControlEvidenceItem, Dimension, NO_LINKS, ReadoutControl, ReadoutRequirement, ReadoutTest, TestLinks, dimensionOfAssetType, resultKey, testAssetKey,
+  AuditedPeriod, ControlEvidenceItem, Dimension, NO_LINKS, ReadoutControl, ReadoutRequirement, ReadoutTest, TestLinks, dimensionOfAssetType, resultKey, testAssetKey,
 } from '../../domain/controls/control-readout';
 import { AssetResult } from '../../domain/engine/states';
 import { ServiceReadoutData } from '../../domain/controls/control.repository';
 import { ManualVerdict } from '../../domain/engine/v2/manual-test';
 import { EvaluationParameters } from '../../domain/engine/v2/parameters';
 import { ModuleFacts, exceptionEndsOn } from '../../domain/engine/v2/technical-test';
+import { isCalendarPeriodicity } from '../../domain/engine/v2/windows';
 import { Periodicity, TestType } from '../../domain/engine/v2/types';
 import { verdictStateOf } from '../../domain/verdicts/test-verdict';
 import { NO_ACCESS } from '../../domain/controls/control-access';
@@ -60,6 +61,7 @@ async function loadControls(
     where: { serviceId, isActive: true, ...(only ? { id: only } : {}) },
     select: {
       id: true, serviceId: true, ownCode: true, name: true, trustCriterion: true, type: true, clientInterpretation: true, controlId: true,
+      periodicityJustification: true, periodicityChangedAt: true,
       control: {
         select: {
           code: true, name: true, description: true, periodicity: true,
@@ -94,7 +96,10 @@ async function loadControls(
   const evidenceOf = new Map<string, ControlEvidenceItem[]>();
   for (const e of evidenceRows) {
     const latest = [...e.submissions].sort((a, b) => versionOf(b.version) - versionOf(a.version))[0];
-    const item: ControlEvidenceItem = { testId: e.testId, state: requirementState(e.submissions), submittedAt: latest?.submittedAt ?? null };
+    const item: ControlEvidenceItem = {
+      testId: e.testId, state: requirementState(e.submissions), submittedAt: latest?.submittedAt ?? null,
+      history: e.submissions.map((sub) => ({ state: requirementState([sub]), submittedAt: sub.submittedAt })),
+    };
     evidenceOf.set(e.clientControlId, [...(evidenceOf.get(e.clientControlId) ?? []), item]);
   }
 
@@ -116,6 +121,7 @@ async function loadControls(
         text: r.controlRequirement.text,
         type: r.controlRequirement.type as TestType,
         periodicity: (r.periodicity ?? r.controlRequirement.periodicity ?? null) as Periodicity | null,
+        suggestedPeriodicity: (r.controlRequirement.periodicity ?? null) as Periodicity | null,
         isApplicable: r.isApplicable,
         tests: r.controlRequirement.tests.map((t) => toReadoutTest(t.test)).sort((a, b) => a.code.localeCompare(b.code)),
         point: r.controlRequirement.pointNumber ?? 0,
@@ -146,6 +152,9 @@ async function loadControls(
       catalogControlId: c.controlId,
       periodicity: (c.control?.periodicity ?? null) as Periodicity | null,
       requirements,
+      periodicityChange: c.periodicityChangedAt
+        ? { periodicity: requirements[0]?.periodicity ?? null, justification: c.periodicityJustification ?? '', changedAt: c.periodicityChangedAt }
+        : null,
     };
   });
 }
@@ -187,6 +196,11 @@ export async function loadServiceSnapshot(
 
   const now = new Date();
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+  // MD-500 · El período auditado abierto (G-11): con varios marcos en el servicio, el que termina más tarde. Y, solo si hay ventanas de calendario por medir en una prueba técnica,
+  // los días con un resultado decidido de cada (control, test, activo) dentro del período: de ahí sale la cobertura de las ventanas ya cerradas.
+  const period = await loadOpenPeriod(tx, serviceId);
+  const resultDays = period ? await loadResultDays(tx, serviceId, period, everyControl, now) : undefined;
 
   // D135 · Una excepción APROBADA y vigente (de 90 días como máximo, PR-04) deja pasar un FAIL de un activo en una prueba, marcado. La pendiente, la rechazada y la vencida no cambian nada.
   const exceptionRows = await tx.exclusion.findMany({
@@ -234,7 +248,41 @@ export async function loadServiceSnapshot(
     controls,
     assets,
     results,
-    signals: { now, parameters, resultDates, exceptions, complementaryFails, moduleFacts, verdicts },
+    signals: { now, parameters, resultDates, exceptions, complementaryFails, moduleFacts, verdicts, period, ...(resultDays ? { resultDays } : {}) },
     ...(pool ? { pool } : {}),
   };
+}
+
+/** El período auditado abierto del servicio; con varios marcos activos, el que termina más tarde. `null` si ninguno lo tiene definido. */
+export async function loadOpenPeriod(tx: TransactionClient, serviceId: string): Promise<AuditedPeriod | null> {
+  const row = await tx.serviceFrameworkPeriod.findFirst({
+    where: { status: 'open', serviceFramework: { serviceId, status: 'active' } },
+    orderBy: { periodEnd: 'desc' },
+    select: { periodStart: true, periodEnd: true },
+  });
+  return row ? { start: row.periodStart, end: row.periodEnd } : null;
+}
+
+async function loadResultDays(tx: TransactionClient, serviceId: string, period: AuditedPeriod, controls: readonly ReadoutControl[], now: Date): Promise<Map<string, Set<number>> | undefined> {
+  // Solo las pruebas técnicas con un check Directo de un requisito de calendario: son las únicas que se miden por resultado de activo (el resto, por evidencia).
+  const pairs = controls.flatMap((c) =>
+    (c.requirements ?? [])
+      .filter((r) => isCalendarPeriodicity(r.periodicity))
+      .flatMap((r) => r.tests.filter((t) => t.testType === 'technical' && (t.links?.directCheckCount ?? 0) > 0).map((t) => ({ controlId: c.id, testId: t.testId }))),
+  );
+  if (pairs.length === 0) return undefined;
+  // Ni más allá de hoy ni del fin del período (los resultados futuros no existen y los posteriores al período no cuentan, G-11).
+  const end = new Date(Math.min(now.getTime(), period.end.getTime() + 86_400_000));
+  const rows = await tx.$queryRaw<{ clientControlId: string; testId: string; assetId: string; day: Date }[]>(Prisma.sql`
+    SELECT e.client_control_id AS "clientControlId", e.test_id AS "testId", e.asset_id AS "assetId", (e.evaluated_at AT TIME ZONE 'UTC')::date AS "day"
+      FROM tenant.evaluations e
+     WHERE e.service_id = ${serviceId}::uuid AND e.client_control_id = ANY(${[...new Set(pairs.map((p) => p.controlId))]}::uuid[]) AND e.test_id = ANY(${[...new Set(pairs.map((p) => p.testId))]}::uuid[])
+       AND e.origin <> 'manual' AND e.result IN ('compliant', 'non_compliant') AND e.evaluated_at >= ${period.start} AND e.evaluated_at < ${end}
+     GROUP BY 1, 2, 3, 4`);
+  const days = new Map<string, Set<number>>();
+  for (const r of rows) {
+    const key = resultKey(r.clientControlId, r.testId, r.assetId);
+    days.set(key, (days.get(key) ?? new Set()).add(new Date(r.day).getTime()));
+  }
+  return days;
 }
