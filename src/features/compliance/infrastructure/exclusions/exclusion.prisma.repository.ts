@@ -103,7 +103,8 @@ export class ExclusionPrismaRepository extends ExclusionRepository {
         if (existing) throw new DomainError('EXCLUSION_ALREADY_EXISTS');
 
         // D91 · Aprobar saca al activo del test: si eso mueve el estado de un control, queda su evento.
-        const states = await captureControlStates(tx, serviceId, await this.evaluationParameters.load());
+        const parameters = await this.evaluationParameters.load(tx);
+        const states = await captureControlStates(tx, serviceId, parameters);
         const row = await tx.exclusion.create({
           data: {
             tenantId: scope.companyId, serviceId, testId: input.testId, assetId: input.assetId, proposedBy: input.decidedBy, justification: input.justification,
@@ -121,7 +122,7 @@ export class ExclusionPrismaRepository extends ExclusionRepository {
           }],
         });
         await insertAuditLog(tx, audit(created));
-        await recordControlStateChanges(tx, { parameters: await this.evaluationParameters.load(),
+        await recordControlStateChanges(tx, { parameters,
           tenantId: scope.companyId, serviceId, before: states, cause: 'exclusion_approved',
           actor: { userId: input.decidedBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent },
         });

@@ -6,7 +6,7 @@ import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
-import { EvaluationParametersPort } from '../../domain/engine/v2/parameters';
+import { EvaluationParameters, EvaluationParametersPort } from '../../domain/engine/v2/parameters';
 import { ControlAccess, NO_ACCESS } from '../../domain/controls/control-access';
 import { dimensionOfAssetType, readControl } from '../../domain/controls/control-readout';
 import type { TestState } from '../../domain/engine/states';
@@ -89,7 +89,8 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
         .filter((a) => dimensionOfAssetType(a.type) === dimension);
       if (assets.length === 0) throw new DomainError('TEST_HAS_NO_ASSETS');
 
-      const before = await captureControlStates(tx, origin.serviceId, await this.evaluationParameters.load());
+      const parameters = await this.evaluationParameters.load(tx);
+      const before = await captureControlStates(tx, origin.serviceId, parameters);
       const now = new Date();
       const created = await tx.testVerdict.create({
         data: {
@@ -100,9 +101,9 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
         },
         select: VERDICT_SELECT,
       });
-      const issued: VerdictWithTestState = { ...toRecord(created, await this.carrying(tx, origin.serviceId, [testId])), testState: await this.testState(tx, origin.serviceId, controlId, testId) };
+      const issued: VerdictWithTestState = { ...toRecord(created, await this.carrying(tx, origin.serviceId, [testId])), testState: await this.testState(tx, origin.serviceId, controlId, testId, parameters) };
       await insertAuditLog(tx, audit(issued));
-      await recordControlStateChanges(tx, { parameters: await this.evaluationParameters.load(),
+      await recordControlStateChanges(tx, { parameters,
         tenantId: scope.companyId, serviceId: origin.serviceId, before, cause: 'test_verdict',
         actor: { userId: input.registeredBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent },
       });
@@ -125,7 +126,8 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
       if (!found) return null;
       if (await this.isSuperseded(tx, found)) throw new DomainError('VERDICT_SUPERSEDED');
       // D91 · Aprobar o rechazar mueve el estado del test: cada control que cambie deja su evento.
-      const before = await captureControlStates(tx, found.serviceId, await this.evaluationParameters.load());
+      const parameters = await this.evaluationParameters.load(tx);
+      const before = await captureControlStates(tx, found.serviceId, parameters);
       const previous = found.reviews.find((r) => r.reviewerRole === input.reviewerRole);
       const values = { decision: input.decision, note: input.note, reviewedBy: input.reviewedBy, reviewedAt: new Date() };
       await tx.testVerdictReview.upsert({
@@ -136,13 +138,13 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
       const row = await tx.testVerdict.findFirstOrThrow({ where: { id: verdictId }, select: VERDICT_SELECT });
       const record = toRecord(row, await this.carrying(tx, row.serviceId, [row.testId]));
       const saved: VerdictReviewed = {
-        verdict: { ...record, testState: await this.testState(tx, row.serviceId, row.clientControlId, row.testId) },
+        verdict: { ...record, testState: await this.testState(tx, row.serviceId, row.clientControlId, row.testId, parameters) },
         before: previous ? toReview(previous) : null,
         after: record.reviews.find((r) => r.reviewerRole === input.reviewerRole)!,
         stateBefore: verdictStateOf(found.reviews),
       };
       await insertAuditLog(tx, audit(saved));
-      await recordControlStateChanges(tx, { parameters: await this.evaluationParameters.load(),
+      await recordControlStateChanges(tx, { parameters,
         tenantId: scope.companyId, serviceId: row.serviceId, before, cause: 'test_verdict_review',
         actor: { userId: input.reviewedBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent },
       });
@@ -208,8 +210,8 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
     return newer > 0;
   }
 
-  private async testState(tx: TransactionClient, serviceId: string, controlId: string, testId: string): Promise<TestState> {
-    const data = await loadServiceSnapshot(tx, serviceId, await this.evaluationParameters.load(), controlId);
+  private async testState(tx: TransactionClient, serviceId: string, controlId: string, testId: string, parameters: EvaluationParameters): Promise<TestState> {
+    const data = await loadServiceSnapshot(tx, serviceId, parameters, controlId);
     const control = data.controls.find((c) => c.id === controlId)!;
     return readControl(control, data).tests.find((t) => t.test.testId === testId)?.state ?? 'pending';
   }

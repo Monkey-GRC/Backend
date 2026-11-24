@@ -50,5 +50,9 @@
   "control_mismatch": "That evidence does not belong to that control.",
   "body_or_status_required": "Write a reply or change the status.",
   "body_or_status_exclusive": "Change the text or the status, but not both at once.",
-  "role_not_allowed": "That role is not valid here: only another Monkey administrator can be invited."
+  "role_not_allowed": "That role is not valid here: only another Monkey administrator can be invited.",
+  "value_type": "The value does not have the shape this parameter requires.",
+  "value_range": "The value is outside the allowed range.",
+  "value_order": "The value breaks the rule with another parameter: change the one that keeps the pair valid first.",
+  "value_periodicities": "Provide the days for all 7 periodicities: daily, weekly, monthly, bimonthly, quarterly, semiannual and annual."
 }

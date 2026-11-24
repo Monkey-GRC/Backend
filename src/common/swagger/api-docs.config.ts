@@ -19,6 +19,7 @@ export const API_TAGS = {
   catalogRisks: 'Monkey Admin · Catálogo · Riesgos y causas',
   catalogTests: 'Monkey Admin · Catálogo · Pruebas',
   catalogEvidence: 'Monkey Admin · Catálogo · Plantillas de evidencia',
+  catalogEvaluationParameters: 'Monkey Admin · Catálogo · Parámetros de evaluación',
   catalogs: 'Catálogos de referencia',
   organizationalContext: 'Onboarding · Contexto organizacional',
   services: 'Onboarding · Servicios',
@@ -53,6 +54,8 @@ export const API_TAG_DESCRIPTIONS: Record<(typeof API_TAGS)[keyof typeof API_TAG
     'Riesgos y causas del catálogo maestro y su vínculo con los controles que las tratan. Solo `admin_monkey`.',
   [API_TAGS.catalogTests]: 'Pruebas del catálogo maestro (manuales y automáticas). Solo `admin_monkey`.',
   [API_TAGS.catalogEvidence]: 'Plantillas de evidencia que el catálogo maestro pide para cada control. Solo `admin_monkey`.',
+  [API_TAGS.catalogEvaluationParameters]:
+    'Los parámetros del motor de evaluación (umbrales, frescura, avisos…): un solo valor de Monkey para todos los clientes. Solo `admin_monkey`. Contrato: `contracts/catalogo-maestro.md` «Parámetros de evaluación».',
   [API_TAGS.catalogs]:
     'Listas de opciones que el frontend nunca escribe a mano (valores `snake_case` con su etiqueta traducida) y los marcos contratados por la empresa. Contrato: `contracts/enums.md`.',
   [API_TAGS.organizationalContext]:

@@ -50,5 +50,9 @@
   "control_mismatch": "Esa evidencia no es de ese control.",
   "body_or_status_required": "Escribe una respuesta o cambia el estado.",
   "body_or_status_exclusive": "Cambia el texto o el estado, pero no los dos a la vez.",
-  "role_not_allowed": "Ese rol no es válido aquí: solo se invita a otro administrador de Monkey."
+  "role_not_allowed": "Ese rol no es válido aquí: solo se invita a otro administrador de Monkey.",
+  "value_type": "El valor no tiene la forma que pide este parámetro.",
+  "value_range": "El valor está fuera del rango permitido.",
+  "value_order": "El valor rompe la regla con otro parámetro: cambia primero el que deja el par válido.",
+  "value_periodicities": "Indica los días de las 7 periodicidades: diaria, semanal, mensual, bimestral, trimestral, semestral y anual."
 }

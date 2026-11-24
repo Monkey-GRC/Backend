@@ -14,6 +14,7 @@ import {
   DocumentAcceptance,
   DocumentOrigin,
   DocumentType,
+  EvaluationParameterUnit,
   EvaluationPeriodOrigin,
   EvaluationPeriodStatus,
   ExclusionStatus,
@@ -63,6 +64,9 @@ export const COMPLIANCE_ENUM_CATALOGS = {
   document_type: values(DocumentType),
   document_origin: values(DocumentOrigin),
   document_acceptance: values(DocumentAcceptance),
+  // RC-19, MD-495 · La forma del valor de un parámetro de evaluación. `window_mode` no es un enum de Postgres: es el valor de PR-07, una lista de modos.
+  evaluation_parameter_unit: values(EvaluationParameterUnit),
+  window_mode: ['calendar', 'rolling'],
   evaluation_period_status: values(EvaluationPeriodStatus),
   evaluation_period_origin: values(EvaluationPeriodOrigin),
   // MD-500 · No es un enum de Postgres: se deriva (de si el `admin_empresa` cambió la periodicidad del control, D147).

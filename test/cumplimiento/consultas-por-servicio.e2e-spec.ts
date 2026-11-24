@@ -1,5 +1,5 @@
 import { TransactionClient } from '../../src/infrastructure/database/prisma.service';
-import { DefaultEvaluationParameters } from '../../src/features/compliance/infrastructure/shared/default-evaluation-parameters';
+import { BOOK_PARAMETERS } from '../../src/features/compliance/domain/engine/v2/parameters.fixtures';
 import { loadServiceSnapshot } from '../../src/features/compliance/infrastructure/shared/service-snapshot.loader';
 
 // MD-498 · La foto de un servicio hace un número FIJO de consultas, sin importar cuántos controles tenga (no hay N+1). Se cuenta cada llamada al cliente transaccional.
@@ -35,7 +35,7 @@ function fakeTx(controls: number) {
 }
 
 describe('loadServiceSnapshot · consultas por servicio', () => {
-  const params = new DefaultEvaluationParameters().values;
+  const params = BOOK_PARAMETERS;
   const run = async (controls: number) => {
     const { tx, calls } = fakeTx(controls);
     const data = await loadServiceSnapshot(tx, 's1', params);

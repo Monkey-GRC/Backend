@@ -1,0 +1,80 @@
+{
+  "list": "Parámetros de evaluación.",
+  "updated": "Listo, guardamos el parámetro.",
+  "partial_threshold": {
+    "name": "Umbral de Parcial (PR-01)",
+    "description": "Porcentaje de cumplimiento (C%) desde el cual un control pasa de Débil a Parcial."
+  },
+  "weak_threshold": {
+    "name": "Umbral de Débil (PR-02)",
+    "description": "Porcentaje de cumplimiento (C%) desde el cual un control deja de ser Inexistente y pasa a Débil."
+  },
+  "asset_coverage": {
+    "name": "Cobertura de activos (PR-03)",
+    "description": "Porcentaje de activos que debe medir una prueba técnica para contarla."
+  },
+  "check_exception_max_days": {
+    "name": "Duración máxima de una excepción (PR-04)",
+    "description": "Días máximos que puede durar la excepción de una verificación automática."
+  },
+  "freshness_hours": {
+    "name": "Frescura de un resultado automático (PR-05)",
+    "description": "Horas máximas que un resultado automático se considera vigente."
+  },
+  "alert_days_before": {
+    "name": "Días de aviso por periodicidad (PR-06)",
+    "description": "Días antes del cierre de la ventana en que se avisa, según la periodicidad del requisito."
+  },
+  "on_demand_alert_days": {
+    "name": "Aviso de «cuando sea requerido» (PR-06)",
+    "description": "Días antes del cierre del trimestre en que se pide la declaración de los requisitos «cuando sea requerido»."
+  },
+  "validity_windows": {
+    "name": "Ventanas de vigencia (PR-07)",
+    "description": "Cómo vence la evidencia: por ventanas de calendario (mes, trimestre, año) o móviles (una periodicidad desde la fecha de cada evidencia)."
+  },
+  "risk_partial_mitigation_coverage": {
+    "name": "Cobertura de mitigación parcial (PR-08)",
+    "description": "Cobertura de controles desde la cual un riesgo se considera parcialmente mitigado."
+  },
+  "risk_demonstrated_mitigation_coverage": {
+    "name": "Cobertura de mitigación demostrada (PR-09)",
+    "description": "Cobertura de controles desde la cual la mitigación de un riesgo está demostrada."
+  },
+  "impact_reduction_enabled": {
+    "name": "Reducción de impacto (PR-10)",
+    "description": "Si un control puede reducir el impacto de un riesgo."
+  },
+  "approval_max_steps": {
+    "name": "Pasos máximos de aprobación (PR-11)",
+    "description": "Cantidad máxima de pasos en el flujo de aprobación de un documento."
+  },
+  "approval_max_approvers_per_step": {
+    "name": "Aprobadores máximos por paso (PR-12)",
+    "description": "Cantidad máxima de aprobadores en cada paso de aprobación."
+  },
+  "submitter_sole_approver_allowed": {
+    "name": "Quien envía como único aprobador (PR-13)",
+    "description": "Si quien envía un documento puede ser su único aprobador. Queda en la auditoría."
+  },
+  "document_acceptance_days": {
+    "name": "Plazo de aceptación de documentos (PR-14)",
+    "description": "Días que tienen las personas para aceptar un documento publicado."
+  },
+  "document_acceptance_required": {
+    "name": "Aceptación requerida de documentos (PR-15)",
+    "description": "Porcentaje de personas que deben aceptar un documento para darlo por aceptado."
+  },
+  "audited_period_min_months": {
+    "name": "Duración mínima del período auditado (PR-16)",
+    "description": "Meses mínimos del período auditado de SOC 2."
+  },
+  "score_threshold": {
+    "name": "Umbral de puntaje global",
+    "description": "Puntaje mínimo (%) para que pase un vínculo de puntaje global."
+  },
+  "solid_asset_coverage": {
+    "name": "Cobertura de activos de un control Sólido",
+    "description": "Cobertura de activos (%) que exige un control Sólido en sus pruebas técnicas; no puede ser menor que la cobertura de activos (PR-03)."
+  }
+}

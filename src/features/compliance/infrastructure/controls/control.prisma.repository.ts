@@ -20,7 +20,7 @@ export class ControlPrismaRepository extends ControlRepository {
   loadService(scope: TenantScope, serviceId: string): Promise<ServiceReadoutData | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const service = await tx.service.findFirst({ where: { id: serviceId, organization: { companyId: scope.companyId } }, select: { id: true } });
-      return service ? loadServiceSnapshot(tx, serviceId, await this.evaluationParameters.load()) : null;
+      return service ? loadServiceSnapshot(tx, serviceId, await this.evaluationParameters.load(tx)) : null;
     }, READ_TRANSACTION);
   }
 
@@ -28,7 +28,7 @@ export class ControlPrismaRepository extends ControlRepository {
     return this.prisma.withScope(scope, async (tx) => {
       const service = await tx.service.findFirst({ where: { id: serviceId, organization: { companyId: scope.companyId } }, select: { id: true } });
       if (!service) return null;
-      const base = await loadServiceSnapshot(tx, serviceId, await this.evaluationParameters.load());
+      const base = await loadServiceSnapshot(tx, serviceId, await this.evaluationParameters.load(tx));
 
       // Solo los marcos activos del servicio.
       const frameworks = (
@@ -93,7 +93,7 @@ export class ControlPrismaRepository extends ControlRepository {
     return this.prisma.withScope(scope, async (tx) => {
       const found = await tx.clientControl.findFirst({ where: { id: controlId, isActive: true }, select: { serviceId: true } });
       if (!found) return null;
-      const base = await loadServiceSnapshot(tx, found.serviceId, await this.evaluationParameters.load(), controlId);
+      const base = await loadServiceSnapshot(tx, found.serviceId, await this.evaluationParameters.load(tx), controlId);
 
       const requirements = await tx.evidenceRequirement.findMany({
         where: { clientControlId: controlId },

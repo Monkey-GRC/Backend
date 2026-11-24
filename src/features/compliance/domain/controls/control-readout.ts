@@ -8,7 +8,7 @@ import { EvaluationParameters } from '../engine/v2/parameters';
 import { evaluateRequirement, requirementStatusInPeriod } from '../engine/v2/requirement';
 import { AssetOutcomes, checkResultOf, CheckCounts, CheckOutcome, classifyModuleRef, evaluateTechnicalTest, ModuleFacts, moduleLinkResult, withException, worstStatus } from '../engine/v2/technical-test';
 import { ControlLevel, Periodicity, RequirementStatus, TestStatus, TestType } from '../engine/v2/types';
-import { alertDate, closedWindowsWithin, currentWindow, EvaluationWindow, isResultCurrent, windowEndDate } from '../engine/v2/windows';
+import { alertDate, closedWindowsWithin, currentWindow, EvaluationWindow, hasPeriodWindows, isResultCurrent, rollingWindowsWithin, windowEndDate } from '../engine/v2/windows';
 
 // De lo que dice la base a lo que se muestra de un control (MD-117, MD-498, modelo-datos.md §9 y contracts/cumplimiento/controles.md).
 // Lógica pura, sin Prisma ni Nest: recibe una foto del servicio y devuelve el nivel y el estado de cada control con el motor v2 del comité.
@@ -240,6 +240,17 @@ function manualEvidenceOf(control: ReadoutControl, testId: string | null, period
   return control.evidence.filter((e) => (testId === null || e.testId === testId) && withinPeriod(e.submittedAt, period)).map((e) => ({ state: e.state, submittedAt: e.submittedAt }));
 }
 
+/** El último resultado automático decidido del test (dentro del período) en cualquiera de sus activos; `null` si no hay. */
+function lastResultAt(control: ReadoutControl, test: ReadoutTest, data: ReadoutData): Date | null {
+  let last: Date | null = null;
+  for (const asset of data.assets) {
+    if (dimensionOfAssetType(asset.type) !== test.dimension) continue;
+    const at = data.signals.resultDates.get(resultKey(control.id, test.testId, asset.id));
+    if (at && withinPeriod(at, data.signals.period) && (!last || at > last)) last = at;
+  }
+  return last;
+}
+
 function outcomesOf(control: ReadoutControl, test: ReadoutTest, periodicity: Periodicity | null, data: ReadoutData): AssetOutcomes[] {
   const links = test.links ?? NO_LINKS;
   const { signals, results } = data;
@@ -292,7 +303,9 @@ function evaluateTest(control: ReadoutControl, entry: Entry, data: ReadoutData, 
       return next.has(ownerKey) ? 'pending' : evaluateTest(owner, found, data, next).status;
     });
     const status = worstStatus([...(technical?.applicable ? [technical.status] : []), ...owners]) ?? 'pending';
-    const window = currentWindow({ periodicity, now: signals.now });
+    // PR-07 `rolling`: la ventana arranca en el último resultado válido del test (o en el inicio del período) y dura una periodicidad.
+    const lastResult = signals.parameters.validityWindows === 'rolling' ? lastResultAt(control, test, data) : null;
+    const window = currentWindow({ periodicity, now: signals.now, lastValidAt: lastResult, mode: signals.parameters.validityWindows, periodStart: signals.period?.start });
     detail = {
       status,
       windowEnd: windowEndDate(window),
@@ -306,6 +319,7 @@ function evaluateTest(control: ReadoutControl, entry: Entry, data: ReadoutData, 
     const verdict = test.testType === 'documentary' ? null : (signals.verdicts.get(test.testId) ?? null);
     const manual = evaluateManualTest({
       evidence: manualEvidenceOf(control, test.testId, signals.period), verdict: verdict && withinPeriod(verdict.at, signals.period) ? verdict : null, periodicity, now: signals.now,
+      windowMode: signals.parameters.validityWindows, periodStart: signals.period?.start,
     });
     detail = { status: manual.status, windowEnd: manual.windowEnd, checks: null, assetCoverage: null, failingAssetIds: [], alertAt: null };
   }
@@ -317,7 +331,7 @@ function evaluateTest(control: ReadoutControl, entry: Entry, data: ReadoutData, 
 /** Un control propio no tiene requisitos del catálogo: se mide con su evidencia como un requisito documental único. */
 function ownRequirement(control: ReadoutControl, data: ReadoutData): RequirementReadout {
   const requirement: ReadoutRequirement = { id: control.id, code: control.ownCode, text: control.name, type: 'documentary', periodicity: control.periodicity ?? null, isApplicable: true, tests: [] };
-  const manual = evaluateManualTest({ evidence: manualEvidenceOf(control, null, data.signals.period), periodicity: requirement.periodicity, now: data.signals.now });
+  const manual = evaluateManualTest({ evidence: manualEvidenceOf(control, null, data.signals.period), periodicity: requirement.periodicity, now: data.signals.now, windowMode: data.signals.parameters.validityWindows, periodStart: data.signals.period?.start });
   return { requirement, status: evaluateRequirement({ isApplicable: true, tests: [manual.status] }), tests: [] };
 }
 
@@ -365,10 +379,52 @@ function hasDayIn(days: ReadonlySet<number>, w: EvaluationWindow): boolean {
   return lo < sorted.length && sorted[lo] < w.end.getTime();
 }
 
+/** Las fechas (ms) en que la evidencia manual de la prueba fue válida: entregas validadas y el veredicto aprobado. */
+function manualDates(items: ReadonlyArray<ControlEvidenceItem>, verdict: { result: string; at: Date } | null): number[] {
+  const dates = items.flatMap((e) => (e.history ?? [{ state: e.state, submittedAt: e.submittedAt }]).flatMap((h) => (h.state === 'compliant' && h.submittedAt ? [h.submittedAt.getTime()] : [])));
+  if (verdict?.result === 'compliant') dates.push(verdict.at.getTime());
+  return dates;
+}
+
+/** Los días en que al menos PR-03 % de los activos en alcance tuvieron un resultado del test (la misma cobertura que pide la prueba técnica). */
+function technicalDates(control: ReadoutControl, test: ReadoutTest, data: ReadoutData): number[] {
+  const assets = data.assets.filter((a) => dimensionOfAssetType(a.type) === test.dimension);
+  if (assets.length === 0) return [];
+  const tally = new Map<number, number>();
+  for (const asset of assets) for (const day of data.signals.resultDays?.get(resultKey(control.id, test.testId, asset.id)) ?? []) tally.set(day, (tally.get(day) ?? 0) + 1);
+  return [...tally].filter(([, n]) => (n / assets.length) * 100 >= data.signals.parameters.assetCoverage).map(([day]) => day);
+}
+
+/** PR-07 `rolling` · Los vencimientos ya ocurridos del requisito: cada prueba lleva su propia cadena (la evidencia de una no renueva a la otra); un vencimiento falta si falta en alguna. */
+function rollingWindowsOf(control: ReadoutControl, r: RequirementReadout, data: ReadoutData, period: AuditedPeriod): RequirementWindows {
+  const periodicity = r.requirement.periodicity;
+  const now = data.signals.now;
+  const own = control.origin === 'own';
+  if (!own && r.tests.length === 0) return { total: 0, missing: [] };
+  const chains = own
+    ? [{ dates: manualDates(control.evidence, null), technical: false }]
+    : r.tests.flatMap((t) => {
+        const links = t.test.links ?? NO_LINKS;
+        if (t.assetCoverage !== null) return [{ dates: technicalDates(control, t.test, data), technical: true }];
+        if (t.test.testType === 'technical' && links.dependencies.length > 0) return [];
+        const verdict = t.test.testType === 'documentary' ? null : (data.signals.verdicts.get(t.test.testId) ?? null);
+        return [{ dates: manualDates(control.evidence.filter((e) => e.testId === t.test.testId), verdict), technical: false }];
+      });
+  let total = 0;
+  const missing = new Map<number, MissingWindow>();
+  for (const chain of chains) {
+    const { closed, missing: gaps } = rollingWindowsWithin(periodicity, period, chain.dates, now);
+    total = Math.max(total, closed.length);
+    for (const w of gaps) if (!missing.has(w.start.getTime())) missing.set(w.start.getTime(), { requirementCode: r.requirement.code, window: w, technical: chain.technical });
+  }
+  return { total, missing: [...missing.values()].sort((a, b) => a.window.start.getTime() - b.window.start.getTime()) };
+}
+
 function windowsOf(control: ReadoutControl, r: RequirementReadout, data: ReadoutData): RequirementWindows {
   const { period } = data.signals;
   const periodicity = r.requirement.periodicity;
   if (!period || r.status === 'not_applicable') return { total: 0, missing: [] };
+  if (data.signals.parameters.validityWindows === 'rolling') return hasPeriodWindows(periodicity, 'rolling') ? rollingWindowsOf(control, r, data, period) : { total: 0, missing: [] };
   const windows = closedWindowsWithin(periodicity, period, data.signals.now);
   const own = control.origin === 'own';
   if (windows.length === 0 || (!own && r.tests.length === 0)) return { total: 0, missing: [] };

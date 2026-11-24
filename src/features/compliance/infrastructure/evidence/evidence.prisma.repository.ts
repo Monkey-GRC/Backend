@@ -157,7 +157,8 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         const access = await this.accessOf(tx, requirementId);
         if (!access) return null;
         // D91 · Una entrega nueva devuelve la prueba a revisión: si eso mueve el estado de un control, queda su evento.
-        const before = await captureControlStates(tx, access.serviceId, await this.evaluationParameters.load());
+        const parameters = await this.evaluationParameters.load(tx);
+        const before = await captureControlStates(tx, access.serviceId, parameters);
         // Dos subidas a la vez al mismo requerimiento no pueden quedarse con la misma versión: se bloquea la fila del requerimiento mientras se calcula la siguiente.
         // (El índice único (requerimiento, versión) es la red de seguridad.)
         await tx.$queryRaw`select id from tenant.evidence_requirements where id = ${requirementId}::uuid for update`;
@@ -172,7 +173,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         });
         const created = toSubmission(row);
         await insertAuditLog(tx, audit(created));
-        await recordControlStateChanges(tx, { parameters: await this.evaluationParameters.load(),
+        await recordControlStateChanges(tx, { parameters,
           tenantId: scope.companyId, serviceId: access.serviceId, before, cause: 'evidence_submission',
           actor: { userId: input.submittedBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent },
         });
@@ -201,7 +202,8 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       const access = await this.accessOf(tx, found.evidenceRequirementId);
       if (!access) return null;
       // D91 · La revisión de un rol mueve el estado de las pruebas (D96) y deja el evento de cada control que cambie.
-      const before = await captureControlStates(tx, access.serviceId, await this.evaluationParameters.load());
+      const parameters = await this.evaluationParameters.load(tx);
+      const before = await captureControlStates(tx, access.serviceId, parameters);
       const key = { evidenceSubmissionId_reviewerRole: { evidenceSubmissionId: submissionId, reviewerRole: input.reviewerRole } };
       const previous = await tx.evidenceReview.findUnique({ where: key, select: REVIEW_SELECT });
       const values = {
@@ -218,7 +220,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       const saved: ReviewSaved = { submission, access, before: previous ? toReviewRecord(previous) : null, after: submission.reviews.find((r) => r.reviewerRole === input.reviewerRole)! };
       await insertAuditLog(tx, audit(saved));
       if (before) {
-        await recordControlStateChanges(tx, { parameters: await this.evaluationParameters.load(),
+        await recordControlStateChanges(tx, { parameters,
           tenantId: scope.companyId, serviceId: access.serviceId, before, cause: 'evidence_review',
           actor: { userId: input.reviewedBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent },
         });

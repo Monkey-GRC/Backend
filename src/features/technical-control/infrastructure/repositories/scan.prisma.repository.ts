@@ -503,6 +503,8 @@ export class ScanPrismaRepository extends ScanRepository {
   private async writeEvaluations(tx: TransactionClient, scope: TenantScope, executionId: string, assetId: string, evaluatedAt: Date, source: 'cloud' | 'sca' = 'cloud'): Promise<number> {
     const includeProposed = this.config.get<string>('READINESS_INCLUDE_PROPOSED')?.trim().toLowerCase() === 'true';
     const services = await tx.serviceAsset.findMany({ where: { assetId }, select: { serviceId: true } });
+    if (services.length === 0) return 0;
+    const parameters = await this.evaluationParameters.load(tx);
     let written = 0;
     for (const { serviceId } of services) {
       // La versión del catálogo con la que se evalúa: la del marco contratado más antiguo del servicio (D36; hoy un servicio clona de una sola versión).
@@ -515,7 +517,7 @@ export class ScanPrismaRepository extends ScanRepository {
       });
       if (links.length === 0) continue;
       // D91 · Si lo que la sonda midió mueve el estado de un control, queda su evento: sin persona detrás (usuario nulo).
-      const before = await captureControlStates(tx, serviceId, await this.evaluationParameters.load());
+      const before = await captureControlStates(tx, serviceId, parameters);
       const read = await this.executionResults(tx, executionId, serviceId);
       const results = source === 'cloud' ? read : read.map((r) => ({ ...r, checkId: r.checkUuid }));
       const rows = links.flatMap((l) => {
@@ -541,7 +543,7 @@ export class ScanPrismaRepository extends ScanRepository {
       });
       for (const part of chunks(rows)) await tx.evaluation.createMany({ data: part });
       written += rows.length;
-      await recordControlStateChanges(tx, { parameters: await this.evaluationParameters.load(), tenantId: scope.companyId, serviceId, before, cause: 'probe_result', actor: { userId: null, ipAddress: null, userAgent: null } });
+      await recordControlStateChanges(tx, { parameters, tenantId: scope.companyId, serviceId, before, cause: 'probe_result', actor: { userId: null, ipAddress: null, userAgent: null } });
     }
     return written;
   }

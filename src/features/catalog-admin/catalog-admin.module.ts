@@ -19,15 +19,22 @@ import { CatalogAdminRepository } from './domain/repositories/catalog-admin.repo
 import { CatalogAdminWriteRepository } from './domain/repositories/catalog-admin-write.repository';
 import { CatalogAdminPrismaRepository } from './infrastructure/repositories/catalog-admin.prisma.repository';
 import { CatalogAdminWritePrismaRepository } from './infrastructure/repositories/catalog-admin-write.prisma.repository';
+import { ListEvaluationParametersUseCase, UpdateEvaluationParameterUseCase } from './application/use-cases/evaluation-parameters.use-cases';
+import { EvaluationParametersAdminRepository } from './domain/repositories/evaluation-parameters.repository';
+import { EvaluationParametersAdminPrismaRepository } from './infrastructure/repositories/evaluation-parameters-admin.prisma.repository';
+import { EvaluationParametersController } from './presentation/evaluation-parameters.controller';
 import { CatalogAdminController } from './presentation/catalog-admin.controller';
 import { CatalogAdminWriteController } from './presentation/catalog-admin-write.controller';
 
 // El catálogo maestro visto desde Monkey Admin (contracts/modules/monkey-admin-catalog.md). Lectura y escritura (crear, editar, dar de baja y vincular); todo exclusivo de `admin_monkey`.
 @Module({
-  controllers: [CatalogAdminController, CatalogAdminWriteController],
+  controllers: [CatalogAdminController, CatalogAdminWriteController, EvaluationParametersController],
   providers: [
     { provide: CatalogAdminRepository, useClass: CatalogAdminPrismaRepository },
     { provide: CatalogAdminWriteRepository, useClass: CatalogAdminWritePrismaRepository },
+    { provide: EvaluationParametersAdminRepository, useClass: EvaluationParametersAdminPrismaRepository },
+    ListEvaluationParametersUseCase,
+    UpdateEvaluationParameterUseCase,
     ControlWrites,
     RiskWrites,
     CauseWrites,
