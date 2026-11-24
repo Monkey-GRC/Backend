@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
-import { dosEmpresas, Tenant } from '../support/escenario';
+import { definirPeriodo, dosEmpresas, Tenant } from '../support/escenario';
 import { asignarControl } from '../support/asignaciones';
 import { invitarYActivar, sembrarEquipo } from '../support/equipo';
 
@@ -68,7 +68,7 @@ describe('Resumen del servicio — la evaluación aún sin definir (P26)', () =>
 describe('Resumen del servicio — con la evaluación definida y resultados', () => {
   let failingId: string;
   beforeAll(async () => {
-    await owner(`update tenant.service_frameworks set period_start = '2026-01-01', period_end = '2026-12-31', cutoff_date = '2026-10-14' where service_id = $1`, [a.serviceId]);
+    await definirPeriodo(a.serviceId, '2026-01-01', '2026-12-31', '2026-10-14');
     // Una acción de seguridad con un test de nube: el activo de la prueba es una cuenta de AWS.
     const rows = await owner<{ id: string; test_id: string; catalog_version_id: string }>(
       `select c.id, t.id as test_id, sf.catalog_version_id

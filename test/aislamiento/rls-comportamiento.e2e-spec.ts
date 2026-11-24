@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { bootApp } from '../support/app';
-import { dosEmpresas, Tenant } from '../support/escenario';
+import { definirPeriodo, dosEmpresas, Tenant } from '../support/escenario';
 import { asApp, connect, failure, seedTwoTenants, withRollback } from '../support/db';
 
 // Aislamiento entre empresas (MD-147, DT-33 del lado de la base): lo que una empresa NO puede ver ni tocar de otra,
@@ -157,6 +157,7 @@ describe('Aislamiento por empresa (RLS) — tenant.client_control_requirements',
   beforeAll(async () => {
     app = await bootApp();
     ({ a, b } = await dosEmpresas(app));
+    await definirPeriodo(a.serviceId, '2026-01-01', '2026-12-31');
   });
   afterAll(async () => {
     await app?.close();
@@ -188,6 +189,35 @@ describe('Aislamiento por empresa (RLS) — tenant.client_control_requirements',
   it('sin tenant fijado no se ve ninguna fila (falla cerrado)', () =>
     withRollback(async (db) => {
       const rows = await asApp(db, {}, () => db.query('select id from tenant.client_control_requirements'));
+      expect(rows.rowCount).toBe(0);
+    }));
+
+  // MD-500 · Los períodos auditados (uno por fila, con histórico): la empresa B no ve ni escribe los de A.
+  it('tenant.service_framework_periods: cada empresa ve solo sus períodos; la otra no los ve, no los cambia, no los borra y no puede crear uno con el tenant ajeno', () =>
+    withRollback(async (db) => {
+      const mine = await asApp(db, { tenantId: a.companyId, role: 'admin_empresa' }, () => db.query('select id, tenant_id, service_framework_id from tenant.service_framework_periods'));
+      expect(mine.rowCount).toBeGreaterThan(0);
+      expect(mine.rows.every((r) => r.tenant_id === a.companyId)).toBe(true);
+      const [target] = mine.rows;
+
+      const asB = { tenantId: b.companyId, role: 'admin_empresa' };
+      const seen = await asApp(db, asB, () => db.query('select id from tenant.service_framework_periods where tenant_id = $1 or id = $2', [a.companyId, target.id]));
+      expect(seen.rowCount).toBe(0);
+      const updated = await asApp(db, asB, () => db.query("update tenant.service_framework_periods set status = 'closed' where id = $1", [target.id]));
+      expect(updated.rowCount).toBe(0);
+      const deleted = await asApp(db, asB, () => db.query('delete from tenant.service_framework_periods where id = $1', [target.id]));
+      expect(deleted.rowCount).toBe(0);
+      const msg = await asApp(db, asB, () =>
+        failure(db, "insert into tenant.service_framework_periods (id, tenant_id, service_framework_id, period_start, period_end) values (gen_random_uuid(), $1, $2, '2027-01-01', '2027-12-31')", [a.companyId, target.service_framework_id]),
+      );
+      expect(msg).toMatch(RLS);
+      const still = await asApp(db, { tenantId: a.companyId, role: 'admin_empresa' }, () => db.query('select status from tenant.service_framework_periods where id = $1', [target.id]));
+      expect(still.rows[0].status).toBe('open');
+    }));
+
+  it('tenant.service_framework_periods: sin tenant fijado no se ve ninguna fila (falla cerrado)', () =>
+    withRollback(async (db) => {
+      const rows = await asApp(db, {}, () => db.query('select id from tenant.service_framework_periods'));
       expect(rows.rowCount).toBe(0);
     }));
 });

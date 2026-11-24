@@ -51,6 +51,8 @@ export async function bootApp(env: Record<string, string> = {}, configure?: (bui
     RATE_LIMIT_COMPANY_PER_MINUTE: '1000000',
     // D97 · Sin tarea programada del borrado definitivo: las pruebas la ejecutan a mano.
     COMPANY_PURGE_INTERVAL_MINUTES: '0',
+    // D148 · Sin tarea diaria de períodos auditados: las pruebas la ejecutan a mano.
+    EVALUATION_PERIOD_INTERVAL_MINUTES: '0',
     ...env,
   });
   // Las variables se fijan antes de compilar el módulo: es cuando los servicios leen la configuración.
