@@ -6,7 +6,7 @@ import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { EvaluationParametersPort } from '../../domain/engine/v2/parameters';
-import { ControlAccess, ControlEdit, ControlEditRepository, ControlSnapshot, DimensionState, OwnControlCreated, OwnControlInput } from '../../domain/controls/control-edit.repository';
+import { ControlAccess, ControlEdit, ControlEditRepository, ControlSnapshot, DimensionState, OwnControlCreated, OwnControlInput, PeriodicityChange, PeriodicityState } from '../../domain/controls/control-edit.repository';
 import { captureControlStates, recordControlStateChanges } from '../shared/control-state-events';
 
 const isUniqueViolation = (e: unknown) => (e as { code?: string })?.code === 'P2002';
@@ -132,6 +132,54 @@ export class ControlEditPrismaRepository extends ControlEditRepository {
       }
       return { before, after };
     });
+  }
+
+  setPeriodicity(
+    scope: TenantScope,
+    controlId: string,
+    input: { periodicity: string | null; justification: string },
+    actor: { userId: string; meta: { ipAddress: string; userAgent: string } },
+    audit: Parameters<ControlEditRepository['setPeriodicity']>[4],
+  ): Promise<PeriodicityChange | null> {
+    return this.prisma.withScope(scope, async (tx) => {
+      const found = await tx.clientControl.findFirst({
+        where: { id: controlId },
+        select: {
+          id: true, serviceId: true, isActive: true, periodicityJustification: true, periodicityChangedAt: true,
+          requirements: { select: { id: true, periodicity: true, controlRequirement: { select: { periodicity: true } } } },
+        },
+      });
+      if (!found) return null;
+      if (!found.isActive) throw new DomainError('CONTROL_RETIRED');
+      const state = (periodicity: string | null, changed: boolean, justification: string | null): PeriodicityState => ({ periodicity, source: changed ? 'client' : 'catalog', justification });
+      const before = state(found.requirements[0]?.periodicity ?? null, found.periodicityChangedAt !== null, found.periodicityJustification);
+
+      // Repetir lo mismo no cambia nada: ni requisitos, ni rastro.
+      const same = input.periodicity === null ? found.periodicityChangedAt === null : found.requirements.every((r) => r.periodicity === input.periodicity);
+      if (same) return { changed: false, before, after: before };
+
+      const parameters = await this.evaluationParameters.load();
+      const states = await captureControlStates(tx, found.serviceId, parameters);
+      if (input.periodicity === null) {
+        for (const r of found.requirements) await tx.clientControlRequirement.update({ where: { id: r.id }, data: { periodicity: r.controlRequirement.periodicity } });
+      } else {
+        await tx.clientControlRequirement.updateMany({ where: { clientControlId: controlId }, data: { periodicity: input.periodicity as never } });
+      }
+      const now = new Date();
+      await tx.clientControl.update({
+        where: { id: controlId },
+        data: input.periodicity === null
+          ? { periodicityJustification: null, periodicityChangedAt: null, periodicityChangedBy: null }
+          : { periodicityJustification: input.justification, periodicityChangedAt: now, periodicityChangedBy: actor.userId },
+      });
+      const after = state(input.periodicity === null ? (found.requirements[0]?.controlRequirement.periodicity ?? null) : input.periodicity, input.periodicity !== null, input.periodicity === null ? null : input.justification);
+      await insertAuditLog(tx, audit({ before, after }));
+      await recordControlStateChanges(tx, {
+        parameters, tenantId: scope.companyId, serviceId: found.serviceId, before: states, cause: 'periodicity_changed',
+        actor: { userId: actor.userId, ipAddress: actor.meta.ipAddress, userAgent: actor.meta.userAgent },
+      });
+      return { changed: true, before, after };
+    }, { timeoutMs: 30_000 });
   }
 
   retire(scope: TenantScope, controlId: string, actor: { userId: string; meta: { ipAddress: string; userAgent: string } }, audit: Parameters<ControlEditRepository['retire']>[3]): Promise<boolean> {

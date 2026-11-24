@@ -4,9 +4,9 @@ import type { Principal } from '../../../../common/auth/principal';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { TransactionRunner } from '../../../../common/tenancy/transaction-runner';
-import { ControlEditRepository, ControlSnapshot } from '../../domain/controls/control-edit.repository';
-import { validateControlEdit } from './control-edit.validation';
-import { EditClientControlDto } from './control.dto';
+import { ControlEditRepository, ControlSnapshot, PeriodicityState } from '../../domain/controls/control-edit.repository';
+import { validateControlEdit, validatePeriodicityChange } from './control-edit.validation';
+import { EditClientControlDto, SetControlPeriodicityDto } from './control.dto';
 import { ControlDetail, GetControlUseCase } from './get-control.use-case';
 
 // D96 · Editar y dar de baja un control: solo `admin_empresa` (lo impone @Roles en la ruta), al instante y sin propuesta. La baja no borra: el histórico se conserva.
@@ -33,6 +33,28 @@ export class UpdateControlUseCase {
       if (!done) throw new DomainError('NOT_FOUND');
       return this.getControl.execute(p, controlId, undefined);
       // 30 s: la lectura final de getControl los pide, y una transacción abierta no se amplía.
+    }, { timeoutMs: 30_000 });
+  }
+}
+
+const periodicityOf = (s: PeriodicityState) => ({ periodicity: s.periodicity, source: s.source, justification: s.justification });
+
+// MD-500 · D147 · G-10 · Cambiar la periodicidad de un control (todos sus requisitos) con una justificación escrita: solo `admin_empresa`, al instante. La respuesta es el detalle ya recalculado.
+@Injectable()
+export class SetControlPeriodicityUseCase {
+  constructor(private readonly controls: ControlEditRepository, private readonly getControl: GetControlUseCase, private readonly tx: TransactionRunner) {}
+
+  async execute(p: Principal, controlId: string, dto: SetControlPeriodicityDto, meta: RequestMeta): Promise<ControlDetail> {
+    return this.tx.run(scopeOf(p), async () => {
+      const access = await this.controls.findAccess(scopeOf(p), controlId);
+      if (!access) throw new DomainError('NOT_FOUND');
+      if (!access.isActive) throw new DomainError('CONTROL_RETIRED');
+      const input = validatePeriodicityChange(dto, access.origin);
+      const done = await this.controls.setPeriodicity(scopeOf(p), controlId, input, { userId: p.userId, meta }, (change) =>
+        entry(p, meta, 'client_control.periodicity_set', controlId, periodicityOf(change.before), periodicityOf(change.after)),
+      );
+      if (!done) throw new DomainError('NOT_FOUND');
+      return this.getControl.execute(p, controlId, 'technical');
     }, { timeoutMs: 30_000 });
   }
 }

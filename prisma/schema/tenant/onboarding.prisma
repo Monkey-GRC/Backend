@@ -426,10 +426,6 @@ model ServiceFramework {
   contractedAt     DateTime @map("contracted_at") @db.Date
   status           ServiceFrameworkStatus @default(active)
   evaluationPeriod String   @map("evaluation_period")
-  // El período auditado y la fecha de corte de la evaluación (D68, REQ-004). Nadie los llena todavía: quién los define es P26.
-  periodStart      DateTime? @map("period_start") @db.Date
-  periodEnd        DateTime? @map("period_end") @db.Date
-  cutoffDate       DateTime? @map("cutoff_date") @db.Date
 
   framework      Framework      @relation(fields: [frameworkId], references: [id])
   service        Service        @relation(fields: [serviceId], references: [id])
@@ -437,12 +433,52 @@ model ServiceFramework {
   tenant         Company        @relation(fields: [tenantId], references: [id])
 
   assessments FrameworkAssessment[]
+  periods     ServiceFrameworkPeriod[]
 
   @@unique([serviceId, frameworkId])
   @@index([tenantId])
   @@index([catalogVersionId])
   @@index([frameworkId])
   @@map("service_frameworks")
+  @@schema("tenant")
+}
+
+enum EvaluationPeriodStatus {
+  open
+  closed
+
+  @@map("evaluation_period_status")
+  @@schema("tenant")
+}
+
+enum EvaluationPeriodOrigin {
+  user
+  system
+
+  @@map("evaluation_period_origin")
+  @@schema("tenant")
+}
+
+// MD-500, D145, D148 · Un período auditado por fila. Como mucho uno `open` por servicio × marco (índice único parcial en la migración); los `closed` son histórico y no se editan.
+model ServiceFrameworkPeriod {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  tenantId           String                 @map("tenant_id") @db.Uuid
+  serviceFrameworkId String                 @map("service_framework_id") @db.Uuid
+  periodStart        DateTime               @map("period_start") @db.Date
+  periodEnd          DateTime               @map("period_end") @db.Date
+  // Nulo = «hoy» (D87); con valor, la fecha de corte congelada.
+  cutoffDate         DateTime?              @map("cutoff_date") @db.Date
+  status             EvaluationPeriodStatus @default(open)
+  openedBy           EvaluationPeriodOrigin @default(user) @map("opened_by")
+  closedAt           DateTime?              @map("closed_at")
+  createdAt          DateTime               @default(now()) @map("created_at")
+
+  serviceFramework ServiceFramework @relation(fields: [serviceFrameworkId], references: [id])
+  tenant           Company          @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([serviceFrameworkId])
+  @@map("service_framework_periods")
   @@schema("tenant")
 }
 

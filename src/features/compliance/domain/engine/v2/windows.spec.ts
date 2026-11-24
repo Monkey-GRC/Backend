@@ -1,5 +1,5 @@
 import { PARAMS } from '../../controls/readout.fixtures';
-import { currentWindow, isEvidenceCurrent, isFresh, isResultCurrent, windowEndDate } from './windows';
+import { alertDate, closedWindowsWithin, currentWindow, isEvidenceCurrent, isFresh, isResultCurrent, windowEndDate } from './windows';
 
 const at = (iso: string) => new Date(iso);
 const range = (periodicity: Parameters<typeof currentWindow>[0]['periodicity'], now: string) => {
@@ -79,5 +79,59 @@ describe('frescura de lo automático (PR-05)', () => {
   });
   it('un parámetro distinto cambia el resultado: la frescura no está escrita en la lógica', () => {
     expect(isFresh(at('2026-11-22T11:59:00Z'), NOW_, { ...PARAMS, freshnessHours: 48 })).toBe(true);
+  });
+});
+
+describe('closedWindowsWithin · las ventanas cerradas dentro del período (G-11, R6)', () => {
+  const period = { start: at('2026-07-01T00:00:00Z'), end: at('2026-12-31T00:00:00Z') };
+  const days = (list: ReturnType<typeof closedWindowsWithin>) => list.map((w) => [w.start.toISOString().slice(0, 10), windowEndDate(w)]);
+
+  it('mensual: solo los meses completos ya terminados', () => {
+    expect(days(closedWindowsWithin('monthly', period, at('2026-11-23T12:00:00Z')))).toEqual([
+      ['2026-07-01', '2026-07-31'], ['2026-08-01', '2026-08-31'], ['2026-09-01', '2026-09-30'], ['2026-10-01', '2026-10-31'],
+    ]);
+  });
+
+  it('una ventana que solo toca el borde del período no cuenta', () => {
+    const mid = { start: at('2026-07-15T00:00:00Z'), end: at('2026-12-15T00:00:00Z') };
+    expect(days(closedWindowsWithin('monthly', mid, at('2027-01-10T00:00:00Z'))).map((w) => w[0])).toEqual(['2026-08-01', '2026-09-01', '2026-10-01', '2026-11-01']);
+  });
+
+  it('con el período terminado, no pasa de su fin aunque hoy sea mucho después', () => {
+    expect(closedWindowsWithin('quarterly', period, at('2027-05-01T00:00:00Z'))).toHaveLength(2);
+    expect(closedWindowsWithin('semiannual', period, at('2027-05-01T00:00:00Z'))).toHaveLength(1);
+  });
+
+  it('semanal y diaria se enumeran; la ventana de hoy sigue abierta', () => {
+    expect(closedWindowsWithin('daily', period, at('2026-07-04T12:00:00Z'))).toHaveLength(3);
+    expect(closedWindowsWithin('weekly', period, at('2026-07-20T12:00:00Z'))).toHaveLength(2);
+  });
+
+  it('anual, permanente y por evento no tienen ventanas fijas', () => {
+    for (const p of ['annual', 'permanent', 'on_demand', null] as const) expect(closedWindowsWithin(p, period, at('2026-12-01T00:00:00Z'))).toEqual([]);
+  });
+});
+
+describe('alertDate · el aviso previo (PR-06)', () => {
+  const NOW_ = at('2026-11-23T12:00:00Z');
+  it.each([
+    ['daily', '2026-11-23', '2026-11-23'],
+    ['weekly', '2026-11-29', '2026-11-27'],
+    ['monthly', '2026-11-30', '2026-11-25'],
+    ['bimonthly', '2026-12-31', '2026-12-21'],
+    ['quarterly', '2026-12-31', '2026-12-16'],
+    ['semiannual', '2026-12-31', '2026-12-11'],
+    ['annual', '2027-03-15', '2027-02-13'],
+  ] as const)('%s: cierra %s, avisa %s', (periodicity, end, alert) => {
+    expect(alertDate(end, periodicity, PARAMS, NOW_)).toBe(alert);
+  });
+
+  it('sin ventana o permanente no hay aviso', () => {
+    expect(alertDate(null, 'monthly', PARAMS, NOW_)).toBeNull();
+    expect(alertDate(null, 'permanent', PARAMS, NOW_)).toBeNull();
+  });
+
+  it('por evento: 15 días antes del cierre del trimestre', () => {
+    expect(alertDate(null, 'on_demand', PARAMS, NOW_)).toBe('2026-12-16');
   });
 });

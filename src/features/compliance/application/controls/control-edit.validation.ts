@@ -1,6 +1,6 @@
 import { FieldError, ValidationException } from '../../../../common/errors/validation.exception';
 import { ControlEdit, DimensionState } from '../../domain/controls/control-edit.repository';
-import { EditClientControlDto } from './control.dto';
+import { EditClientControlDto, PERIODICITIES, SetControlPeriodicityDto } from './control.dto';
 
 // Las validaciones que dependen del contenido (contracts/modules/compliance-controls.md). Devuelven TODOS los errores a la vez, con el nombre del campo del
 // request y el código corto del contrato.
@@ -63,4 +63,23 @@ export function validateControlEdit(dto: EditClientControlDto, origin: 'catalog'
 
   if (fields.length) throw new ValidationException(fields);
   return edit;
+}
+
+const JUSTIFICATION_MAX = 1000;
+
+/** Valida el cuerpo de `PUT /controls/{id}/periodicity`. Un control propio no tiene requisitos del catálogo: `periodicity.own_control`. */
+export function validatePeriodicityChange(dto: SetControlPeriodicityDto, origin: 'catalog' | 'own'): { periodicity: string | null; justification: string } {
+  const fields: FieldError[] = [];
+  let periodicity: string | null = null;
+  if (dto.periodicity === undefined) fields.push({ field: 'periodicity', code: 'required' });
+  else if (dto.periodicity !== null) {
+    if (typeof dto.periodicity !== 'string' || !(PERIODICITIES as readonly string[]).includes(dto.periodicity)) fields.push({ field: 'periodicity', code: 'enum.invalid' });
+    else if (origin === 'own') fields.push({ field: 'periodicity', code: 'periodicity.own_control' });
+    else periodicity = dto.periodicity;
+  } else if (origin === 'own') fields.push({ field: 'periodicity', code: 'periodicity.own_control' });
+  const justification = typeof dto.justification === 'string' ? dto.justification.trim() : '';
+  if (!justification) fields.push({ field: 'justification', code: 'required' });
+  else if (justification.length > JUSTIFICATION_MAX) fields.push({ field: 'justification', code: 'string.max' });
+  if (fields.length) throw new ValidationException(fields);
+  return { periodicity, justification };
 }

@@ -50,6 +50,8 @@ const POSTGRES_ENUM: Record<string, string> = {
   document_type: 'DocumentType',
   document_origin: 'DocumentOrigin',
   document_acceptance: 'DocumentAcceptance',
+  evaluation_period_status: 'EvaluationPeriodStatus',
+  evaluation_period_origin: 'EvaluationPeriodOrigin',
 };
 
 describe('catálogos de Cumplimiento', () => {

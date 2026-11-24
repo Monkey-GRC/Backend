@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
@@ -8,10 +8,10 @@ import { Roles } from '../../../../common/decorators/roles.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { toPageResponse } from '../../../../common/pagination/page';
-import { CreateControlDto, EditClientControlDto } from '../../application/controls/control.dto';
+import { CreateControlDto, EditClientControlDto, SetControlPeriodicityDto } from '../../application/controls/control.dto';
 import { GetControlQuery, ListControlsQuery } from '../../application/controls/list-controls.query';
 import { CreateControlUseCase } from '../../application/controls/create-control.use-case';
-import { RetireControlUseCase, UpdateControlUseCase } from '../../application/controls/edit-control.use-cases';
+import { RetireControlUseCase, SetControlPeriodicityUseCase, UpdateControlUseCase } from '../../application/controls/edit-control.use-cases';
 import { GetControlUseCase } from '../../application/controls/get-control.use-case';
 import { ListControlsUseCase } from '../../application/controls/list-controls.use-case';
 import { toControlDetail, toControlListItem } from './control-response.mapper';
@@ -41,6 +41,7 @@ export class ControlsController {
     private readonly createControl: CreateControlUseCase,
     private readonly updateControl: UpdateControlUseCase,
     private readonly retireControl: RetireControlUseCase,
+    private readonly setPeriodicity: SetControlPeriodicityUseCase,
     private readonly listControlTests: ListControlTestsUseCase,
   ) {}
 
@@ -102,6 +103,23 @@ export class ControlsController {
     const meta: RequestMeta = { ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' };
     const detail = await this.updateControl.execute(principal, id, dto, meta);
     return new ResponseDto(HttpStatus.OK, t('control.updated'), toControlDetail(detail, t));
+  }
+
+  @ApiOperation({
+    summary: 'Cambiar la periodicidad de un control',
+    description:
+      'Solo `admin_empresa` (G-10, D147). Cambia **al instante** la periodicidad de todos los requisitos del control y exige una justificación (1 a 1000 caracteres), que queda en el rastro. Monkey recalcula las ventanas y el nivel. ' +
+      '`periodicity: null` vuelve a la periodicidad sugerida por el catálogo. Repetir la misma periodicidad no cambia nada ni deja rastro. Un control propio no tiene requisitos del catálogo (`422`, `periodicity.own_control`). ' +
+      'Deja `client_control.periodicity_set` en la auditoría y, si cambia el estado de algún control, un evento de cumplimiento. La respuesta es el detalle del control con la vista técnica.',
+  })
+  @ApiData(ControlDetailResponse, 'Control con la periodicidad ya cambiada (vista técnica).')
+  @ApiDomainErrors('CONTROL_RETIRED')
+  @Put('controls/:id/periodicity')
+  @Roles('admin_empresa')
+  async periodicity(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Body() dto: SetControlPeriodicityDto, @Req() req: Request) {
+    const meta: RequestMeta = { ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' };
+    const detail = await this.setPeriodicity.execute(principal, id, dto, meta);
+    return new ResponseDto(HttpStatus.OK, t('control.periodicity_set'), toControlDetail(detail, t));
   }
 
   @ApiOperation({ summary: 'Dar de baja un control', description: 'Solo `admin_empresa` (D96). Es una **baja**, no un borrado: el control deja de contar y de verse en las listas, y el histórico (evaluaciones, evidencias, auditoría) se conserva. Darlo de baja dos veces es `409 CONTROL_RETIRED`. La API no pide confirmación: el `DELETE` es el acto confirmado. Queda registro de auditoría y evento de cumplimiento.' })

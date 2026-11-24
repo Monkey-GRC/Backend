@@ -35,11 +35,11 @@ export class ControlPrismaRepository extends ControlRepository {
         await tx.serviceFramework.findMany({
           where: { serviceId, status: 'active' },
           orderBy: { contractedAt: 'asc' },
-          select: { frameworkId: true, periodStart: true, periodEnd: true, cutoffDate: true, framework: { select: { code: true, name: true } }, catalogVersion: { select: { number: true } } },
+          select: { frameworkId: true, periods: { where: { status: 'open' }, select: { periodStart: true, periodEnd: true, cutoffDate: true }, take: 1 }, framework: { select: { code: true, name: true } }, catalogVersion: { select: { number: true } } },
         })
       ).map((f) => ({
         frameworkId: f.frameworkId, code: f.framework.code, name: f.framework.name, catalogVersion: f.catalogVersion.number,
-        periodStart: f.periodStart, periodEnd: f.periodEnd, cutoffDate: f.cutoffDate,
+        periodStart: f.periods[0]?.periodStart ?? null, periodEnd: f.periods[0]?.periodEnd ?? null, cutoffDate: f.periods[0]?.cutoffDate ?? null,
       }));
 
       // Una categoría está en alcance si es obligatoria (Seguridad en SOC 2) o si el servicio la eligió.

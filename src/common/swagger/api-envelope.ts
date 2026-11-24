@@ -39,6 +39,11 @@ export function ApiItems(model: Type<unknown>, description: string, { status = 2
   );
 }
 
+/** `data` = un arreglo de objetos del modelo, sin envoltorio (un listado corto sin paginar). */
+export function ApiArray(model: Type<unknown>, description: string, { status = 200, message }: Options = {}) {
+  return applyDecorators(ApiExtraModels(model), ApiResponse({ status, description, schema: envelope(status, { type: 'array', items: refOf(model) }, message) }));
+}
+
 /** `data` = `{ items: [...] }` donde cada elemento tiene una de varias formas (un mismo endpoint sirve catálogos de formas distintas). */
 export function ApiItemsOneOf(models: Type<unknown>[], description: string, { status = 200, message }: Options = {}) {
   return applyDecorators(

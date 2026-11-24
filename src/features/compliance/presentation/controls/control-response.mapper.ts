@@ -41,6 +41,17 @@ const technicalBlock = (r: ControlReadout) => ({
   complies: r.complies,
   c_percent: r.cPercent,
   tests_count: r.tests.length,
+  periodicity_change: r.control.periodicityChange
+    ? { periodicity: r.control.periodicityChange.periodicity, justification: r.control.periodicityChange.justification, changed_at: r.control.periodicityChange.changedAt.toISOString() }
+    : null,
+  period: r.period
+    ? {
+        level: r.period.level,
+        complies: r.period.complies,
+        windows: { total: r.period.windows.total, with_evidence: r.period.windows.withEvidence },
+        missing: r.period.missing.map((m) => ({ requirement_code: m.requirementCode, window_start: m.windowStart, window_end: m.windowEnd })),
+      }
+    : null,
 });
 
 const checksBlock = (c: { directPass: number; directFail: number; directException: number; noData: number; complementaryFail: number } | null) =>
@@ -53,6 +64,8 @@ const requirementsBlock = (r: ControlReadout, t: Translate) =>
     text: x.requirement.text,
     type: x.requirement.type,
     periodicity: x.requirement.periodicity,
+    suggested_periodicity: x.requirement.suggestedPeriodicity ?? null,
+    periodicity_source: r.control.periodicityChange ? 'client' : 'catalog',
     status: x.status,
     tests: x.tests.map((y) => ({
       test_id: y.test.testId,
@@ -60,6 +73,7 @@ const requirementsBlock = (r: ControlReadout, t: Translate) =>
       display_name: neutralName(y.test, y.test.dimension, t),
       status: y.status,
       window_end: y.windowEnd,
+      alert_at: y.alertAt,
       checks: checksBlock(y.checks),
       asset_coverage: y.assetCoverage ? { with_result: y.assetCoverage.withResult, in_scope: y.assetCoverage.inScope } : null,
     })),

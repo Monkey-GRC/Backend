@@ -109,6 +109,10 @@ model ClientControl {
   sourceRef            String?              @map("source_ref")
   // Eliminar es dar de baja, no borrar: las evaluaciones son inmutables y las FK son RESTRICT.
   isActive             Boolean              @default(true) @map("is_active")
+  // MD-500, D147 · El último cambio de periodicidad del control (G-10). `periodicityChangedAt` nulo = usa la sugerida del catálogo.
+  periodicityJustification String?          @map("periodicity_justification") @db.Text
+  periodicityChangedAt     DateTime?        @map("periodicity_changed_at")
+  periodicityChangedBy     String?          @map("periodicity_changed_by") @db.Uuid
 
   control Control? @relation(fields: [controlId], references: [id], onDelete: Restrict)
   service Service  @relation(fields: [serviceId], references: [id])
