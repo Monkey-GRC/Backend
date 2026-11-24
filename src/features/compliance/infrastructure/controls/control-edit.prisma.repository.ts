@@ -100,7 +100,8 @@ export class ControlEditPrismaRepository extends ControlEditRepository {
 
       const dimensionsChange = !!edit.dimensions?.some((d) => before.dimensions.find((x) => x.dimension === d.dimension)?.reasonNotApplicable !== d.reasonNotApplicable);
       // Quitar o poner una dimensión cambia lo que se mide: si mueve el estado de algún control, queda su evento.
-      const states = dimensionsChange ? await captureControlStates(tx, found.serviceId, await this.evaluationParameters.load()) : null;
+      const parameters = dimensionsChange ? await this.evaluationParameters.load(tx) : null;
+      const states = parameters ? await captureControlStates(tx, found.serviceId, parameters) : null;
 
       if (edit.interpretation !== undefined) await tx.clientControl.update({ where: { id: controlId }, data: { clientInterpretation: edit.interpretation } });
       for (const d of edit.dimensions ?? []) {
@@ -124,8 +125,8 @@ export class ControlEditPrismaRepository extends ControlEditRepository {
         });
       }
       await insertAuditLog(tx, audit({ before, after }));
-      if (states) {
-        await recordControlStateChanges(tx, { parameters: await this.evaluationParameters.load(),
+      if (states && parameters) {
+        await recordControlStateChanges(tx, { parameters,
           tenantId: scope.companyId, serviceId: found.serviceId, before: states, cause: 'control_updated',
           actor: { userId: actor.userId, ipAddress: actor.meta.ipAddress, userAgent: actor.meta.userAgent },
         });
@@ -158,7 +159,7 @@ export class ControlEditPrismaRepository extends ControlEditRepository {
       const same = input.periodicity === null ? found.periodicityChangedAt === null : found.requirements.every((r) => r.periodicity === input.periodicity);
       if (same) return { changed: false, before, after: before };
 
-      const parameters = await this.evaluationParameters.load();
+      const parameters = await this.evaluationParameters.load(tx);
       const states = await captureControlStates(tx, found.serviceId, parameters);
       if (input.periodicity === null) {
         for (const r of found.requirements) await tx.clientControlRequirement.update({ where: { id: r.id }, data: { periodicity: r.controlRequirement.periodicity } });

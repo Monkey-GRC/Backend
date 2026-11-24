@@ -123,6 +123,7 @@ model User {
   controlChangesDecided     ClientControlChange[] @relation("ControlChangeDecidedBy")
   evaluationsConfirmed      Evaluation[]
   findingsReported          Finding[]
+  evaluationParametersUpdated EvaluationParameter[] @relation("EvaluationParameterUpdatedBy")
 
   @@index([companyId])
   @@index([groupId])

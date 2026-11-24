@@ -4,8 +4,7 @@ import type { Principal } from '../../../../common/auth/principal';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { EffectiveCutoff, effectiveCutoff, FRAMEWORKS_WITH_MIN_PERIOD, utcDay } from '../../domain/periods/evaluation-period';
-import { EvaluationPeriodRecord, EvaluationPeriodRepository, EvaluationPeriodRollover, EvaluationPeriodRow, RolloverSummary } from '../../domain/periods/evaluation-period.repository';
-import { EvaluationParametersPort } from '../../domain/engine/v2/parameters';
+import { EvaluationPeriodRecord, EvaluationPeriodRepository, EvaluationPeriodRollover, EvaluationPeriodRow, PeriodResolver, RolloverSummary } from '../../domain/periods/evaluation-period.repository';
 import { SetEvaluationPeriodDto } from './evaluation-period.dto';
 import { validateEvaluationPeriod } from './evaluation-period.validation';
 
@@ -21,13 +20,12 @@ export type EvaluationPeriodView = { frameworkCode: string; catalogVersion: numb
 
 @Injectable()
 export class SetEvaluationPeriodUseCase {
-  constructor(private readonly repo: EvaluationPeriodRepository, private readonly parameters: EvaluationParametersPort) {}
+  constructor(private readonly repo: EvaluationPeriodRepository) {}
 
   async execute(p: Principal, serviceId: string, frameworkCode: string, dto: SetEvaluationPeriodDto, meta: RequestMeta, now: Date = new Date()): Promise<EvaluationPeriodView> {
-    // PR-16 · En SOC 2 el período dura como mínimo `auditedPeriodMinMonths`; los demás marcos no tienen mínimo.
-    const minMonths = FRAMEWORKS_WITH_MIN_PERIOD.includes(frameworkCode) ? (await this.parameters.load()).auditedPeriodMinMonths : null;
-    const period = validateEvaluationPeriod(dto, now, minMonths);
-    const done = await this.repo.set(scopeOf(p), serviceId, frameworkCode, period, { userId: p.userId, meta }, ({ before, after }): AuditEntry => ({
+    // PR-16 · En SOC 2 el período dura como mínimo `auditedPeriodMinMonths`; los demás marcos no tienen mínimo. El repositorio entrega los parámetros (los carga una vez).
+    const resolve: PeriodResolver = (parameters) => validateEvaluationPeriod(dto, now, FRAMEWORKS_WITH_MIN_PERIOD.includes(frameworkCode) ? parameters.auditedPeriodMinMonths : null);
+    const done = await this.repo.set(scopeOf(p), serviceId, frameworkCode, resolve, { userId: p.userId, meta }, ({ before, after }): AuditEntry => ({
       tenantId: p.companyId, userId: p.userId, action: 'evaluation_period.set', resource: 'service_framework', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
       beforeState: snapshot(serviceId, before), afterState: snapshot(serviceId, after),
     }));

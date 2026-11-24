@@ -4,7 +4,7 @@ import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.inser
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { EvaluationParametersPort } from '../../domain/engine/v2/parameters';
 import { hasEnded, nextPeriod, utcDay } from '../../domain/periods/evaluation-period';
-import { EvaluationPeriodRecord, EvaluationPeriodRepository, EvaluationPeriodRollover, EvaluationPeriodRow, OpenedPeriod, RolloverSummary } from '../../domain/periods/evaluation-period.repository';
+import { EvaluationPeriodRecord, PeriodResolver, EvaluationPeriodRepository, EvaluationPeriodRollover, EvaluationPeriodRow, OpenedPeriod, RolloverSummary } from '../../domain/periods/evaluation-period.repository';
 import { captureControlStates, recordControlStateChanges, recordTimeDrivenStateChanges } from '../shared/control-state-events';
 
 const FRAMEWORK_SELECT = { id: true, serviceId: true, framework: { select: { code: true } }, catalogVersion: { select: { number: true } } } as const;
@@ -24,13 +24,13 @@ export class EvaluationPeriodPrismaRepository extends EvaluationPeriodRepository
     scope: TenantScope,
     serviceId: string,
     frameworkCode: string,
-    period: { periodStart: Date; periodEnd: Date; cutoffDate: Date | null },
+    resolvePeriod: PeriodResolver,
     actor: { userId: string; meta: { ipAddress: string; userAgent: string } },
     audit: Parameters<EvaluationPeriodRepository['set']>[5],
   ): Promise<{ before: EvaluationPeriodRecord; after: EvaluationPeriodRecord } | null> {
-    return this.setOnce(scope, serviceId, frameworkCode, period, actor, audit).catch((e: unknown) => {
+    return this.setOnce(scope, serviceId, frameworkCode, resolvePeriod, actor, audit).catch((e: unknown) => {
       // Dos PUT a la vez sobre un marco sin período: ambos ven «no hay abierto» y los dos lo crean; el índice único deja pasar a uno y el otro reintenta ya como edición.
-      if (isUniqueViolation(e)) return this.setOnce(scope, serviceId, frameworkCode, period, actor, audit);
+      if (isUniqueViolation(e)) return this.setOnce(scope, serviceId, frameworkCode, resolvePeriod, actor, audit);
       throw e;
     });
   }
@@ -39,11 +39,14 @@ export class EvaluationPeriodPrismaRepository extends EvaluationPeriodRepository
     scope: TenantScope,
     serviceId: string,
     frameworkCode: string,
-    period: { periodStart: Date; periodEnd: Date; cutoffDate: Date | null },
+    resolvePeriod: PeriodResolver,
     actor: { userId: string; meta: { ipAddress: string; userAgent: string } },
     audit: Parameters<EvaluationPeriodRepository['set']>[5],
   ): Promise<{ before: EvaluationPeriodRecord; after: EvaluationPeriodRecord } | null> {
     return this.prisma.withScope(scope, async (tx) => {
+      // PR-16 · Una sola carga: valida el período (422 antes que 404) y, más abajo, evalúa el estado de los controles.
+      const parameters = await this.parameters.load(tx);
+      const period = resolvePeriod(parameters);
       // El servicio es de la empresa y el marco está contratado y activo en él; si no, no hay nada que encontrar (404, sin distinguir cuál faltó).
       const found = await tx.serviceFramework.findFirst({
         where: { serviceId, status: 'active', framework: { code: frameworkCode }, service: { organization: { companyId: scope.companyId } } },
@@ -56,7 +59,6 @@ export class EvaluationPeriodPrismaRepository extends EvaluationPeriodRepository
       });
       const before = record(open);
       // Cambia lo que cuenta como evidencia del período (G-11): si mueve el estado de algún control, queda su evento (D91).
-      const parameters = await this.parameters.load();
       const states = await captureControlStates(tx, serviceId, parameters);
       const data = { periodStart: period.periodStart, periodEnd: period.periodEnd, cutoffDate: period.cutoffDate };
       const row = open
@@ -100,24 +102,28 @@ export class EvaluationPeriodRolloverPrismaRepository extends EvaluationPeriodRo
 
   async rollTenant(tenantId: string, now: Date, audit: Parameters<EvaluationPeriodRollover['rollTenant']>[2]): Promise<RolloverSummary> {
     const opened = await this.rollPeriods(tenantId, now, audit);
-    const parameters = await this.parameters.load();
     // D91 · Solo los servicios con un período abierto y alguna periodicidad de calendario: son los que una ventana cerrada puede mover. Cada servicio, en su propia transacción.
-    const serviceIds = await this.prisma.withScope({ companyId: tenantId }, async (tx) =>
-      (await tx.service.findMany({
+    // Los parámetros se cargan una vez por empresa, en esa misma consulta.
+    const { parameters, serviceIds } = await this.prisma.withScope({ companyId: tenantId }, async (tx) => {
+      const parameters = await this.parameters.load(tx);
+      // PR-07 `rolling`: también la anual vence por fecha, no solo las de calendario.
+      const windowed = [...(parameters.validityWindows === 'rolling' ? [...CALENDAR_PERIODICITIES, 'annual' as const] : CALENDAR_PERIODICITIES)];
+      const serviceIds = (await tx.service.findMany({
         where: {
           organization: { companyId: tenantId },
           frameworks: { some: { status: 'active', periods: { some: { status: 'open' } } } },
           clientControls: {
             some: {
               isActive: true,
-              requirements: { some: { OR: [{ periodicity: { in: [...CALENDAR_PERIODICITIES] } }, { periodicity: null, controlRequirement: { periodicity: { in: [...CALENDAR_PERIODICITIES] } } }] } },
+              requirements: { some: { OR: [{ periodicity: { in: windowed } }, { periodicity: null, controlRequirement: { periodicity: { in: windowed } } }] } },
             },
           },
         },
         select: { id: true },
         orderBy: { id: 'asc' },
-      })).map((s) => s.id),
-    );
+      })).map((s) => s.id);
+      return { parameters, serviceIds };
+    });
     let stateEvents = 0;
     for (const serviceId of serviceIds) {
       stateEvents += await this.prisma.withScope({ companyId: tenantId }, async (tx) => {

@@ -1,12 +1,12 @@
 import { EvaluationParameters } from '../engine/v2/parameters';
-import { DefaultEvaluationParameters } from '../../infrastructure/shared/default-evaluation-parameters';
+import { BOOK_PARAMETERS } from '../engine/v2/parameters.fixtures';
 import { AssetResult } from '../engine/states';
 import { Periodicity, TestType } from '../engine/v2/types';
 import { NO_LINKS, ReadoutAsset, ReadoutControl, ReadoutData, ReadoutRequirement, ReadoutSignals, ReadoutTest, ResultsIndex, TestLinks, resultKey } from './control-readout';
 
 // Armado de controles y de la foto de un servicio para las pruebas del motor v2. Solo lo usan las pruebas.
-// Una sola fuente de los valores del libro: la implementación del puerto (nunca se repiten en las pruebas).
-export const PARAMS: EvaluationParameters = new DefaultEvaluationParameters().values;
+// Los valores del libro, desde un único fixture de pruebas.
+export const PARAMS: EvaluationParameters = BOOK_PARAMETERS;
 export const NOW = new Date('2026-11-23T12:00:00Z');
 
 export const links = (patch: Partial<TestLinks> = {}): TestLinks => ({ ...NO_LINKS, ...patch });

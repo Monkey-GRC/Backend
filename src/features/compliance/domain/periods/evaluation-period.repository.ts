@@ -1,6 +1,7 @@
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
+import { EvaluationParameters } from '../engine/v2/parameters';
 import { EvaluationPeriod } from './evaluation-period';
 
 // Los períodos auditados de UN marco de un servicio (tenant.service_framework_periods; D87, D145, D148, MD-168, MD-500). La escritura recibe su `audit`, que se escribe en la
@@ -18,6 +19,9 @@ export type EvaluationPeriodRow = {
   closedAt: Date | null;
 };
 
+// El período lo valida el caso de uso con los parámetros (PR-16); el repositorio los carga UNA vez dentro de su transacción y se los da. Si lanza, la transacción se revierte.
+export type PeriodResolver = (parameters: EvaluationParameters) => { periodStart: Date; periodEnd: Date; cutoffDate: Date | null };
+
 export abstract class EvaluationPeriodRepository {
   // Crea el primer período o edita el ABIERTO (los cerrados no se tocan). null si el servicio no es de la empresa o el marco no está contratado y activo en él.
   // `before` trae todo en null si todavía no había período.
@@ -25,7 +29,7 @@ export abstract class EvaluationPeriodRepository {
     scope: TenantScope,
     serviceId: string,
     frameworkCode: string,
-    period: { periodStart: Date; periodEnd: Date; cutoffDate: Date | null },
+    period: PeriodResolver,
     actor: { userId: string; meta: RequestMeta },
     audit: AuditIntent<{ before: EvaluationPeriodRecord; after: EvaluationPeriodRecord }>,
   ): Promise<{ before: EvaluationPeriodRecord; after: EvaluationPeriodRecord } | null>;

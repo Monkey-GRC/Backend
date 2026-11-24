@@ -43,8 +43,9 @@ export class AssignmentPrismaRepository extends AssignmentRepository {
         orderBy: [{ name: 'asc' }, { id: 'asc' }],
       });
 
+      const parameters = await this.evaluationParameters.load(tx);
       const loaded: AssignmentServiceData[] = [];
-      for (const s of services) loaded.push({ id: s.id, name: s.name, readout: await loadServiceSnapshot(tx, s.id, await this.evaluationParameters.load()) });
+      for (const s of services) loaded.push({ id: s.id, name: s.name, readout: await loadServiceSnapshot(tx, s.id, parameters) });
       const controlIds = loaded.flatMap((s) => s.readout.controls.map((c) => c.id));
 
       const rows = controlIds.length

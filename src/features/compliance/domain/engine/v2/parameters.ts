@@ -1,5 +1,6 @@
 // Parámetros del motor (§9 «Los parámetros», RC-19): nunca se escriben dentro de la lógica. Las funciones del motor los reciben; el puerto los entrega.
-// Todos los clientes comparten el mismo valor (D140); MD-495 reemplaza la implementación por una tabla.
+// Todos los clientes comparten el mismo valor (D140). Viven en `catalog.evaluation_parameters` (MD-495): la semilla de la migración es el único lugar con los números.
+import type { WindowMode } from '../../../../../common/evaluation-parameters/parameter-definitions';
 import type { Periodicity } from './types';
 
 export type EvaluationParameters = {
@@ -23,8 +24,30 @@ export type EvaluationParameters = {
   auditedPeriodMinMonths: number;
   /** Sólido (R5/R6) · Cobertura de activos (%) que exige un control Sólido en sus pruebas técnicas. */
   solidAssetCoverage: number;
+  /** PR-07 · `calendar`: la ventana es el período de calendario · `rolling`: cada evidencia vale una periodicidad desde su fecha. */
+  validityWindows: WindowMode;
+  /** PR-08 · Cobertura (%) de mitigación para un riesgo «Parcialmente mitigado» (aún no lo lee el motor). */
+  riskPartialMitigationCoverage: number;
+  /** PR-09 · Cobertura (%) de mitigación para un riesgo «Mitigación demostrada» (aún no lo lee el motor). */
+  riskDemonstratedMitigationCoverage: number;
+  /** PR-10 · Reducción de impacto del riesgo. */
+  impactReductionEnabled: boolean;
+  /** PR-11 · Máximo de pasos de una aprobación de documento. */
+  approvalMaxSteps: number;
+  /** PR-12 · Máximo de aprobadores por paso. */
+  approvalMaxApproversPerStep: number;
+  /** PR-13 · Quien envía puede ser el único aprobador. */
+  submitterSoleApproverAllowed: boolean;
+  /** PR-14 · Días para aceptar un documento publicado. */
+  documentAcceptanceDays: number;
+  /** PR-15 · Porcentaje de usuarios que deben aceptar un documento. */
+  documentAcceptanceRequired: number;
 };
 
+/** La sesión de base de datos abierta por el caso de uso (la transacción con la empresa). La carga se hace dentro de ella: no pide otra conexión. */
+export type ParametersSession = object;
+
 export abstract class EvaluationParametersPort {
-  abstract load(): Promise<EvaluationParameters>;
+  /** Una consulta, sin caché: cada caso de uso la llama UNA vez y pasa el resultado hacia abajo. */
+  abstract load(session: ParametersSession): Promise<EvaluationParameters>;
 }

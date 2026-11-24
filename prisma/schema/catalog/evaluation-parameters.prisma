@@ -1,0 +1,32 @@
+// RC-19 · MD-495 · Los parámetros del motor de evaluación (§9 «Los parámetros»): una fila por parámetro, un solo valor de Monkey para todos los clientes (D140).
+// Contrato: contracts/catalogo-maestro.md «Parámetros de evaluación (RC-19)».
+
+enum EvaluationParameterUnit {
+  percent
+  days
+  hours
+  months
+  count
+  boolean
+  days_by_periodicity
+  window_mode
+
+  @@map("evaluation_parameter_unit")
+  @@schema("catalog")
+}
+
+model EvaluationParameter {
+  key          String                  @id
+  code         String?
+  unit         EvaluationParameterUnit
+  value        Json
+  defaultValue Json                    @map("default_value")
+  sortOrder    Int                     @map("sort_order")
+  updatedAt    DateTime?               @map("updated_at")
+  updatedById  String?                 @map("updated_by") @db.Uuid
+
+  updatedBy User? @relation("EvaluationParameterUpdatedBy", fields: [updatedById], references: [id])
+
+  @@map("evaluation_parameters")
+  @@schema("catalog")
+}

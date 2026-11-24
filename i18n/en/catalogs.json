@@ -462,5 +462,19 @@
   "periodicity_source": {
     "catalog": "Suggested",
     "client": "Configured"
+  },
+  "evaluation_parameter_unit": {
+    "percent": "Percentage",
+    "days": "Days",
+    "hours": "Hours",
+    "months": "Months",
+    "count": "Count",
+    "boolean": "Yes / No",
+    "days_by_periodicity": "Days by periodicity",
+    "window_mode": "Window mode"
+  },
+  "window_mode": {
+    "calendar": "Calendar",
+    "rolling": "Rolling"
   }
 }

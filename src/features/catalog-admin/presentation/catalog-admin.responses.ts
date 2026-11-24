@@ -221,3 +221,20 @@ export class CatalogEvidenceTemplateResponse {
   @ApiProperty() is_active!: boolean;
   @ApiProperty({ example: 2, description: 'Controles que la piden.' }) controls_count!: number;
 }
+
+export class EvaluationParameterUpdatedByResponse {
+  @ApiProperty({ format: 'uuid', description: 'Quién hizo el último cambio.' }) id!: string;
+  @ApiProperty({ description: 'Nombre de quien hizo el último cambio.' }) name!: string;
+}
+
+export class EvaluationParameterResponse {
+  @ApiProperty({ example: 'partial_threshold', description: 'Identificador estable en `snake_case`; va en la ruta del PATCH.' }) key!: string;
+  @ApiProperty({ type: String, nullable: true, example: 'PR-01', description: 'Código del libro (`PR-01`…`PR-16`); nulo en los dos parámetros que el libro no numera.' }) code!: string | null;
+  @ApiProperty({ description: 'Nombre del parámetro, traducido según `Accept-Language`.' }) name!: string;
+  @ApiProperty({ description: 'Qué controla el parámetro, traducido según `Accept-Language`.' }) description!: string;
+  @ApiProperty({ enum: ['percent', 'days', 'hours', 'months', 'count', 'boolean', 'days_by_periodicity', 'window_mode'], description: 'Forma de `value` (enum `evaluation_parameter_unit`).' }) unit!: string;
+  @ApiProperty({ example: 75, description: 'Valor vigente, con la forma que dice `unit`: entero, booleano, un modo de ventana o un objeto con los días de cada periodicidad.', oneOf: [{ type: 'integer' }, { type: 'boolean' }, { type: 'string' }, { type: 'object', additionalProperties: { type: 'integer' } }] }) value!: unknown;
+  @ApiProperty({ example: 75, description: 'Valor del libro (el de la semilla), con la misma forma que `value`.', oneOf: [{ type: 'integer' }, { type: 'boolean' }, { type: 'string' }, { type: 'object', additionalProperties: { type: 'integer' } }] }) default_value!: unknown;
+  @ApiProperty({ type: String, format: 'date-time', nullable: true, description: 'Fecha del último cambio; nulo si sigue el valor de la semilla.' }) updated_at!: string | null;
+  @ApiProperty({ type: EvaluationParameterUpdatedByResponse, nullable: true, description: 'Quién hizo el último cambio; nulo si sigue el valor de la semilla.' }) updated_by!: EvaluationParameterUpdatedByResponse | null;
+}

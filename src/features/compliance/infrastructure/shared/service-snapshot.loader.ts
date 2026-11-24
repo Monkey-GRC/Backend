@@ -6,9 +6,10 @@ import {
 import { AssetResult } from '../../domain/engine/states';
 import { ServiceReadoutData } from '../../domain/controls/control.repository';
 import { ManualVerdict } from '../../domain/engine/v2/manual-test';
+import type { WindowMode } from '../../../../common/evaluation-parameters/parameter-definitions';
 import { EvaluationParameters } from '../../domain/engine/v2/parameters';
 import { ModuleFacts, exceptionEndsOn } from '../../domain/engine/v2/technical-test';
-import { isCalendarPeriodicity } from '../../domain/engine/v2/windows';
+import { hasPeriodWindows } from '../../domain/engine/v2/windows';
 import { Periodicity, TestType } from '../../domain/engine/v2/types';
 import { verdictStateOf } from '../../domain/verdicts/test-verdict';
 import { NO_ACCESS } from '../../domain/controls/control-access';
@@ -200,7 +201,7 @@ export async function loadServiceSnapshot(
   // MD-500 · El período auditado abierto (G-11): con varios marcos en el servicio, el que termina más tarde. Y, solo si hay ventanas de calendario por medir en una prueba técnica,
   // los días con un resultado decidido de cada (control, test, activo) dentro del período: de ahí sale la cobertura de las ventanas ya cerradas.
   const period = await loadOpenPeriod(tx, serviceId);
-  const resultDays = period ? await loadResultDays(tx, serviceId, period, everyControl, now) : undefined;
+  const resultDays = period ? await loadResultDays(tx, serviceId, period, everyControl, now, parameters.validityWindows) : undefined;
 
   // D135 · Una excepción APROBADA y vigente (de 90 días como máximo, PR-04) deja pasar un FAIL de un activo en una prueba, marcado. La pendiente, la rechazada y la vencida no cambian nada.
   const exceptionRows = await tx.exclusion.findMany({
@@ -263,11 +264,11 @@ export async function loadOpenPeriod(tx: TransactionClient, serviceId: string): 
   return row ? { start: row.periodStart, end: row.periodEnd } : null;
 }
 
-async function loadResultDays(tx: TransactionClient, serviceId: string, period: AuditedPeriod, controls: readonly ReadoutControl[], now: Date): Promise<Map<string, Set<number>> | undefined> {
+async function loadResultDays(tx: TransactionClient, serviceId: string, period: AuditedPeriod, controls: readonly ReadoutControl[], now: Date, windowMode: WindowMode): Promise<Map<string, Set<number>> | undefined> {
   // Solo las pruebas técnicas con un check Directo de un requisito de calendario: son las únicas que se miden por resultado de activo (el resto, por evidencia).
   const pairs = controls.flatMap((c) =>
     (c.requirements ?? [])
-      .filter((r) => isCalendarPeriodicity(r.periodicity))
+      .filter((r) => hasPeriodWindows(r.periodicity, windowMode))
       .flatMap((r) => r.tests.filter((t) => t.testType === 'technical' && (t.links?.directCheckCount ?? 0) > 0).map((t) => ({ controlId: c.id, testId: t.testId }))),
   );
   if (pairs.length === 0) return undefined;

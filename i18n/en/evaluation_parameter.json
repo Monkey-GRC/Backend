@@ -1,0 +1,80 @@
+{
+  "list": "Evaluation parameters.",
+  "updated": "Done, the parameter was saved.",
+  "partial_threshold": {
+    "name": "Partial threshold (PR-01)",
+    "description": "Compliance percentage (C%) from which a control moves from Weak to Partial."
+  },
+  "weak_threshold": {
+    "name": "Weak threshold (PR-02)",
+    "description": "Compliance percentage (C%) from which a control stops being Non-existent and becomes Weak."
+  },
+  "asset_coverage": {
+    "name": "Asset coverage (PR-03)",
+    "description": "Percentage of assets a technical test must measure to count."
+  },
+  "check_exception_max_days": {
+    "name": "Maximum exception duration (PR-04)",
+    "description": "Maximum days an automatic check exception can last."
+  },
+  "freshness_hours": {
+    "name": "Automatic result freshness (PR-05)",
+    "description": "Maximum hours an automatic result is considered current."
+  },
+  "alert_days_before": {
+    "name": "Alert days by periodicity (PR-06)",
+    "description": "Days before the window closes at which an alert is raised, by requirement periodicity."
+  },
+  "on_demand_alert_days": {
+    "name": "On-demand alert (PR-06)",
+    "description": "Days before the quarter closes at which the declaration of \"when required\" requirements is requested."
+  },
+  "validity_windows": {
+    "name": "Validity windows (PR-07)",
+    "description": "How evidence expires: by calendar windows (month, quarter, year) or rolling (one periodicity from each evidence date)."
+  },
+  "risk_partial_mitigation_coverage": {
+    "name": "Partial mitigation coverage (PR-08)",
+    "description": "Control coverage from which a risk is considered partially mitigated."
+  },
+  "risk_demonstrated_mitigation_coverage": {
+    "name": "Demonstrated mitigation coverage (PR-09)",
+    "description": "Control coverage from which a risk mitigation is demonstrated."
+  },
+  "impact_reduction_enabled": {
+    "name": "Impact reduction (PR-10)",
+    "description": "Whether a control can reduce the impact of a risk."
+  },
+  "approval_max_steps": {
+    "name": "Maximum approval steps (PR-11)",
+    "description": "Maximum number of steps in a document approval flow."
+  },
+  "approval_max_approvers_per_step": {
+    "name": "Maximum approvers per step (PR-12)",
+    "description": "Maximum number of approvers in each approval step."
+  },
+  "submitter_sole_approver_allowed": {
+    "name": "Submitter as sole approver (PR-13)",
+    "description": "Whether the person submitting a document can be its only approver. It is recorded in the audit trail."
+  },
+  "document_acceptance_days": {
+    "name": "Document acceptance period (PR-14)",
+    "description": "Days people have to accept a published document."
+  },
+  "document_acceptance_required": {
+    "name": "Required document acceptance (PR-15)",
+    "description": "Percentage of people who must accept a document for it to count as accepted."
+  },
+  "audited_period_min_months": {
+    "name": "Minimum audited period (PR-16)",
+    "description": "Minimum months of the audited SOC 2 period."
+  },
+  "score_threshold": {
+    "name": "Global score threshold",
+    "description": "Minimum score (%) for a global-score link to pass."
+  },
+  "solid_asset_coverage": {
+    "name": "Asset coverage of a Solid control",
+    "description": "Asset coverage (%) a Solid control requires in its technical tests; it cannot be lower than the asset coverage (PR-03)."
+  }
+}
