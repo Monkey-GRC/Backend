@@ -2,6 +2,7 @@ import { Prisma } from '../../../../../generated/prisma/client';
 import { TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { readControl } from '../../domain/controls/control-readout';
 import { ControlStateSnapshot, diffControlStates } from '../../domain/controls/control-state-events';
+import { EvaluationParameters } from '../../domain/engine/v2/parameters';
 import { loadServiceSnapshot } from './service-snapshot.loader';
 
 // D91 · Todo cambio de estado de un control deja un evento en `audit.compliance_events` (inmutable, REQ-044). El estado se deriva de los resultados, así que no hay un «momento»
@@ -14,12 +15,12 @@ export type StateChangeActor = { userId: string | null; ipAddress: string | null
 /** Qué escritura movió el estado; viaja en el evento. */
 export type StateChangeCause = 'test_verdict' | 'test_verdict_review' | 'evidence_submission' | 'evidence_review' | 'exclusion_approved' | 'control_updated' | 'probe_result';
 
-export async function captureControlStates(tx: TransactionClient, serviceId: string): Promise<Map<string, ControlStateSnapshot>> {
-  const data = await loadServiceSnapshot(tx, serviceId);
+export async function captureControlStates(tx: TransactionClient, serviceId: string, parameters: EvaluationParameters): Promise<Map<string, ControlStateSnapshot>> {
+  const data = await loadServiceSnapshot(tx, serviceId, parameters);
   return new Map(
     data.controls.map((control) => {
-      const r = readControl(control, data.assets, data.results);
-      return [control.id, { code: control.catalogCode ?? control.ownCode, state: r.state, readiness: r.readiness, progress: r.progress }] as const;
+      const r = readControl(control, data);
+      return [control.id, { code: control.catalogCode ?? control.ownCode, state: r.state, readiness: r.readiness, progress: r.progress, level: r.level, levelValue: r.levelValue }] as const;
     }),
   );
 }
@@ -27,11 +28,11 @@ export async function captureControlStates(tx: TransactionClient, serviceId: str
 /** Escribe un evento por cada control cuyo estado o semáforo cambió respecto de `before`. Devuelve cuántos escribió. */
 export async function recordControlStateChanges(
   tx: TransactionClient,
-  input: { tenantId: string; serviceId: string; before: ReadonlyMap<string, ControlStateSnapshot>; cause: StateChangeCause; actor: StateChangeActor },
+  input: { tenantId: string; serviceId: string; parameters: EvaluationParameters; before: ReadonlyMap<string, ControlStateSnapshot>; cause: StateChangeCause; actor: StateChangeActor },
 ): Promise<number> {
-  const changes = diffControlStates(input.before, await captureControlStates(tx, input.serviceId));
+  const changes = diffControlStates(input.before, await captureControlStates(tx, input.serviceId, input.parameters));
   if (changes.length === 0) return 0;
-  const value = (s: ControlStateSnapshot) => ({ state: s.state, readiness: s.readiness, progress: s.progress });
+  const value = (s: ControlStateSnapshot) => ({ state: s.state, level: s.level, level_value: s.levelValue, readiness: s.readiness, progress: s.progress });
   await tx.complianceEvent.createMany({
     data: changes.map((c) => ({
       tenantId: input.tenantId,

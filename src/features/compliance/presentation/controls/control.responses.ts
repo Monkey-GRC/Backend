@@ -14,6 +14,11 @@ export const DIMENSIONS = ['policy', 'server', 'database', 'app', 'cloud', 'netw
 export const CONTROL_STATES = ['effective', 'ineffective', 'expired', 'error', 'incomplete', 'evaluating', 'no_tests'] as const;
 export const TEST_STATES = ['compliant', 'non_compliant', 'pending', 'evaluating', 'in_review', 'expired', 'error', 'no_assets', 'not_applicable', 'deactivated'] as const;
 export const ROLLUP_STATES = ['compliant', 'non_compliant', 'evaluating', 'no_controls', 'out_of_scope'] as const;
+export const CONTROL_LEVELS = ['not_evaluated', 'ineffective', 'weak', 'partial', 'adequate', 'solid'] as const;
+export const REQUIREMENT_STATUSES = ['compliant', 'non_compliant', 'pending', 'expired', 'not_applicable'] as const;
+export const TEST_STATUSES = ['pending', 'correct', 'observation', 'exception', 'not_applicable', 'expired'] as const;
+export const REQUIREMENT_TYPES = ['documentary', 'population', 'operational', 'technical'] as const;
+export const PERIODICITIES = ['permanent', 'daily', 'weekly', 'monthly', 'bimonthly', 'quarterly', 'semiannual', 'annual', 'on_demand'] as const;
 export const APPROVAL = ['approved', 'pending', 'rejected'] as const;
 
 export class ProgressResponse {
@@ -54,10 +59,48 @@ export class ControlTechnicalTestResponse {
   @ApiProperty({ enum: TEST_STATES, enumName: 'TestState' }) state!: string;
 }
 
+export class ControlCheckCountsResponse {
+  @ApiProperty({ example: 45, description: 'Resultados de checks Directos que pasan.' }) direct_pass!: number;
+  @ApiProperty({ example: 3, description: 'Resultados de checks Directos que fallan y no tienen excepción vigente.' }) direct_fail!: number;
+  @ApiProperty({ example: 2, description: 'Resultados de checks Directos que fallan con una excepción aprobada vigente (cuentan como pasan, marcados).' }) direct_exception!: number;
+  @ApiProperty({ example: 0, description: 'Resultados de checks Directos sin datos (nunca cuentan como que pasan).' }) no_data!: number;
+  @ApiProperty({ example: 1, description: 'Activos con un check Complementario en FAIL: dan una observación.' }) complementary_fail!: number;
+}
+
+export class ControlAssetCoverageResponse {
+  @ApiProperty({ example: 48, description: 'Activos en alcance con resultado.' }) with_result!: number;
+  @ApiProperty({ example: 50, description: 'Activos en alcance de la prueba.' }) in_scope!: number;
+}
+
+export class RequirementTestResponse {
+  @ApiProperty({ format: 'uuid', description: 'Identificador de la prueba.' }) test_id!: string;
+  @ApiProperty({ example: 'T-IAC-12-02', description: 'Código de la prueba en el catálogo.' }) test_code!: string;
+  @ApiProperty({ description: 'Nombre neutro de la prueba.' }) display_name!: string;
+  @ApiProperty({ enum: TEST_STATUSES, enumName: 'TestStatus', description: 'Estado de la prueba (§9).' }) status!: string;
+  @ApiProperty({ nullable: true, example: '2026-12-31', description: 'Último día de la ventana vigente; `null` si no tiene ventana (permanente, por evento o anual sin evidencia).' }) window_end!: string | null;
+  @ApiProperty({ type: ControlCheckCountsResponse, nullable: true, description: 'Solo en las pruebas técnicas que deciden los checks: el conteo de resultados.' }) checks!: ControlCheckCountsResponse | null;
+  @ApiProperty({ type: ControlAssetCoverageResponse, nullable: true, description: 'Solo en las pruebas técnicas que deciden los checks: la cobertura de activos.' }) asset_coverage!: ControlAssetCoverageResponse | null;
+}
+
+export class ControlRequirementResponse {
+  @ApiProperty({ format: 'uuid', description: 'Identificador del requisito del control del cliente.' }) id!: string;
+  @ApiProperty({ example: 'IAC-12-L2', description: 'Código del requisito del control.' }) code!: string;
+  @ApiProperty({ description: 'Texto del requisito.' }) text!: string;
+  @ApiProperty({ enum: REQUIREMENT_TYPES, enumName: 'RequirementType', description: 'Tipo del requisito.' }) type!: string;
+  @ApiProperty({ enum: PERIODICITIES, enumName: 'Periodicity', nullable: true, description: 'Periodicidad con la que se renueva su evidencia; `null` si no tiene.' }) periodicity!: string | null;
+  @ApiProperty({ enum: REQUIREMENT_STATUSES, enumName: 'RequirementStatus', description: 'Estado del requisito (§9), derivado de sus pruebas.' }) status!: string;
+  @ApiProperty({ type: RequirementTestResponse, isArray: true, description: 'Las pruebas que lo prueban.' }) tests!: RequirementTestResponse[];
+}
+
 export class ControlTechnicalResponse {
   @ApiProperty({ isArray: true, type: String, description: 'Puntos de enfoque a los que sirve.' }) points_of_focus!: string[];
   @ApiProperty({ enum: CONTROL_STATES, enumName: 'ControlState', description: 'Estado del control según el motor del comité (derivado, nunca almacenado).' }) control_state!: string;
+  @ApiProperty({ enum: CONTROL_LEVELS, enumName: 'ControlLevel', description: 'Nivel sugerido por el motor v2 (R1 a R6, §9).' }) level!: string;
+  @ApiProperty({ example: 3, description: 'Valor de la escala del nivel, de 0 (No evaluado) a 5 (Sólido).' }) level_value!: number;
+  @ApiProperty({ example: false, description: '`true` solo en los niveles Adecuado y Sólido (R4).' }) complies!: boolean;
+  @ApiProperty({ nullable: true, example: 80, description: 'C%: requisitos que cumplen ÷ requisitos aplicables, con dos decimales; `null` si no hay requisitos aplicables.' }) c_percent!: number | null;
   @ApiProperty({ example: 3, description: 'Pruebas del control.' }) tests_count!: number;
+  @ApiProperty({ type: ControlRequirementResponse, isArray: true, required: false, description: 'Solo en el detalle: los requisitos del control con su estado y sus pruebas.' }) requirements?: ControlRequirementResponse[];
   @ApiProperty({ type: ControlTechnicalTestResponse, isArray: true, required: false, description: 'Solo en el detalle: las pruebas con su estado.' }) tests?: ControlTechnicalTestResponse[];
 }
 

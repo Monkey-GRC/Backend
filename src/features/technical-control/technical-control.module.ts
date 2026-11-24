@@ -61,6 +61,8 @@ import { AgentInstallController, InstallScriptsController } from './presentation
 import { AgentReadingConfig } from './application/agent-reading-config';
 import { QueueAgentReadingsUseCase } from './application/use-cases/agent-reading.use-cases';
 import { AgentReadingScheduler } from './infrastructure/agent-reading.scheduler';
+import { EvaluationParametersPort } from '../compliance/domain/engine/v2/parameters';
+import { DefaultEvaluationParameters } from '../compliance/infrastructure/shared/default-evaluation-parameters';
 
 @Module({
   controllers: [TechnicalControlController, AssetsController, ConnectionTemplatesController, ExecutionsController, FindingsController, RunnerController, AgentInstallController, InstallScriptsController],
@@ -69,6 +71,7 @@ import { AgentReadingScheduler } from './infrastructure/agent-reading.scheduler'
     // Se evalúa al arrancar: un RUNNER_POOL inválido impide levantar el servidor (D112).
     { provide: RUNNER_POOL, useFactory: (config: ConfigService) => readRunnerPool(config.get<string>('RUNNER_POOL')), inject: [ConfigService] },
     { provide: ScanRepository, useClass: ScanPrismaRepository },
+    { provide: EvaluationParametersPort, useClass: DefaultEvaluationParameters },
     // Instalar la sonda en un servidor (D113).
     { provide: AgentInstallRepository, useClass: AgentInstallPrismaRepository },
     AgentInstallConfig,

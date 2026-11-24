@@ -255,6 +255,7 @@ export class ServicePrismaRepository extends ServiceRepository {
       await tx.clientRiskCause.deleteMany({ where: { clientRisk: { serviceId: id } } });
       await tx.evidenceRequirement.deleteMany({ where: clientControls });
       await tx.clientControlTest.deleteMany({ where: clientControls });
+      await tx.clientControlRequirement.deleteMany({ where: clientControls });
       await tx.clientControlDimension.deleteMany({ where: clientControls });
       await tx.clientControlAssignment.deleteMany({ where: clientControls });
       await tx.clientControl.deleteMany({ where: { serviceId: id } });

@@ -126,7 +126,9 @@ describe('El trabajador: API interna', () => {
     // Un escaneo real pesa megas: más de los 100 kb que Express admite por defecto.
     const big = [...findings(), ...Array.from({ length: 900 }, (_, i) => row('iam_root_mfa_enabled', { uid: `arn:aws:test:us-east-1:${ACCOUNT}:relleno-${i}` }))];
     expect(JSON.stringify(big).length).toBeGreaterThan(150_000);
-    const body = { tenant_id: a.companyId, engine_version: '5.44.0', regions: ['us-east-1'], started_at: '2026-10-09T10:00:00Z', finished_at: '2026-10-09T10:02:00Z', findings: big };
+    // MD-498 (§9, PR-05): un resultado vale solo dentro de la ventana vigente de su requisito; una corrida con fecha de otro mes ya no mueve ningún control. La corrida real termina «ahora».
+    const finished = new Date();
+    const body = { tenant_id: a.companyId, engine_version: '5.44.0', regions: ['us-east-1'], started_at: new Date(finished.getTime() - 120_000).toISOString(), finished_at: finished.toISOString(), findings: big };
     const done = await http().post(`/internal/runner/executions/${executionId}/results`).set(runner()).send(body).expect(200);
     expect(done.body.data).toMatchObject({ execution_id: executionId, status: 'completed' });
     await http().post(`/internal/runner/executions/${executionId}/results`).set(runner()).send(body).expect(409);

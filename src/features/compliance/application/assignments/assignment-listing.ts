@@ -65,7 +65,7 @@ export function listAssignments(p: Principal, data: AssignmentListingData, f: As
       const code = control.catalogCode ?? control.ownCode;
       if (query && ![code, ...requirementCodes, control.name].some((text) => fold(text).includes(query))) continue;
       // El estado se deriva y se calcula por servicio (regla 4): se filtra y se pagina después de calcularlo.
-      const { state } = readControl(control, service.readout.assets, service.readout.results);
+      const { state } = readControl(control, service.readout);
       if (f.status && f.status !== state) continue;
       items.push({
         clientControlId: control.id, code, requirementCodes, name: control.name, service: { id: service.id, name: service.name }, categories, assignment,

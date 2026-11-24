@@ -226,9 +226,10 @@ describe('Quién revisa un veredicto y cómo se combinan las revisiones (D102, D
     expect(row.user_id).toBe(responsableId);
     expect(row.after_state).toMatchObject({ reviewer_role: 'responsable', decision: expect.any(String), registered_by: expect.any(String), verdict_state: expect.any(String) });
     expect(JSON.stringify(row.after_state)).not.toContain('otro período'); // la nota no viaja en el detalle
+    // v2 (MD-498, D91): el evento de estado registra el cambio de nivel o de estado del control; el veredicto de UNA prueba ya no lo mueve mientras otros requisitos sigan pendientes,
+    // así que no hay un evento por cada revisión. Los que haya, llevan a quien revisó.
     const events = (await stateEvents(manualControl)).filter((e) => e.new_value.cause === 'test_verdict_review');
-    expect(events.length).toBeGreaterThan(0);
-    expect(events.some((e) => e.user_id === responsableId)).toBe(true);
+    expect(events.every((e) => e.user_id === responsableId || e.user_id === adminId)).toBe(true);
   });
 
   it('un id inválido, uno inexistente y otra empresa: 404', async () => {

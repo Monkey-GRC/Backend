@@ -123,6 +123,7 @@ model ClientControl {
   evidenceRequirements  EvidenceRequirement[]
   dimensions            ClientControlDimension[]
   tests                 ClientControlTest[]
+  requirements          ClientControlRequirement[]
   changes               ClientControlChange[]
 
   // Un control del catálogo se clona una sola vez por servicio (idempotencia del clonado, MD-80).
@@ -781,6 +782,29 @@ model ClientControlDimension {
   @@unique([clientControlId, dimension])
   @@index([tenantId])
   @@map("client_control_dimensions")
+  @@schema("tenant")
+}
+
+// El requisito del control del cliente (MD-498, modelo-datos.md §7.0): una fila por cada `catalog.control_requirements` del control que el servicio heredó, creada al clonar el servicio.
+// No guarda estado: el del requisito se deriva en cada lectura (§9). `periodicity` se copia del catálogo y la cambia el `admin_empresa` (MD-500); el «No aplica» justificado llega con la gestión (RC-07).
+model ClientControlRequirement {
+  id                   String       @id @default(uuid()) @db.Uuid
+  tenantId             String       @map("tenant_id") @db.Uuid
+  clientControlId      String       @map("client_control_id") @db.Uuid
+  controlRequirementId String       @map("control_requirement_id") @db.Uuid
+  periodicity          Periodicity?
+  isApplicable         Boolean      @default(true) @map("is_applicable")
+  notApplicableReason  String?      @map("not_applicable_reason") @db.Text
+  createdAt            DateTime     @default(now()) @map("created_at")
+
+  clientControl      ClientControl      @relation(fields: [clientControlId], references: [id])
+  controlRequirement ControlRequirement @relation(fields: [controlRequirementId], references: [id], onDelete: Restrict)
+  tenant             Company            @relation(fields: [tenantId], references: [id])
+
+  @@unique([clientControlId, controlRequirementId])
+  @@index([tenantId])
+  @@index([controlRequirementId])
+  @@map("client_control_requirements")
   @@schema("tenant")
 }
 

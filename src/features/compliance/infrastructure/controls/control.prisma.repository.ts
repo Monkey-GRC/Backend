@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
+import { EvaluationParametersPort } from '../../domain/engine/v2/parameters';
 import { ControlDetailData, ControlRepository, Placement, ServiceOverviewData, ServiceReadoutData } from '../../domain/controls/control.repository';
 import { evidenceStateOf } from '../../domain/evidence/evidence';
 import { loadServiceSnapshot } from '../shared/service-snapshot.loader';
@@ -12,14 +13,14 @@ const READ_TRANSACTION = { timeoutMs: 30_000 };
 
 @Injectable()
 export class ControlPrismaRepository extends ControlRepository {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(private readonly prisma: PrismaService, private readonly evaluationParameters: EvaluationParametersPort) {
     super();
   }
 
   loadService(scope: TenantScope, serviceId: string): Promise<ServiceReadoutData | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const service = await tx.service.findFirst({ where: { id: serviceId, organization: { companyId: scope.companyId } }, select: { id: true } });
-      return service ? loadServiceSnapshot(tx, serviceId) : null;
+      return service ? loadServiceSnapshot(tx, serviceId, await this.evaluationParameters.load()) : null;
     }, READ_TRANSACTION);
   }
 
@@ -27,7 +28,7 @@ export class ControlPrismaRepository extends ControlRepository {
     return this.prisma.withScope(scope, async (tx) => {
       const service = await tx.service.findFirst({ where: { id: serviceId, organization: { companyId: scope.companyId } }, select: { id: true } });
       if (!service) return null;
-      const base = await loadServiceSnapshot(tx, serviceId);
+      const base = await loadServiceSnapshot(tx, serviceId, await this.evaluationParameters.load());
 
       // Solo los marcos activos del servicio.
       const frameworks = (
@@ -92,7 +93,7 @@ export class ControlPrismaRepository extends ControlRepository {
     return this.prisma.withScope(scope, async (tx) => {
       const found = await tx.clientControl.findFirst({ where: { id: controlId, isActive: true }, select: { serviceId: true } });
       if (!found) return null;
-      const base = await loadServiceSnapshot(tx, found.serviceId, controlId);
+      const base = await loadServiceSnapshot(tx, found.serviceId, await this.evaluationParameters.load(), controlId);
 
       const requirements = await tx.evidenceRequirement.findMany({
         where: { clientControlId: controlId },

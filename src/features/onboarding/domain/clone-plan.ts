@@ -30,6 +30,8 @@ export interface CatalogSnapshot {
     reasonNotApplicable: string | null;
   }[];
   controlTests: { controlId: string; testId: string }[];
+  // v2 (MD-498): los requisitos de cada control, con su periodicidad sugerida; el servicio recibe una fila por cada uno (`client_control_requirements`).
+  controlRequirements?: { id: string; controlId: string; periodicity: string | null }[];
   // `testId`: la prueba documental a la que sirve el documento en este control; ausente o nulo = compartido con todas las del control (D88).
   evidenceTemplates: { controlId: string; code: string; description: string; dimension: Dimension; sequence: number; testId?: string | null }[];
   // v2 (MD-491): los documentos del control (control_documents + documents) son la fuente de las evidencias requeridas; `testId` es su T-DOC.
@@ -69,6 +71,7 @@ export interface ClonePlan {
     requiresProbe: boolean; requiresAi: boolean; requiresComplianceConfirmation: boolean; reasonNotApplicable: string | null;
   }[];
   clientControlTests: { tenantId: string; clientControlId: string; testId: string }[];
+  clientControlRequirements: { tenantId: string; clientControlId: string; controlRequirementId: string; periodicity: string | null; isApplicable: boolean }[];
   evidenceRequirements: {
     tenantId: string; clientControlId: string; responsibleId: null; code: string; sequence: number;
     description: string; dimension: Dimension; testId: string | null; validityWithinPeriod: string; sourceRef: string;
@@ -117,9 +120,10 @@ export function buildClonePlan(input: CloneInput): ClonePlan {
   const testsByControl = group(c.controlTests, (t) => t.controlId);
   const templatesByControl = group(c.evidenceTemplates, (t) => t.controlId);
   const documentsByControl = group(c.documents ?? [], (d) => d.controlId);
+  const requirementsByControl = group(c.controlRequirements ?? [], (r) => r.controlId);
 
   const plan: ClonePlan = {
-    clientControls: [], clientControlDimensions: [], clientControlTests: [], evidenceRequirements: [],
+    clientControls: [], clientControlDimensions: [], clientControlTests: [], clientControlRequirements: [], evidenceRequirements: [],
     clientRisks: [], clientCauses: [], clientRiskCauses: [], clientCauseControls: [],
   };
 
@@ -149,6 +153,7 @@ export function buildClonePlan(input: CloneInput): ClonePlan {
       });
     }
     for (const t of testsByControl.get(controlId) ?? []) plan.clientControlTests.push({ tenantId, clientControlId: id, testId: t.testId });
+    for (const r of requirementsByControl.get(controlId) ?? []) plan.clientControlRequirements.push({ tenantId, clientControlId: id, controlRequirementId: r.id, periodicity: r.periodicity, isApplicable: true });
     for (const t of (templatesByControl.get(controlId) ?? []).slice().sort((a, b) => a.sequence - b.sequence)) {
       plan.evidenceRequirements.push({
         tenantId, clientControlId: id, responsibleId: null, code: t.code, sequence: t.sequence, description: t.description,

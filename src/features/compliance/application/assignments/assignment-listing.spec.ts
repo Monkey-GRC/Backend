@@ -1,16 +1,17 @@
 import type { Principal } from '../../../../common/auth/principal';
 import { AssignedPerson, AssignmentListingData, AssignmentRecord } from '../../domain/assignments/assignment.repository';
+import { PARAMS } from '../../domain/controls/readout.fixtures';
 import { ReadoutControl } from '../../domain/controls/control-readout';
 import { categoryOfRequirement, fold, listAssignments } from './assignment-listing';
 
 const person = (id: string, role = 'responsable'): AssignedPerson => ({ id, name: id, lastName: 'X', role });
 const control = (id: string, ownCode: string, patch: Partial<ReadoutControl> = {}): ReadoutControl => ({
-  id, serviceId: 's1', ownCode, name: `Control ${ownCode}`, origin: 'catalog', type: 'manual', interpretation: 'x', catalogDescription: 'x', dimensions: [], tests: [], trustCriteria: [], access: { owner: null, executor: null }, approval: 'approved', catalogCode: ownCode, requirementCodes: [], pointsOfFocus: [], documentary: [], ...patch,
+  id, serviceId: 's1', ownCode, name: `Control ${ownCode}`, origin: 'catalog', type: 'manual', interpretation: 'x', catalogDescription: 'x', dimensions: [], tests: [], trustCriteria: [], access: { owner: null, executor: null }, approval: 'approved', catalogCode: ownCode, requirementCodes: [], pointsOfFocus: [], evidence: [], ...patch,
 });
 const admin: Principal = { userId: 'a', companyId: 'co', role: 'admin_empresa', sessionId: 's' };
 const as = (role: Principal['role'], userId: string): Principal => ({ ...admin, role, userId });
 const page = { page: 1, pageSize: 50 };
-const empty = { assets: [], results: new Map() };
+const empty = { assets: [], results: new Map(), signals: { now: new Date('2026-11-23T12:00:00Z'), parameters: PARAMS, resultDates: new Map(), exceptions: new Set<string>(), complementaryFails: new Set<string>(), moduleFacts: new Map(), verdicts: new Map() } };
 
 const data = (assignments: Array<[string, AssignmentRecord]> = []): AssignmentListingData => ({
   services: [
@@ -91,11 +92,12 @@ describe('listAssignments', () => {
     expect(listAssignments(admin, d, { ...page }).items.find((i) => i.clientControlId === 'b1')?.owner?.id).toBe('r1');
   });
 
-  it('status filtra sobre el estado calculado y pagina después: un control sin pruebas es no_tests', () => {
-    expect(codes(admin, data(), { status: 'no_tests' })).toEqual(['a1', 'b1', 'b2']);
+  it('status filtra sobre el estado calculado y pagina después: un control sin requisitos es no_tests; uno propio sin evidencia está en evaluación', () => {
+    expect(codes(admin, data(), { status: 'no_tests' })).toEqual(['b1', 'b2']);
+    expect(codes(admin, data(), { status: 'evaluating' })).toEqual(['a1']);
     expect(codes(admin, data(), { status: 'effective' })).toEqual([]);
-    const p = listAssignments(admin, data(), { page: 2, pageSize: 2, status: 'no_tests' });
-    expect(p).toMatchObject({ total: 3, page: 2, pageSize: 2 });
+    const p = listAssignments(admin, data(), { page: 2, pageSize: 1, status: 'no_tests' });
+    expect(p).toMatchObject({ total: 2, page: 2, pageSize: 1 });
     expect(p.items.map((i) => i.clientControlId)).toEqual(['b2']);
   });
 

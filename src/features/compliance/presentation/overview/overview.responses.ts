@@ -20,11 +20,22 @@ export class OverviewBlockingTestResponse {
   @ApiProperty({ enum: TEST_STATES, enumName: 'TestState' }) state!: string;
 }
 
+export class OverviewBlockingRequirementResponse {
+  @ApiProperty({ example: 'IAC-12-L2', description: 'Código del requisito del control.' }) code!: string;
+  @ApiProperty({ description: 'Texto del requisito.' }) text!: string;
+  @ApiProperty({ enum: ['compliant', 'non_compliant', 'pending', 'expired', 'not_applicable'], enumName: 'RequirementStatus', description: 'Estado del requisito (§9).' }) status!: string;
+}
+
 export class OverviewTechnicalControlResponse {
   @ApiProperty({ format: 'uuid' }) control_id!: string;
   @ApiProperty({ example: 'IAC-12', description: 'Código con el que se nombra el control.' }) control_code!: string;
   @ApiProperty({ example: 'ineffective', description: 'Estado del control según el motor del comité.' }) state!: string;
   @ApiProperty({ type: ProgressResponse }) progress!: ProgressResponse;
+  @ApiProperty({ enum: ['not_evaluated', 'ineffective', 'weak', 'partial', 'adequate', 'solid'], enumName: 'ControlLevel', description: 'Nivel sugerido por el motor v2 (§9).' }) level!: string;
+  @ApiProperty({ example: 3, description: 'Valor de la escala del nivel, de 0 a 5.' }) level_value!: number;
+  @ApiProperty({ example: false, description: '`true` solo en Adecuado y Sólido (R4).' }) complies!: boolean;
+  @ApiProperty({ nullable: true, example: 80, description: 'C%: requisitos que cumplen ÷ aplicables; `null` si no hay aplicables.' }) c_percent!: number | null;
+  @ApiProperty({ type: OverviewBlockingRequirementResponse, isArray: true, description: 'Requisitos que impiden el 100 % del control (REQ-026).' }) blocking_requirements!: OverviewBlockingRequirementResponse[];
   @ApiProperty({ type: OverviewBlockingTestResponse, isArray: true, description: 'Pruebas que impiden que el control sea efectivo.' }) blocking_tests!: OverviewBlockingTestResponse[];
 }
 

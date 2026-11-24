@@ -20,7 +20,7 @@ export function pickMyControls(userId: string, data: AssignmentListingData): MyC
   for (const service of data.services) {
     for (const control of service.readout.controls) {
       if (!isPartyOf(userId, control.access)) continue;
-      mine.push({ service: { id: service.id, name: service.name }, readout: readControl(control, service.readout.assets, service.readout.results) });
+      mine.push({ service: { id: service.id, name: service.name }, readout: readControl(control, service.readout) });
     }
   }
   return mine;
@@ -88,7 +88,7 @@ export function buildWorkload(people: readonly WorkPerson[], data: AssignmentLis
         unassignedCount++;
         continue;
       }
-      const readout = readControl(control, service.readout.assets, service.readout.results);
+      const readout = readControl(control, service.readout);
       push(owned, control.access.owner.id, readout);
       if (control.access.executor) push(executed, control.access.executor.id, readout);
     }

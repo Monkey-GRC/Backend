@@ -1,3 +1,6 @@
+import type { INestApplication } from '@nestjs/common';
+import { bootApp } from '../support/app';
+import { dosEmpresas, Tenant } from '../support/escenario';
 import { asApp, connect, failure, seedTwoTenants, withRollback } from '../support/db';
 
 // Aislamiento entre empresas (MD-147, DT-33 del lado de la base): lo que una empresa NO puede ver ni tocar de otra,
@@ -143,5 +146,48 @@ describe('Aislamiento por empresa (RLS) — comportamiento', () => {
       const total = await db.query('select count(*)::int n from catalog.frameworks');
       expect(total.rows[0].n).toBe(frameworks);
       expect(msg === null || RLS.test(msg) || /permission denied/i.test(msg)).toBe(true);
+    }));
+});
+
+// MD-498 · Los requisitos del control del cliente se copian al clonar el servicio: la empresa B no ve ni escribe los de A.
+describe('Aislamiento por empresa (RLS) — tenant.client_control_requirements', () => {
+  let app: INestApplication;
+  let a: Tenant;
+  let b: Tenant;
+  beforeAll(async () => {
+    app = await bootApp();
+    ({ a, b } = await dosEmpresas(app));
+  });
+  afterAll(async () => {
+    await app?.close();
+  });
+
+  it('cada empresa ve solo sus requisitos; la otra no los ve, no los cambia, no los borra y no puede crear uno con el tenant ajeno', () =>
+    withRollback(async (db) => {
+      const mine = await asApp(db, { tenantId: a.companyId, role: 'admin_empresa' }, () => db.query('select id, tenant_id, client_control_id, control_requirement_id from tenant.client_control_requirements'));
+      expect(mine.rowCount).toBeGreaterThan(0);
+      expect(mine.rows.every((r) => r.tenant_id === a.companyId)).toBe(true);
+      const [target] = mine.rows;
+
+      const asB = { tenantId: b.companyId, role: 'admin_empresa' };
+      const seen = await asApp(db, asB, () => db.query('select id from tenant.client_control_requirements where tenant_id = $1 or id = $2', [a.companyId, target.id]));
+      expect(seen.rowCount).toBe(0);
+      const updated = await asApp(db, asB, () => db.query('update tenant.client_control_requirements set is_applicable = false where id = $1', [target.id]));
+      expect(updated.rowCount).toBe(0);
+      const deleted = await asApp(db, asB, () => db.query('delete from tenant.client_control_requirements where id = $1', [target.id]));
+      expect(deleted.rowCount).toBe(0);
+      const msg = await asApp(db, asB, () =>
+        failure(db, 'insert into tenant.client_control_requirements (id, tenant_id, client_control_id, control_requirement_id) values (gen_random_uuid(), $1, $2, $3)', [a.companyId, target.client_control_id, target.control_requirement_id]),
+      );
+      expect(msg).toMatch(RLS);
+      // y la fila de A sigue intacta
+      const still = await asApp(db, { tenantId: a.companyId, role: 'admin_empresa' }, () => db.query('select is_applicable from tenant.client_control_requirements where id = $1', [target.id]));
+      expect(still.rows[0].is_applicable).toBe(true);
+    }));
+
+  it('sin tenant fijado no se ve ninguna fila (falla cerrado)', () =>
+    withRollback(async (db) => {
+      const rows = await asApp(db, {}, () => db.query('select id from tenant.client_control_requirements'));
+      expect(rows.rowCount).toBe(0);
     }));
 });

@@ -24,6 +24,7 @@ const catalog = (): CatalogSnapshot => ({
     { controlId: 'k2', dimension: 'policy', type: 'manual', requiresProbe: false, requiresAi: true, requiresComplianceConfirmation: true, reasonNotApplicable: null },
     { controlId: 'k3', dimension: 'policy', type: 'manual', requiresProbe: false, requiresAi: true, requiresComplianceConfirmation: true, reasonNotApplicable: null },
   ],
+  controlRequirements: [{ id: 'q1', controlId: 'k1', periodicity: 'quarterly' }, { id: 'q2', controlId: 'k1', periodicity: null }, { id: 'q3', controlId: 'k2', periodicity: 'annual' }],
   controlTests: [{ controlId: 'k1', testId: 't1' }, { controlId: 'k1', testId: 't2' }, { controlId: 'k2', testId: 't1' }, { controlId: 'k3', testId: 't3' }],
   evidenceTemplates: [
     { controlId: 'k1', code: 'DOC-b', description: 'Segundo', dimension: 'policy', sequence: 2 },
@@ -74,6 +75,16 @@ describe('buildClonePlan (MD-80)', () => {
     const k1 = plan.clientControls[0].id;
     expect(plan.clientControlDimensions.filter((d) => d.clientControlId === k1).map((d) => d.dimension)).toEqual(['policy', 'server']);
     expect(plan.clientControlTests.filter((t) => t.clientControlId === k1).map((t) => t.testId)).toEqual(['t1', 't2']);
+  });
+
+  it('MD-498 · copia al servicio una fila por cada requisito del control, con su periodicidad y aplicable', () => {
+    const plan = buildClonePlan(input());
+    const [k1, k2] = plan.clientControls;
+    expect(plan.clientControlRequirements.filter((r) => r.clientControlId === k1.id)).toEqual([
+      { tenantId: 'tenant-1', clientControlId: k1.id, controlRequirementId: 'q1', periodicity: 'quarterly', isApplicable: true },
+      { tenantId: 'tenant-1', clientControlId: k1.id, controlRequirementId: 'q2', periodicity: null, isApplicable: true },
+    ]);
+    expect(plan.clientControlRequirements.filter((r) => r.clientControlId === k2.id).map((r) => r.controlRequirementId)).toEqual(['q3']);
   });
 
   it('el tipo del control es el de sus dimensiones, o hybrid si no coinciden', () => {

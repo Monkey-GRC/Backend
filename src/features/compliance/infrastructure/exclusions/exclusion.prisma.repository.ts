@@ -6,6 +6,7 @@ import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
+import { EvaluationParametersPort } from '../../domain/engine/v2/parameters';
 import { dimensionOfAssetType } from '../../domain/controls/control-readout';
 import { captureControlStates, recordControlStateChanges } from '../shared/control-state-events';
 import { ExclusionFilters, ExclusionRecord, ExclusionRepository, ExclusionStatus } from '../../domain/exclusions/exclusion.repository';
@@ -39,7 +40,7 @@ const today = (): Date => {
 
 @Injectable()
 export class ExclusionPrismaRepository extends ExclusionRepository {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(private readonly prisma: PrismaService, private readonly evaluationParameters: EvaluationParametersPort) {
     super();
   }
 
@@ -102,7 +103,7 @@ export class ExclusionPrismaRepository extends ExclusionRepository {
         if (existing) throw new DomainError('EXCLUSION_ALREADY_EXISTS');
 
         // D91 · Aprobar saca al activo del test: si eso mueve el estado de un control, queda su evento.
-        const states = await captureControlStates(tx, serviceId);
+        const states = await captureControlStates(tx, serviceId, await this.evaluationParameters.load());
         const row = await tx.exclusion.create({
           data: {
             tenantId: scope.companyId, serviceId, testId: input.testId, assetId: input.assetId, proposedBy: input.decidedBy, justification: input.justification,
@@ -120,7 +121,7 @@ export class ExclusionPrismaRepository extends ExclusionRepository {
           }],
         });
         await insertAuditLog(tx, audit(created));
-        await recordControlStateChanges(tx, {
+        await recordControlStateChanges(tx, { parameters: await this.evaluationParameters.load(),
           tenantId: scope.companyId, serviceId, before: states, cause: 'exclusion_approved',
           actor: { userId: input.decidedBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent },
         });

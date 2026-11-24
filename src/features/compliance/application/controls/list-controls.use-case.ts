@@ -34,7 +34,7 @@ export class ListControlsUseCase {
     const data = await this.controls.loadService({ companyId: principal.companyId, userId: principal.userId, role: principal.role }, serviceId);
     if (!data) throw new DomainError('NOT_FOUND');
 
-    let items = data.controls.map((c) => readControl(c, data.assets, data.results));
+    let items = data.controls.map((c) => readControl(c, data));
     // D102 · `responsable` y `delegado` ven solo sus controles (dueño o ejecutor); si no tienen ninguno, la lista es vacía (no es un error).
     items = items.filter((i) => canSeeControl(principal, i.control.access));
 
