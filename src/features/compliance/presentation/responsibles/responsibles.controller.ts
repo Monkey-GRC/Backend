@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../../common/auth/principal';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../../common/decorators/roles.decorator';
+import { Can } from '../../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { toPageResponse } from '../../../../common/pagination/page';
@@ -36,7 +36,7 @@ export class ResponsiblesController {
   @ApiOperation({ summary: 'Listar los responsables', description: 'Los cargos responsables de la organización (CISO, TI, cumplimiento…). Los ven los roles de la empresa; los gestiona solo `admin_empresa`.' })
   @ApiPaged(ResponsibleResponse, 'Página de responsables.')
   @Get()
-  @Roles('admin_empresa', 'responsable', 'auditor')
+  @Can('responsibles.view')
   async list(@CurrentUser() principal: Principal, @Query() q: ListResponsiblesQuery) {
     const page = await this.listResponsibles.execute(principal, { type: q.type, page: q.page, pageSize: q.page_size });
     return new ResponseDto(HttpStatus.OK, t('responsible.list'), toPageResponse(page, toResponse));
@@ -46,7 +46,7 @@ export class ResponsiblesController {
   @ApiData(ResponsibleResponse, 'Responsable creado.', { status: 201 })
   @ApiDomainErrors('RESPONSIBLE_ALREADY_EXISTS', 'ORGANIZATION_NOT_DECLARED')
   @Post()
-  @Roles('admin_empresa')
+  @Can('responsibles.manage')
   @HttpCode(HttpStatus.CREATED)
   async create(@CurrentUser() principal: Principal, @Body() dto: CreateResponsibleDto, @Req() req: Request) {
     const created = await this.createResponsible.execute(principal, { type: dto.type, personName: dto.person_name }, metaOf(req));
@@ -57,7 +57,7 @@ export class ResponsiblesController {
   @ApiData(ResponsibleResponse, 'Responsable actualizado.')
   @ApiDomainErrors('RESPONSIBLE_ALREADY_EXISTS')
   @Patch(':id')
-  @Roles('admin_empresa')
+  @Can('responsibles.manage')
   async update(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Body() dto: UpdateResponsibleDto, @Req() req: Request) {
     const updated = await this.updateResponsible.execute(principal, id, dto.person_name, metaOf(req));
     return new ResponseDto(HttpStatus.OK, t('responsible.updated'), toResponse(updated));
@@ -67,7 +67,7 @@ export class ResponsiblesController {
   @ApiNoBody('Responsable eliminado. No hay cuerpo.')
   @ApiDomainErrors('RESPONSIBLE_IN_USE')
   @Delete(':id')
-  @Roles('admin_empresa')
+  @Can('responsibles.manage')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Req() req: Request) {
     await this.deleteResponsible.execute(principal, id, metaOf(req));

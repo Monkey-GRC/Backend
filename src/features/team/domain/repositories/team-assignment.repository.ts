@@ -10,5 +10,5 @@ export abstract class TeamAssignmentRepository {
   abstract setOwner(scope: TenantScope, input: { controlIds: string[]; ownerId: string | null }, audit: AuditIntent<ReleasedControl[]>): Promise<ReleasedControl[]>;
 
   // NOT_FOUND · FORBIDDEN (un control que no es del actor) · CONTROL_RETIRED · EXECUTOR_NOT_IN_TEAM. `executorId = null` quita el ejecutor.
-  abstract setExecutor(scope: TenantScope, input: { controlIds: string[]; executorId: string | null }, audit: AuditIntent<ReleasedControl[]>): Promise<ReleasedControl[]>;
+  abstract setExecutor(scope: TenantScope, input: { controlIds: string[]; executorId: string | null; onlyOwn: boolean }, audit: AuditIntent<ReleasedControl[]>): Promise<ReleasedControl[]>;
 }

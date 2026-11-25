@@ -1,4 +1,4 @@
-import { EvaluationParameters } from './parameters';
+import { EvaluationParameters } from '../../../../../common/evaluation-parameters/parameters';
 import { CheckResult, Periodicity, TestStatus } from './types';
 
 // Prueba técnica (T-04, T-05, T-06, §9 del libro). Lógica pura: recibe lo que dijo cada check en cada activo y devuelve el estado de la prueba.

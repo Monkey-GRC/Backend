@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import type { Principal } from '../../../../common/auth/principal';
-import { isScopedRole } from '../../../../common/enums/user-role.enum';
+import { isScoped } from '../../../../common/authorization/permission-matrix';
 import { Page } from '../../../../common/pagination/page';
 import { ControlState } from '../../domain/engine/states';
 import { AssignmentRepository } from '../../domain/assignments/assignment.repository';
 import { AssignmentItem, AssignmentListFilters, pickAssignments } from './assignment-listing';
 
-// contracts/gestion-usuarios.md · GET /v1/assignments. `admin_monkey` recibe 403 de `@Roles`; `admin_empresa` y `auditor` ven todo; `responsable` y `delegado`, lo suyo (`canSeeControl`, D102).
+// contracts/gestion-usuarios.md · GET /v1/assignments. `admin_monkey` recibe 403 de `@Can`; `admin_empresa` y `auditor` ven todo; `responsable` y `delegado`, lo suyo (`canSeeControl`, D102).
 // El estado de un control se deriva y es lo caro (motor v2 por servicio): sin el filtro `status` solo se calcula el de los controles de la página que se pide; con él, el de todos los que
 // pasaron los demás filtros, porque hay que filtrar y paginar después de calcularlo.
 @Injectable()
@@ -17,7 +17,7 @@ export class ListAssignmentsUseCase {
     const scope = { companyId: p.companyId, userId: p.userId, role: p.role };
     const data = await this.repo.loadCandidates(scope, {
       serviceId: f.serviceId, frameworkId: f.frameworkId, assignment: f.assignment, ownerId: f.ownerId, executorId: f.executorId,
-      involvedUserId: isScopedRole(p.role) ? p.userId : undefined,
+      involvedUserId: isScoped('assignments.view', p.role) ? p.userId : undefined,
     });
     const picks = pickAssignments(p, data, f);
     const start = (f.page - 1) * f.pageSize;

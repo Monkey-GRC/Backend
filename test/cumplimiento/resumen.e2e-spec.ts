@@ -162,17 +162,17 @@ describe('Resumen del servicio — con la evaluación definida y resultados', ()
       expect(own.categories.flatMap((c: any) => c.failing_controls).map((f: any) => f.control_id)).toContain(failingId);
     });
 
-    it('el delegado ejecutor ve lo que ejecuta; otro delegado, solo lo suyo; y no ven los fallos de controles ajenos', async () => {
-      const mine = soc2(await read(dX.session));
-      expect(mine.progress.total).toBe(1);
-      expect(mine.categories.flatMap((c: any) => c.failing_controls).map((f: any) => f.control_id)).toEqual(expect.arrayContaining([failingId]));
-      const other = soc2(await read(dY.session));
-      expect(other.progress.total).toBe(1);
+    it('D150 · el delegado ya no ve el resumen del servicio (403), ni el que ejecuta controles ni el que no', async () => {
+      for (const agent of [dX.session, dY.session]) await agent.get(path()).expect(403);
+    });
+
+    it('un responsable sin controles fallidos no ve los fallos de controles ajenos', async () => {
+      const other = soc2(await read(rZ.session));
       expect(other.categories.flatMap((c: any) => c.failing_controls)).toEqual([]);
     });
 
     it('la categoría obligatoria no se fuerza: sin controles de Seguridad, Seguridad no sale; el admin_empresa la sigue viendo', async () => {
-      for (const agent of [rZ.session, dY.session]) {
+      for (const agent of [rZ.session]) {
         const categories = soc2(await read(agent)).categories.map((c: any) => c.trust_criterion);
         expect(categories.length).toBeGreaterThan(0);
         expect(categories).not.toContain('security');
@@ -181,11 +181,10 @@ describe('Resumen del servicio — con la evaluación definida y resultados', ()
       expect(noSecurity).toBeTruthy();
     });
 
-    it('la vista técnica es 403 para el responsable y el delegado; el servicio de otra empresa, 404', async () => {
-      for (const agent of [rX.session, dX.session]) {
-        await agent.get(`${path()}?view=technical`).expect(403);
-        await agent.get(`/v1/services/${b.serviceId}/compliance-overview`).expect(404);
-      }
+    it('la vista técnica es 403 para el responsable y el delegado; el servicio de otra empresa, 404 (al delegado ya ni el resumen, D150)', async () => {
+      await rX.session.get(`${path()}?view=technical`).expect(403);
+      await rX.session.get(`/v1/services/${b.serviceId}/compliance-overview`).expect(404);
+      await dX.session.get(`${path()}?view=technical`).expect(403);
     });
   });
 });

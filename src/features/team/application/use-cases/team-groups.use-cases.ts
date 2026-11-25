@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
+import { scopeOf as grantOf } from '../../../../common/authorization/permission-matrix';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { Page } from '../../../../common/pagination/page';
@@ -9,7 +10,7 @@ import { TeamGroup } from '../../domain/team.types';
 import { CreateGroupDto, RenameGroupDto } from '../dtos/team.dto';
 import { cleanGroupName, isDefaultResponsiblesGroup, isReservedGroupName, planGroupCreation } from './team-group-placement';
 
-// contracts/gestion-usuarios.md · Grupos. Listar y crear los abren `admin_empresa` y `responsable` (@Roles en la ruta y la regla de cada rol aquí); renombrar, solo `admin_empresa`.
+// contracts/gestion-usuarios.md · Grupos. Listar lo abren `admin_empresa` y `responsable` (@Can en la ruta y la regla de cada rol aquí); crear y renombrar, solo `admin_empresa` (D150).
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 const entry = (p: Principal, meta: RequestMeta, action: string, before: unknown, after: unknown): AuditEntry => ({
   tenantId: p.companyId, userId: p.userId, action, resource: 'group', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
@@ -23,8 +24,9 @@ export class ListGroupsUseCase {
 
   // El administrador ve todos; el responsable, solo el que lidera (lista vacía si aún no lo creó): el servidor impone el filtro.
   execute(p: Principal, filters: GroupFilters): Promise<Page<TeamGroup>> {
-    if (p.role === 'admin_empresa') return this.repo.list(scopeOf(p), filters);
-    if (p.role === 'responsable') return this.repo.list(scopeOf(p), { ...filters, leaderId: p.userId });
+    const grant = grantOf('groups.list', p.role);
+    if (grant === 'all') return this.repo.list(scopeOf(p), filters);
+    if (grant === 'scoped') return this.repo.list(scopeOf(p), { ...filters, leaderId: p.userId });
     throw new DomainError('FORBIDDEN');
   }
 }

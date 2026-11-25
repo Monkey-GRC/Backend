@@ -9,9 +9,9 @@ import { assertCanAnswer, assertCanResolve, assertEditable, ObservationType } fr
 import { ObservationAccess, ObservationFilters, ObservationRecord, ObservationRepository } from '../../domain/observations/observation.repository';
 import { AnswerObservationDto, CreateObservationDto, UpdateObservationDto } from './observation.dto';
 import { canSeeControl } from '../../domain/controls/control-access';
-import { isScopedRole } from '../../../../common/enums/user-role.enum';
+import { isScoped } from '../../../../common/authorization/permission-matrix';
 
-// MD-154, D96 · Las observaciones del auditor (contracts/modules/compliance-audit.md). Las escribe, edita y cierra solo el `auditor` (lo impone @Roles en la ruta, y aquí que
+// MD-154, D96 · Las observaciones del auditor (contracts/modules/compliance-audit.md). Las escribe, edita y cierra solo el `auditor` (lo impone @Can en la ruta, y aquí que
 // sea SU autor); las responde el `admin_empresa` o el `responsable` responsable del control; las leen los tres. NO mueven el porcentaje: nada de aquí toca una evaluación.
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 const text = (s: string | undefined | null): string => (s ?? '').trim();
@@ -55,7 +55,7 @@ export class ListObservationsUseCase {
   constructor(private readonly repo: ObservationRepository) {}
 
   async execute(p: Principal, serviceId: string, filters: Omit<ObservationFilters, 'onlyControlsOf'>): Promise<Page<ObservationRecord>> {
-    const page = await this.repo.list(scopeOf(p), serviceId, { ...filters, onlyControlsOf: isScopedRole(p.role) ? p.userId : undefined });
+    const page = await this.repo.list(scopeOf(p), serviceId, { ...filters, onlyControlsOf: isScoped('observations.view', p.role) ? p.userId : undefined });
     if (!page) throw new DomainError('NOT_FOUND');
     return page;
   }

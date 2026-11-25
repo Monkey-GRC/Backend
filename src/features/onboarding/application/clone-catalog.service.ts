@@ -32,7 +32,7 @@ export class CloneCatalogService {
       tx.controlTest.findMany({ where: { test: { isActive: true } }, select: { controlId: true, testId: true } }),
       tx.controlRequirement.findMany({ select: { id: true, controlId: true, periodicity: true } }),
       tx.controlEvidenceTemplate.findMany({ where: { evidenceTemplate: { isActive: true } }, select: { controlId: true, sequence: true, testId: true, evidenceTemplate: { select: { code: true, description: true, dimension: true } } } }),
-      tx.controlDocument.findMany({ select: { controlId: true, document: { select: { code: true, name: true, testId: true } } } }),
+      tx.controlDocument.findMany({ select: { controlId: true, document: { select: { id: true, code: true, name: true, testId: true, origin: true, suggestedAcceptance: true } } } }),
       tx.risk.findMany({ where: { isActive: true } }),
       tx.cause.findMany({ where: { isActive: true } }),
       tx.riskCause.findMany({ select: { riskId: true, causeId: true } }),
@@ -47,6 +47,8 @@ export class CloneCatalogService {
       tx.clientCauseControl.findMany({ where: { clientCause: { serviceId: sf.serviceId } }, select: { clientCauseId: true, clientControlId: true } }),
     ]);
 
+    const haveDocuments = await tx.companyDocument.findMany({ where: { tenantId: sf.tenantId, documentId: { not: null } }, select: { documentId: true } });
+
     const catalog: CatalogSnapshot = {
       requirements: requirements.map((r) => ({ id: r.id, trustCriterionId: r.trustCriterionId })),
       requirementControls: requirements.flatMap((r) => r.pointsOfFocus.flatMap((p) => p.pointOfFocusControls.map((x) => ({ requirementId: r.id, controlId: x.controlId })))),
@@ -58,7 +60,7 @@ export class CloneCatalogService {
       controlTests,
       controlRequirements,
       evidenceTemplates: templates.map((t) => ({ controlId: t.controlId, sequence: t.sequence, ...t.evidenceTemplate })),
-      documents: controlDocuments.map((d) => ({ controlId: d.controlId, ...d.document })),
+      documents: controlDocuments.map((d) => ({ controlId: d.controlId, documentId: d.document.id, code: d.document.code, name: d.document.name, testId: d.document.testId, origin: d.document.origin, suggestedAcceptance: d.document.suggestedAcceptance })),
       risks: risks.map((r) => ({ id: r.id, code: r.code, name: r.name, description: r.description, trustCriterion: r.trustCriterion, potentialImpact: r.potentialImpact, isActive: r.isActive })),
       causes: causes.map((k) => ({ id: k.id, code: k.code, name: k.name, failureCategory: k.failureCategory, origin: k.causeOrigin, causeType: k.causeType, description: k.description })),
       riskCauses,
@@ -77,6 +79,7 @@ export class CloneCatalogService {
         causes: new Map(haveCauses.map((k) => [k.causeId as string, k.id])),
         riskCauseKeys: new Set(haveRiskCauses.map((r) => `${r.clientRiskId}#${r.clientCauseId}`)),
         causeControlKeys: new Set(haveCauseControls.map((r) => `${r.clientCauseId}#${r.clientControlId}`)),
+        documents: new Set(haveDocuments.flatMap((d) => (d.documentId ? [d.documentId] : []))),
       },
     });
 
@@ -91,6 +94,8 @@ export class CloneCatalogService {
     await tx.evidenceRequirement.createMany({ data: plan.evidenceRequirements, skipDuplicates: true });
     await tx.clientRiskCause.createMany({ data: plan.clientRiskCauses, skipDuplicates: true });
     await tx.clientCauseControl.createMany({ data: plan.clientCauseControls, skipDuplicates: true });
+    // MD-503 (D152) · Los documentos de la empresa; `skipDuplicates` respeta el único `(tenant_id, document_id)`: los que ya tiene no se repiten (también ante dos clonados a la vez).
+    await tx.companyDocument.createMany({ data: plan.companyDocuments.map((d) => ({ ...d, origin: d.origin as never, acceptance: d.acceptance as never })), skipDuplicates: true });
 
     return planSize(plan);
   }

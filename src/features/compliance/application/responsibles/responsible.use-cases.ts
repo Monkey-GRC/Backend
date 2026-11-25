@@ -13,7 +13,7 @@ const entry = (p: Principal, meta: RequestMeta, action: string, before: Responsi
   beforeState: before ? snapshot(before) : null, afterState: after ? snapshot(after) : null,
 });
 
-// Los ve cualquier rol de la empresa; los gestiona solo `admin_empresa` (lo impone @Roles en la ruta).
+// Los ve cualquier rol de la empresa; los gestiona solo `admin_empresa` (lo impone @Can en la ruta).
 @Injectable()
 export class ListResponsiblesUseCase {
   constructor(private readonly responsibles: ResponsibleRepository) {}

@@ -21,7 +21,7 @@ import { canSeeControl, ControlAccess } from '../../domain/controls/control-acce
 import { ViewMode, viewModeOf } from '../shared/view-access';
 
 // MD-126 · Evidencias de un control (contracts/modules/compliance-evidence.md, D84). La empresa solo APORTA: sube `admin_empresa` y el `responsable` dueño del control;
-// el auditor lee y descarga (lo impone @Roles en la ruta). Subir no valida: la validación es del admin_empresa (MD-127, D96).
+// el auditor lee y descarga (lo impone @Can en la ruta). Subir no valida: la validación es del admin_empresa (MD-127, D96).
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 /** Algo de la propia empresa de lo que el `responsable` no es responsable: no es de otra empresa (eso sería 404), es que no le toca (403). */
 const assertCanTouch = (p: Principal, access: ControlAccess): void => {

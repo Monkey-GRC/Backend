@@ -14,7 +14,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
 import { ServiceAssetsDto } from '../application/dtos/technical-control.dtos';
@@ -35,7 +35,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 // Componente 3, parte del servicio: las conexiones que ofrece y los activos que son del servicio
 // (contracts/modules/onboarding-technical-control.md). Solo admin_empresa.
 @ApiTags(API_TAGS.technicalControl)
-@Roles('admin_empresa')
+@Can('integrations.configure')
 @Controller('services/:id')
 export class TechnicalControlController {
   constructor(

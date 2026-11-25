@@ -1,7 +1,7 @@
 // El equipo de una empresa (contracts/gestion-usuarios.md, D102): quién es quién.
 
-/** Los roles que el admin_empresa puede crear y mover: otro administrador, un responsable, un delegado o un auditor. Nunca admin_monkey. */
-export const TEAM_ROLES = ['admin_empresa', 'responsable', 'delegado', 'auditor'] as const;
+/** Los roles que el admin_empresa puede crear: otro administrador, un responsable, un delegado, un auditor o un colaborador (D136). Nunca admin_monkey. */
+export const TEAM_ROLES = ['admin_empresa', 'responsable', 'delegado', 'auditor', 'colaborador'] as const;
 export type TeamRole = (typeof TEAM_ROLES)[number];
 
 /** Nombre del grupo de responsables por omisión de una empresa; se crea al hacer falta (contracts/gestion-usuarios.md). */

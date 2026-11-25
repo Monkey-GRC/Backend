@@ -56,5 +56,7 @@
   "value_type": "The value does not have the shape this parameter requires.",
   "value_range": "The value is outside the allowed range.",
   "value_order": "The value breaks the rule with another parameter: change the one that keeps the pair valid first.",
-  "value_periodicities": "Provide the days for all 7 periodicities: daily, weekly, monthly, bimonthly, quarterly, semiannual and annual."
+  "value_periodicities": "Provide the days for all 7 periodicities: daily, weekly, monthly, bimonthly, quarterly, semiannual and annual.",
+  "approved_at_future": "The approval date cannot be in the future.",
+  "disposition_not_inline": "That file type cannot be shown on screen: only PDF, PNG and JPG. Download it to view it."
 }

@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../../common/auth/principal';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../../common/decorators/roles.decorator';
+import { Can } from '../../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { toPageResponse } from '../../../../common/pagination/page';
@@ -29,7 +29,7 @@ const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userA
 // Riesgos y causas de un servicio (contracts/modules/compliance-risks.md, MD-122). Los ven los cuatro roles de la empresa (el `responsable`, solo lo que llega a una acción
 // suya); los gestiona solo el administrador. `admin_monkey` no entra al cumplimiento de una empresa por aquí.
 @ApiTags(API_TAGS.risks)
-@Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
+@Can('risks.view')
 @Controller()
 export class RisksController {
   constructor(
@@ -62,7 +62,7 @@ export class RisksController {
   @ApiData(RiskDetailResponse, 'Riesgo creado.', { status: 201 })
   @ApiDomainErrors('CODE_ALREADY_EXISTS')
   @Post('services/:serviceId/risks')
-  @Roles('admin_empresa')
+  @Can('risks.create')
   @HttpCode(HttpStatus.CREATED)
   async newRisk(@CurrentUser() p: Principal, @Param('serviceId', idPipe) serviceId: string, @Body() dto: CreateRiskDto, @Req() req: Request) {
     const { view, graph, risk } = await this.createRisk.execute(p, serviceId, dto, metaOf(req));
@@ -80,7 +80,7 @@ export class RisksController {
   @ApiOperation({ summary: 'Editar un riesgo', description: 'Solo `admin_empresa`. Solo las claves enviadas. Queda registro de auditoría.' })
   @ApiData(RiskDetailResponse, 'Riesgo actualizado.')
   @Patch('risks/:id')
-  @Roles('admin_empresa')
+  @Can('risks.edit')
   async editRisk(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Body() dto: UpdateRiskDto, @Req() req: Request) {
     const { view, graph, risk } = await this.updateRisk.execute(p, id, dto, metaOf(req));
     return new ResponseDto(HttpStatus.OK, t('risk.updated'), toRiskDetail(risk, graph, view === 'technical'));
@@ -89,7 +89,7 @@ export class RisksController {
   @ApiOperation({ summary: 'Dar de baja un riesgo', description: 'Solo `admin_empresa`. Los riesgos no se borran: se dan de baja (el historial se conserva). Con `reason` opcional (por qué no aplica al servicio), que queda en el registro de auditoría.' })
   @ApiNoBody('Riesgo dado de baja. No hay cuerpo.')
   @Delete('risks/:id')
-  @Roles('admin_empresa')
+  @Can('risks.manage')
   @HttpCode(HttpStatus.NO_CONTENT)
   async removeRisk(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Req() req: Request, @Body() dto?: DeactivateRiskDto) {
     await this.deactivateRisk.execute(p, id, metaOf(req), dto?.reason);
@@ -98,7 +98,7 @@ export class RisksController {
   @ApiOperation({ summary: 'Volver a incluir un riesgo retirado', description: 'Solo `admin_empresa`. Devuelve al servicio un riesgo que se había dado de baja; conserva su evaluación anterior si la tenía. Si ya estaba vigente no hace nada. Queda registro de auditoría.' })
   @ApiData(RiskDetailResponse, 'Riesgo vigente de nuevo.')
   @Post('risks/:id/reactivation')
-  @Roles('admin_empresa')
+  @Can('risks.manage')
   @HttpCode(HttpStatus.OK)
   async restoreRisk(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Req() req: Request) {
     const { view, graph, risk } = await this.reactivateRisk.execute(p, id, metaOf(req));
@@ -109,7 +109,7 @@ export class RisksController {
   @ApiData(RiskCauseLinkResponse, 'Vínculo creado.', { status: 201 })
   @ApiDomainErrors('LINK_ALREADY_EXISTS', 'RISK_INACTIVE', 'CAUSE_INACTIVE')
   @Post('risks/:id/causes')
-  @Roles('admin_empresa')
+  @Can('risks.manage')
   @HttpCode(HttpStatus.CREATED)
   async linkCause(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Body() dto: LinkRiskCauseDto, @Req() req: Request) {
     await this.links.linkRiskCause(p, id, dto.cause_id, metaOf(req));
@@ -119,7 +119,7 @@ export class RisksController {
   @ApiOperation({ summary: 'Desvincular una causa de un riesgo', description: 'Solo `admin_empresa`. Queda registro de auditoría.' })
   @ApiNoBody('Vínculo eliminado. No hay cuerpo.')
   @Delete('risks/:id/causes/:causeId')
-  @Roles('admin_empresa')
+  @Can('risks.manage')
   @HttpCode(HttpStatus.NO_CONTENT)
   async unlinkCause(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Param('causeId', idPipe) causeId: string, @Req() req: Request) {
     await this.links.unlinkRiskCause(p, id, causeId, metaOf(req));
@@ -140,7 +140,7 @@ export class RisksController {
   @ApiData(CauseResponse, 'Causa creada.', { status: 201 })
   @ApiDomainErrors('CODE_ALREADY_EXISTS')
   @Post('services/:serviceId/causes')
-  @Roles('admin_empresa')
+  @Can('risks.manage')
   @HttpCode(HttpStatus.CREATED)
   async newCause(@CurrentUser() p: Principal, @Param('serviceId', idPipe) serviceId: string, @Body() dto: CreateCauseDto, @Req() req: Request) {
     const { view, graph, cause } = await this.createCause.execute(p, serviceId, dto, metaOf(req));
@@ -158,7 +158,7 @@ export class RisksController {
   @ApiOperation({ summary: 'Editar una causa', description: 'Solo `admin_empresa`. Solo las claves enviadas. Queda registro de auditoría.' })
   @ApiData(CauseResponse, 'Causa actualizada.')
   @Patch('causes/:id')
-  @Roles('admin_empresa')
+  @Can('risks.manage')
   async editCause(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Body() dto: UpdateCauseDto, @Req() req: Request) {
     const { view, graph, cause } = await this.updateCause.execute(p, id, dto, metaOf(req));
     return new ResponseDto(HttpStatus.OK, t('cause.updated'), toCause(cause, graph, view === 'technical'));
@@ -167,7 +167,7 @@ export class RisksController {
   @ApiOperation({ summary: 'Dar de baja una causa', description: 'Solo `admin_empresa`. Las causas no se borran: se dan de baja. Queda registro de auditoría.' })
   @ApiNoBody('Causa dada de baja. No hay cuerpo.')
   @Delete('causes/:id')
-  @Roles('admin_empresa')
+  @Can('risks.manage')
   @HttpCode(HttpStatus.NO_CONTENT)
   async removeCause(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Req() req: Request) {
     await this.deactivateCause.execute(p, id, metaOf(req));
@@ -177,7 +177,7 @@ export class RisksController {
   @ApiData(CauseControlLinkResponse, 'Vínculo creado.', { status: 201 })
   @ApiDomainErrors('LINK_ALREADY_EXISTS', 'CAUSE_INACTIVE')
   @Post('causes/:id/controls')
-  @Roles('admin_empresa')
+  @Can('risks.manage')
   @HttpCode(HttpStatus.CREATED)
   async linkControl(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Body() dto: LinkCauseControlDto, @Req() req: Request) {
     const options = { isMandatory: dto.is_mandatory ?? true, effect: dto.effect ?? null };
@@ -188,7 +188,7 @@ export class RisksController {
   @ApiOperation({ summary: 'Desvincular un control de una causa', description: 'Solo `admin_empresa`. Queda registro de auditoría.' })
   @ApiNoBody('Vínculo eliminado. No hay cuerpo.')
   @Delete('causes/:id/controls/:controlId')
-  @Roles('admin_empresa')
+  @Can('risks.manage')
   @HttpCode(HttpStatus.NO_CONTENT)
   async unlinkControl(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Param('controlId', idPipe) controlId: string, @Req() req: Request) {
     await this.links.unlinkCauseControl(p, id, controlId, metaOf(req));

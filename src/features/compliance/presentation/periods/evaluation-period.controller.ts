@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../../common/auth/principal';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../../common/decorators/roles.decorator';
+import { Can } from '../../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { API_TAGS } from '../../../../common/swagger/api-docs.config';
@@ -34,7 +34,7 @@ export class EvaluationPeriodController {
       'Con el período definido el resumen deja de responder «Sin medir» por esta causa y se pueden crear exclusiones. Reemplaza lo anterior y se puede repetir. Queda registro de auditoría con el valor anterior y el nuevo.',
   })
   @ApiData(EvaluationPeriodResponse, 'La evaluación del marco: período y fecha de corte efectiva.')
-  @Roles('admin_empresa')
+  @Can('periods.manage')
   @Put('services/:serviceId/frameworks/:frameworkCode/evaluation-period')
   async set(
     @CurrentUser() p: Principal,
@@ -54,7 +54,7 @@ export class EvaluationPeriodController {
       'El período siguiente lo abre solo una tarea diaria cuando termina el abierto.',
   })
   @ApiArray(EvaluationPeriodItemResponse, 'Los períodos del marco: el abierto y los cerrados.')
-  @Roles('admin_empresa', 'auditor')
+  @Can('periods.view')
   @Get('services/:serviceId/frameworks/:frameworkCode/evaluation-periods')
   async list(@CurrentUser() p: Principal, @Param('serviceId', idPipe) serviceId: string, @Param('frameworkCode') frameworkCode: string) {
     const rows = await this.listPeriods.execute(p, serviceId, frameworkCode);

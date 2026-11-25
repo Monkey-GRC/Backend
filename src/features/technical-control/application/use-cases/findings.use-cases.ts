@@ -4,7 +4,7 @@ import { DomainError } from '../../../../common/errors/domain-error';
 import { Page, PageRequest } from '../../../../common/pagination/page';
 import { ScanRepository } from '../../domain/repositories/scan.repository';
 import { buildFindings, Finding, FindingLanguage } from '../../domain/scan/findings';
-import { isScopedRole } from '../../../../common/enums/user-role.enum';
+import { isScoped } from '../../../../common/authorization/permission-matrix';
 
 // D90 · Qué falló y cómo corregirlo, para una prueba automática de un control (de nube o de servidores, D113). Lo calcula de la última evaluación completada (nunca se guarda) y
 // deja fuera lo que no es del cliente: ni el nombre del proveedor de la sonda ni el texto crudo de cada recurso.
@@ -23,7 +23,7 @@ export class ListFindingsUseCase {
     // Un control o una prueba de otra empresa no existen para quien pregunta: 404, no una lista vacía (conventions.md).
     if (!test) throw new DomainError('NOT_FOUND');
     // D102, SEG-66 · Lo automático que falla en la nube le llega al dueño y al ejecutor del control; a otro responsable o delegado, no (existe y es de su empresa: 403).
-    if (isScopedRole(principal.role) && !test.responsibleUserIds.includes(principal.userId)) throw new DomainError('FORBIDDEN');
+    if (isScoped('tests.results', principal.role) && !test.responsibleUserIds.includes(principal.userId)) throw new DomainError('FORBIDDEN');
     const { measuredAt, rows } = await this.repo.loadFailedRows(scope, { serviceId: test.serviceId, testId: input.testId, includeProposed: input.includeProposed });
     const all = buildFindings(rows, input.language, input.fallbackTitle);
     const start = (page.page - 1) * page.pageSize;

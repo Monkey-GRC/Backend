@@ -637,12 +637,12 @@ describe('Grupos en el orden global (actor, grupo, líder, empresa)', () => {
     expect(await owner('select 1 from platform.user_groups where name = $1', [nombreGrupo])).toHaveLength(0);
   });
 
-  it('el responsable que crea su propio equipo mientras lo desactivan a la vez: sin 500 ni deadlock (201 o 403)', async () => {
+  it('el administrador que crea el equipo de un responsable mientras lo desactivan a la vez: sin 500 ni deadlock (201 si entra antes; 404 si el responsable ya no está vigente)', async () => {
     for (let i = 0; i < 6; i++) {
       const r = await activo('responsable');
-      const [crea, baja] = await Promise.all([r.session.post('/v1/groups').send({ name: `Propio ${RUN} ${n++}` }), patch(r.id, { status: 'inactive' })]);
+      const [crea, baja] = await Promise.all([a.agent.post('/v1/groups').send({ name: `Propio ${RUN} ${n++}`, leader_id: r.id }), patch(r.id, { status: 'inactive' })]);
       expect(baja.status).toBe(200);
-      expect([201, 403]).toContain(crea.status);
+      expect([201, 404, 409]).toContain(crea.status);
     }
   });
 

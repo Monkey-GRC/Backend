@@ -86,8 +86,6 @@ export type DomainErrorCode =
   // El equipo de la empresa (contracts/gestion-usuarios.md, D102).
   | 'LAST_ADMIN'
   | 'USER_NOT_ACTIVATED'
-  // D104 · Se crea un delegado en el equipo de un responsable que aún no lo ha creado.
-  | 'RESPONSIBLE_HAS_NO_TEAM'
   // D104 · El nombre «Responsables» lo tiene un grupo que no lidera un admin_empresa.
   | 'RESPONSIBLES_GROUP_INVALID'
   // D104 · Grupos (contracts/gestion-usuarios.md, MD-189): un responsable lidera un solo equipo; el nombre es único y «Responsables» está reservado.
@@ -119,6 +117,13 @@ export type DomainErrorCode =
   | 'CONNECTION_UNAVAILABLE'
   // D110 · La integración no existe o, para el auditor, la empresa no la tiene conectada.
   | 'INTEGRATION_NOT_FOUND'
+  // D152 · Documentos (contracts/documentos.md, MD-503).
+  | 'DOCUMENT_NOT_PUBLISHED'
+  | 'ASSIGNEE_NOT_ELIGIBLE'
+  | 'DOCUMENT_VERSION_NOT_CURRENT'
+  | 'DOCUMENT_ALREADY_ACCEPTED'
+  | 'DOCUMENT_ACCEPTANCE_NOT_REQUIRED'
+  | 'DOCUMENT_EXTERNAL'
   // D117 · Cuentas de administrador de Monkey (contracts/gestion-usuarios/administradores.md, MD-215).
   | 'CANNOT_DEACTIVATE_SELF'
   | 'ADMIN_ALREADY_INACTIVE'

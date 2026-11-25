@@ -104,12 +104,12 @@ export const awsBody = (t: Tenant, name: string, over: Record<string, unknown> =
   ...over,
 });
 
-export async function dosEmpresas(app: INestApplication): Promise<{ a: Tenant; b: Tenant; monkey: Agent }> {
+export async function dosEmpresas(app: INestApplication): Promise<{ a: Tenant; b: Tenant; monkey: Agent; monkeyEmail: string }> {
   const { email } = await seedAdminMonkey();
   const monkey = await login(app, email);
   const a = await crearTenant(app, monkey, 'A');
   const b = await crearTenant(app, monkey, 'B');
-  return { a, b, monkey };
+  return { a, b, monkey, monkeyEmail: email };
 }
 
 /**

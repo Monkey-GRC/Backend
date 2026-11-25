@@ -58,15 +58,9 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
     }
   }
 
-  // Pasos 1, 2 y 2b del orden de bloqueo (row-locks.ts): actor, grupo destino, responsable líder. Si quien crea es el propio responsable, su fila es a la vez actor y líder: se toma una vez, FOR SHARE.
+  // Pasos 1, 2 y 2b del orden de bloqueo (row-locks.ts): actor, grupo destino, responsable líder.
   // El estado del líder lo valida `resolveGroup`, ya con la fila bloqueada: un delegado que entra no convive con un responsable que se desactiva.
   private async lockTeamLeader(tx: TransactionClient, actorId: string | undefined, placement: Placement): Promise<void> {
-    if (placement.kind === 'own-team') {
-      await lockActorAndSubject(tx, actorId, null, 'SHARE');
-      const own = await tx.userGroup.findFirst({ where: { leaderId: placement.leaderId, kind: 'team' }, select: { id: true } });
-      if (own) await lockGroupRow(tx, own.id, 'SHARE');
-      return;
-    }
     await lockActorAndSubject(tx, actorId, null);
     if (placement.kind === 'team-of') {
       const team = await tx.userGroup.findFirst({ where: { id: placement.groupId, kind: 'team' }, select: { id: true, leaderId: true } });
@@ -97,13 +91,6 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
         const team = await tx.userGroup.findFirst({ where: { id: placement.groupId, kind: 'team', leader: { is: { role: 'responsable', status: { in: [...LIVE_STATUSES] } } } }, select: { id: true } });
         if (!team) throw new DomainError('NOT_FOUND');
         return team.id;
-      }
-      case 'own-team': {
-        const own = await tx.userGroup.findFirst({ where: { leaderId: placement.leaderId, kind: 'team' }, select: { id: true } });
-        if (placement.groupId && placement.groupId !== own?.id) throw new DomainError('FORBIDDEN');
-        // D104 · El equipo de delegados no nace con el responsable: lo crea él cuando quiere (POST /v1/groups).
-        if (!own) throw new DomainError('RESPONSIBLE_HAS_NO_TEAM');
-        return own.id;
       }
       case 'responsibles-group': {
         const leader = { is: { role: 'admin_empresa' as const, status: { in: [...LIVE_STATUSES] } } };

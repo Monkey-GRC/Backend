@@ -5,7 +5,7 @@ import { ValidationException } from '../../../../common/errors/validation.except
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
-import { EvaluationParametersPort } from '../../domain/engine/v2/parameters';
+import { EvaluationParametersPort } from '../../../../common/evaluation-parameters/parameters';
 import { ControlAccess, ControlEdit, ControlEditRepository, ControlSnapshot, DimensionState, OwnControlCreated, OwnControlInput, PeriodicityChange, PeriodicityState } from '../../domain/controls/control-edit.repository';
 import { captureControlStates, recordControlStateChanges } from '../shared/control-state-events';
 
@@ -72,8 +72,8 @@ export class ControlEditPrismaRepository extends ControlEditRepository {
 
   findAccess(scope: TenantScope, controlId: string): Promise<ControlAccess | null> {
     return this.prisma.withScope(scope, async (tx) => {
-      const c = await tx.clientControl.findFirst({ where: { id: controlId }, select: { id: true, serviceId: true, isActive: true, controlId: true } });
-      return c ? { id: c.id, serviceId: c.serviceId, isActive: c.isActive, origin: c.controlId ? 'catalog' : 'own' } : null;
+      const c = await tx.clientControl.findFirst({ where: { id: controlId }, select: { id: true, serviceId: true, isActive: true, controlId: true, assignment: { select: { ownerId: true } } } });
+      return c ? { id: c.id, serviceId: c.serviceId, isActive: c.isActive, origin: c.controlId ? 'catalog' : 'own', ownerId: c.assignment?.ownerId ?? null } : null;
     });
   }
 

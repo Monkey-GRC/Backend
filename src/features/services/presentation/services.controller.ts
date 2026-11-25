@@ -20,7 +20,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
 import { toPageResponse } from '../../../common/pagination/page';
@@ -109,7 +109,7 @@ const toPatch = (dto: UpdateServiceDto): ServicePatch => {
 // Componente 2 del onboarding (contracts/modules/onboarding-service-context.md).
 // Solo el admin_empresa declara los servicios de su empresa. La lista y el detalle también los leen el `auditor` (todos), el `responsable` y el `delegado` (los servicios donde tienen algún control suyo), D102.
 @ApiTags(API_TAGS.services)
-@Roles('admin_empresa')
+@Can('services.manage')
 @Controller('services')
 export class ServicesController {
   constructor(
@@ -140,7 +140,7 @@ export class ServicesController {
   @ApiOperation({ summary: 'Listar servicios', description: 'Los servicios de la empresa, con lo mínimo para pintar la lista: marcos, estado del catálogo y resumen del control técnico. Los lee dmin_empresa (todos), uditor (todos, solo lectura) y uncional (solo aquellos en los que es responsable de alguna dimensión).' })
   @ApiPaged(ServiceListItemResponse, 'Página de servicios.')
   @Get()
-  @Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
+  @Can('services.view')
   async list(@CurrentUser() principal: Principal, @Query() query: ListServicesQuery) {
     const page = await this.listServices.execute(principal, {
       page: query.page,
@@ -153,7 +153,7 @@ export class ServicesController {
   @ApiData(ServiceResponse, 'Detalle del servicio.')
   @ApiDomainErrors('FORBIDDEN')
   @Get(':id')
-  @Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
+  @Can('services.view')
   async detail(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string) {
     const service = await this.getService.execute(principal, id);
     return new ResponseDto(HttpStatus.OK, t('service.detail'), toServiceResponse(service));

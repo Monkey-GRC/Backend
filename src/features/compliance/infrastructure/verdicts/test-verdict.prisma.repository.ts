@@ -6,7 +6,7 @@ import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
-import { EvaluationParameters, EvaluationParametersPort } from '../../domain/engine/v2/parameters';
+import { EvaluationParameters, EvaluationParametersPort } from '../../../../common/evaluation-parameters/parameters';
 import { ControlAccess, NO_ACCESS } from '../../domain/controls/control-access';
 import { dimensionOfAssetType, readControl } from '../../domain/controls/control-readout';
 import type { TestState } from '../../domain/engine/states';

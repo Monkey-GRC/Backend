@@ -20,7 +20,7 @@ import {
   TestSummary,
 } from '../../domain/repositories/catalog-admin.repository';
 
-// Lectura del catálogo maestro (contracts/modules/monkey-admin-catalog.md). Solo `admin_monkey`, lo impone @Roles en el controlador. El catálogo es global:
+// Lectura del catálogo maestro (contracts/modules/monkey-admin-catalog.md). Solo `admin_monkey`, lo impone @Can en el controlador. El catálogo es global:
 // no hay empresa que acotar. Un elemento que no existe es `404`.
 const found = <T>(value: T | null): T => {
   if (!value) throw new DomainError('NOT_FOUND');

@@ -36,7 +36,7 @@ function common(filter: CatalogFilter, searchIn: string[], withActive = true): R
 }
 
 // El catálogo es global y de lectura libre para cualquier sesión (RLS en `catalog`, D31): no hace falta tenant, así que se lee sin transacción de alcance,
-// igual que `CompanyPrismaRepository.existingFrameworkCodes`. Quién puede llegar aquí lo decide `@Roles('admin_monkey')` en el controlador.
+// igual que `CompanyPrismaRepository.existingFrameworkCodes`. Quién puede llegar aquí lo decide `@Can('catalog.manage')` en el controlador.
 /**
  * v2 (MD-491): el dominio es de la fila control + punto de enfoque, no del control (`controls.domain` es nulo). `domains` son los distintos, en el orden de los puntos de enfoque
  * (requisito y número); `domain` es el primero, para no romper a quien lee uno solo. Si el control no trae dominios por punto (uno recién creado), vale el de la v1.

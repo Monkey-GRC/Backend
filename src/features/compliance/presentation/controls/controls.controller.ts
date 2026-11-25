@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../../common/auth/principal';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../../common/decorators/roles.decorator';
+import { Can } from '../../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { toPageResponse } from '../../../../common/pagination/page';
@@ -32,7 +32,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 // Acciones de protección de un servicio (contracts/modules/compliance-controls.md, MD-117). `admin_monkey` no entra al cumplimiento de una empresa por
 // aquí (MD-146 le dará su propio acceso). La vista técnica la restringe el caso de uso: `auditor` y `admin_empresa`.
 @ApiTags(API_TAGS.controls)
-@Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
+@Can('controls.view')
 @Controller()
 export class ControlsController {
   constructor(
@@ -78,7 +78,7 @@ export class ControlsController {
   @ApiOperation({ summary: 'Crear un control propio', description: 'Solo `admin_empresa`. Crea un control propio del servicio (origen `own`, numeración `C01`…): es solo documental, por eso su única dimensión es `policy`. Nace `approved` y cuenta desde el primer momento (D96). Queda registro de auditoría.' })
   @ApiData(ControlDetailResponse, 'Control propio creado.', { status: 201 })
   @Post('services/:serviceId/controls')
-  @Roles('admin_empresa')
+  @Can('controls.manage')
   @HttpCode(HttpStatus.CREATED)
   async create(@CurrentUser() principal: Principal, @Param('serviceId', idPipe) serviceId: string, @Body() dto: CreateControlDto, @Req() req: Request) {
     const meta: RequestMeta = { ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' };
@@ -98,7 +98,7 @@ export class ControlsController {
   @ApiData(ControlDetailResponse, 'Control ya cambiado.')
   @ApiDomainErrors('CONTROL_RETIRED')
   @Patch('controls/:id')
-  @Roles('admin_empresa')
+  @Can('controls.edit')
   async update(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Body() dto: EditClientControlDto, @Req() req: Request) {
     const meta: RequestMeta = { ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' };
     const detail = await this.updateControl.execute(principal, id, dto, meta);
@@ -115,7 +115,7 @@ export class ControlsController {
   @ApiData(ControlDetailResponse, 'Control con la periodicidad ya cambiada (vista técnica).')
   @ApiDomainErrors('CONTROL_RETIRED')
   @Put('controls/:id/periodicity')
-  @Roles('admin_empresa')
+  @Can('controls.periodicity')
   async periodicity(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Body() dto: SetControlPeriodicityDto, @Req() req: Request) {
     const meta: RequestMeta = { ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' };
     const detail = await this.setPeriodicity.execute(principal, id, dto, meta);
@@ -126,7 +126,7 @@ export class ControlsController {
   @ApiNoBody('Control dado de baja.')
   @ApiDomainErrors('CONTROL_RETIRED')
   @Delete('controls/:id')
-  @Roles('admin_empresa')
+  @Can('controls.manage')
   @HttpCode(HttpStatus.NO_CONTENT)
   async retire(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Req() req: Request) {
     const meta: RequestMeta = { ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' };

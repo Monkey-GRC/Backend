@@ -61,17 +61,16 @@ import { AgentInstallController, InstallScriptsController } from './presentation
 import { AgentReadingConfig } from './application/agent-reading-config';
 import { QueueAgentReadingsUseCase } from './application/use-cases/agent-reading.use-cases';
 import { AgentReadingScheduler } from './infrastructure/agent-reading.scheduler';
-import { EvaluationParametersPort } from '../compliance/domain/engine/v2/parameters';
-import { PrismaEvaluationParameters } from '../compliance/infrastructure/shared/prisma-evaluation-parameters';
+import { EvaluationParametersModule } from '../../infrastructure/evaluation-parameters/evaluation-parameters.module';
 
 @Module({
+  imports: [EvaluationParametersModule],
   controllers: [TechnicalControlController, AssetsController, ConnectionTemplatesController, ExecutionsController, FindingsController, RunnerController, AgentInstallController, InstallScriptsController],
   providers: [
     { provide: TechnicalControlRepository, useClass: TechnicalControlPrismaRepository },
     // Se evalúa al arrancar: un RUNNER_POOL inválido impide levantar el servidor (D112).
     { provide: RUNNER_POOL, useFactory: (config: ConfigService) => readRunnerPool(config.get<string>('RUNNER_POOL')), inject: [ConfigService] },
     { provide: ScanRepository, useClass: ScanPrismaRepository },
-    { provide: EvaluationParametersPort, useClass: PrismaEvaluationParameters },
     // Instalar la sonda en un servidor (D113).
     { provide: AgentInstallRepository, useClass: AgentInstallPrismaRepository },
     AgentInstallConfig,

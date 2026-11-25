@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
-import { RolesGuard } from '../../common/guards/roles.guard';
+import { PermissionsGuard } from '../../common/authorization/permissions.guard';
 import { RateLimitGuard } from '../../common/rate-limit/rate-limit.guard';
 import { SessionPolicy } from './domain/entities/session.entity';
 import { AccessTokenService } from './domain/ports/access-token.service';
@@ -141,9 +141,9 @@ const seconds = (config: ConfigService, key: string): number => {
     ValidateSessionUseCase,
     GetCurrentUserUseCase,
     SetLanguageUseCase,
-    // El orden importa: primero se autentica (SessionAuthGuard), después se autoriza por rol y al final se limita el ritmo.
+    // El orden importa: primero se autentica (SessionAuthGuard), después se autoriza con la matriz de permisos (niega por defecto) y al final se limita el ritmo.
     { provide: APP_GUARD, useClass: SessionAuthGuard },
-    { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: PermissionsGuard },
     // SEG-19 · Al final: solo cuenta las peticiones que ya pasaron la sesión y el rol.
     { provide: APP_GUARD, useClass: RateLimitGuard },
   ],

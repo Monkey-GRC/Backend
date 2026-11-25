@@ -1,8 +1,8 @@
 import { Prisma } from '../../../../../generated/prisma/client';
 import { TransactionClient } from '../../../../infrastructure/database/prisma.service';
-import { readControl } from '../../domain/controls/control-readout';
+import { ControlReadout, readControl } from '../../domain/controls/control-readout';
 import { ControlStateSnapshot, diffControlStates, ControlStateChange } from '../../domain/controls/control-state-events';
-import { EvaluationParameters } from '../../domain/engine/v2/parameters';
+import { EvaluationParameters } from '../../../../common/evaluation-parameters/parameters';
 import { loadServiceSnapshot } from './service-snapshot.loader';
 
 // D91 · Todo cambio de estado de un control deja un evento en `audit.compliance_events` (inmutable, REQ-044). El estado se deriva de los resultados, así que no hay un «momento»
@@ -53,16 +53,22 @@ export async function recordControlStateChanges(
 
 type LastEventRow = { controlId: string; value: { control_code?: string; state?: string; level?: string; level_value?: number; readiness?: string; progress?: { done: number; total: number } } };
 
+/** Lo que dejó la lectura del paso del tiempo: los eventos escritos y la lectura de cada control (la foto ya cargada, para quien avisa de las ventanas sin volver a la base). */
+export type TimeDrivenResult = { written: number; readouts: ControlReadout[] };
+
 /**
  * D91, D148 · Lo que cambia SOLO por el paso del tiempo (una ventana que cierra sin evidencia): nadie escribió nada, así que no hay «foto de antes». El «antes» de cada control es su
  * último evento de estado; si nunca tuvo uno, el estado de ayer con los mismos datos. Idempotente: tras escribir el evento, la siguiente pasada ya no ve diferencia.
+ * Con `recordEvents: false` solo lee (un servicio sin período auditado no deja eventos, pero sus controles sí avisan de la ventana por vencer, MD-515).
  */
 export async function recordTimeDrivenStateChanges(
   tx: TransactionClient,
-  input: { tenantId: string; serviceId: string; parameters: EvaluationParameters; now: Date; actor: StateChangeActor },
-): Promise<number> {
-  const data = await loadServiceSnapshot(tx, input.serviceId, input.parameters);
-  if (data.controls.length === 0) return 0;
+  input: { tenantId: string; serviceId: string; parameters: EvaluationParameters; now: Date; actor: StateChangeActor; recordEvents?: boolean },
+): Promise<TimeDrivenResult> {
+  const data = await loadServiceSnapshot(tx, input.serviceId, input.parameters, undefined, { now: input.now });
+  if (data.controls.length === 0) return { written: 0, readouts: [] };
+  const readouts = data.controls.map((control) => readControl(control, data));
+  if (input.recordEvents === false) return { written: 0, readouts };
   const last = await tx.$queryRaw<LastEventRow[]>(Prisma.sql`
     SELECT DISTINCT ON (new_value->>'control_id') new_value->>'control_id' AS "controlId", new_value AS "value"
       FROM audit.compliance_events
@@ -73,9 +79,9 @@ export async function recordTimeDrivenStateChanges(
 
   const before = new Map<string, ControlStateSnapshot>();
   const after = new Map<string, ControlStateSnapshot>();
-  for (const control of data.controls) {
+  for (const r of readouts) {
+    const { control } = r;
     const code = control.catalogCode ?? control.ownCode;
-    const r = readControl(control, data);
     after.set(control.id, { code, state: r.state, readiness: r.readiness, progress: r.progress, level: r.level, levelValue: r.levelValue });
     const e = lastOf.get(control.id);
     if (e?.state && e.level && e.readiness) {
@@ -85,5 +91,6 @@ export async function recordTimeDrivenStateChanges(
       before.set(control.id, { code, state: y.state, readiness: y.readiness, progress: y.progress, level: y.level, levelValue: y.levelValue });
     }
   }
-  return writeStateEvents(tx, { ...input, cause: 'window_closed' }, diffControlStates(before, after));
+  const written = await writeStateEvents(tx, { ...input, cause: 'window_closed' }, diffControlStates(before, after));
+  return { written, readouts };
 }

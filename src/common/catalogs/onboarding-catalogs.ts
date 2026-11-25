@@ -6,7 +6,9 @@
 // `catalogs`. Los valores coinciden con los enums de Postgres del schema (tenant.*).
 
 import { COMPLIANCE_ENUM_CATALOGS } from './compliance-catalogs';
+import { DOCUMENT_ENUM_CATALOGS } from './document-catalogs';
 import { INTEGRATION_ENUM_CATALOGS } from './integration-catalogs';
+import { NOTIFICATION_ENUM_CATALOGS } from './notification-catalogs';
 import {
   ACTIVE_CLIENT_COUNT_VALUES,
   DATA_TYPE_VALUES,
@@ -161,6 +163,10 @@ export const ENUM_CATALOGS = {
   ...COMPLIANCE_ENUM_CATALOGS,
   // Integraciones (D110).
   ...INTEGRATION_ENUM_CATALOGS,
+  // Documentos (D152).
+  ...DOCUMENT_ENUM_CATALOGS,
+  // Notificaciones (D151).
+  ...NOTIFICATION_ENUM_CATALOGS,
 } as const;
 
 export type EnumCatalogName = keyof typeof ENUM_CATALOGS;

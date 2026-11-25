@@ -3,7 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../../common/auth/principal';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../../common/decorators/roles.decorator';
+import { Can } from '../../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { toPageResponse } from '../../../../common/pagination/page';
 import { API_TAGS } from '../../../../common/swagger/api-docs.config';
@@ -17,7 +17,7 @@ const t = (key: string): string => (I18nContext.current()?.t(key) as string | un
 
 // El listado vive en `compliance` porque calcula el estado de cada control con el motor (por servicio); asignar dueño y ejecutor (`PUT`) vive en `team`.
 @ApiTags(API_TAGS.team)
-@Roles('admin_empresa', 'auditor', 'responsable', 'delegado')
+@Can('assignments.view')
 @Controller('assignments')
 export class AssignmentsListController {
   constructor(private readonly list: ListAssignmentsUseCase) {}

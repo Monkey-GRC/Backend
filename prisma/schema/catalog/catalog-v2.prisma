@@ -158,6 +158,7 @@ model Document {
   test         Test?                        @relation(fields: [testId], references: [id], onDelete: Restrict)
   controls     ControlDocument[]
   requirements ControlRequirementDocument[]
+  companyDocuments CompanyDocument[]
 
   @@map("documents")
   @@schema("catalog")

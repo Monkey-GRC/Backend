@@ -6,7 +6,7 @@ import { buildOverview, OverviewFramework } from '../../domain/overview/complian
 import { ControlRepository } from '../../domain/controls/control.repository';
 import { ViewMode, viewModeOf } from '../shared/view-access';
 import { canSeeControl } from '../../domain/controls/control-access';
-import { isScopedRole } from '../../../../common/enums/user-role.enum';
+import { isScoped } from '../../../../common/authorization/permission-matrix';
 
 // MD-137 · El resumen de un servicio: un bloque por marco contratado, con sus categorías en alcance y las acciones que fallan. Lo leen todos los roles de la empresa;
 // la vista técnica, `auditor` y `admin_empresa` (D81, D96). `responsable` y `delegado` reciben el resumen de sus controles (D118).
@@ -18,8 +18,8 @@ export class GetOverviewUseCase {
     const view = viewModeOf(principal, requested);
     const data = await this.controls.loadOverview({ companyId: principal.companyId, userId: principal.userId, role: principal.role }, serviceId);
     if (!data) throw new DomainError('NOT_FOUND');
-    const scoped = isScopedRole(principal.role);
-    // D118 · El `responsable` y el `delegado` reciben el resumen de SUS controles, calculado con el mismo motor.
+    const scoped = isScoped('reports.dashboard', principal.role);
+    // D118, D150 · El `responsable` recibe el resumen de SUS controles, calculado con el mismo motor.
     const readouts = data.controls.filter((c) => canSeeControl(principal, c.access)).map((c) => readControl(c, data));
     const frameworks = buildOverview({
       readouts,

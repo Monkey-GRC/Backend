@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../../generated/prisma/client';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
-import { EvaluationParametersPort } from '../../domain/engine/v2/parameters';
+import { EvaluationParametersPort } from '../../../../common/evaluation-parameters/parameters';
 import { AssignedPerson, AssignmentCandidates, AssignmentListingData, AssignmentLoadFilters, AssignmentRecord, AssignmentRepository, AssignmentServiceData } from '../../domain/assignments/assignment.repository';
 import { ControlState } from '../../domain/engine/states';
 import { readControl } from '../../domain/controls/control-readout';

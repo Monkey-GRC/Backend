@@ -476,5 +476,39 @@
   "window_mode": {
     "calendar": "Calendar",
     "rolling": "Rolling"
+  },
+  "notification_type": {
+    "window_due_soon": "Window closing soon",
+    "window_expired": "Window expired",
+    "control_assigned": "Control assigned",
+    "evidence_approved": "Evidence approved",
+    "evidence_rejected": "Evidence rejected",
+    "observation_created": "Auditor observation",
+    "direct_check_failed": "Automated check failing",
+    "check_parameters_changed": "Parameters changed",
+    "automatic_evidence_stale": "Automated evidence out of date",
+    "control_pending_approval": "Control awaiting approval",
+    "control_owner_approved": "Control approved by owner",
+    "control_returned": "Control returned",
+    "document_assigned": "Document assigned",
+    "document_acceptance_reminder": "Document awaiting acceptance",
+    "document_approval_requested": "Document awaiting approval",
+    "document_renewal_due": "Document due for renewal",
+    "company_purge_upcoming": "Company about to be deleted"
+  },
+  "document_version_status": {
+    "draft": "Draft",
+    "in_approval": "In approval",
+    "rejected": "Rejected",
+    "approved": "Approved",
+    "current": "Current",
+    "renewal_due": "Renewal due",
+    "expired": "Expired",
+    "archived": "Archived"
+  },
+  "my_document_status": {
+    "pending": "Pending",
+    "accepted": "Accepted",
+    "overdue": "Overdue"
   }
 }

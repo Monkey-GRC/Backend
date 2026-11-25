@@ -7,16 +7,14 @@ import { InvitationContext, ReleasedControl, TeamMember, TeamRole } from '../tea
 
 /**
  * Dónde queda la cuenta nueva. El caso de uso decide la forma según quién crea y el rol; el repositorio resuelve los grupos dentro de la transacción del alta
- * (NOT_FOUND si el grupo no existe en la empresa o no sirve de destino; RESPONSIBLE_HAS_NO_TEAM si el responsable que crea aún no tiene equipo; FORBIDDEN si un responsable pide un equipo que no es el suyo).
+ * (NOT_FOUND si el grupo no existe en la empresa o no sirve de destino).
  */
 export type Placement =
   | { kind: 'none' }
   // Un responsable nuevo: un grupo de responsables del administrador, o el grupo «Responsables» (se crea si falta, con el administrador que crea como líder).
   | { kind: 'responsibles-group'; groupId: string | null }
-  // Un delegado que ubica el administrador: el equipo de un responsable activo o pendiente.
-  | { kind: 'team-of'; groupId: string }
-  // Un responsable que crea un delegado: su propio equipo, que ya debe existir (RESPONSIBLE_HAS_NO_TEAM). Si manda `groupId`, tiene que ser ese.
-  | { kind: 'own-team'; leaderId: string; groupId: string | null };
+  // Un delegado: el equipo de un responsable activo o pendiente (lo ubica el administrador, D150).
+  | { kind: 'team-of'; groupId: string };
 
 export type NewMember = {
   email: string;

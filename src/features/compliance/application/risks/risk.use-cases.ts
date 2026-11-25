@@ -10,10 +10,10 @@ import { classificationErrorsOf } from '../../domain/risks/cause-classification'
 import { storedLossTypes, LossType } from '../../domain/risks/risk-types';
 import { ViewMode, viewModeOf } from '../shared/view-access';
 import { canSeeControl } from '../../domain/controls/control-access';
-import { isScopedRole } from '../../../../common/enums/user-role.enum';
+import { isScoped } from '../../../../common/authorization/permission-matrix';
 
-// MD-122 · Riesgos y causas de un servicio. Los ven todos los roles (el `responsable`, solo lo que llega a una acción suya); los gestiona solo `admin_empresa`
-// (lo impone @Roles en la ruta). La matriz §5.5 manda hasta que `P3` diga otra cosa.
+// MD-122 · Riesgos y causas de un servicio. Los ven `admin_empresa`, `auditor` y, acotados a lo suyo, `responsable` y `delegado`; los gestiona `admin_empresa` (lo impone @Can en la ruta). D150: el
+// `responsable` también EDITA un riesgo (`PATCH /risks/{id}`) si alguna de sus causas llega a un control del que es dueño.
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 const audit = (p: Principal, meta: RequestMeta, action: string, resource: string, before: unknown, after: unknown): AuditEntry => ({
   tenantId: p.companyId, userId: p.userId, action, resource, result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
@@ -26,7 +26,7 @@ export const activeRisks = (graph: RiskGraph, cause: CauseNode): RiskNode[] => g
 // Una causa es del `responsable` si alguna de las acciones que la mitigan se le asignó; un riesgo, si alguna de sus causas lo es.
 const causeIsMine = (p: Principal, c: CauseNode) => c.controls.some((k) => canSeeControl(p, k.access));
 const riskIsMine = (p: Principal, g: RiskGraph, r: RiskNode) => activeCauses(g, r).some((c) => causeIsMine(p, c));
-const mayRead = (p: Principal, ok: () => boolean) => !isScopedRole(p.role) || ok();
+const mayRead = (p: Principal, ok: () => boolean) => !isScoped('risks.view', p.role) || ok();
 
 export type RiskView = { view: ViewMode; graph: RiskGraph };
 export type RiskFilters = { page: number; pageSize: number; includeInactive?: boolean; origin?: string; trustCriterion?: string; level?: string; evaluated?: boolean; view?: 'technical' };
@@ -86,6 +86,8 @@ export class CreateRiskUseCase {
 export class UpdateRiskUseCase {
   constructor(private readonly repo: RiskRepository, private readonly get: GetRiskUseCase) {}
   async execute(p: Principal, id: string, dto: { name?: string; description?: string; trust_criterion?: string; potential_impact?: string[] }, meta: RequestMeta) {
+    // D150 · Existe y es de su empresa, pero un `responsable` solo edita un riesgo ligado a sus controles: leerlo ya lo comprueba (404 o 403).
+    if (isScoped('risks.edit', p.role)) await this.get.execute(p, id, undefined);
     const patch: RiskPatch = {
       ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
       ...(dto.description !== undefined ? { description: dto.description.trim() } : {}),

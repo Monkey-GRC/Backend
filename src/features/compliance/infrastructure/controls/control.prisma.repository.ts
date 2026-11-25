@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
-import { EvaluationParametersPort } from '../../domain/engine/v2/parameters';
+import { EvaluationParametersPort } from '../../../../common/evaluation-parameters/parameters';
 import { ControlDetailData, ControlRepository, Placement, ServiceOverviewData, ServiceReadoutData } from '../../domain/controls/control.repository';
 import { evidenceStateOf } from '../../domain/evidence/evidence';
 import { minPeriodMonthsOf } from '../../domain/periods/evaluation-period';

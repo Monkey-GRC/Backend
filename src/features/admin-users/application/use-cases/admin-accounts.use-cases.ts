@@ -16,7 +16,7 @@ import { adminEntry, scopeOf, snapshot } from './admin-audit';
 
 export type InvitedAdmin = { admin: AdminAccount; invitation: Invitation };
 
-// contracts/gestion-usuarios/administradores.md · Todo es de `admin_monkey` (@Roles en el controller). El código de activación nunca viaja en una respuesta ni va a la auditoría.
+// contracts/gestion-usuarios/administradores.md · Todo es de `admin_monkey` (@Can en el controller). El código de activación nunca viaja en una respuesta ni va a la auditoría.
 @Injectable()
 export class ListAdminsUseCase {
   constructor(private readonly repo: AdminAccountRepository) {}

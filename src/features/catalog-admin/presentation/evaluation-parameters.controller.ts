@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { clientIp } from '../../../common/http/client-ip';
 import { PARAMETER_KEYS } from '../../../common/evaluation-parameters/parameter-definitions';
@@ -31,7 +31,7 @@ const toParameter = (r: ParameterRecord) => ({
 
 // contracts/catalogo-maestro.md «Parámetros de evaluación (RC-19)» — exclusivo de admin_monkey. No los bloquea `CATALOG_READ_ONLY`: no son parte de la carga del catálogo v2.
 @ApiTags(API_TAGS.catalogEvaluationParameters)
-@Roles('admin_monkey')
+@Can('catalog.manage')
 @Controller('catalog/evaluation-parameters')
 export class EvaluationParametersController {
   constructor(

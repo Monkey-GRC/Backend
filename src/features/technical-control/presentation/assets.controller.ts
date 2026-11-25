@@ -19,7 +19,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
 import { toPageResponse } from '../../../common/pagination/page';
@@ -53,7 +53,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 // Componente 3, parte de los activos: registrar y conectar → validar → activar → programar.
 // Solo admin_empresa. Las credenciales entran en el POST y no vuelven a salir.
 @ApiTags(API_TAGS.assets)
-@Roles('admin_empresa')
+@Can('integrations.configure')
 @Controller('assets')
 export class AssetsController {
   constructor(

@@ -16,7 +16,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { DEFAULT_CONTRACTED_FRAMEWORKS } from '../../../common/catalogs/service-catalogs';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { toPageResponse } from '../../../common/pagination/page';
@@ -49,7 +49,7 @@ const t = (key: string): string =>
 
 // contracts/modules/monkey-admin.md — todo el módulo es exclusivo de admin_monkey.
 @ApiTags(API_TAGS.companies)
-@Roles('admin_monkey')
+@Can('companies.manage')
 @Controller('companies')
 export class CompaniesController {
   constructor(

@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { TEAM_ROLES } from '../domain/team.types';
 
 // Forma del `data` de contracts/gestion-usuarios.md, solo para la documentación (la arman team.mapper.ts).
 
@@ -18,7 +19,7 @@ export class TeamMemberResponse {
   @ApiProperty({ example: 'juan@acme.co', description: 'Correo de la cuenta.' }) email!: string;
   @ApiProperty({ nullable: true, description: 'Se completa en el perfil; la cuenta se identifica por el correo.' }) name!: string | null;
   @ApiProperty({ nullable: true }) last_name!: string | null;
-  @ApiProperty({ enum: ['admin_empresa', 'responsable', 'delegado', 'auditor'], enumName: 'TeamRoleFilter' }) role!: string;
+  @ApiProperty({ enum: [...TEAM_ROLES], enumName: 'TeamRoleFilter' }) role!: string;
   @ApiProperty({ enum: ['active', 'inactive', 'pending'], enumName: 'TeamStatusFilter', description: '`pending` es una cuenta que aún no activó su código y no puede iniciar sesión.' }) status!: string;
   @ApiProperty({ description: 'Si ya configuró el segundo factor.' }) is_mfa_enabled!: boolean;
   @ApiProperty({ nullable: true, description: 'Solo el `delegado`: si es de la compañía (`true`) o externo (`false`). Nulo en los demás roles.' }) is_internal!: boolean | null;

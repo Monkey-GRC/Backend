@@ -1,0 +1,16 @@
+{
+  "list": "Documentos de tu empresa.",
+  "detail": "Detalle del documento.",
+  "version_imported": "Listo, publicamos la versión del documento.",
+  "assigned": "Listo, asignamos el documento.",
+  "unassigned": "Listo, quitamos la asignación del documento.",
+  "mine": "Documentos que te asignaron.",
+  "download": "Enlace temporal para ver o descargar el documento.",
+  "accepted": "Listo, registramos tu aceptación.",
+  "not_published": "Este documento aún no tiene una versión publicada. Publícala antes de asignarlo.",
+  "assignee_not_eligible": "Alguna de las personas no puede recibir el documento: solo se asigna a cuentas activas o pendientes de administrador, responsable, delegado o colaborador.",
+  "version_not_current": "Esa versión ya no es la vigente. Abre el documento de nuevo para leer la versión actual.",
+  "already_accepted": "Ya aceptaste esta versión del documento.",
+  "acceptance_not_required": "Este documento no requiere aceptación.",
+  "external": "Los documentos externos todavía no se pueden publicar desde aquí."
+}

@@ -37,7 +37,7 @@ const activo = (agent: Agent, k: string, role: Rol, group?: string) =>
   invitarYActivar(app, agent, { email: email(k), name: 'Persona', last_name: 'De Prueba', role, ...(role === 'delegado' ? { group_id: group, is_internal: true } : {}) });
 const crearEquipo = async (agent: Agent, name: string, leaderId?: string) => (await agent.post('/v1/groups').send({ name, ...(leaderId ? { leader_id: leaderId } : {}) }).expect(201)).body.data;
 
-let rA: { id: string; session: Agent }; // responsable con equipo creado por él
+let rA: { id: string; session: Agent }; // responsable con su equipo (lo crea el administrador: D150)
 let rB: { id: string; session: Agent }; // responsable con equipo creado por el administrador
 let teamA: string;
 let teamB: string;
@@ -50,7 +50,7 @@ beforeAll(async () => {
   adminId = (await owner<{ id: string }>('select id from platform.users where email = $1', [a.email]))[0].id;
   rA = await activo(a.agent, 'ra', 'responsable');
   rB = await activo(a.agent, 'rb', 'responsable');
-  teamA = (await crearEquipo(rA.session, nombre('Equipo A'))).id;
+  teamA = (await crearEquipo(a.agent, nombre('Equipo A'), rA.id)).id;
   teamB = (await crearEquipo(a.agent, nombre('Equipo B'), rB.id)).id;
   delegada = await activo(a.agent, 'del', 'delegado', teamA);
   auditor = await activo(a.agent, 'aud', 'auditor');
@@ -68,13 +68,14 @@ describe('Quién puede qué', () => {
     await anon.patch(`/v1/groups/${teamA}`).send({ name: 'X' }).expect(401);
   });
 
-  it('delegado, auditor y admin_monkey reciben 403 al listar, crear y renombrar; el responsable no renombra', async () => {
+  it('delegado, auditor y admin_monkey reciben 403 al listar, crear y renombrar; el responsable no crea ni renombra (D150)', async () => {
     for (const agent of [delegada.session, auditor.session, monkey]) {
       await agent.get('/v1/groups').expect(403);
       await agent.post('/v1/groups').send({ name: nombre('Intruso') }).expect(403);
       await agent.patch(`/v1/groups/${teamA}`).send({ name: nombre('Intruso') }).expect(403);
     }
     await rA.session.patch(`/v1/groups/${teamA}`).send({ name: nombre('Mío') }).expect(403);
+    for (const body of [{ name: nombre('Intruso') }, { name: nombre('Intruso'), leader_id: rA.id }]) await rA.session.post('/v1/groups').send(body).expect(403);
     expect((await filaGrupo(teamA)).name).toBe(nombre('Equipo A'));
     expect(await owner('select 1 from platform.user_groups where name like $1', [`${nombre('Intruso')}%`])).toHaveLength(0);
   });
@@ -86,12 +87,9 @@ describe('Quién puede qué', () => {
 });
 
 describe('Crear un grupo', () => {
-  it('el responsable crea SU equipo (team, él de líder, sin miembros) y ya puede crear delegados con POST /v1/users', async () => {
+  it('el administrador crea el equipo de un responsable y el responsable ya lo ve; crear delegados en él es del administrador (D150)', async () => {
     const r = await activo(a.agent, 'flujo', 'responsable');
-    const antes = await invitar(r.session, 'sin-eq').expect(409);
-    expect(antes.body.error.code).toBe('RESPONSIBLE_HAS_NO_TEAM');
-
-    const res = await r.session.post('/v1/groups').send({ name: nombre('Equipo Flujo') }).expect(201);
+    const res = await a.agent.post('/v1/groups').send({ name: nombre('Equipo Flujo'), leader_id: r.id }).expect(201);
     expect(res.body.message).toBe('Listo, creamos el grupo.');
     expect(res.body.data).toEqual({
       id: expect.any(String), name: nombre('Equipo Flujo'), kind: 'team', members_count: 0,
@@ -99,7 +97,8 @@ describe('Crear un grupo', () => {
     });
     expect(await filaGrupo(res.body.data.id)).toMatchObject({ kind: 'team', leader_id: r.id });
 
-    const d = (await invitar(r.session, 'flujo-d').expect(201)).body.data;
+    await invitar(r.session, 'flujo-d').expect(403);
+    const d = (await a.agent.post('/v1/users').send({ email: email('flujo-d'), name: 'D', last_name: 'D', role: 'delegado', group_id: res.body.data.id, is_internal: true }).expect(201)).body.data;
     expect(d.group.id).toBe(res.body.data.id);
     expect(d.responsible.id).toBe(r.id);
     const lista = (await r.session.get('/v1/groups').expect(200)).body.data.items;
@@ -107,25 +106,13 @@ describe('Crear un grupo', () => {
     expect(lista[0]).toMatchObject({ id: res.body.data.id, members_count: 1 });
   });
 
-  it('el responsable puede mandar su propio leader_id; el de otra persona es 403 y no crea nada', async () => {
-    const r = await activo(a.agent, 'propio', 'responsable');
+  it('un responsable lidera un solo equipo: el segundo, con otro nombre, es 409 TEAM_ALREADY_EXISTS', async () => {
     const antes = await nGrupos(a.companyId);
-    for (const ajeno of [adminId, rA.id, '00000000-0000-0000-0000-000000000000']) {
-      await r.session.post('/v1/groups').send({ name: nombre('Ajeno'), leader_id: ajeno }).expect(403);
-    }
-    expect(await nGrupos(a.companyId)).toBe(antes);
-    const ok = await r.session.post('/v1/groups').send({ name: nombre('Equipo Propio'), leader_id: r.id }).expect(201);
-    expect(ok.body.data).toMatchObject({ kind: 'team', leader: { id: r.id } });
-  });
-
-  it('un responsable lidera un solo equipo: el segundo, con otro nombre, es 409 TEAM_ALREADY_EXISTS (también si lo pide el administrador)', async () => {
-    const antes = await nGrupos(a.companyId);
-    const res = await rA.session.post('/v1/groups').send({ name: nombre('Otro equipo') }).expect(409);
+    const res = await a.agent.post('/v1/groups').send({ name: nombre('Otro equipo'), leader_id: rA.id }).expect(409);
     expect(res.body.error.code).toBe('TEAM_ALREADY_EXISTS');
     expect(res.body.message).toBe('Este responsable ya tiene un equipo de delegados: solo puede liderar uno.');
-    expect((await a.agent.post('/v1/groups').send({ name: nombre('Otro equipo'), leader_id: rA.id }).expect(409)).body.error.code).toBe('TEAM_ALREADY_EXISTS');
     // Con el mismo nombre del equipo existente también es el equipo lo que se avisa.
-    expect((await rA.session.post('/v1/groups').send({ name: nombre('Equipo A') }).expect(409)).body.error.code).toBe('TEAM_ALREADY_EXISTS');
+    expect((await a.agent.post('/v1/groups').send({ name: nombre('Equipo A'), leader_id: rA.id }).expect(409)).body.error.code).toBe('TEAM_ALREADY_EXISTS');
     expect(await nGrupos(a.companyId)).toBe(antes);
   });
 
@@ -170,8 +157,6 @@ describe('Crear un grupo', () => {
     for (const reservado of ['Responsables', 'responsables', 'RESPONSABLES', '  Responsables  ', 'Responsables '.padEnd(20, ' '), 'Responsables']) {
       expect((await a.agent.post('/v1/groups').send({ name: reservado }).expect(409)).body.error.code).toBe('GROUP_NAME_TAKEN');
     }
-    const r = await activo(a.agent, 'reservado', 'responsable');
-    expect((await r.session.post('/v1/groups').send({ name: 'responsables' }).expect(409)).body.error.code).toBe('GROUP_NAME_TAKEN');
     expect(await nGrupos(a.companyId)).toBe(antes);
     // «Responsables - IA» no es el nombre reservado.
     const res = await a.agent.post('/v1/groups').send({ name: `  Responsables   -  ${RUN} ` }).expect(201);
@@ -181,7 +166,7 @@ describe('Crear un grupo', () => {
   it('el rastro group.create lo escribe quien lo pidió, con la empresa, en la misma transacción: si falla, no queda el grupo', async () => {
     const rs = await rastros(a.companyId, 'group.create');
     const mio = rs.find((x) => x.after_state?.id === teamA);
-    expect(mio).toMatchObject({ user_id: rA.id, tenant_id: a.companyId, resource: 'group', before_state: null, after_state: { id: teamA, name: nombre('Equipo A'), kind: 'team', leader_id: rA.id } });
+    expect(mio).toMatchObject({ user_id: adminId, tenant_id: a.companyId, resource: 'group', before_state: null, after_state: { id: teamA, name: nombre('Equipo A'), kind: 'team', leader_id: rA.id } });
     expect(rs.find((x) => x.after_state?.id === teamB)).toMatchObject({ user_id: adminId, after_state: { kind: 'team', leader_id: rB.id } });
 
     jest.spyOn(auditInsert, 'insertAuditLog').mockImplementationOnce(async (db, entry) => {
@@ -199,24 +184,17 @@ describe('Concurrencia', () => {
   it('dos POST a la vez del mismo responsable: uno 201 y el otro 409 TEAM_ALREADY_EXISTS (lo garantiza el índice); un solo equipo en la base', async () => {
     for (let i = 0; i < 4; i++) {
       const r = await activo(a.agent, `conc-${i}`, 'responsable');
-      const [x, y] = await Promise.all([r.session.post('/v1/groups').send({ name: nombre(`Conc ${i} x`) }), r.session.post('/v1/groups').send({ name: nombre(`Conc ${i} y`) })]);
+      const [x, y] = await Promise.all([a.agent.post('/v1/groups').send({ name: nombre(`Conc ${i} x`), leader_id: r.id }), a.agent.post('/v1/groups').send({ name: nombre(`Conc ${i} y`), leader_id: r.id })]);
       expect([x.status, y.status].sort()).toEqual([201, 409]);
       expect([x, y].find((res) => res.status === 409)?.body.error.code).toBe('TEAM_ALREADY_EXISTS');
       expect(await owner('select 1 from platform.user_groups where leader_id = $1', [r.id])).toHaveLength(1);
     }
   });
 
-  it('el administrador y el responsable pidiendo a la vez el equipo del mismo responsable: uno solo se crea', async () => {
-    const r = await activo(a.agent, 'conc-mix', 'responsable');
-    const [x, y] = await Promise.all([r.session.post('/v1/groups').send({ name: nombre('Mix x') }), a.agent.post('/v1/groups').send({ name: nombre('Mix y'), leader_id: r.id })]);
-    expect([x.status, y.status].sort()).toEqual([201, 409]);
-    expect([x, y].find((res) => res.status === 409)?.body.error.code).toBe('TEAM_ALREADY_EXISTS');
-  });
-
   it('dos POST a la vez con el mismo nombre: uno 201 y el otro 409 GROUP_NAME_TAKEN (nunca EMAIL_TAKEN)', async () => {
     const r1 = await activo(a.agent, 'conc-n1', 'responsable');
     const r2 = await activo(a.agent, 'conc-n2', 'responsable');
-    const [x, y] = await Promise.all([r1.session.post('/v1/groups').send({ name: nombre('Mismo nombre') }), r2.session.post('/v1/groups').send({ name: nombre('Mismo nombre') })]);
+    const [x, y] = await Promise.all([a.agent.post('/v1/groups').send({ name: nombre('Mismo nombre'), leader_id: r1.id }), a.agent.post('/v1/groups').send({ name: nombre('Mismo nombre'), leader_id: r2.id })]);
     expect([x.status, y.status].sort()).toEqual([201, 409]);
     expect([x, y].find((res) => res.status === 409)?.body.error.code).toBe('GROUP_NAME_TAKEN');
     expect(await owner('select 1 from platform.user_groups where company_id = $1 and name = $2', [a.companyId, nombre('Mismo nombre')])).toHaveLength(1);

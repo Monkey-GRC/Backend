@@ -3,7 +3,7 @@ import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiItems } from '../../../common/swagger/api-envelope';
@@ -28,7 +28,7 @@ export class IntegrationsController {
   @ApiOperation({ summary: 'Catálogo de integraciones', description: 'Lo que se puede conectar, sin paginar: medición antes que flujo de trabajo y, dentro, por orden del catálogo. `availability` es el de la plataforma de conexión cuando la tiene; `connected` indica si la empresa ya tiene una conexión activa. Solo `admin_empresa`. Contrato: `contracts/integraciones.md`.' })
   @ApiItems(CatalogIntegrationResponse, 'Catálogo de integraciones.', { message: 'integration.catalog' })
   @Get('catalog')
-  @Roles('admin_empresa')
+  @Can('integrations.configure')
   async catalog(@CurrentUser() principal: Principal) {
     const items = await this.getCatalog.execute(principal);
     return new ResponseDto(HttpStatus.OK, t('integration.catalog'), {
@@ -39,7 +39,7 @@ export class IntegrationsController {
   @ApiOperation({ summary: 'Integraciones de la empresa', description: 'Una fila por integración con al menos una conexión vigente, con su estado derivado (`needs_attention` > `active` > `pending`), sus recursos y sus conexiones. Sin paginar. `admin_empresa` y `auditor` (lectura). Contrato: `contracts/integraciones.md`.' })
   @ApiItems(IntegrationResponse, 'Integraciones de la empresa.', { message: 'integration.list' })
   @Get()
-  @Roles('admin_empresa', 'auditor')
+  @Can('integrations.view')
   async list(@CurrentUser() principal: Principal) {
     const items = await this.listIntegrations.execute(principal);
     return new ResponseDto(HttpStatus.OK, t('integration.list'), { items: items.map(toIntegration) });
@@ -51,7 +51,7 @@ export class IntegrationsController {
   @ApiData(IntegrationDetailResponse, 'Detalle de la integración.', { message: 'integration.detail' })
   @ApiDomainErrors('INTEGRATION_NOT_FOUND')
   @Get(':code')
-  @Roles('admin_empresa', 'auditor')
+  @Can('integrations.view')
   async detail(@CurrentUser() principal: Principal, @Param('code') code: string) {
     const detail = await this.getIntegration.execute(principal, code);
     return new ResponseDto(HttpStatus.OK, t('integration.detail'), toIntegrationDetail(detail, t));

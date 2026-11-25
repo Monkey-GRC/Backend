@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../../generated/prisma/client';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
+import { NotificationEmitter, type ControlNotificationEvent } from '../../../../common/notifications/notification-emitter';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
@@ -13,7 +14,7 @@ type AssignmentRow = { id: string; client_control_id: string; owner_id: string; 
 
 @Injectable()
 export class TeamAssignmentPrismaRepository extends TeamAssignmentRepository {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(private readonly prisma: PrismaService, private readonly notifications: NotificationEmitter) {
     super();
   }
 
@@ -26,19 +27,19 @@ export class TeamAssignmentPrismaRepository extends TeamAssignmentRepository {
       const { controls, rows } = await this.lockControls(tx, input.controlIds);
       const changes = planOwnerAssignment({ actorId: scope.userId as string, ownerId: input.ownerId, owner, requested: input.controlIds, controls });
       await this.apply(tx, scope, changes, rows);
-      return this.audited(tx, changes, audit);
+      return this.audited(tx, scope, changes, audit);
     });
   }
 
-  setExecutor(scope: TenantScope, input: { controlIds: string[]; executorId: string | null }, audit: AuditIntent<ReleasedControl[]>): Promise<ReleasedControl[]> {
+  setExecutor(scope: TenantScope, input: { controlIds: string[]; executorId: string | null; onlyOwn: boolean }, audit: AuditIntent<ReleasedControl[]>): Promise<ReleasedControl[]> {
     return this.prisma.withScope(scope, async (tx) => {
       // La fila del delegado se bloquea con KEY SHARE: choca con el FOR UPDATE de moverlo (MD-189) y de desactivarlo (MD-191). Se relee su estado y su grupo ya bloqueada.
       await lockActorAndSubject(tx, scope.userId, input.executorId, 'KEY SHARE', 'KEY SHARE');
       const executor = input.executorId ? await this.person(tx, input.executorId) : null;
       const { controls, rows } = await this.lockControls(tx, input.controlIds);
-      const changes = planExecutorAssignment({ actorId: scope.userId as string, executorId: input.executorId, executor, requested: input.controlIds, controls });
+      const changes = planExecutorAssignment({ actorId: scope.userId as string, onlyOwn: input.onlyOwn, executorId: input.executorId, executor, requested: input.controlIds, controls });
       await this.apply(tx, scope, changes, rows);
-      return this.audited(tx, changes, audit);
+      return this.audited(tx, scope, changes, audit);
     });
   }
 
@@ -97,8 +98,21 @@ export class TeamAssignmentPrismaRepository extends TeamAssignmentRepository {
     }
   }
 
-  private async audited(tx: TransactionClient, changes: ReleasedControl[], audit: AuditIntent<ReleasedControl[]>): Promise<ReleasedControl[]> {
-    if (changes.length) await insertAuditLog(tx, audit(changes));
+  // El rastro y los avisos de la asignación (`control_assigned`, D151) se escriben en la misma transacción que el cambio: o quedan todos o ninguno.
+  private async audited(tx: TransactionClient, scope: TenantScope, changes: ReleasedControl[], audit: AuditIntent<ReleasedControl[]>): Promise<ReleasedControl[]> {
+    if (changes.length) {
+      await insertAuditLog(tx, audit(changes));
+      await this.notifications.emitForControls(tx, scope.companyId, this.assignedEvents(scope.userId as string, changes));
+    }
     return changes;
+  }
+
+  // Avisa a quien recibe el control como dueño o como ejecutor (si cambió y no es quien lo asigna). «Sin asignar» y quitar el ejecutor no avisan a nadie.
+  private assignedEvents(actorId: string, changes: ReleasedControl[]): ControlNotificationEvent[] {
+    const at = new Date().toISOString();
+    return changes.flatMap((c): ControlNotificationEvent[] => [
+      ...(c.after.ownerId && c.after.ownerId !== c.before.ownerId ? [{ type: 'control_assigned' as const, controlId: c.controlId, assigneeId: c.after.ownerId, assigneeRole: 'owner' as const, actorId, dedupeSuffix: at }] : []),
+      ...(c.after.executorId && c.after.executorId !== c.before.executorId ? [{ type: 'control_assigned' as const, controlId: c.controlId, assigneeId: c.after.executorId, assigneeRole: 'executor' as const, actorId, dedupeSuffix: at }] : []),
+    ]);
   }
 }

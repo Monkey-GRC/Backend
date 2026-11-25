@@ -22,6 +22,8 @@ const CONSTRAINT_CODES: Record<string, string> = {
   isArray: 'array.invalid',
   arrayUnique: 'array.unique',
   isUrl: 'url.invalid',
+  isIso8601: 'date.invalid',
+  isDateString: 'date.invalid',
   isIp: 'ip.invalid',
   isObject: 'object.invalid',
   arrayMaxSize: 'array.max',

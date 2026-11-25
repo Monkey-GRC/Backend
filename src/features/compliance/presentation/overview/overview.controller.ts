@@ -3,7 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../../common/auth/principal';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../../common/decorators/roles.decorator';
+import { Can } from '../../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { GetControlQuery } from '../../application/controls/list-controls.query';
 import { GetOverviewUseCase } from '../../application/overview/get-overview.use-case';
@@ -20,7 +20,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 // El resumen de cumplimiento de un servicio (contracts/modules/compliance-overview.md, MD-137). `admin_monkey` no entra al cumplimiento de una empresa por aquí. La vista
 // técnica la restringe el caso de uso: `auditor` y `admin_empresa` (D81, D96).
 @ApiTags(API_TAGS.overview)
-@Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
+@Can('reports.dashboard')
 @Controller()
 export class OverviewController {
   constructor(private readonly getOverview: GetOverviewUseCase) {}

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
+import { scopeOf as grantOf } from '../../../../common/authorization/permission-matrix';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { ValidationException } from '../../../../common/errors/validation.exception';
 import { RequestMeta } from '../../../../common/http/request-meta';
@@ -16,7 +17,7 @@ import { InvitationDelivery } from '../invitation/invitation-delivery.service';
 import { assignmentEntry } from './assignment-audit';
 import { planCreation } from './team-member-placement';
 
-// contracts/gestion-usuarios.md · Crear y listar los abren `admin_empresa` y `responsable` (@Roles en la ruta y la regla de cada rol aquí); editar y reemitir, solo `admin_empresa`.
+// contracts/gestion-usuarios.md · Crear, editar y reemitir, solo `admin_empresa` (D136, D150); listar lo abren `admin_empresa` y `responsable` (@Can en la ruta y la regla de cada rol aquí).
 // El código de activación nunca viaja en una respuesta (SEG-75): solo su huella queda en la base, y ni el código ni la huella van a la auditoría (conventions.md).
 // Sale por correo (`InvitationDelivery`) cuando el alta o la reemisión ya se guardaron; si el correo falla, la cuenta queda y la invitación se marca `failed`.
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
@@ -67,8 +68,9 @@ export class ListTeamUseCase {
 
   // El administrador ve todo el equipo; el responsable, solo el suyo: el servidor impone ese filtro y ningún `group_id` lo amplía.
   execute(p: Principal, filters: MemberFilters): Promise<Page<TeamMember>> {
-    if (p.role === 'admin_empresa') return this.repo.list(scopeOf(p), filters);
-    if (p.role === 'responsable') return this.repo.list(scopeOf(p), { ...filters, teamLeaderId: p.userId });
+    const grant = grantOf('users.list', p.role);
+    if (grant === 'all') return this.repo.list(scopeOf(p), filters);
+    if (grant === 'scoped') return this.repo.list(scopeOf(p), { ...filters, teamLeaderId: p.userId });
     throw new DomainError('FORBIDDEN');
   }
 }

@@ -1,5 +1,4 @@
-import { isPartyOf, Parties } from '../controls/control-access';
-import { isScopedRole } from '../../../../common/enums/user-role.enum';
+import { Parties, withinScope } from '../controls/control-access';
 import type { ReviewerRole } from '../evidence/evidence';
 
 // D102, D121 · El veredicto de una prueba manual no documental se registra y se revisa como la evidencia: lo registra el ejecutor, el dueño o el admin_empresa y lo revisan el dueño
@@ -28,10 +27,7 @@ export function verdictStateOf(reviews: ReadonlyArray<Pick<VerdictReview, 'decis
 }
 
 /** Registra un veredicto el `admin_empresa`, el dueño (`responsable`) o el ejecutor (`delegado`) ACTIVOS del control de origen. El resto de los roles y quien no atiende el control, no. */
-export function canRegisterVerdict(p: { role: string; userId: string }, access: Parties): boolean {
-  if (p.role === 'admin_empresa') return true;
-  return isScopedRole(p.role) && isPartyOf(p.userId, access);
-}
+export const canRegisterVerdict = (p: { role: string; userId: string }, access: Parties): boolean => withinScope('verdicts.register', p, access);
 
 /** El rol con el que registra un veredicto: si es el `admin_empresa`, nace con su aprobación y cuenta al instante (P34 sigue abierta). */
 export const bornApproved = (p: { role: string }): boolean => p.role === 'admin_empresa';

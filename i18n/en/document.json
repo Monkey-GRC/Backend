@@ -1,0 +1,16 @@
+{
+  "list": "Your company's documents.",
+  "detail": "Document detail.",
+  "version_imported": "Done, we published the document version.",
+  "assigned": "Done, we assigned the document.",
+  "unassigned": "Done, we removed the document assignment.",
+  "mine": "Documents assigned to you.",
+  "download": "Temporary link to view or download the document.",
+  "accepted": "Done, we recorded your acceptance.",
+  "not_published": "This document does not have a published version yet. Publish it before assigning it.",
+  "assignee_not_eligible": "One of the people cannot receive the document: it can only be assigned to active or pending administrator, manager, delegate or collaborator accounts.",
+  "version_not_current": "That version is no longer the current one. Open the document again to read the latest version.",
+  "already_accepted": "You already accepted this version of the document.",
+  "acceptance_not_required": "This document does not require acceptance.",
+  "external": "External documents cannot be published from here yet."
+}

@@ -1,7 +1,7 @@
 import { Controller, Get, HttpStatus, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { I18nContext } from 'nestjs-i18n';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { toPageResponse } from '../../../common/pagination/page';
 import { AllControlsListQuery, CatalogListQuery, CatalogPageQuery, ControlsListQuery, TestsListQuery } from '../application/dtos/catalog-list.query';
@@ -42,7 +42,7 @@ const uuid = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 
 // contracts/modules/monkey-admin-catalog.md — lectura del catálogo maestro, exclusiva de admin_monkey. La ruta es `catalog` (singular, el catálogo
 // maestro); no confundir con `catalogs`, las listas desplegables del onboarding.
-@Roles('admin_monkey')
+@Can('catalog.manage')
 @Controller('catalog')
 export class CatalogAdminController {
   constructor(

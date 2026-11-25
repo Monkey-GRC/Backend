@@ -18,7 +18,7 @@ const positiveInt = (config: ConfigService, key: string, fallback: number): numb
   return value;
 };
 
-// SEG-19 · Límite de peticiones sobre la SESIÓN: 100/min por usuario y 1000/min por empresa. Corre después de SessionAuthGuard y RolesGuard, así que solo ve peticiones ya
+// SEG-19 · Límite de peticiones sobre la SESIÓN: 100/min por usuario y 1000/min por empresa. Corre después de SessionAuthGuard y PermissionsGuard, así que solo ve peticiones ya
 // autenticadas; las rutas públicas (login, recuperación, el trabajador interno) no pasan por aquí: sin sesión no hay a quién contárselo, y limitar por dirección exige
 // saber la IP real detrás del proxy (DT-37).
 @Injectable()

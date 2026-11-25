@@ -8,7 +8,7 @@ import { Page, PageRequest } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
-import { EvaluationParametersPort } from '../../../compliance/domain/engine/v2/parameters';
+import { EvaluationParametersPort } from '../../../../common/evaluation-parameters/parameters';
 import { captureControlStates, recordControlStateChanges } from '../../../compliance/infrastructure/shared/control-state-events';
 import { RUNNER_POOL } from '../../application/runner-pool';
 import { FailedRow } from '../../domain/scan/findings';

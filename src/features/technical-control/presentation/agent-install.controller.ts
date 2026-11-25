@@ -5,7 +5,7 @@ import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Public } from '../../../common/decorators/public.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
@@ -27,7 +27,7 @@ const TEMPLATES = { linuxScript: AGENT_INSTALL_SH, windowsScript: AGENT_INSTALL_
 // Instalar la sonda en un servidor con agente (D113). El estado se consulta (GET) las veces que haga falta y no lleva ningún secreto; el comando, que lleva la clave del
 // servidor, se pide aparte (POST) y se entrega UNA sola vez.
 @ApiTags(API_TAGS.assets)
-@Roles('admin_empresa')
+@Can('integrations.configure')
 @Controller('assets/:id/agent-install')
 export class AgentInstallController {
   constructor(

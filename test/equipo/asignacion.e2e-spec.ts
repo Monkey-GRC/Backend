@@ -473,11 +473,24 @@ describe('PUT /v1/assignments/executor · quién puede', () => {
     await asignarControl(a.companyId, controles[1], rA.id);
   });
 
-  it('solo responsable: admin_empresa, delegado, auditor y admin_monkey, 403; sin sesión, 401', async () => {
-    for (const s of [a.agent, dA.session, auditor.session, monkey]) await putExecutor([controles[0]], dA.id, s).expect(403);
+  it('admin_empresa y responsable (D150); delegado, auditor y admin_monkey, 403; sin sesión, 401', async () => {
+    for (const s of [dA.session, auditor.session, monkey]) await putExecutor([controles[0]], dA.id, s).expect(403);
     await (await import('supertest')).default(app.getHttpServer()).put('/v1/assignments/executor').send({ client_control_ids: [controles[0]], executor_id: dA.id }).expect(401);
     expect((await asignacion(controles[0]))?.executor_id).toBeNull();
     expect((await putExecutor([controles[0]], dA.id).expect(200)).body.data).toEqual({ updated: 1 });
+  });
+
+  it('D150 · el administrador también delega: en cualquier control con dueño, a un delegado del equipo de ESE dueño; un control sin dueño o un delegado de otro equipo, 409 EXECUTOR_NOT_IN_TEAM', async () => {
+    await asignarControl(a.companyId, controles[2], rA2.id);
+    expect((await putExecutor([controles[0], controles[1]], dA.id, a.agent).expect(200)).body.data).toEqual({ updated: 2 });
+    expect((await asignacion(controles[1]))?.executor_id).toBe(dA.id);
+    // El delegado de otro equipo, o un control sin dueño: no.
+    expect((await putExecutor([controles[2]], dA.id, a.agent).expect(409)).body.error.code).toBe('EXECUTOR_NOT_IN_TEAM');
+    expect((await putExecutor([controles[3]], dA.id, a.agent).expect(409)).body.error.code).toBe('EXECUTOR_NOT_IN_TEAM');
+    expect((await putExecutor([controles[2]], dOtro.id, a.agent).expect(200)).body.data).toEqual({ updated: 1 });
+    // Quitar el ejecutor siempre se puede, también en un control sin dueño (no cambia nada).
+    expect((await putExecutor([controles[0], controles[3]], null, a.agent).expect(200)).body.data).toEqual({ updated: 1 });
+    expect((await asignacion(controles[0]))?.executor_id).toBeNull();
   });
 
   it('solo sobre controles de los que es dueño: ajeno, sin dueño o de otro responsable, 403 y no cambia nada', async () => {

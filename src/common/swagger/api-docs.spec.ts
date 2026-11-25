@@ -141,7 +141,9 @@ describe('documentación de la API encendida (local)', () => {
     // + 3 de MD-217: `GET /v1/auth/devices`, `DELETE /v1/auth/devices/{id}` y `DELETE /v1/auth/devices` (dispositivos recordados, D123).
     // + 2 de MD-500: `PUT /v1/controls/{id}/periodicity` y `GET …/evaluation-periods`.
     // + 2 de MD-495: `GET /v1/catalog/evaluation-parameters` y `PATCH /v1/catalog/evaluation-parameters/{key}`.
-    expect(ids.length).toBe(180);
+    // + 8 de MD-503: Documentos (listar, detalle, publicar versión, archivo, asignar, quitar, aceptar y `GET /v1/me/documents`).
+    // + 7 de MD-515: Notificaciones.
+    expect(ids.length).toBe(195);
     expect(ids.some((id) => id.includes('/internal/'))).toBe(false);
   });
 
