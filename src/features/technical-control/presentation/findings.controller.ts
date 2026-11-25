@@ -4,7 +4,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { toPageResponse } from '../../../common/pagination/page';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
@@ -20,7 +20,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 // D90, D96 · Qué falló y cómo corregirlo (contracts/modules/compliance-audit.md): para una prueba de nube de un control, lo que no cumplió la última evaluación y la guía para corregirlo.
 // Lo ven el administrador, el auditor y el dueño (`responsable`) o el ejecutor (`delegado`) de ese control.
 @ApiTags(API_TAGS.executions)
-@Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
+@Can('tests.results')
 @Controller('controls/:controlId/tests/:testId/findings')
 export class FindingsController {
   constructor(

@@ -2,8 +2,9 @@ import { INestApplication } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { ModulesContainer } from '@nestjs/core';
 import type { OpenAPIObject } from '@nestjs/swagger';
+import { ANY_AUTHENTICATED_KEY, PERMISSION_KEY } from '../authorization/can.decorator';
+import { rolesWith, type Permission } from '../authorization/permission-matrix';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { ROLES_KEY } from '../decorators/roles.decorator';
 import type { UserRole } from '../enums/user-role.enum';
 import { API_TAG_DESCRIPTIONS } from './api-docs.config';
 import { ERROR_SCHEMAS, errorExample } from './api-envelope';
@@ -11,7 +12,7 @@ import { ERROR_SCHEMAS, errorExample } from './api-envelope';
 // La clave de metadatos de @ApiExcludeController(). @nestjs/swagger no exporta `dist/constants` (su `exports` lo impide), así que se repite aquí.
 const API_EXCLUDE_CONTROLLER = 'swagger/apiExcludeController';
 
-// Completa cada operación con lo que el código YA dice y que no conviene repetir a mano: quién puede llamarla (@Roles / @Public, los mismos metadatos que lee el
+// Completa cada operación con lo que el código YA dice y que no conviene repetir a mano: quién puede llamarla (@Can / @Public, los mismos metadatos que lee el
 // guard, así la documentación no se desfasa) y los errores comunes de toda ruta (401, 403, 404 por id, 422 por cuerpo o consulta). Los errores propios de cada
 // operación los declara su controlador con @ApiDomainErrors.
 
@@ -21,6 +22,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   responsable: 'Responsable',
   delegado: 'Delegado',
   auditor: 'Auditor',
+  colaborador: 'Colaborador',
 };
 
 type Parameter = { in: string; name: string; description?: string; schema?: Record<string, unknown> };
@@ -47,6 +49,7 @@ const ID_OWNER: Record<string, string> = {
   frameworks: 'el marco',
   tests: 'la prueba',
   'evidence-templates': 'la plantilla de evidencia',
+  documents: 'el documento',
 };
 const NAMED_PARAMS: Record<string, string> = {
   serviceId: 'el servicio',
@@ -61,6 +64,8 @@ const NAMED_PARAMS: Record<string, string> = {
   templateId: 'la plantilla de evidencia',
   testId: 'la prueba',
   pointOfFocusId: 'el punto de enfoque',
+  versionId: 'la versión del documento',
+  userId: 'la persona a quien se asignó',
 };
 
 function describePathParam(path: string, name: string): string | undefined {
@@ -134,7 +139,8 @@ export function enrichApiDocument(app: INestApplication, document: OpenAPIObject
 
       const base = Reflect.getMetadata(PATH_METADATA, controller) as string | string[] | undefined;
       const basePath = Array.isArray(base) ? base[0] : (base ?? '');
-      const classRoles = Reflect.getMetadata(ROLES_KEY, controller) as UserRole[] | undefined;
+      const classPermission = Reflect.getMetadata(PERMISSION_KEY, controller) as Permission | undefined;
+      const classAny = Reflect.getMetadata(ANY_AUTHENTICATED_KEY, controller) as boolean | undefined;
       const classPublic = Reflect.getMetadata(IS_PUBLIC_KEY, controller) as boolean | undefined;
 
       for (const name of Object.getOwnPropertyNames(controller.prototype)) {
@@ -152,14 +158,18 @@ export function enrichApiDocument(app: INestApplication, document: OpenAPIObject
         // Un controlador sin @ApiTags de clase recibe su nombre como grupo: aquí solo valen los grupos con título.
         if (op.tags?.some((tag) => tag in API_TAG_DESCRIPTIONS)) op.tags = op.tags.filter((tag) => tag in API_TAG_DESCRIPTIONS);
 
-        const roles = (Reflect.getMetadata(ROLES_KEY, handler) as UserRole[] | undefined) ?? classRoles;
+        const permission = (Reflect.getMetadata(PERMISSION_KEY, handler) as Permission | undefined) ?? classPermission;
+        const roles = permission ? rolesWith(permission) : undefined;
+        const anyAuthenticated = (Reflect.getMetadata(ANY_AUTHENTICATED_KEY, handler) as boolean | undefined) ?? classAny ?? false;
         const isPublic = (Reflect.getMetadata(IS_PUBLIC_KEY, handler) as boolean | undefined) ?? classPublic ?? false;
 
         const access = isPublic
           ? '**Acceso:** público, no requiere sesión.'
           : roles?.length
             ? `**Roles que pueden llamarla:** ${roles.map((r) => `\`${r}\` (${ROLE_LABELS[r]})`).join(', ')}.`
-            : '**Acceso:** cualquier usuario con sesión.';
+            : anyAuthenticated
+              ? '**Acceso:** cualquier usuario con sesión.'
+              : '**Acceso:** sin permiso declarado: se niega (403).';
         op.description = [op.description, access].filter(Boolean).join('\n\n');
         if (roles?.length) op['x-roles'] = roles;
 

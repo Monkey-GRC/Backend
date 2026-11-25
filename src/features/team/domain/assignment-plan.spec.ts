@@ -53,7 +53,7 @@ describe('planOwnerAssignment', () => {
 describe('planExecutorAssignment', () => {
   const delegate = person({ id: 'd1', role: 'delegado', groupKind: 'team', leaderId: 'r1' });
   const mine = (id: string, executorId: string | null = null) => control(id, { ownerId: 'r1', executorId });
-  const base = { actorId: 'r1', executorId: 'd1', executor: delegate, requested: ['c1', 'c2'] };
+  const base = { actorId: 'r1', onlyOwn: true, executorId: 'd1', executor: delegate, requested: ['c1', 'c2'] };
 
   it('pone el ejecutor y conserva al dueño; el que ya lo tiene no cambia; null lo quita', () => {
     expect(planExecutorAssignment({ ...base, controls: [mine('c1'), mine('c2', 'd1')] })).toEqual([{ controlId: 'c1', before: { ownerId: 'r1', executorId: null }, after: { ownerId: 'r1', executorId: 'd1' } }]);
@@ -63,6 +63,15 @@ describe('planExecutorAssignment', () => {
   it('un control ajeno o sin dueño es FORBIDDEN', () => {
     expect(code(() => planExecutorAssignment({ ...base, controls: [mine('c1'), control('c2', { ownerId: 'r2', executorId: null })] }))).toBe('FORBIDDEN');
     expect(code(() => planExecutorAssignment({ ...base, controls: [mine('c1'), control('c2')] }))).toBe('FORBIDDEN');
+  });
+
+  it('el administrador (D150) delega en cualquier control con dueño: el ejecutor es un delegado del equipo de ESE dueño; un control sin dueño solo admite null', () => {
+    const admin = { ...base, actorId: 'admin', onlyOwn: false };
+    const ajeno = control('c2', { ownerId: 'r1', executorId: null });
+    expect(planExecutorAssignment({ ...admin, controls: [mine('c1'), ajeno] })).toHaveLength(2);
+    expect(code(() => planExecutorAssignment({ ...admin, controls: [mine('c1'), control('c2', { ownerId: 'r2', executorId: null })] }))).toBe('EXECUTOR_NOT_IN_TEAM');
+    expect(code(() => planExecutorAssignment({ ...admin, controls: [mine('c1'), control('c2')] }))).toBe('EXECUTOR_NOT_IN_TEAM');
+    expect(planExecutorAssignment({ ...admin, executorId: null, executor: null, controls: [mine('c1', 'd1'), control('c2')] })).toEqual([{ controlId: 'c1', before: { ownerId: 'r1', executorId: 'd1' }, after: { ownerId: 'r1', executorId: null } }]);
   });
 
   it('el ejecutor debe ser un delegado vigente del equipo del actor', () => {

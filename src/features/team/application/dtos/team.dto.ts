@@ -13,8 +13,8 @@ export class CreateTeamMemberDto {
   @ApiProperty({ example: 'juan@acme.co', description: 'Correo de la persona. Es único en toda la plataforma.' }) @Transform(lower) @IsEmail() @MaxLength(254) email!: string;
   @ApiProperty({ example: 'Juan', description: 'Nombre de la persona (máx. 100). Es obligatorio: la cuenta no se identifica solo por el correo.' }) @Transform(trim) @IsString() @IsNotEmpty() @MaxLength(100) name!: string;
   @ApiProperty({ example: 'Pérez', description: 'Apellido de la persona (máx. 100).' }) @Transform(trim) @IsString() @IsNotEmpty() @MaxLength(100) last_name!: string;
-  @ApiProperty({ enum: TEAM_ROLES, enumName: 'TeamRole', description: 'Rol de la cuenta: `admin_empresa` (otro administrador de la empresa), `responsable`, `delegado` o `auditor`.' }) @IsIn([...TEAM_ROLES]) role!: TeamRole;
-  @ApiPropertyOptional({ format: 'uuid', description: '`delegado`: el equipo de un responsable (obligatorio si lo crea el administrador; si lo crea un responsable es el suyo y se omite). `responsable`: un grupo de responsables del administrador; por omisión, «Responsables». No se admite para `admin_empresa` ni `auditor` (`group_id.not_allowed`).' })
+  @ApiProperty({ enum: TEAM_ROLES, enumName: 'TeamRole', description: 'Rol de la cuenta: `admin_empresa` (otro administrador de la empresa), `responsable`, `delegado`, `auditor` o `colaborador` (D136: lee y acepta los documentos que le asignan).' }) @IsIn([...TEAM_ROLES]) role!: TeamRole;
+  @ApiPropertyOptional({ format: 'uuid', description: '`delegado`: el equipo de un responsable (obligatorio). `responsable`: un grupo de responsables del administrador; por omisión, «Responsables». No se admite para `admin_empresa`, `auditor` ni `colaborador` (`group_id.not_allowed`).' })
   @IsOptional() @IsUUID() group_id?: string;
   @ApiPropertyOptional({ description: 'Solo `delegado` (obligatorio): si es de la compañía (`true`) o externo (`false`). Para los demás roles no se admite (`is_internal.not_allowed`).' })
   @IsOptional() @IsBoolean() is_internal?: boolean;
@@ -37,7 +37,7 @@ export class ListTeamQuery {
   @ApiPropertyOptional({ default: 25, minimum: 1, maximum: 100, description: 'Elementos por página.' }) @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) page_size = 25;
   @ApiPropertyOptional({ enum: ['created_at', '-created_at', 'email', '-email'], enumName: 'TeamSort', default: '-created_at', description: 'Orden; el guion inicial es descendente.' })
   @IsOptional() @IsIn(['created_at', '-created_at', 'email', '-email']) sort: 'created_at' | '-created_at' | 'email' | '-email' = '-created_at';
-  @ApiPropertyOptional({ enum: ['admin_empresa', 'responsable', 'delegado', 'auditor'], enumName: 'TeamRoleFilter', description: 'Solo las cuentas con este rol.' }) @IsOptional() @IsIn(['admin_empresa', 'responsable', 'delegado', 'auditor']) role?: string;
+  @ApiPropertyOptional({ enum: [...TEAM_ROLES], enumName: 'TeamRoleFilter', description: 'Solo las cuentas con este rol.' }) @IsOptional() @IsIn([...TEAM_ROLES]) role?: string;
   @ApiPropertyOptional({ enum: ['active', 'inactive', 'pending'], enumName: 'TeamStatusFilter', description: 'Solo las cuentas en este estado.' }) @IsOptional() @IsIn(['active', 'inactive', 'pending']) status?: string;
   @ApiPropertyOptional({ format: 'uuid', description: 'Solo las cuentas de este grupo. Para un responsable no amplía su equipo.' }) @IsOptional() @IsUUID() group_id?: string;
   @ApiPropertyOptional({ description: 'Solo los delegados internos (`true`) o externos (`false`).' }) @IsOptional() @Transform(toBoolean) @IsBoolean() is_internal?: boolean;
@@ -46,7 +46,7 @@ export class ListTeamQuery {
 export class CreateGroupDto {
   @ApiProperty({ example: 'Equipo de María', description: 'Nombre del grupo (máx. 100). Único en la empresa; «Responsables» está reservado (sin distinguir mayúsculas ni espacios de más).' })
   @Transform(trim) @IsString() @IsNotEmpty() @MaxLength(100) name!: string;
-  @ApiPropertyOptional({ format: 'uuid', description: 'Solo `admin_empresa`: el responsable (activo o pendiente) cuyo equipo de delegados se crea. Sin él se crea un grupo de responsables que lidera el administrador. Un responsable solo puede mandar su propio id.' })
+  @ApiPropertyOptional({ format: 'uuid', description: 'El responsable (activo o pendiente) cuyo equipo de delegados se crea. Sin él se crea un grupo de responsables que lidera el administrador.' })
   @IsOptional() @IsUUID() leader_id?: string;
 }
 

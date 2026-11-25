@@ -7,7 +7,7 @@ import { validateOwnControl } from './control-edit.validation';
 import { CreateControlDto } from './control.dto';
 import { ControlDetail, GetControlUseCase } from './get-control.use-case';
 
-// MD-150, D96 · Solo `admin_empresa` (lo impone @Roles en la ruta). El control nace aprobado y cuenta desde que se crea (D65, D96): nadie lo aprueba aparte.
+// MD-150, D96 · Solo `admin_empresa` (lo impone @Can en la ruta). El control nace aprobado y cuenta desde que se crea (D65, D96): nadie lo aprueba aparte.
 @Injectable()
 export class CreateControlUseCase {
   constructor(

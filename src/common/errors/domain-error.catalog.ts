@@ -91,7 +91,6 @@ export const DOMAIN_ERROR_CATALOG: Record<
   ACTIVATION_CODE_EMAIL_MISMATCH: { status: HttpStatus.UNPROCESSABLE_ENTITY, messageKey: 'auth.activation_code_email_mismatch' },
   ACTIVATION_CODE_RATE_LIMITED: { status: HttpStatus.TOO_MANY_REQUESTS, messageKey: 'auth.activation_code_rate_limited' },
   LAST_ADMIN: { status: HttpStatus.CONFLICT, messageKey: 'user.last_admin' },
-  RESPONSIBLE_HAS_NO_TEAM: { status: HttpStatus.CONFLICT, messageKey: 'user.responsible_has_no_team' },
   RESPONSIBLES_GROUP_INVALID: { status: HttpStatus.CONFLICT, messageKey: 'user.responsibles_group_invalid' },
   TEAM_ALREADY_EXISTS: { status: HttpStatus.CONFLICT, messageKey: 'group.team_already_exists' },
   GROUP_NAME_TAKEN: { status: HttpStatus.CONFLICT, messageKey: 'group.name_taken' },
@@ -120,6 +119,13 @@ export const DOMAIN_ERROR_CATALOG: Record<
   // Esta instalación aún no puede comprobar conexiones (sin sonda). No es un fallo del cliente.
   CONNECTION_UNAVAILABLE: { status: HttpStatus.SERVICE_UNAVAILABLE, messageKey: 'connection.unavailable' },
   INTEGRATION_NOT_FOUND: { status: HttpStatus.NOT_FOUND, messageKey: 'integration.not_found' },
+  // D152 · Documentos (contracts/documentos.md).
+  DOCUMENT_NOT_PUBLISHED: { status: HttpStatus.CONFLICT, messageKey: 'document.not_published' },
+  ASSIGNEE_NOT_ELIGIBLE: { status: HttpStatus.CONFLICT, messageKey: 'document.assignee_not_eligible' },
+  DOCUMENT_VERSION_NOT_CURRENT: { status: HttpStatus.CONFLICT, messageKey: 'document.version_not_current' },
+  DOCUMENT_ALREADY_ACCEPTED: { status: HttpStatus.CONFLICT, messageKey: 'document.already_accepted' },
+  DOCUMENT_ACCEPTANCE_NOT_REQUIRED: { status: HttpStatus.CONFLICT, messageKey: 'document.acceptance_not_required' },
+  DOCUMENT_EXTERNAL: { status: HttpStatus.CONFLICT, messageKey: 'document.external' },
   // La instalación de la sonda en un servidor (D113).
   ASSET_NOT_AGENT: { status: HttpStatus.CONFLICT, messageKey: 'agent_install.not_agent' },
   AGENT_INSTALL_NOT_READY: { status: HttpStatus.CONFLICT, messageKey: 'agent_install.not_ready' },

@@ -4,7 +4,7 @@ import { DomainError } from '../../../../common/errors/domain-error';
 import { TransactionRunner } from '../../../../common/tenancy/transaction-runner';
 import { ServiceDetail } from '../../domain/entities/service.entity';
 import { ServiceRepository } from '../../domain/repositories/service.repository';
-import { isScopedRole } from '../../../../common/enums/user-role.enum';
+import { isScoped } from '../../../../common/authorization/permission-matrix';
 
 @Injectable()
 export class GetServiceUseCase {
@@ -17,7 +17,7 @@ export class GetServiceUseCase {
       // Un servicio de otra empresa no se ve (RLS): para quien pregunta, simplemente no existe.
       if (!service) throw new DomainError('NOT_FOUND');
       // D102 · Existe y es de su empresa, pero un `responsable` o `delegado` solo lo lee si tiene algún control suyo en él: no le toca (403).
-      if (isScopedRole(principal.role) && !(await this.services.isResponsible(scope, id))) throw new DomainError('FORBIDDEN');
+      if (isScoped('services.view', principal.role) && !(await this.services.isResponsible(scope, id))) throw new DomainError('FORBIDDEN');
       return service;
     });
   }

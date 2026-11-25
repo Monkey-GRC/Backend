@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../../common/auth/principal';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../../common/decorators/roles.decorator';
+import { Can } from '../../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { toPageResponse } from '../../../../common/pagination/page';
@@ -39,7 +39,7 @@ export class ObservationsController {
   @ApiData(ObservationResponse, 'Observación registrada, abierta.', { status: 201 })
   @ApiDomainErrors('CONTROL_RETIRED')
   @Post('services/:serviceId/observations')
-  @Roles('auditor')
+  @Can('audit.observe')
   @HttpCode(HttpStatus.CREATED)
   async register(@CurrentUser() p: Principal, @Param('serviceId', idPipe) serviceId: string, @Body() dto: CreateObservationDto, @Req() req: Request) {
     const created = await this.create.execute(p, serviceId, dto, metaOf(req));
@@ -49,7 +49,7 @@ export class ObservationsController {
   @ApiOperation({ summary: 'Listar las observaciones de un servicio', description: 'De la más reciente a la más antigua, con filtros por estado, tipo y control. `admin_empresa` y `auditor` las ven todas; el `responsable`, solo las de los controles de los que es responsable (las de un servicio completo, no).' })
   @ApiPaged(ObservationResponse, 'Página de observaciones.')
   @Get('services/:serviceId/observations')
-  @Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
+  @Can('observations.view')
   async observations(@CurrentUser() p: Principal, @Param('serviceId', idPipe) serviceId: string, @Query() q: ListObservationsQuery) {
     const page = await this.list.execute(p, serviceId, { status: q.status, type: q.type, clientControlId: q.client_control_id, page: q.page, pageSize: q.page_size });
     return new ResponseDto(HttpStatus.OK, t('observation.list'), toPageResponse(page, toObservation));
@@ -58,7 +58,7 @@ export class ObservationsController {
   @ApiOperation({ summary: 'Ver una observación', description: '`403` para el `responsable` si no es responsable de su control, o si es de un servicio completo.' })
   @ApiData(ObservationResponse, 'La observación.')
   @Get('observations/:id')
-  @Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
+  @Can('observations.view')
   async detail(@CurrentUser() p: Principal, @Param('id', idPipe) id: string) {
     return new ResponseDto(HttpStatus.OK, t('observation.detail'), toObservation(await this.get.execute(p, id)));
   }
@@ -70,7 +70,7 @@ export class ObservationsController {
   @ApiData(ObservationResponse, 'Observación ya cambiada.')
   @ApiDomainErrors('OBSERVATION_CLOSED', 'INVALID_TRANSITION')
   @Patch('observations/:id')
-  @Roles('auditor')
+  @Can('audit.observe')
   async change(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Body() dto: UpdateObservationDto, @Req() req: Request) {
     const changed = await this.update.execute(p, id, dto, metaOf(req));
     const key = dto.status === 'closed' ? 'observation.closed' : dto.status === 'open' ? 'observation.returned' : 'observation.updated';
@@ -81,7 +81,7 @@ export class ObservationsController {
   @ApiData(ObservationResponse, 'Observación respondida.')
   @ApiDomainErrors('OBSERVATION_CLOSED', 'OBSERVATION_NOT_OPEN')
   @Post('observations/:id/answer')
-  @Roles('admin_empresa', 'responsable', 'delegado')
+  @Can('observations.answer')
   @HttpCode(HttpStatus.OK)
   async reply(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Body() dto: AnswerObservationDto, @Req() req: Request) {
     const answered = await this.answer.execute(p, id, dto, metaOf(req));

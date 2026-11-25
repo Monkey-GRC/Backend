@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../../common/auth/principal';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../../common/decorators/roles.decorator';
+import { Can } from '../../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { toPageResponse } from '../../../../common/pagination/page';
@@ -23,7 +23,7 @@ const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userA
 // Exclusiones de un servicio (contracts/modules/compliance-audit.md, MD-144, D78). Las ven el administrador y el auditor; la crea y la decide solo el administrador
 // en un solo acto (D96): nace aprobada. El `responsable` y `admin_monkey` no entran.
 @ApiTags(API_TAGS.exclusions)
-@Roles('admin_empresa', 'auditor')
+@Can('exclusions.view')
 @Controller()
 export class ExclusionsController {
   constructor(private readonly list: ListExclusionsUseCase, private readonly request: RequestExclusionUseCase) {}
@@ -40,7 +40,7 @@ export class ExclusionsController {
   @ApiData(ExclusionResponse, 'Exclusión creada y aprobada.', { status: 201 })
   @ApiDomainErrors('EXCLUSION_ALREADY_EXISTS', 'EVALUATION_NOT_DEFINED')
   @Post('services/:serviceId/exclusions')
-  @Roles('admin_empresa')
+  @Can('exclusions.decide')
   @HttpCode(HttpStatus.CREATED)
   async newExclusion(@CurrentUser() p: Principal, @Param('serviceId', idPipe) serviceId: string, @Body() dto: RequestExclusionDto, @Req() req: Request) {
     const created = await this.request.execute(p, serviceId, dto, metaOf(req));

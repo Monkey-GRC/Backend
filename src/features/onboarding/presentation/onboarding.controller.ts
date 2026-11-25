@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { SaveOrganizationalContextDto } from '../application/dtos/save-organizational-context.dto';
 import { GetOrganizationalContextUseCase } from '../application/use-cases/get-organizational-context.use-case';
@@ -20,7 +20,7 @@ const t = (key: string): string =>
 
 // Componente 1 del onboarding. Solo el admin_empresa declara el contexto de su empresa.
 @ApiTags(API_TAGS.organizationalContext)
-@Roles('admin_empresa')
+@Can('company.configure')
 @Controller('onboarding/organizational-context')
 export class OnboardingController {
   constructor(

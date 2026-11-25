@@ -45,15 +45,18 @@ export function planOwnerAssignment(input: { actorId: string; ownerId: string | 
 }
 
 /**
- * Ejecutor (solo `responsable`, sobre controles suyos). `executor` es la fila ya bloqueada de `executorId`, con el grupo que tiene ahora.
- * Orden de errores: 404 (control o ejecutor) · FORBIDDEN (control que no es suyo) · CONTROL_RETIRED · EXECUTOR_NOT_IN_TEAM.
+ * Ejecutor (D150: `admin_empresa` y `responsable`). `onlyOwn`: el actor está acotado a sus controles (el `responsable`: solo los de los que es dueño; el administrador, a todos).
+ * En todo caso el ejecutor es un `delegado` del equipo del DUEÑO de cada control: un control sin dueño solo admite `null`. `executor` es la fila ya bloqueada de `executorId`,
+ * con el grupo que tiene ahora. Orden de errores: 404 (control o ejecutor) · FORBIDDEN (control que no es suyo) · CONTROL_RETIRED · EXECUTOR_NOT_IN_TEAM.
  */
-export function planExecutorAssignment(input: { actorId: string; executorId: string | null; executor: PersonFact | null; requested: readonly string[]; controls: readonly ControlFact[] }): ReleasedControl[] {
-  const { actorId, executorId, executor, requested, controls } = input;
+export function planExecutorAssignment(input: { actorId: string; onlyOwn: boolean; executorId: string | null; executor: PersonFact | null; requested: readonly string[]; controls: readonly ControlFact[] }): ReleasedControl[] {
+  const { actorId, onlyOwn, executorId, executor, requested, controls } = input;
   if (executorId !== null && !executor) throw new DomainError('NOT_FOUND');
   assertExist(requested, controls);
-  if (controls.some((c) => c.assignment?.ownerId !== actorId)) throw new DomainError('FORBIDDEN');
+  if (onlyOwn && controls.some((c) => c.assignment?.ownerId !== actorId)) throw new DomainError('FORBIDDEN');
   assertNoneRetired(controls);
-  if (executor && !(executor.role === 'delegado' && isLiveStatus(executor.status) && executor.groupKind === 'team' && executor.leaderId === actorId)) throw new DomainError('EXECUTOR_NOT_IN_TEAM');
+  const inTeamOf = (ownerId: string | null): boolean =>
+    !!executor && ownerId !== null && executor.role === 'delegado' && isLiveStatus(executor.status) && executor.groupKind === 'team' && executor.leaderId === ownerId;
+  if (executor && controls.some((c) => !inTeamOf(c.assignment?.ownerId ?? null))) throw new DomainError('EXECUTOR_NOT_IN_TEAM');
   return changed(controls, (before) => ({ ownerId: before.ownerId, executorId }));
 }

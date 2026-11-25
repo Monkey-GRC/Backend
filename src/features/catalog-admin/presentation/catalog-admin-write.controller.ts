@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
 import {
@@ -48,7 +48,7 @@ const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userA
 
 // contracts/modules/monkey-admin-catalog.md — escritura del catálogo maestro, exclusiva de admin_monkey. Crear, editar y dar de baja (nunca borrar), y vincular
 // elementos entre sí. Cada respuesta trae el elemento ya actualizado; cada cambio deja su rastro `catalog.*` en la auditoría.
-@Roles('admin_monkey')
+@Can('catalog.manage')
 @UseGuards(CatalogReadOnlyGuard)
 @Controller('catalog')
 export class CatalogAdminWriteController {

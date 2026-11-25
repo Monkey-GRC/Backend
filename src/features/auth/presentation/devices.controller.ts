@@ -4,7 +4,7 @@ import type { Request, Response } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { normalizeIp } from '../../../common/http/client-ip';
 import { mailLanguageOf } from '../../../common/mail/mail-language';
@@ -21,7 +21,7 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 
 // D123, SEG-84 · Los dispositivos recordados de la persona en sesión. `admin_monkey` no recuerda dispositivos: queda fuera por rol (403).
 @ApiTags(API_TAGS.auth)
-@Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
+@Can('account.devices')
 @Controller('auth/devices')
 export class DevicesController {
   constructor(

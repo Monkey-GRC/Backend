@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { Page, PageRequest } from '../../../../common/pagination/page';
-import { isScopedRole } from '../../../../common/enums/user-role.enum';
+import { isScoped } from '../../../../common/authorization/permission-matrix';
 import {
   ExpectedAvailability,
   TRUST_CRITERION_MANDATORY,
@@ -133,7 +133,7 @@ export class ServicePrismaRepository extends ServiceRepository {
   list(scope: TenantScope, request: PageRequest): Promise<Page<ServiceDetail>> {
     return this.prisma.withScope(scope, async (tx) => {
       // D102 · Un `responsable` o `delegado` lee solo los servicios donde es dueño o ejecutor de algún control; el administrador y el auditor, todos.
-      const where = { organization: { companyId: scope.companyId }, ...(!!scope.role && isScopedRole(scope.role) ? this.assignedTo(scope.userId as string) : {}) };
+      const where = { organization: { companyId: scope.companyId }, ...(!!scope.role && isScoped('services.view', scope.role) ? this.assignedTo(scope.userId as string) : {}) };
       const total = await tx.service.count({ where });
       const rows = await tx.service.findMany({
         where,

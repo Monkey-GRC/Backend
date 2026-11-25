@@ -1,4 +1,5 @@
 import type { Principal } from '../../../../common/auth/principal';
+import { can } from '../../../../common/authorization/permission-matrix';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { GroupKind, RESPONSIBLES_GROUP_NAME } from '../../domain/team.types';
 
@@ -17,13 +18,8 @@ export const isDefaultResponsiblesGroup = (g: { name: string; kind: GroupKind })
 
 export type GroupCreationPlan = { kind: GroupKind; leaderId: string };
 
-/** `leaderId` es el `leader_id` del cuerpo (null si no vino). */
+/** `leaderId` es el `leader_id` del cuerpo (null si no vino). D150: crear grupos es solo del administrador (la matriz manda sobre D104); el responsable ya no crea su equipo. */
 export function planGroupCreation(creator: Pick<Principal, 'userId' | 'role'>, leaderId: string | null): GroupCreationPlan {
-  if (creator.role === 'admin_empresa') return leaderId === null ? { kind: 'responsables', leaderId: creator.userId } : { kind: 'team', leaderId };
-  // El responsable solo crea SU equipo: mandar el id de otra persona es pedir algo que no es suyo.
-  if (creator.role === 'responsable') {
-    if (leaderId !== null && leaderId !== creator.userId) throw new DomainError('FORBIDDEN');
-    return { kind: 'team', leaderId: creator.userId };
-  }
-  throw new DomainError('FORBIDDEN');
+  if (!can('groups.manage', creator.role)) throw new DomainError('FORBIDDEN');
+  return leaderId === null ? { kind: 'responsables', leaderId: creator.userId } : { kind: 'team', leaderId };
 }

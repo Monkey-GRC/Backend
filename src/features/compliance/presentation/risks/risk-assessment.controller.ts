@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../../common/auth/principal';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../../common/decorators/roles.decorator';
+import { Can } from '../../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { toPageResponse } from '../../../../common/pagination/page';
@@ -25,7 +25,7 @@ const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userA
 // Evaluación 5×5 y tratamiento de un riesgo (contracts/modules/compliance-risks.md, MD-123). Evalúa y trata solo el administrador de la empresa; el
 // auditor lee. El `responsable` y el `delegado` leen los tratamientos de un riesgo suyo, pero no el historial de evaluaciones. `admin_monkey` no entra al cumplimiento de una empresa por aquí.
 @ApiTags(API_TAGS.riskAssessment)
-@Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
+@Can('risks.view')
 @Controller('risks/:id')
 export class RiskAssessmentController {
   constructor(
@@ -37,7 +37,7 @@ export class RiskAssessmentController {
   @ApiData(RiskEvaluationEntryResponse, 'Evaluación registrada.', { status: 201 })
   @ApiDomainErrors('RISK_INACTIVE')
   @Post('evaluation')
-  @Roles('admin_empresa')
+  @Can('risks.manage')
   @HttpCode(HttpStatus.CREATED)
   async evaluateRisk(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Body() dto: EvaluateRiskDto, @Req() req: Request) {
     const done = await this.evaluate.execute(p, id, dto, metaOf(req));
@@ -47,7 +47,7 @@ export class RiskAssessmentController {
   @ApiOperation({ summary: 'Historial de evaluaciones de un riesgo', description: 'De la más reciente a la más antigua, cada una con la evaluación anterior. Lo leen `admin_empresa` y `auditor`; el `responsable` y el `delegado` no.' })
   @ApiPaged(RiskEvaluationEntryResponse, 'Página del historial.')
   @Get('evaluation-history')
-  @Roles('admin_empresa', 'auditor')
+  @Can('risks.history')
   async evaluationHistory(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Query() q: HistoryQuery) {
     const page = await this.history.execute(p, id, { page: q.page, pageSize: q.page_size });
     return new ResponseDto(HttpStatus.OK, t('risk.evaluation_history'), toPageResponse(page, toEvaluationEntry));
@@ -57,7 +57,7 @@ export class RiskAssessmentController {
   @ApiData(RiskTreatmentResponse, 'Tratamiento registrado.', { status: 201 })
   @ApiDomainErrors('RISK_INACTIVE')
   @Post('treatments')
-  @Roles('admin_empresa')
+  @Can('risks.manage')
   @HttpCode(HttpStatus.CREATED)
   async newTreatment(@CurrentUser() p: Principal, @Param('id', idPipe) id: string, @Body() dto: CreateTreatmentDto, @Req() req: Request) {
     const created = await this.createTreatment.execute(p, id, dto, metaOf(req));

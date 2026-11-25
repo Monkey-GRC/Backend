@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
-import { EvaluationParametersPort } from '../../domain/engine/v2/parameters';
+import { activeAdminIds } from '../../../../infrastructure/notifications/control-chain.loader';
+import { NotificationEmitter } from '../../../../common/notifications/notification-emitter';
+import { EvaluationParametersPort } from '../../../../common/evaluation-parameters/parameters';
+import { windowNotifications } from '../../domain/notifications/window-notifications';
 import { hasEnded, nextPeriod, utcDay } from '../../domain/periods/evaluation-period';
 import { EvaluationPeriodRecord, PeriodResolver, EvaluationPeriodRepository, EvaluationPeriodRollover, EvaluationPeriodRow, OpenedPeriod, RolloverSummary } from '../../domain/periods/evaluation-period.repository';
 import { captureControlStates, recordControlStateChanges, recordTimeDrivenStateChanges } from '../shared/control-state-events';
@@ -92,7 +95,7 @@ export class EvaluationPeriodPrismaRepository extends EvaluationPeriodRepository
 export class EvaluationPeriodRolloverPrismaRepository extends EvaluationPeriodRollover {
   private readonly logger = new Logger(EvaluationPeriodRolloverPrismaRepository.name);
 
-  constructor(private readonly prisma: PrismaService, private readonly parameters: EvaluationParametersPort) {
+  constructor(private readonly prisma: PrismaService, private readonly parameters: EvaluationParametersPort, private readonly notifications: NotificationEmitter) {
     super();
   }
 
@@ -102,35 +105,42 @@ export class EvaluationPeriodRolloverPrismaRepository extends EvaluationPeriodRo
 
   async rollTenant(tenantId: string, now: Date, audit: Parameters<EvaluationPeriodRollover['rollTenant']>[2]): Promise<RolloverSummary> {
     const opened = await this.rollPeriods(tenantId, now, audit);
-    // D91 · Solo los servicios con un período abierto y alguna periodicidad de calendario: son los que una ventana cerrada puede mover. Cada servicio, en su propia transacción.
-    // Los parámetros se cargan una vez por empresa, en esa misma consulta.
-    const { parameters, serviceIds } = await this.prisma.withScope({ companyId: tenantId }, async (tx) => {
+    // D91 · Los eventos de estado, solo de los servicios con un período abierto y alguna periodicidad de calendario: son los que una ventana cerrada puede mover. Cada servicio, en su propia transacción.
+    // MD-515 · Los avisos de las ventanas (por vencer y vencida) leen la MISMA foto: se suman los servicios sin período abierto (solo reciben el aviso previo) y la periodicidad anual.
+    // Los parámetros y los administradores se cargan una vez por empresa, en esa misma consulta.
+    const { parameters, services, eventServiceIds, adminIds } = await this.prisma.withScope({ companyId: tenantId }, async (tx) => {
       const parameters = await this.parameters.load(tx);
       // PR-07 `rolling`: también la anual vence por fecha, no solo las de calendario.
       const windowed = [...(parameters.validityWindows === 'rolling' ? [...CALENDAR_PERIODICITIES, 'annual' as const] : CALENDAR_PERIODICITIES)];
-      const serviceIds = (await tx.service.findMany({
-        where: {
-          organization: { companyId: tenantId },
-          frameworks: { some: { status: 'active', periods: { some: { status: 'open' } } } },
-          clientControls: {
-            some: {
-              isActive: true,
-              requirements: { some: { OR: [{ periodicity: { in: windowed } }, { periodicity: null, controlRequirement: { periodicity: { in: windowed } } }] } },
-            },
-          },
-        },
+      const withPeriodicity = (periodicities: ReadonlyArray<(typeof CALENDAR_PERIODICITIES)[number] | 'annual'>) => ({
+        isActive: true,
+        requirements: { some: { OR: [{ periodicity: { in: [...periodicities] } }, { periodicity: null, controlRequirement: { periodicity: { in: [...periodicities] } } }] } },
+      });
+      const eventServiceIds = new Set((await tx.service.findMany({
+        where: { organization: { companyId: tenantId }, frameworks: { some: { status: 'active', periods: { some: { status: 'open' } } } }, clientControls: { some: withPeriodicity(windowed) } },
         select: { id: true },
+      })).map((s) => s.id));
+      const services = await tx.service.findMany({
+        where: { organization: { companyId: tenantId }, frameworks: { some: { status: 'active' } }, clientControls: { some: withPeriodicity([...CALENDAR_PERIODICITIES, 'annual']) } },
+        select: { id: true, name: true },
         orderBy: { id: 'asc' },
-      })).map((s) => s.id);
-      return { parameters, serviceIds };
+      });
+      const adminIds = await activeAdminIds(tx);
+      return { parameters, services, eventServiceIds, adminIds };
     });
     let stateEvents = 0;
-    for (const serviceId of serviceIds) {
+    const today = now.toISOString().slice(0, 10);
+    for (const service of services) {
       stateEvents += await this.prisma.withScope({ companyId: tenantId }, async (tx) => {
         // Con varias réplicas corriendo la tarea, un servicio lo evalúa una sola.
-        const [{ locked }] = await tx.$queryRaw<Array<{ locked: boolean }>>`SELECT pg_try_advisory_xact_lock(hashtextextended(${'evaluation_period_state:' + serviceId}, 0)) AS locked`;
+        const [{ locked }] = await tx.$queryRaw<Array<{ locked: boolean }>>`SELECT pg_try_advisory_xact_lock(hashtextextended(${'evaluation_period_state:' + service.id}, 0)) AS locked`;
         if (!locked) return 0;
-        return recordTimeDrivenStateChanges(tx, { tenantId, serviceId, parameters, now, actor: { userId: null, ipAddress: null, userAgent: 'system' } });
+        const { written, readouts } = await recordTimeDrivenStateChanges(tx, {
+          tenantId, serviceId: service.id, parameters, now, actor: { userId: null, ipAddress: null, userAgent: 'system' }, recordEvents: eventServiceIds.has(service.id),
+        });
+        // MD-515 · Los avisos nacen en la misma transacción que el evento de estado: o quedan los dos o ninguno.
+        await this.notifications.emit(tx, windowNotifications({ companyId: tenantId, service, readouts, adminIds, today }));
+        return written;
       }, { timeoutMs: 120_000 });
     }
     return { opened, stateEvents };

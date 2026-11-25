@@ -59,15 +59,14 @@ import { OverviewController } from './presentation/overview/overview.controller'
 import { ResponsiblesController } from './presentation/responsibles/responsibles.controller';
 import { RiskAssessmentController } from './presentation/risks/risk-assessment.controller';
 import { RisksController } from './presentation/risks/risks.controller';
-import { EvaluationParametersPort } from './domain/engine/v2/parameters';
-import { PrismaEvaluationParameters } from './infrastructure/shared/prisma-evaluation-parameters';
+import { EvaluationParametersModule } from '../../infrastructure/evaluation-parameters/evaluation-parameters.module';
 
 // Cumplimiento (modelo-datos.md §7 y §9). El motor de evaluación vive en `domain/engine/` (funciones puras).
 @Module({
+  imports: [EvaluationParametersModule],
   controllers: [AssignmentsListController, WorkController, ControlsController, ResponsiblesController, RisksController, RiskAssessmentController, ExclusionsController, ObservationsController, EvidenceController, OverviewController, VerdictsController, EvaluationPeriodController],
   providers: [
     { provide: ControlRepository, useClass: ControlPrismaRepository },
-    { provide: EvaluationParametersPort, useClass: PrismaEvaluationParameters },
     { provide: ControlEditRepository, useClass: ControlEditPrismaRepository },
     { provide: AssignmentRepository, useClass: AssignmentPrismaRepository },
     ListAssignmentsUseCase,

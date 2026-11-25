@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
 import { toPageResponse } from '../../../common/pagination/page';
@@ -21,9 +21,9 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '' });
 
 // Los grupos de la empresa (contracts/gestion-usuarios.md · Grupos, D102 y D104). `admin_empresa` lista todos, crea grupos de responsables o el equipo de un responsable y renombra;
-// el `responsable` lista el suyo y crea el suyo (uno solo). Mover a un delegado de equipo es `PATCH /v1/users/{id}`.
+// el `responsable` solo lista el suyo (D150: ya no crea su equipo; la matriz manda sobre D104). Mover a un delegado de equipo es `PATCH /v1/users/{id}`.
 @ApiTags(API_TAGS.team)
-@Roles('admin_empresa')
+@Can('groups.manage')
 @Controller('groups')
 export class GroupsController {
   constructor(
@@ -35,7 +35,7 @@ export class GroupsController {
   @ApiOperation({ summary: 'Listar los grupos', description: 'El administrador ve todos los grupos de la empresa; el `responsable`, solo el equipo que lidera (lista vacía si aún no lo creó). Cada grupo trae su clase (`responsables` o `team`), su líder y cuántas cuentas tiene.' })
   @ApiPaged(GroupResponse, 'Página de grupos.')
   @ApiDomainErrors('FORBIDDEN')
-  @Roles('admin_empresa', 'responsable')
+  @Can('groups.list')
   @Get()
   async groups(@CurrentUser() p: Principal, @Query() q: ListGroupsQuery) {
     const page = await this.list.execute(p, { sort: q.sort, page: q.page, pageSize: q.page_size });
@@ -45,11 +45,10 @@ export class GroupsController {
   @ApiOperation({
     summary: 'Crear un grupo',
     description:
-      '`admin_empresa` sin `leader_id`: un grupo de responsables que lidera él; con `leader_id`: el equipo de delegados de ese responsable (activo o pendiente). `responsable`: su propio equipo (solo uno; `leader_id` ajeno es `403`). El nombre «Responsables» está reservado. Queda registro de auditoría.',
+      '`admin_empresa` sin `leader_id`: un grupo de responsables que lidera él; con `leader_id`: el equipo de delegados de ese responsable (activo o pendiente). Solo `admin_empresa` (D150: el `responsable` ya no crea su equipo). Un equipo por responsable. El nombre «Responsables» está reservado. Queda registro de auditoría.',
   })
   @ApiData(GroupResponse, 'Grupo creado.', { status: 201 })
   @ApiDomainErrors('FORBIDDEN', 'NOT_FOUND', 'TEAM_ALREADY_EXISTS', 'GROUP_NAME_TAKEN', 'ACCOUNT_INACTIVE')
-  @Roles('admin_empresa', 'responsable')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createGroup(@CurrentUser() p: Principal, @Body() dto: CreateGroupDto, @Req() req: Request) {

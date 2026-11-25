@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../../common/auth/principal';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../../common/decorators/roles.decorator';
+import { Can } from '../../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { toPageResponse } from '../../../../common/pagination/page';
@@ -37,7 +37,7 @@ export class VerdictsController {
   @ApiData(VerdictResponse, 'El veredicto registrado, con su estado, quién lo registró y el estado del test.', { status: 201 })
   @ApiDomainErrors('TEST_NOT_MANUAL', 'TEST_DECIDED_BY_EVIDENCE', 'TEST_HAS_NO_ASSETS', 'CONTROL_RETIRED')
   @Post('controls/:controlId/tests/:testId/verdicts')
-  @Roles('admin_empresa', 'responsable', 'delegado')
+  @Can('verdicts.register')
   @HttpCode(HttpStatus.CREATED)
   async issueVerdict(@CurrentUser() p: Principal, @Param('controlId', idPipe) controlId: string, @Param('testId', idPipe) testId: string, @Body() dto: IssueVerdictDto, @Req() req: Request) {
     const issued = await this.issue.execute(p, controlId, testId, dto, metaOf(req));
@@ -53,7 +53,7 @@ export class VerdictsController {
   @ApiData(VerdictResponse, 'El veredicto con su estado combinado y sus revisiones.')
   @ApiDomainErrors('VERDICT_SUPERSEDED')
   @Put('verdicts/:verdictId/review')
-  @Roles('admin_empresa', 'responsable')
+  @Can('verdicts.review')
   async reviewVerdict(@CurrentUser() p: Principal, @Param('verdictId', idPipe) verdictId: string, @Body() dto: ReviewVerdictDto, @Req() req: Request) {
     const reviewed = await this.review.execute(p, verdictId, dto, metaOf(req));
     return new ResponseDto(HttpStatus.OK, t('verdict.reviewed'), toVerdict(reviewed));
@@ -62,7 +62,7 @@ export class VerdictsController {
   @ApiOperation({ summary: 'Historial de veredictos de un test', description: '`admin_empresa`, `auditor` y el dueño y el ejecutor del control. Los veredictos del test en el servicio, del más reciente al más antiguo, con su estado, quién los registró y sus revisiones; nunca se pisan.' })
   @ApiPaged(VerdictResponse, 'Página de veredictos.')
   @Get('controls/:controlId/tests/:testId/verdicts')
-  @Roles('admin_empresa', 'auditor', 'responsable', 'delegado')
+  @Can('tests.results')
   async verdicts(@CurrentUser() p: Principal, @Param('controlId', idPipe) controlId: string, @Param('testId', idPipe) testId: string, @Query() q: ListVerdictsQuery) {
     const page = await this.list.execute(p, controlId, testId, q.page, q.page_size);
     return new ResponseDto(HttpStatus.OK, t('verdict.list'), toPageResponse(page, toVerdict));

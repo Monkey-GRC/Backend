@@ -5,8 +5,8 @@ import type { MailMessage } from '../../../../common/mail/mailer';
 
 // El rol como lo dice el negocio, no como se llama en la base (monkey-ui-copy), en cada idioma.
 const ROLE_LABEL: Record<MailLanguage, Record<string, string>> = {
-  es: { admin_empresa: 'administrador', responsable: 'responsable', delegado: 'delegado', auditor: 'auditor' },
-  en: { admin_empresa: 'administrator', responsable: 'responsible', delegado: 'delegate', auditor: 'auditor' },
+  es: { admin_empresa: 'administrador', responsable: 'responsable', delegado: 'delegado', auditor: 'auditor', colaborador: 'colaborador' },
+  en: { admin_empresa: 'administrator', responsable: 'responsible', delegado: 'delegate', auditor: 'auditor', colaborador: 'collaborator' },
 };
 
 // Los textos por omisión cuando no se conoce quién invita o la empresa.

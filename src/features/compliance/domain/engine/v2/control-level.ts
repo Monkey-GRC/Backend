@@ -1,5 +1,5 @@
 import type { ControlState } from '../states';
-import { EvaluationParameters } from './parameters';
+import { EvaluationParameters } from '../../../../../common/evaluation-parameters/parameters';
 import { ControlLevel, LEVEL_VALUE, RequirementStatus, TestStatus } from './types';
 
 // El control: C% y nivel (§5 del libro, R1 a R6, §9).

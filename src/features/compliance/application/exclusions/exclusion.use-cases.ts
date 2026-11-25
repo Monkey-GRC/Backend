@@ -8,7 +8,7 @@ import { Page } from '../../../../common/pagination/page';
 import { ExclusionFilters, ExclusionRecord, ExclusionRepository } from '../../domain/exclusions/exclusion.repository';
 import { RequestExclusionDto } from './exclusion.dto';
 
-// MD-144, D96 · Excluir un activo de un test. La crea y la decide `admin_empresa` en un solo acto (lo impone @Roles en la ruta): nace aprobada y el activo deja de medirse
+// MD-144, D96 · Excluir un activo de un test. La crea y la decide `admin_empresa` en un solo acto (lo impone @Can en la ruta): nace aprobada y el activo deja de medirse
 // desde ya. El auditor la lee.
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 const day = (d: Date) => d.toISOString().slice(0, 10);

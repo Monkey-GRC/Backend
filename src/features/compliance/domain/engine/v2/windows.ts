@@ -1,5 +1,5 @@
 import type { WindowMode } from '../../../../../common/evaluation-parameters/parameter-definitions';
-import { EvaluationParameters } from './parameters';
+import { EvaluationParameters } from '../../../../../common/evaluation-parameters/parameters';
 import { Periodicity } from './types';
 
 // Ventanas de calendario (D131, D140). Todo en UTC. `end` es exclusivo: la ventana de enero termina el 1 de febrero a las 00:00.

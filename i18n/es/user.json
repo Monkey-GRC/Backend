@@ -4,7 +4,6 @@
   "updated": "Listo, guardamos los cambios de la cuenta.",
   "activation_code_regenerated": "Listo, emitimos una invitación nueva. Revisa si el correo salió.",
   "last_admin": "No puedes desactivar tu propia cuenta: la empresa se quedaría sin quien reparta el trabajo.",
-  "responsible_has_no_team": "Ese responsable aún no tiene un equipo de delegados. Crea el equipo primero y vuelve a invitar a la persona.",
   "responsibles_group_invalid": "El grupo «Responsables» de tu empresa no lo lidera un administrador, así que no sirve para ubicar a los responsables. Elige otro grupo de responsables.",
   "not_activated": "Esta persona aún no activó su cuenta. Mientras tanto puedes reenviarle la invitación.",
   "already_active": "Esta cuenta ya está activada: no necesita otra invitación.",

@@ -5,7 +5,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../../common/auth/principal';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../../common/decorators/roles.decorator';
+import { Can } from '../../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { toPageResponse } from '../../../../common/pagination/page';
@@ -27,7 +27,7 @@ const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userA
 // Evidencias de un control (contracts/modules/compliance-evidence.md, MD-126). Los cuatro roles de la empresa leen y descargan (el `responsable`, solo lo de sus controles);
 // suben el `responsable` responsable y, si hace falta, `admin_empresa`. Subir no valida: la validación es del admin_empresa (MD-127, D96).
 @ApiTags(API_TAGS.evidence)
-@Roles('admin_empresa', 'responsable', 'delegado', 'auditor')
+@Can('evidence.view')
 @Controller()
 export class EvidenceController {
   constructor(
@@ -72,7 +72,7 @@ export class EvidenceController {
   @ApiData(EvidenceSubmissionResponse, 'Entrega registrada, con su huella y versión.', { status: 201 })
   @ApiDomainErrors('FILE_REQUIRED', 'FILE_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'CONTROL_RETIRED', 'EVIDENCE_VERSION_CONFLICT', 'STORAGE_UNAVAILABLE')
   @Post('evidence-requirements/:requirementId/submissions')
-  @Roles('admin_empresa', 'responsable', 'delegado')
+  @Can('evidence.upload')
   @HttpCode(HttpStatus.CREATED)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: EVIDENCE_UPLOAD_LIMIT_BYTES, files: 1 } }))
@@ -101,7 +101,7 @@ export class EvidenceController {
   @ApiData(EvidenceSubmissionResponse, 'Entrega registrada para esa prueba.', { status: 201 })
   @ApiDomainErrors('FILE_REQUIRED', 'FILE_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'CONTROL_RETIRED', 'STORAGE_UNAVAILABLE')
   @Post('controls/:controlId/tests/:testId/evidence')
-  @Roles('admin_empresa', 'responsable', 'delegado')
+  @Can('evidence.upload')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: EVIDENCE_UPLOAD_LIMIT_BYTES, files: 1 } }))
   async submitForTest(
@@ -119,7 +119,7 @@ export class EvidenceController {
   @ApiOperation({ summary: 'Revisar una evidencia', description: 'El `responsable` dueño del control (lo que no subió él) y el `admin_empresa` (cualquiera, también lo suyo; P34). `delegado`, `auditor` y `admin_monkey`, 403; un `responsable` ajeno al control, 403. Una revisión por rol: crea o reemplaza la de quien llama; el rol lo fija el servidor. El estado sale de COMBINAR las revisiones (D102): algún rechazo gana; sin rechazos y con al menos una validación, validada. **Rechazar** es dejar algún atributo en `false` y exige `note` (el motivo que quien subió lee para corregir). Marca los seis atributos (`true`, `false` o sin valorar) y la validación humana (`review`). Solo una evidencia **validada por una persona** puede cumplir (RN-03); `ai_prevalidated` lo deriva el sistema y no se acepta. De esta revisión sale el estado de las pruebas documentales del control (D88). Responde con la entrega y su `evidence_state`. Queda registro de auditoría.' })
   @ApiData(EvidenceSubmissionResponse, 'La entrega con su `evidence_state` combinado; el `admin_empresa` recibe además el bloque `technical`.')
   @Put('evidence-submissions/:submissionId/review')
-  @Roles('admin_empresa', 'responsable')
+  @Can('evidence.review')
   async review(@CurrentUser() p: Principal, @Param('submissionId', idPipe) submissionId: string, @Body() dto: ReviewEvidenceDto, @Req() req: Request) {
     const reviewed = await this.reviewEvidence.execute(p, submissionId, dto, metaOf(req));
     // El responsable ve el estado y la nota de rechazo, no los atributos (la vista técnica es de admin_empresa y auditor).
@@ -131,7 +131,7 @@ export class EvidenceController {
   @ApiData(EvidenceRequirementResponse, 'Evidencia requerida creada.', { status: 201 })
   @ApiDomainErrors('CONTROL_RETIRED')
   @Post('controls/:controlId/evidence-requirements')
-  @Roles('admin_empresa')
+  @Can('evidence.requirements')
   @HttpCode(HttpStatus.CREATED)
   async addRequirement(@CurrentUser() p: Principal, @Param('controlId', idPipe) controlId: string, @Body() dto: CreateEvidenceRequirementDto, @Req() req: Request) {
     const created = await this.createRequirement.execute(p, controlId, dto, metaOf(req));

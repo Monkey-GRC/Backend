@@ -1,0 +1,118 @@
+// Documentos de la empresa (modelo-datos.md §11.2, D133, D152 · corte mínimo de MD-503). Contrato: contracts/documentos.md.
+// RLS por empresa, inmutabilidad de versiones y aceptaciones, y el índice de una sola versión vigente van a mano en 20261125090200_rls_documents (Prisma no los modela).
+
+enum DocumentVersionStatus {
+  draft
+  in_approval
+  rejected
+  approved
+  current
+  renewal_due
+  expired
+  archived
+
+  @@map("document_version_status")
+  @@schema("tenant")
+}
+
+// El documento de la empresa: uno por documento del catálogo y por empresa (`@@unique([tenantId, documentId])`). Nace al clonar el marco, sin versión.
+model CompanyDocument {
+  id         String             @id @default(uuid()) @db.Uuid
+  tenantId   String             @map("tenant_id") @db.Uuid
+  // Nulo = documento propio (MD-506); en el corte mínimo siempre viene del catálogo.
+  documentId String?            @map("document_id") @db.Uuid
+  origin     DocumentOrigin
+  // Tomado de `suggested_acceptance` del catálogo al clonar.
+  acceptance DocumentAcceptance
+  createdAt  DateTime           @default(now()) @map("created_at")
+
+  tenant      Company              @relation(fields: [tenantId], references: [id])
+  document    Document?            @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  versions    DocumentVersion[]
+  assignments DocumentAssignment[]
+
+  // Una vez por documento del catálogo y empresa. Los propios (`documentId` nulo, MD-506) no chocan entre sí: en Postgres los nulos son distintos.
+  @@unique([tenantId, documentId])
+  @@index([documentId])
+  @@map("company_documents")
+  @@schema("tenant")
+}
+
+// Una versión: el archivo va en la fila (como `evidence_submissions`). No cambia salvo su `status` (current → archived); un trigger lo impone.
+model DocumentVersion {
+  id                 String                @id @default(uuid()) @db.Uuid
+  tenantId           String                @map("tenant_id") @db.Uuid
+  companyDocumentId  String                @map("company_document_id") @db.Uuid
+  number             Int
+  status             DocumentVersionStatus
+  // La llave del objeto en el almacenamiento privado; el nombre se muestra aparte porque la llave lo limpia.
+  filePath           String                @map("file_path")
+  fileName           String                @map("file_name")
+  fileType           String                @map("file_type")
+  fileSize           Int                   @map("file_size")
+  integrityHash      String                @map("integrity_hash")
+  isImportedApproval Boolean               @default(true) @map("is_imported_approval")
+  // Quién lo aprobó fuera de Monkey: `[{ name, role_label }]`, de 1 a 3 (D152). Texto: puede no tener cuenta.
+  approvers          Json
+  approvedAt         DateTime              @map("approved_at") @db.Date
+  approvalNote       String?               @map("approval_note") @db.Text
+  createdBy          String                @map("created_by") @db.Uuid
+  createdAt          DateTime              @default(now()) @map("created_at")
+
+  tenant          Company                    @relation(fields: [tenantId], references: [id])
+  companyDocument CompanyDocument            @relation(fields: [companyDocumentId], references: [id])
+  createdByUser   User                       @relation("DocumentVersionCreatedBy", fields: [createdBy], references: [id])
+  acceptances     DocumentAcceptanceRecord[]
+
+  @@unique([companyDocumentId, number])
+  @@index([tenantId])
+  @@index([createdBy])
+  @@map("document_versions")
+  @@schema("tenant")
+}
+
+// A quién se asignó. `due_at` = asignación + PR-14, fijado al asignar (D152). Quitar es marcar `revoked_at`: las aceptaciones se conservan.
+model DocumentAssignment {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  companyDocumentId String    @map("company_document_id") @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  assignedBy        String    @map("assigned_by") @db.Uuid
+  assignedAt        DateTime  @default(now()) @map("assigned_at")
+  dueAt             DateTime  @map("due_at")
+  revokedAt         DateTime? @map("revoked_at")
+
+  tenant          Company         @relation(fields: [tenantId], references: [id])
+  companyDocument CompanyDocument @relation(fields: [companyDocumentId], references: [id])
+  user            User            @relation("DocumentAssignee", fields: [userId], references: [id])
+  assignedByUser  User            @relation("DocumentAssignedBy", fields: [assignedBy], references: [id])
+
+  @@unique([companyDocumentId, userId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([assignedBy])
+  @@map("document_assignments")
+  @@schema("tenant")
+}
+
+// La aceptación: solo de inserción e inmutable para todos los roles de la base (SEG-88). Una por persona y versión (índice único).
+model DocumentAcceptanceRecord {
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  documentVersionId String   @map("document_version_id") @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  acceptedAt        DateTime @default(now()) @map("accepted_at")
+  // La huella de la versión que la persona aceptó (la de `document_versions.integrity_hash` en ese momento).
+  integrityHash     String   @map("integrity_hash")
+  wasOverdue        Boolean  @default(false) @map("was_overdue")
+
+  tenant  Company         @relation(fields: [tenantId], references: [id])
+  version DocumentVersion @relation(fields: [documentVersionId], references: [id])
+  user    User            @relation("DocumentAcceptedBy", fields: [userId], references: [id])
+
+  @@unique([documentVersionId, userId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("document_acceptances")
+  @@schema("tenant")
+}

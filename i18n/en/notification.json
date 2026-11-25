@@ -1,0 +1,249 @@
+{
+  "list": "Your notifications from the last 90 days.",
+  "unread_count": "Unread notifications.",
+  "updated": "Done, the notification was updated.",
+  "read_all": "Done, your notifications are marked as read.",
+  "preferences": "Your notification preferences.",
+  "preferences_updated": "Done, your notification preferences were saved.",
+  "roles": {
+    "admin_empresa": "administrator",
+    "responsable": "responsible",
+    "delegado": "delegate",
+    "auditor": "auditor",
+    "colaborador": "collaborator",
+    "admin_monkey": "Monkey administrator"
+  },
+  "periodicity": {
+    "daily": "daily",
+    "weekly": "weekly",
+    "monthly": "monthly",
+    "bimonthly": "bimonthly",
+    "quarterly": "quarterly",
+    "semiannual": "semiannual",
+    "annual": "annual",
+    "on_demand": "quarterly",
+    "permanent": "continuous"
+  },
+  "party": {
+    "unassigned": "Unassigned",
+    "someone": "Someone on your team"
+  },
+  "grouped": {
+    "more": "and {more} more"
+  },
+  "assignee_role": {
+    "owner": "owner",
+    "executor": "executor"
+  },
+  "assignee_duty": {
+    "owner": "You answer for this control and review the evidence your team uploads.",
+    "executor": "You carry out this control: you upload the evidence its tests ask for."
+  },
+  "digest": {
+    "subject": "Monkey · You have {count} new notifications ({date})",
+    "subject_one": "Monkey · You have 1 new notification ({date})",
+    "heading": "You have {count} new notifications",
+    "heading_one": "You have 1 new notification",
+    "preheader": "Your daily Monkey summary: what is still unread.",
+    "intro": "This is your daily Monkey summary. Here is what you have not read yet:",
+    "more": "and {more} more",
+    "button": "Open my notifications",
+    "footnote": "You get this summary once a day while you have unread notifications. To turn it off, disable the email summary in your notification preferences; notifications inside Monkey keep arriving as usual."
+  },
+  "types": {
+    "window_due_soon": {
+      "title": "{control_code} · The {periodicity} window closes on {due_date} and evidence is missing",
+      "what_happened": "Control {control_label} in the service {service_name} has no valid evidence in the {periodicity} window that closes on {due_date}.",
+      "why_it_matters": "If the window closes without evidence, the requirement becomes Expired and the control goes back to Non-compliant.",
+      "how_to_fix": "Upload the evidence from the control detail and ask for its review.",
+      "who": "Executes: {executor} · Owner: {owner}",
+      "time_needed": "{days_left} days left until it closes.",
+      "evidence": "What the control's tests ask for in the current window.",
+      "impact": "With the evidence on time, the control keeps its level in the audited period.",
+      "time_needed_one": "1 day left until it closes.",
+      "time_needed_today": "The window closes today.",
+      "grouped": {
+        "title": "{control_count} unassigned controls have windows closing soon",
+        "title_one": "1 unassigned control has a window closing soon",
+        "what_happened": "In the service {service_name}, the early warning of the window arrived today for these unassigned controls with no valid evidence: {control_list}.",
+        "why_it_matters": "If a window closes without evidence, the requirement becomes Expired and the control goes back to Non-compliant.",
+        "how_to_fix": "Open the service's control list filtered by Unassigned, give each an owner and ask for the evidence.",
+        "who": "Nobody: these controls have no owner. You get this notice as a company administrator.",
+        "time_needed": "Each control has its own closing date: check which one expires first.",
+        "evidence": "What each control's tests ask for in its current window.",
+        "impact": "With an owner and evidence on time, the controls keep their level in the audited period."
+      }
+    },
+    "window_expired": {
+      "title": "{control_code} · The {periodicity} window closed on {due_date} without evidence",
+      "what_happened": "The {periodicity} window of control {control_label} in the service {service_name} closed on {due_date} without valid evidence.",
+      "why_it_matters": "The requirement becomes Expired and the control goes back to Non-compliant.",
+      "how_to_fix": "Upload current evidence from the control detail and ask for its review for the window in progress.",
+      "who": "Executes: {executor} · Owner: {owner}",
+      "time_needed": "The window closed on {due_date}. Evidence for the window in progress can be uploaded today.",
+      "evidence": "What the control's tests ask for in the window in progress.",
+      "impact": "The audited period is left with a window without evidence and the control drops a level.",
+      "grouped": {
+        "title": "{control_count} unassigned controls have expired windows",
+        "title_one": "1 unassigned control has an expired window",
+        "what_happened": "In the service {service_name}, the window of these unassigned controls closed yesterday without valid evidence: {control_list}.",
+        "why_it_matters": "The requirement becomes Expired and the control goes back to Non-compliant.",
+        "how_to_fix": "Open the service's control list filtered by Unassigned, give each an owner and ask for the evidence of the window in progress.",
+        "who": "Nobody: these controls have no owner. You get this notice as a company administrator.",
+        "time_needed": "Evidence for the window in progress can be uploaded today.",
+        "evidence": "What each control's tests ask for in the window in progress.",
+        "impact": "The audited period is left with a window without evidence and each control drops a level."
+      }
+    },
+    "control_assigned": {
+      "title": "{control_code} · You were assigned this control as {assignee_role}",
+      "what_happened": "{actor} assigned you control {control_label} in the service {service_name} as {assignee_role}.",
+      "why_it_matters": "{assignee_duty}",
+      "how_to_fix": "Open the control and review its tests and the evidence it is missing.",
+      "who": "Assigned by: {actor} · Owner: {owner} · Executes: {executor}",
+      "time_needed": "The control's evidence windows follow its periodicity; check which one closes first.",
+      "evidence": "What the control's tests ask for.",
+      "impact": "The control measures compliance of the service {service_name}: without current evidence, its level drops."
+    },
+    "evidence_approved": {
+      "title": "{control_code} · A piece of evidence was approved",
+      "what_happened": "{actor} approved a piece of evidence of control {control_label} in the service {service_name}.",
+      "why_it_matters": "Approved evidence counts toward the control's compliance in its window.",
+      "how_to_fix": "You do not need to do anything: open the control if you want to see how its state changed.",
+      "who": "Reviewed by: {actor} · Owner: {owner} · Executes: {executor}",
+      "time_needed": "The submission is already approved: no deadline is pending for it.",
+      "evidence": "The submission you uploaded or that was uploaded to your control.",
+      "impact": "If other tests of the control still lack valid evidence, the control stays pending."
+    },
+    "evidence_rejected": {
+      "title": "{control_code} · A piece of evidence was rejected",
+      "what_happened": "{actor} rejected a piece of evidence of control {control_label} in the service {service_name}.",
+      "why_it_matters": "Rejected evidence does not count: the test still has no valid evidence and the control does not move forward.",
+      "how_to_fix": "Open the control, read the reason for the rejection and upload a corrected version.",
+      "who": "Reviewed by: {actor} · Owner: {owner} · Executes: {executor}",
+      "time_needed": "Upload the correction before the test's window closes.",
+      "evidence": "A new version of the rejected submission, fixing what the review pointed out.",
+      "impact": "Until there is an approved version, the window may close without evidence and the control may drop a level."
+    },
+    "observation_created": {
+      "title": "{control_code} · The auditor left an observation",
+      "what_happened": "The auditor left an observation on control {control_label} in the service {service_name}.",
+      "why_it_matters": "An open observation asks the company for an answer.",
+      "how_to_fix": "Open the control, read the observation and answer it.",
+      "who": "Answering: {owner} · {executor}",
+      "time_needed": "Answer while the audited period is still open.",
+      "evidence": "Whatever supports your answer, if needed.",
+      "impact": "The auditor closes it when the answer is enough."
+    },
+    "direct_check_failed": {
+      "title": "{control_code} · An automated check of the control is failing",
+      "what_happened": "An automated check of control {control_label} in the service {service_name} is not met.",
+      "why_it_matters": "While the check keeps failing, the control goes back to Non-compliant.",
+      "how_to_fix": "Fix what the control detail points out; the next automatic reading measures it again.",
+      "who": "Executes: {executor} · Owner: {owner}",
+      "time_needed": "The next automatic reading confirms the fix.",
+      "evidence": "The new result of the check: nothing needs to be uploaded.",
+      "impact": "Once the check passes, the control recovers its level."
+    },
+    "check_parameters_changed": {
+      "title": "{control_code} · The parameters of a check changed",
+      "what_happened": "The parameters of an automated check of control {control_label} in the service {service_name} changed.",
+      "why_it_matters": "A check with other parameters may give another result on the next reading.",
+      "how_to_fix": "Review the control detail and confirm the change is the expected one.",
+      "who": "Executes: {executor} · Owner: {owner}",
+      "time_needed": "It applies from the next automatic reading.",
+      "evidence": "The result of the next reading: nothing needs to be uploaded.",
+      "impact": "If the change is the expected one, the control carries on."
+    },
+    "automatic_evidence_stale": {
+      "title": "{control_code} · The automated evidence of the control is out of date",
+      "what_happened": "The automated evidence of control {control_label} in the service {service_name} is older than allowed.",
+      "why_it_matters": "Out-of-date evidence leaves the test pending until there is a new reading.",
+      "how_to_fix": "Check that the service connection is still active so a new reading arrives.",
+      "who": "Executes: {executor} · Owner: {owner}",
+      "time_needed": "It is fixed by the next automatic reading.",
+      "evidence": "A recent automatic reading.",
+      "impact": "With the new reading, the test is measured again."
+    },
+    "control_pending_approval": {
+      "title": "{control_code} · A control is waiting for your approval",
+      "what_happened": "Control {control_label} in the service {service_name} complies and is waiting for your approval.",
+      "why_it_matters": "A control only counts as compliant once it is approved.",
+      "how_to_fix": "Open the control, review its evidence and approve it or send it back.",
+      "who": "Approves: {owner}",
+      "time_needed": "Approve it while the evidence is still current.",
+      "evidence": "What supports the control's compliance.",
+      "impact": "Once approved, the control moves on to the administrator's final approval."
+    },
+    "control_owner_approved": {
+      "title": "{control_code} · The responsible person approved a control",
+      "what_happened": "The responsible person approved control {control_label} in the service {service_name}.",
+      "why_it_matters": "The final approval is still needed for it to count as compliant.",
+      "how_to_fix": "Open the control, review its evidence and give it the final approval.",
+      "who": "Approves: administrator · Approved by: {owner}",
+      "time_needed": "Approve it while the evidence is still current.",
+      "evidence": "What supports the control's compliance.",
+      "impact": "With the final approval, the control counts as compliant."
+    },
+    "control_returned": {
+      "title": "{control_code} · A control was sent back",
+      "what_happened": "Control {control_label} in the service {service_name} was sent back for handling.",
+      "why_it_matters": "A control that was sent back does not count as compliant until it is fixed and approved again.",
+      "how_to_fix": "Open the control, read the reason it was sent back and fix what is missing.",
+      "who": "Executes: {executor} · Owner: {owner}",
+      "time_needed": "Fix it before its evidence window closes.",
+      "evidence": "What fixes the issue pointed out when it was sent back.",
+      "impact": "Once fixed and approved, the control counts again."
+    },
+    "document_assigned": {
+      "title": "You were assigned the document {document_name}",
+      "what_happened": "You were assigned the document {document_name} to read and accept.",
+      "why_it_matters": "Accepting the document records that you know it.",
+      "how_to_fix": "Open it, read it and accept it.",
+      "who": "Assigned by: {actor}",
+      "time_needed": "Reading and accepting it takes a few minutes.",
+      "evidence": "Your acceptance is recorded with the version you read.",
+      "impact": "The company needs every assigned person to accept it."
+    },
+    "document_acceptance_reminder": {
+      "title": "You still have to accept the document {document_name}",
+      "what_happened": "You have not accepted the document {document_name} yet.",
+      "why_it_matters": "The company needs your acceptance to consider the document known.",
+      "how_to_fix": "Open it, read it and accept it.",
+      "who": "Accepts: you",
+      "time_needed": "Reading and accepting it takes a few minutes.",
+      "evidence": "Your acceptance is recorded with the version you read.",
+      "impact": "Until you accept it, the document is not accepted by everyone assigned."
+    },
+    "document_approval_requested": {
+      "title": "A document is waiting for your approval: {document_name}",
+      "what_happened": "The document {document_name} is waiting for your approval.",
+      "why_it_matters": "The document is only in force once every step approves it.",
+      "how_to_fix": "Open it, review it and approve it or reject it with the reason.",
+      "who": "Approves: you",
+      "time_needed": "Reviewing it takes as long as reading it.",
+      "evidence": "Your decision is recorded with the version you reviewed.",
+      "impact": "Until it is approved, the document is not in force."
+    },
+    "document_renewal_due": {
+      "title": "The document {document_name} has to be renewed",
+      "what_happened": "The document {document_name} is about to be due for renewal.",
+      "why_it_matters": "An expired document stops counting as evidence.",
+      "how_to_fix": "Create the new version and send it for approval.",
+      "who": "Renews: the document owner",
+      "time_needed": "Renewing it on time keeps it from expiring.",
+      "evidence": "The new version of the document.",
+      "impact": "Renewed on time, the document stays in force."
+    },
+    "company_purge_upcoming": {
+      "title": "The company {company_name} will be deleted soon",
+      "what_happened": "The archived company {company_name} will be permanently deleted in a few days.",
+      "why_it_matters": "The permanent deletion cannot be undone.",
+      "how_to_fix": "If it must not be deleted, reactivate it before the deadline.",
+      "who": "Decides: Monkey administrator",
+      "time_needed": "A few days are left until the deadline.",
+      "evidence": "No evidence is needed.",
+      "impact": "After the deadline, the company and its data are removed."
+    }
+  }
+}

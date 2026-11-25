@@ -10,7 +10,7 @@ import { CreateTreatmentDto, EvaluateRiskDto } from './risk-assessment.dto';
 import { parseDueDate, validateEvaluation } from './risk-assessment.validation';
 import { GetRiskUseCase } from './risk.use-cases';
 
-// MD-123 · Evaluar un riesgo en la matriz 5×5 y registrar su tratamiento. Evalúa y trata solo `admin_empresa` (lo impone @Roles en la ruta); el
+// MD-123 · Evaluar un riesgo en la matriz 5×5 y registrar su tratamiento. Evalúa y trata solo `admin_empresa` (lo impone @Can en la ruta); el
 // auditor lee. El valor y el nivel los calcula el servidor: el cliente nunca.
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 const snapshot = (riskId: string, e: RiskEvaluation) => ({

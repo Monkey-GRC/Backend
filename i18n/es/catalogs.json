@@ -476,5 +476,39 @@
   "window_mode": {
     "calendar": "Calendario",
     "rolling": "Móvil"
+  },
+  "notification_type": {
+    "window_due_soon": "Ventana por vencer",
+    "window_expired": "Ventana vencida",
+    "control_assigned": "Control asignado",
+    "evidence_approved": "Evidencia validada",
+    "evidence_rejected": "Evidencia rechazada",
+    "observation_created": "Observación del auditor",
+    "direct_check_failed": "Verificación automática en falla",
+    "check_parameters_changed": "Cambio de parametrización",
+    "automatic_evidence_stale": "Evidencia automática desactualizada",
+    "control_pending_approval": "Control por aprobar",
+    "control_owner_approved": "Control aprobado por el responsable",
+    "control_returned": "Control devuelto",
+    "document_assigned": "Documento asignado",
+    "document_acceptance_reminder": "Documento por aceptar",
+    "document_approval_requested": "Documento por aprobar",
+    "document_renewal_due": "Documento por renovar",
+    "company_purge_upcoming": "Empresa por borrarse"
+  },
+  "document_version_status": {
+    "draft": "Borrador",
+    "in_approval": "En aprobación",
+    "rejected": "Rechazada",
+    "approved": "Aprobada",
+    "current": "Vigente",
+    "renewal_due": "Por renovar",
+    "expired": "Vencida",
+    "archived": "Archivada"
+  },
+  "my_document_status": {
+    "pending": "Por aceptar",
+    "accepted": "Aceptado",
+    "overdue": "Vencido"
   }
 }

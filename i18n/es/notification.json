@@ -1,0 +1,249 @@
+{
+  "list": "Tus avisos de los últimos 90 días.",
+  "unread_count": "Avisos sin leer.",
+  "updated": "Listo, actualizamos el aviso.",
+  "read_all": "Listo, marcamos tus avisos como leídos.",
+  "preferences": "Tus preferencias de notificaciones.",
+  "preferences_updated": "Listo, guardamos tus preferencias de notificaciones.",
+  "roles": {
+    "admin_empresa": "administrador",
+    "responsable": "responsable",
+    "delegado": "delegado",
+    "auditor": "auditor",
+    "colaborador": "colaborador",
+    "admin_monkey": "administrador de Monkey"
+  },
+  "periodicity": {
+    "daily": "diaria",
+    "weekly": "semanal",
+    "monthly": "mensual",
+    "bimonthly": "bimensual",
+    "quarterly": "trimestral",
+    "semiannual": "semestral",
+    "annual": "anual",
+    "on_demand": "trimestral",
+    "permanent": "continua"
+  },
+  "party": {
+    "unassigned": "Sin asignar",
+    "someone": "Alguien de tu equipo"
+  },
+  "grouped": {
+    "more": "y {more} más"
+  },
+  "assignee_role": {
+    "owner": "dueño",
+    "executor": "ejecutor"
+  },
+  "assignee_duty": {
+    "owner": "Respondes por este control y revisas la evidencia que sube tu equipo.",
+    "executor": "Ejecutas este control: subes la evidencia que piden sus pruebas."
+  },
+  "digest": {
+    "subject": "Monkey · Tienes {count} avisos nuevos ({date})",
+    "subject_one": "Monkey · Tienes 1 aviso nuevo ({date})",
+    "heading": "Tienes {count} avisos nuevos",
+    "heading_one": "Tienes 1 aviso nuevo",
+    "preheader": "Tu resumen diario de Monkey: lo que sigue sin leer.",
+    "intro": "Este es tu resumen diario de Monkey. Esto es lo que tienes sin leer:",
+    "more": "y {more} más",
+    "button": "Abrir mis notificaciones",
+    "footnote": "Recibes este resumen una vez al día mientras tengas avisos sin leer. Para apagarlo, desactiva el resumen por correo en tus preferencias de notificaciones; los avisos dentro de Monkey siguen llegando igual."
+  },
+  "types": {
+    "window_due_soon": {
+      "title": "{control_code} · La ventana {periodicity} cierra el {due_date} y falta evidencia",
+      "what_happened": "El control {control_label} del servicio {service_name} no tiene evidencia válida en la ventana {periodicity} que cierra el {due_date}.",
+      "why_it_matters": "Si la ventana cierra sin evidencia, el requisito pasa a Vencido y el control vuelve a Incumplimiento.",
+      "how_to_fix": "Sube la evidencia desde el detalle del control y pide su revisión.",
+      "who": "Ejecuta: {executor} · Dueño: {owner}",
+      "time_needed": "Quedan {days_left} días para el cierre.",
+      "evidence": "La que piden las pruebas del control en la ventana en curso.",
+      "impact": "Con la evidencia a tiempo, el control conserva su nivel en el período auditado.",
+      "time_needed_one": "Queda 1 día para el cierre.",
+      "time_needed_today": "La ventana cierra hoy.",
+      "grouped": {
+        "title": "{control_count} controles sin asignar tienen ventanas por vencer",
+        "title_one": "1 control sin asignar tiene una ventana por vencer",
+        "what_happened": "En el servicio {service_name}, el aviso previo de la ventana llegó hoy para estos controles sin asignar y sin evidencia válida: {control_list}.",
+        "why_it_matters": "Si una ventana cierra sin evidencia, el requisito pasa a Vencido y el control vuelve a Incumplimiento.",
+        "how_to_fix": "Abre la lista de controles del servicio filtrada por «Sin asignar», asígnales un dueño y pide la evidencia.",
+        "who": "Nadie: son controles sin dueño. Recibes este aviso por ser administrador de la empresa.",
+        "time_needed": "Cada control tiene su propio cierre: revisa cuál vence primero.",
+        "evidence": "La que piden las pruebas de cada control en su ventana en curso.",
+        "impact": "Con dueño y evidencia a tiempo, los controles conservan su nivel en el período auditado."
+      }
+    },
+    "window_expired": {
+      "title": "{control_code} · La ventana {periodicity} cerró el {due_date} sin evidencia",
+      "what_happened": "La ventana {periodicity} del control {control_label} del servicio {service_name} cerró el {due_date} sin evidencia válida.",
+      "why_it_matters": "El requisito pasa a Vencido y el control vuelve a Incumplimiento.",
+      "how_to_fix": "Sube la evidencia vigente desde el detalle del control y pide su revisión para la ventana en curso.",
+      "who": "Ejecuta: {executor} · Dueño: {owner}",
+      "time_needed": "La ventana cerró el {due_date}. La evidencia de la ventana en curso se puede subir hoy.",
+      "evidence": "La que piden las pruebas del control para la ventana en curso.",
+      "impact": "El período auditado queda con una ventana sin evidencia y el control baja de nivel.",
+      "grouped": {
+        "title": "{control_count} controles sin asignar tienen ventanas vencidas",
+        "title_one": "1 control sin asignar tiene una ventana vencida",
+        "what_happened": "En el servicio {service_name}, la ventana de estos controles sin asignar cerró ayer sin evidencia válida: {control_list}.",
+        "why_it_matters": "El requisito pasa a Vencido y el control vuelve a Incumplimiento.",
+        "how_to_fix": "Abre la lista de controles del servicio filtrada por «Sin asignar», asígnales un dueño y pide la evidencia de la ventana en curso.",
+        "who": "Nadie: son controles sin dueño. Recibes este aviso por ser administrador de la empresa.",
+        "time_needed": "La evidencia de la ventana en curso se puede subir hoy.",
+        "evidence": "La que piden las pruebas de cada control para la ventana en curso.",
+        "impact": "El período auditado queda con una ventana sin evidencia y cada control baja de nivel."
+      }
+    },
+    "control_assigned": {
+      "title": "{control_code} · Te asignaron este control como {assignee_role}",
+      "what_happened": "{actor} te asignó el control {control_label} del servicio {service_name} como {assignee_role}.",
+      "why_it_matters": "{assignee_duty}",
+      "how_to_fix": "Abre el control, revisa sus pruebas y la evidencia que le falta.",
+      "who": "Asignó: {actor} · Dueño: {owner} · Ejecuta: {executor}",
+      "time_needed": "Las ventanas de evidencia del control siguen su periodicidad; revisa cuál cierra primero.",
+      "evidence": "La que piden las pruebas del control.",
+      "impact": "El control mide el cumplimiento del servicio {service_name}: sin evidencia vigente, su nivel baja."
+    },
+    "evidence_approved": {
+      "title": "{control_code} · Se validó una evidencia",
+      "what_happened": "{actor} validó una evidencia del control {control_label} del servicio {service_name}.",
+      "why_it_matters": "La evidencia validada cuenta para el cumplimiento del control en su ventana.",
+      "how_to_fix": "No tienes que hacer nada: abre el control si quieres ver cómo cambió su estado.",
+      "who": "Revisó: {actor} · Dueño: {owner} · Ejecuta: {executor}",
+      "time_needed": "La entrega ya está validada: no queda plazo pendiente para ella.",
+      "evidence": "La entrega que subiste o que se subió a tu control.",
+      "impact": "Si otras pruebas del control siguen sin evidencia válida, el control sigue pendiente."
+    },
+    "evidence_rejected": {
+      "title": "{control_code} · Se rechazó una evidencia",
+      "what_happened": "{actor} rechazó una evidencia del control {control_label} del servicio {service_name}.",
+      "why_it_matters": "Una evidencia rechazada no cuenta: la prueba sigue sin evidencia válida y el control no avanza.",
+      "how_to_fix": "Abre el control, lee el motivo del rechazo y sube una versión corregida.",
+      "who": "Revisó: {actor} · Dueño: {owner} · Ejecuta: {executor}",
+      "time_needed": "Sube la corrección antes de que cierre la ventana de la prueba.",
+      "evidence": "Una versión nueva de la entrega rechazada, corrigiendo lo que señaló la revisión.",
+      "impact": "Mientras no haya una versión validada, la ventana puede cerrar sin evidencia y el control bajar de nivel."
+    },
+    "observation_created": {
+      "title": "{control_code} · El auditor dejó una observación",
+      "what_happened": "El auditor dejó una observación sobre el control {control_label} del servicio {service_name}.",
+      "why_it_matters": "Una observación abierta pide una respuesta de la empresa.",
+      "how_to_fix": "Abre el control, lee la observación y respóndela.",
+      "who": "Responden: {owner} · {executor}",
+      "time_needed": "Responde mientras el período auditado siga abierto.",
+      "evidence": "La que respalde tu respuesta, si hace falta.",
+      "impact": "El auditor la cierra cuando la respuesta le basta."
+    },
+    "direct_check_failed": {
+      "title": "{control_code} · Una verificación automática del control está fallando",
+      "what_happened": "Una verificación automática del control {control_label} del servicio {service_name} no se cumple.",
+      "why_it_matters": "Mientras la verificación siga fallando, el control vuelve a Incumplimiento.",
+      "how_to_fix": "Corrige lo que señala el detalle del control; la siguiente lectura automática lo vuelve a medir.",
+      "who": "Ejecuta: {executor} · Dueño: {owner}",
+      "time_needed": "La siguiente lectura automática confirma la corrección.",
+      "evidence": "El resultado nuevo de la verificación: no hay que subir nada.",
+      "impact": "Al pasar la verificación, el control recupera su nivel."
+    },
+    "check_parameters_changed": {
+      "title": "{control_code} · Cambió la parametrización de una verificación",
+      "what_happened": "Cambió la parametrización de una verificación automática del control {control_label} del servicio {service_name}.",
+      "why_it_matters": "Una verificación con otros parámetros puede dar otro resultado en la siguiente lectura.",
+      "how_to_fix": "Revisa el detalle del control y confirma que el cambio es el esperado.",
+      "who": "Ejecuta: {executor} · Dueño: {owner}",
+      "time_needed": "Se aplica desde la siguiente lectura automática.",
+      "evidence": "El resultado de la siguiente lectura: no hay que subir nada.",
+      "impact": "Si el cambio es el esperado, el control sigue su curso."
+    },
+    "automatic_evidence_stale": {
+      "title": "{control_code} · La evidencia automática del control está desactualizada",
+      "what_happened": "La evidencia automática del control {control_label} del servicio {service_name} es más antigua de lo permitido.",
+      "why_it_matters": "Una evidencia desactualizada deja la prueba pendiente hasta que haya una lectura nueva.",
+      "how_to_fix": "Revisa que la conexión del servicio siga activa para que llegue una lectura nueva.",
+      "who": "Ejecuta: {executor} · Dueño: {owner}",
+      "time_needed": "Se corrige con la siguiente lectura automática.",
+      "evidence": "Una lectura automática reciente.",
+      "impact": "Con la lectura nueva, la prueba vuelve a medirse."
+    },
+    "control_pending_approval": {
+      "title": "{control_code} · Un control espera tu aprobación",
+      "what_happened": "El control {control_label} del servicio {service_name} cumple y espera tu aprobación.",
+      "why_it_matters": "Un control solo cuenta como cumplido cuando está aprobado.",
+      "how_to_fix": "Abre el control, revisa su evidencia y apruébalo o devuélvelo.",
+      "who": "Aprueba: {owner}",
+      "time_needed": "Apruébalo mientras la evidencia siga vigente.",
+      "evidence": "La que respalda el cumplimiento del control.",
+      "impact": "Aprobado, el control pasa a la aprobación final del administrador."
+    },
+    "control_owner_approved": {
+      "title": "{control_code} · El responsable aprobó un control",
+      "what_happened": "El responsable aprobó el control {control_label} del servicio {service_name}.",
+      "why_it_matters": "Falta la aprobación final para que cuente como cumplido.",
+      "how_to_fix": "Abre el control, revisa su evidencia y dale la aprobación final.",
+      "who": "Aprueba: administrador · Aprobó: {owner}",
+      "time_needed": "Apruébalo mientras la evidencia siga vigente.",
+      "evidence": "La que respalda el cumplimiento del control.",
+      "impact": "Con la aprobación final, el control cuenta como cumplido."
+    },
+    "control_returned": {
+      "title": "{control_code} · Un control fue devuelto",
+      "what_happened": "El control {control_label} del servicio {service_name} fue devuelto para su gestión.",
+      "why_it_matters": "Un control devuelto no cuenta como cumplido hasta que se corrija y se apruebe de nuevo.",
+      "how_to_fix": "Abre el control, lee el motivo de la devolución y corrige lo que falta.",
+      "who": "Ejecuta: {executor} · Dueño: {owner}",
+      "time_needed": "Corrígelo antes de que cierre su ventana de evidencia.",
+      "evidence": "La que corrija lo que señaló la devolución.",
+      "impact": "Corregido y aprobado, el control vuelve a contar."
+    },
+    "document_assigned": {
+      "title": "Te asignaron el documento {document_name}",
+      "what_happened": "Te asignaron el documento {document_name} para que lo leas y lo aceptes.",
+      "why_it_matters": "Aceptar el documento deja constancia de que lo conoces.",
+      "how_to_fix": "Ábrelo, léelo y acéptalo.",
+      "who": "Asignó: {actor}",
+      "time_needed": "Leerlo y aceptarlo toma unos minutos.",
+      "evidence": "Tu aceptación queda registrada con la versión que leíste.",
+      "impact": "La empresa necesita que todas las personas asignadas lo acepten."
+    },
+    "document_acceptance_reminder": {
+      "title": "Te falta aceptar el documento {document_name}",
+      "what_happened": "Todavía no aceptaste el documento {document_name}.",
+      "why_it_matters": "La empresa necesita tu aceptación para dar el documento por conocido.",
+      "how_to_fix": "Ábrelo, léelo y acéptalo.",
+      "who": "Acepta: tú",
+      "time_needed": "Leerlo y aceptarlo toma unos minutos.",
+      "evidence": "Tu aceptación queda registrada con la versión que leíste.",
+      "impact": "Mientras falte tu aceptación, el documento no está aceptado por todas las personas asignadas."
+    },
+    "document_approval_requested": {
+      "title": "Un documento espera tu aprobación: {document_name}",
+      "what_happened": "El documento {document_name} espera tu aprobación.",
+      "why_it_matters": "El documento solo queda vigente cuando todos los pasos lo aprueban.",
+      "how_to_fix": "Ábrelo, revísalo y apruébalo o recházalo con el motivo.",
+      "who": "Aprueba: tú",
+      "time_needed": "Revisarlo toma lo que lleve leerlo.",
+      "evidence": "Tu decisión queda registrada con la versión que revisaste.",
+      "impact": "Mientras no se apruebe, el documento no queda vigente."
+    },
+    "document_renewal_due": {
+      "title": "Hay que renovar el documento {document_name}",
+      "what_happened": "El documento {document_name} está por vencer su renovación.",
+      "why_it_matters": "Un documento vencido deja de contar como evidencia.",
+      "how_to_fix": "Crea la versión nueva y envíala a aprobación.",
+      "who": "Renueva: el responsable del documento",
+      "time_needed": "Renovarlo a tiempo evita que venza.",
+      "evidence": "La versión nueva del documento.",
+      "impact": "Renovado a tiempo, el documento sigue vigente."
+    },
+    "company_purge_upcoming": {
+      "title": "La empresa {company_name} se borrará pronto",
+      "what_happened": "La empresa archivada {company_name} se borrará de forma definitiva en pocos días.",
+      "why_it_matters": "El borrado definitivo no se puede deshacer.",
+      "how_to_fix": "Si no debe borrarse, reactívala antes de que venza el plazo.",
+      "who": "Decide: administrador de Monkey",
+      "time_needed": "Quedan pocos días para el plazo.",
+      "evidence": "No hace falta evidencia.",
+      "impact": "Pasado el plazo, la empresa y sus datos se eliminan."
+    }
+  }
+}

@@ -1,7 +1,8 @@
 // Parámetros del motor (§9 «Los parámetros», RC-19): nunca se escriben dentro de la lógica. Las funciones del motor los reciben; el puerto los entrega.
-// Todos los clientes comparten el mismo valor (D140). Viven en `catalog.evaluation_parameters` (MD-495): la semilla de la migración es el único lugar con los números.
-import type { WindowMode } from '../../../../../common/evaluation-parameters/parameter-definitions';
-import type { Periodicity } from './types';
+// Los lee quien los necesita sin conocer a los demás: el motor de `compliance` y los plazos de Documentos (PR-14). Todos los clientes comparten el mismo valor (D140). Viven en `catalog.evaluation_parameters` (MD-495): la semilla de la migración es el único lugar con los números.
+import type { WindowMode } from './parameter-definitions';
+
+export type Periodicity = 'permanent' | 'daily' | 'weekly' | 'monthly' | 'bimonthly' | 'quarterly' | 'semiannual' | 'annual' | 'on_demand';
 
 export type EvaluationParameters = {
   /** PR-01 · C% mínimo para Parcial. */

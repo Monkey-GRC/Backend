@@ -56,5 +56,7 @@
   "value_type": "El valor no tiene la forma que pide este parámetro.",
   "value_range": "El valor está fuera del rango permitido.",
   "value_order": "El valor rompe la regla con otro parámetro: cambia primero el que deja el par válido.",
-  "value_periodicities": "Indica los días de las 7 periodicidades: diaria, semanal, mensual, bimestral, trimestral, semestral y anual."
+  "value_periodicities": "Indica los días de las 7 periodicidades: diaria, semanal, mensual, bimestral, trimestral, semestral y anual.",
+  "approved_at_future": "La fecha de aprobación no puede ser futura.",
+  "disposition_not_inline": "Ese tipo de archivo no se puede mostrar en pantalla: solo PDF, PNG y JPG. Descárgalo para verlo."
 }

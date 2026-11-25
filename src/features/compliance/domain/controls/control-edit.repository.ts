@@ -5,8 +5,8 @@ import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 // Crear, editar y dar de baja un control (D65, D96, modelo-datos.md §7.1). El admin_empresa lo hace directo, sin propuestas ni aprobación. Toda escritura recibe su
 // `audit`, que se escribe en la MISMA transacción: si el rastro falla, el cambio se revierte (SEG-36).
 
-/** Lo mínimo para decidir quién puede tocar un control. Incluye los dados de baja. */
-export type ControlAccess = { id: string; serviceId: string; isActive: boolean; origin: 'catalog' | 'own' };
+/** Lo mínimo para decidir quién puede tocar un control (`ownerId`: su dueño, si tiene uno; el `responsable` edita solo los suyos, D150). Incluye los dados de baja. */
+export type ControlAccess = { id: string; serviceId: string; isActive: boolean; origin: 'catalog' | 'own'; ownerId: string | null };
 
 export type OwnControlInput = { serviceId: string; name: string; interpretation: string; trustCriterion: string; createdBy: string; meta: RequestMeta };
 export type OwnControlCreated = { controlId: string; ownCode: string };

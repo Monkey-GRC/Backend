@@ -1,5 +1,5 @@
-import { EvaluationParameters } from '../engine/v2/parameters';
-import { BOOK_PARAMETERS } from '../engine/v2/parameters.fixtures';
+import { EvaluationParameters } from '../../../../common/evaluation-parameters/parameters';
+import { BOOK_PARAMETERS } from '../../../../common/evaluation-parameters/parameters.fixtures';
 import { AssetResult } from '../engine/states';
 import { Periodicity, TestType } from '../engine/v2/types';
 import { NO_LINKS, ReadoutAsset, ReadoutControl, ReadoutData, ReadoutRequirement, ReadoutSignals, ReadoutTest, ResultsIndex, TestLinks, resultKey } from './control-readout';

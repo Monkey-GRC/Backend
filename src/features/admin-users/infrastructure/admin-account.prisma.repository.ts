@@ -179,6 +179,8 @@ export class AdminAccountPrismaRepository extends AdminAccountRepository {
       await tx.passwordHistory.deleteMany({ where: { userId: id } });
       await tx.passwordResetToken.deleteMany({ where: { userId: id } });
       await tx.userActivationCode.deleteMany({ where: { userId: id } });
+      // MD-515 · Sus avisos y resúmenes (ninguna clave foránea hacia `users` borra en cascada; la RLS por persona no deja borrarlos desde aquí).
+      await tx.$executeRaw`SELECT platform.purge_user_notifications(${id}::uuid)`;
       await insertAuditLog(tx, audit({ id: account.id, role: account.role } satisfies PurgedAdmin));
       await tx.user.delete({ where: { id } });
       return true;

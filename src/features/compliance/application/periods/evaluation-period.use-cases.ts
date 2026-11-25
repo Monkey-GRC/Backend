@@ -8,7 +8,7 @@ import { EvaluationPeriodRecord, EvaluationPeriodRepository, EvaluationPeriodRol
 import { SetEvaluationPeriodDto } from './evaluation-period.dto';
 import { validateEvaluationPeriod } from './evaluation-period.validation';
 
-// MD-168 · D87 · MD-500 · D145 · Declarar el período auditado (el abierto) y, si se quiere, congelar la fecha de corte de un marco del servicio. Solo `admin_empresa` (lo impone @Roles en la ruta).
+// MD-168 · D87 · MD-500 · D145 · Declarar el período auditado (el abierto) y, si se quiere, congelar la fecha de corte de un marco del servicio. Solo `admin_empresa` (lo impone @Can en la ruta).
 // Sin una fecha de corte guardada la efectiva es «hoy»; la respuesta dice cuál es y si está congelada.
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 const day = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
@@ -36,7 +36,7 @@ export class SetEvaluationPeriodUseCase {
   }
 }
 
-// D145 · El histórico de períodos del marco: `admin_empresa` y `auditor` (lo impone @Roles en la ruta).
+// D145 · El histórico de períodos del marco: `admin_empresa` y `auditor` (lo impone @Can en la ruta).
 @Injectable()
 export class ListEvaluationPeriodsUseCase {
   constructor(private readonly repo: EvaluationPeriodRepository) {}

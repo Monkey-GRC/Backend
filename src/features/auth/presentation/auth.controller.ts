@@ -3,6 +3,7 @@ import { ApiExtraModels, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
+import { Can } from '../../../common/authorization/can.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Public } from '../../../common/decorators/public.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
@@ -206,6 +207,7 @@ export class AuthController {
   @ApiData(RecoveryCodesResponse, 'Los 10 códigos nuevos.')
   @ApiDomainErrors('MFA_NOT_ENABLED', 'MFA_CODE_INVALID', 'ACCOUNT_LOCKED')
   @Post('mfa/recovery-codes')
+  @Can('account.manage')
   @HttpCode(HttpStatus.OK)
   async recoveryCodes(@CurrentUser() principal: Principal, @Body() dto: MfaCodeDto, @Req() req: Request) {
     const codes = await this.regenerateCodes.execute(principal, dto.code, requestMeta(req));
@@ -217,6 +219,7 @@ export class AuthController {
   @ApiNoBody('Contraseña cambiada. No hay cuerpo.')
   @ApiDomainErrors('CURRENT_PASSWORD_INVALID', 'MFA_CODE_INVALID', 'MFA_NOT_ENABLED', 'ACCOUNT_LOCKED', 'PASSWORD_REUSED', 'PASSWORD_CHANGE_LIMIT')
   @Post('password/change')
+  @Can('account.manage')
   @HttpCode(HttpStatus.NO_CONTENT)
   async changeOwnPassword(@CurrentUser() principal: Principal, @Body() dto: ChangePasswordDto, @Req() req: Request): Promise<void> {
     await this.changePassword.execute(
@@ -307,6 +310,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Usuario en sesión', description: 'Lo primero que llama el frontend al arrancar: dice si hay sesión, quién es y dónde continuar el onboarding.' })
   @ApiData(AuthSessionResponse, 'Usuario, empresa y avance del onboarding (este último solo para `admin_empresa`).')
   @Get('me')
+  @Can('account.manage')
   async me(@CurrentUser() principal: Principal) {
     const { user, onboarding } = await this.getCurrentUser.execute(principal);
     return new ResponseDto(HttpStatus.OK, t('auth.me'), toAuthResponse(user, onboarding));
@@ -316,6 +320,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Guardar mi idioma', description: 'Guarda el idioma en el que la persona usa Monkey (`es` o `en`); con él salen sus correos (recuperar la contraseña y el aviso de contraseña cambiada). Cualquier rol con sesión. Deja rastro (`user.language_changed`) en la misma transacción. Contrato: `contracts/autenticacion.md`.' })
   @ApiNoBody('Idioma guardado. No hay cuerpo.')
   @Patch('me/language')
+  @Can('account.manage')
   @HttpCode(HttpStatus.NO_CONTENT)
   async changeLanguage(@CurrentUser() principal: Principal, @Body() dto: SetLanguageDto, @Req() req: Request): Promise<void> {
     await this.setLanguage.execute(principal, dto.language, requestMeta(req));

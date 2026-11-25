@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
@@ -33,7 +33,7 @@ export class AssignmentsController {
   })
   @ApiData(AssignmentUpdatedResponse, 'Controles que cambiaron.')
   @ApiDomainErrors('NOT_FOUND', 'OWNER_NOT_ELIGIBLE', 'CONTROL_RETIRED', 'ACCOUNT_INACTIVE')
-  @Roles('admin_empresa')
+  @Can('assignments.owner')
   @Put('owner')
   async owner(@CurrentUser() p: Principal, @Body() dto: SetOwnerDto, @Req() req: Request) {
     return new ResponseDto(HttpStatus.OK, t('assignment.owner_updated'), { updated: await this.setOwner.execute(p, dto, metaOf(req)) });
@@ -42,11 +42,11 @@ export class AssignmentsController {
   @ApiOperation({
     summary: 'Asignar el ejecutor de controles',
     description:
-      'Solo `responsable`, y solo sobre controles de los que es dueño (si no, `403`). Hasta 200 controles por petición. El ejecutor es un `delegado` activo o pendiente de su equipo; `executor_id: null` lo quita (ejecuta el dueño). Un responsable sin equipo solo puede mandar `null`. Todo o nada. `updated` cuenta solo los controles que cambiaron; cada uno deja un registro de auditoría `control_assignment.set`.',
+      '`admin_empresa` (D150: también delega) o `responsable`; este último solo sobre controles de los que es dueño (si no, `403`). Hasta 200 controles por petición. El ejecutor es un `delegado` activo o pendiente del equipo del DUEÑO de cada control (para el administrador, el de cada control; un control sin dueño solo admite `null`); `executor_id: null` lo quita (ejecuta el dueño). Un responsable sin equipo solo puede mandar `null`. Todo o nada. `updated` cuenta solo los controles que cambiaron; cada uno deja un registro de auditoría `control_assignment.set`.',
   })
   @ApiData(AssignmentUpdatedResponse, 'Controles que cambiaron.')
   @ApiDomainErrors('FORBIDDEN', 'NOT_FOUND', 'EXECUTOR_NOT_IN_TEAM', 'CONTROL_RETIRED', 'ACCOUNT_INACTIVE')
-  @Roles('responsable')
+  @Can('controls.delegate')
   @Put('executor')
   async executor(@CurrentUser() p: Principal, @Body() dto: SetExecutorDto, @Req() req: Request) {
     return new ResponseDto(HttpStatus.OK, t('assignment.executor_updated'), { updated: await this.setExecutor.execute(p, dto, metaOf(req)) });

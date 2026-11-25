@@ -1,7 +1,7 @@
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
-import { EvaluationParameters } from '../engine/v2/parameters';
+import { EvaluationParameters } from '../../../../common/evaluation-parameters/parameters';
 import { EvaluationPeriod } from './evaluation-period';
 
 // Los períodos auditados de UN marco de un servicio (tenant.service_framework_periods; D87, D145, D148, MD-168, MD-500). La escritura recibe su `audit`, que se escribe en la

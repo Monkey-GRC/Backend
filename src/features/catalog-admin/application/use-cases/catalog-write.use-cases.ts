@@ -20,7 +20,7 @@ import {
   UpdateTestDto,
 } from '../dtos/catalog-write.dto';
 
-// Escritura del catálogo maestro desde Monkey Admin (contracts/modules/monkey-admin-catalog.md). Solo `admin_monkey` (lo impone @Roles en el controlador y la RLS de
+// Escritura del catálogo maestro desde Monkey Admin (contracts/modules/monkey-admin-catalog.md). Solo `admin_monkey` (lo impone @Can en el controlador y la RLS de
 // `catalog`). Cada cambio deja su rastro `catalog.*` en la misma transacción. Dar de baja no borra.
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 

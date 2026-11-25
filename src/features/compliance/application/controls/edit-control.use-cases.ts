@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
+import { isScoped } from '../../../../common/authorization/permission-matrix';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { TransactionRunner } from '../../../../common/tenancy/transaction-runner';
@@ -9,7 +10,8 @@ import { validateControlEdit, validatePeriodicityChange } from './control-edit.v
 import { EditClientControlDto, SetControlPeriodicityDto } from './control.dto';
 import { ControlDetail, GetControlUseCase } from './get-control.use-case';
 
-// D96 · Editar y dar de baja un control: solo `admin_empresa` (lo impone @Roles en la ruta), al instante y sin propuesta. La baja no borra: el histórico se conserva.
+// D96, D150 · Editar un control lo hacen el `admin_empresa` y el `responsable` DUEÑO del control (lo impone @Can en la ruta y, para el responsable, `isScoped` aquí); darlo de baja y cambiar su
+// periodicidad, solo el `admin_empresa`. Es al instante y sin propuesta. La baja no borra: el histórico se conserva.
 const scopeOf = (p: Principal) => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 const stateOf = (s: ControlSnapshot) => ({ interpretation: s.interpretation, dimensions: s.dimensions.map((d) => ({ dimension: d.dimension, applies: d.applies, reason_not_applicable: d.reasonNotApplicable })) });
 const entry = (p: Principal, meta: RequestMeta, action: string, controlId: string, before: unknown, after: unknown): AuditEntry => ({
@@ -25,6 +27,8 @@ export class UpdateControlUseCase {
     return this.tx.run(scopeOf(p), async () => {
       const access = await this.controls.findAccess(scopeOf(p), controlId);
       if (!access) throw new DomainError('NOT_FOUND');
+      // Existe y es de su empresa, pero un `responsable` solo edita los controles de los que es dueño: no le toca (403).
+      if (isScoped('controls.edit', p.role) && access.ownerId !== p.userId) throw new DomainError('FORBIDDEN');
       if (!access.isActive) throw new DomainError('CONTROL_RETIRED');
       const edit = validateControlEdit(dto, access.origin);
       const done = await this.controls.update(scopeOf(p), controlId, edit, { userId: p.userId, meta }, (change) =>

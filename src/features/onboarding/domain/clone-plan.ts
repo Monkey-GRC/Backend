@@ -36,7 +36,8 @@ export interface CatalogSnapshot {
   // `testId`: la prueba documental a la que sirve el documento en este control; ausente o nulo = compartido con todas las del control (D88).
   evidenceTemplates: { controlId: string; code: string; description: string; dimension: Dimension; sequence: number; testId?: string | null }[];
   // v2 (MD-491): los documentos del control (control_documents + documents) son la fuente de las evidencias requeridas; `testId` es su T-DOC.
-  documents?: { controlId: string; code: string; name: string; testId: string | null }[];
+  // MD-503 (D152): `documentId`, `origin` y `suggestedAcceptance` arman el documento de la empresa (`company_documents`).
+  documents?: { controlId: string; documentId?: string; code: string; name: string; testId: string | null; origin?: string; suggestedAcceptance?: string }[];
   risks: { id: string; code: string; name: string; description: string; trustCriterion: string; potentialImpact: unknown; isActive: boolean }[];
   // v2: `name` y `failureCategory` llegan nulos; `origin` y `causeType` los trae la causa nueva.
   causes: { id: string; code: string; name: string | null; failureCategory: string | null; origin?: string | null; causeType?: string | null; description: string }[];
@@ -59,6 +60,8 @@ export interface CloneInput {
     // Pares ya existentes, para no repetir aristas.
     riskCauseKeys: Set<string>; // `${clientRiskId}#${clientCauseId}`
     causeControlKeys: Set<string>; // `${clientCauseId}#${clientControlId}`
+    // MD-503 · Los documentos de la empresa que ya existen (por id del documento del catálogo): no se vuelven a crear.
+    documents?: Set<string>;
   };
 }
 
@@ -87,6 +90,8 @@ export interface ClonePlan {
   }[];
   clientRiskCauses: { tenantId: string; clientRiskId: string; clientCauseId: string }[];
   clientCauseControls: { tenantId: string; clientCauseId: string; clientControlId: string }[];
+  // MD-503 (D152) · Los documentos del catálogo vinculados a los controles del marco, uno por empresa (único `(tenant_id, document_id)`): sin versión y con la aceptación sugerida.
+  companyDocuments: { tenantId: string; documentId: string; origin: string; acceptance: string }[];
 }
 
 export class NoTrustCriteriaError extends Error {
@@ -125,8 +130,19 @@ export function buildClonePlan(input: CloneInput): ClonePlan {
 
   const plan: ClonePlan = {
     clientControls: [], clientControlDimensions: [], clientControlTests: [], clientControlRequirements: [], evidenceRequirements: [],
-    clientRisks: [], clientCauses: [], clientRiskCauses: [], clientCauseControls: [],
+    clientRisks: [], clientCauses: [], clientRiskCauses: [], clientCauseControls: [], companyDocuments: [],
   };
+
+  // Los documentos de TODOS los controles aplicables (también los que el servicio ya tenía): la empresa los necesita una sola vez, y el único los descarta si ya están.
+  const seenDocuments = new Set<string>();
+  for (const controlId of applicableControlIds) {
+    for (const d of documentsByControl.get(controlId) ?? []) {
+      if (!d.documentId || seenDocuments.has(d.documentId) || existing.documents?.has(d.documentId)) continue;
+      seenDocuments.add(d.documentId);
+      plan.companyDocuments.push({ tenantId, documentId: d.documentId, origin: d.origin ?? 'internal', acceptance: d.suggestedAcceptance ?? 'users_who_apply' });
+    }
+  }
+
 
   // Controles: id del cliente = el que ya existe, o uno nuevo. Los hijos solo se crean para los nuevos.
   const clientControlId = new Map<string, string>();

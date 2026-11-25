@@ -129,6 +129,25 @@ describe('buildClonePlan (MD-80)', () => {
     expect(ev).toHaveLength(2); // k3 es de otro criterio de confianza y no se clona
   });
 
+  it('MD-503 · los documentos de los controles aplicables nacen como documentos de la empresa, uno por documento aunque lo compartan dos controles, con la aceptación sugerida', () => {
+    const snapshot = catalog();
+    snapshot.documents = [
+      { controlId: 'k1', documentId: 'd2', code: 'PRO-002', name: 'B', testId: null, origin: 'internal', suggestedAcceptance: 'all_users' },
+      { controlId: 'k1', documentId: 'd1', code: 'POL-001', name: 'A', testId: null, origin: 'external', suggestedAcceptance: 'not_required' },
+      { controlId: 'k2', documentId: 'd1', code: 'POL-001', name: 'A', testId: null, origin: 'external', suggestedAcceptance: 'not_required' },
+      { controlId: 'k3', documentId: 'd3', code: 'POL-009', name: 'Ajeno', testId: null, origin: 'internal', suggestedAcceptance: 'users_who_apply' },
+    ];
+    const plan = buildClonePlan(input({ catalog: snapshot }));
+    expect(plan.companyDocuments.map((d) => [d.documentId, d.origin, d.acceptance]).sort()).toEqual([['d1', 'external', 'not_required'], ['d2', 'internal', 'all_users']]);
+    // También los de un control que el servicio ya tenía: la empresa los necesita aunque no se vuelva a clonar el control.
+    const again = buildClonePlan(input({ catalog: snapshot, existing: { controls: new Map([['k1', 'cc1']]), risks: new Map(), causes: new Map(), riskCauseKeys: new Set(), causeControlKeys: new Set() } }));
+    expect(again.clientControls.map((c) => c.controlId)).not.toContain('k1');
+    expect(again.companyDocuments.map((d) => d.documentId)).toContain('d2');
+    // Y si la empresa ya los tiene, no se vuelven a pedir (clonar de nuevo no crea nada).
+    const yaTiene = buildClonePlan(input({ catalog: snapshot, existing: { controls: new Map(), risks: new Map(), causes: new Map(), riskCauseKeys: new Set(), causeControlKeys: new Set(), documents: new Set(['d1', 'd2']) } }));
+    expect(yaTiene.companyDocuments).toEqual([]);
+  });
+
   it('catálogo v2: una causa sin nombre ni categoría de falla se clona con su origen y su tipo', () => {
     const snapshot = catalog();
     snapshot.causes = [{ id: 'c1', code: 'CA-001', name: null, failureCategory: null, origin: 'internal', causeType: 'human', description: 'd' }];

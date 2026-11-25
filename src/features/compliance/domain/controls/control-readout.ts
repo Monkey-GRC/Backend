@@ -5,7 +5,7 @@ import { AssetResult, ControlState, TestState } from '../engine/states';
 import { evaluateControlLevel } from '../engine/v2/control-level';
 import type { SolidConditions } from '../engine/v2/control-level';
 import { evaluateManualTest, ManualEvidence, ManualVerdict } from '../engine/v2/manual-test';
-import { EvaluationParameters } from '../engine/v2/parameters';
+import { EvaluationParameters } from '../../../../common/evaluation-parameters/parameters';
 import { evaluateRequirement, requirementStatusInPeriod } from '../engine/v2/requirement';
 import { AssetOutcomes, checkResultOf, CheckCounts, CheckOutcome, classifyModuleRef, evaluateTechnicalTest, ModuleFacts, moduleLinkResult, withException, worstStatus } from '../engine/v2/technical-test';
 import { ControlLevel, Periodicity, RequirementStatus, TestStatus, TestType } from '../engine/v2/types';

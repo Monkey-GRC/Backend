@@ -1,0 +1,100 @@
+// D138, D143, D151 · Los avisos de cada persona y el resumen diario por correo (modelo-datos.md §12, MD-515). Todo en `platform`: el aviso es de la persona, incluso de un `admin_monkey`.
+// El destino es polimórfico (`target_kind`, `target_id`: sin clave foránea) y los datos del texto van en `params`: el texto se arma al leer, en el idioma de quien lo lee.
+enum NotificationType {
+  window_due_soon
+  window_expired
+  control_assigned
+  evidence_approved
+  evidence_rejected
+  observation_created
+  direct_check_failed
+  check_parameters_changed
+  automatic_evidence_stale
+  control_pending_approval
+  control_owner_approved
+  control_returned
+  document_assigned
+  document_acceptance_reminder
+  document_approval_requested
+  document_renewal_due
+  company_purge_upcoming
+
+  @@map("notification_type")
+  @@schema("platform")
+}
+
+enum NotificationTargetKind {
+  control
+  // Los avisos agrupados de los controles «Sin asignar» de un servicio.
+  service
+  document
+  company
+
+  @@map("notification_target_kind")
+  @@schema("platform")
+}
+
+enum NotificationDigestStatus {
+  sending
+  sent
+  failed
+  skipped
+
+  @@map("notification_digest_status")
+  @@schema("platform")
+}
+
+// La RLS es POR PERSONA (SEG-87, migración `rls_notifications`): solo el destinatario lee y marca su aviso. El contenido es inmutable: la app solo puede cambiar `read_at` y `emailed_at`.
+// Los índices parciales (el contador de no leídos) viven solo en la migración, como los de `compliance_events`.
+model Notification {
+  id         String                 @id @default(uuid()) @db.Uuid
+  // RLS: la empresa del destinatario.
+  companyId  String                 @map("company_id") @db.Uuid
+  userId     String                 @map("user_id") @db.Uuid
+  type       NotificationType
+  targetKind NotificationTargetKind @map("target_kind")
+  targetId   String                 @map("target_id") @db.Uuid
+  // Los datos del texto (código y nombre del control, servicio, quién…). Nunca texto del proveedor de la sonda ni secretos.
+  params     Json                   @default("{}")
+  // El cierre de la ventana, en los avisos de vencimiento.
+  dueAt      DateTime?              @map("due_at") @db.Date
+  // `(user_id, dedupe_key)` es único: repetir la pasada diaria o tener dos réplicas no duplica.
+  dedupeKey  String                 @map("dedupe_key")
+  readAt     DateTime?              @map("read_at")
+  // Entró en un resumen por correo.
+  emailedAt  DateTime?              @map("emailed_at")
+  createdAt  DateTime               @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id])
+  // Ninguna clave foránea hacia `users` borra en cascada (el historial se conserva): la purga de una cuenta `admin_monkey` borra sus avisos con `platform.purge_user_notifications`.
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([companyId, createdAt])
+  @@map("notifications")
+  @@schema("platform")
+}
+
+// Una fila por persona y día (UTC): el resumen que salió, o que se intentó. Aislamiento estándar por empresa: la tarea lo escribe sin persona.
+model NotificationDigest {
+  id         String                   @id @default(uuid()) @db.Uuid
+  companyId  String                   @map("company_id") @db.Uuid
+  userId     String                   @map("user_id") @db.Uuid
+  digestDate DateTime                 @map("digest_date") @db.Date
+  status     NotificationDigestStatus
+  itemCount  Int                      @default(0) @map("item_count")
+  // Máximo 3 intentos el mismo día.
+  attempts   Int                      @default(1)
+  sentAt     DateTime?                @map("sent_at")
+  createdAt  DateTime                 @default(now()) @map("created_at")
+  updatedAt  DateTime                 @default(now()) @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([userId, digestDate])
+  @@index([companyId])
+  @@map("notification_digests")
+  @@schema("platform")
+}

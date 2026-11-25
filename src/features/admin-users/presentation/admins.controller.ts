@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
 import { mailLanguageOf } from '../../../common/mail/mail-language';
@@ -23,7 +23,7 @@ const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userA
 
 // contracts/gestion-usuarios/administradores.md (D117) · Todo el módulo es exclusivo de `admin_monkey`: cualquier otro rol recibe 403.
 @ApiTags(API_TAGS.admins)
-@Roles('admin_monkey')
+@Can('monkey_admins.manage')
 @Controller('admins')
 export class AdminsController {
   constructor(

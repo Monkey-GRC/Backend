@@ -1,16 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../../generated/prisma/client';
 import { DomainError } from '../../../../common/errors/domain-error';
+import { NotificationEmitter } from '../../../../common/notifications/notification-emitter';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
-import { EvaluationParametersPort } from '../../domain/engine/v2/parameters';
+import { EvaluationParametersPort } from '../../../../common/evaluation-parameters/parameters';
 import {
   ControlEvidenceFacts, EvidenceAccess, EvidenceRepository, NewRequirement, NewReview, NewSubmission, RequirementRecord, ReviewSaved, ServiceEvidence, SubmissionRecord, TestEvidence,
 } from '../../domain/evidence/evidence.repository';
 import { loadControlAccess } from '../shared/control-access.loader';
 import { ControlAccess, NO_ACCESS } from '../../domain/controls/control-access';
+import { evidenceStateOf } from '../../domain/evidence/evidence';
 import { captureControlStates, recordControlStateChanges } from '../shared/control-state-events';
 import { ALL_REVIEWS, REVIEW_SELECT, toReviewRecord, versionOf } from './evidence-review.mapper';
 
@@ -54,7 +56,7 @@ const toRequirement = (r: RequirementRow): RequirementRecord => ({
 
 @Injectable()
 export class EvidencePrismaRepository extends EvidenceRepository {
-  constructor(private readonly prisma: PrismaService, private readonly evaluationParameters: EvaluationParametersPort) {
+  constructor(private readonly prisma: PrismaService, private readonly evaluationParameters: EvaluationParametersPort, private readonly notifications: NotificationEmitter) {
     super();
   }
 
@@ -221,6 +223,14 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       const submission = toSubmission(row);
       const saved: ReviewSaved = { submission, access, before: previous ? toReviewRecord(previous) : null, after: submission.reviews.find((r) => r.reviewerRole === input.reviewerRole)! };
       await insertAuditLog(tx, audit(saved));
+      // MD-515 · D151 · Validar o rechazar avisa a quien subió la entrega y al dueño del control (no a quien revisó), en esta misma transacción.
+      const decided = evidenceStateOf({ aiVerdict: null, reviews: [saved.after] });
+      const type = decided === 'compliant' ? 'evidence_approved' : decided === 'non_compliant' || decided === 'expired' ? 'evidence_rejected' : null;
+      if (type) {
+        await this.notifications.emitForControls(tx, scope.companyId, [
+          { type, controlId: access.controlId, uploaderId: submission.submittedBy.id, actorId: input.reviewedBy, dedupeSuffix: `${submissionId}:${input.reviewerRole}:${saved.after.reviewedAt.getTime()}` },
+        ]);
+      }
       if (before) {
         await recordControlStateChanges(tx, { parameters,
           tenantId: scope.companyId, serviceId: access.serviceId, before, cause: 'evidence_review',

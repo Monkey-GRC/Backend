@@ -1,6 +1,5 @@
-import { hasShape, WindowMode, ParameterKey, PARAMETER_UNITS, ParameterUnit, WINDOWED_PERIODICITIES } from '../../../../../common/evaluation-parameters/parameter-definitions';
-import type { EvaluationParameters } from './parameters';
-import type { Periodicity } from './types';
+import { hasShape, WindowMode, ParameterKey, PARAMETER_UNITS, ParameterUnit, WINDOWED_PERIODICITIES } from './parameter-definitions';
+import type { EvaluationParameters, Periodicity } from './parameters';
 
 export type ParameterRow = { key: string; unit: string; value: unknown };
 

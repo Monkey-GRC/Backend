@@ -11,15 +11,14 @@ describe('planGroupCreation', () => {
     expect(planGroupCreation(admin, 'resp-9')).toEqual({ kind: 'team', leaderId: 'resp-9' });
   });
 
-  it('el responsable solo crea su propio equipo: sin líder o con el suyo; con otro, FORBIDDEN', () => {
-    expect(planGroupCreation(resp, null)).toEqual({ kind: 'team', leaderId: 'resp-1' });
-    expect(planGroupCreation(resp, 'resp-1')).toEqual({ kind: 'team', leaderId: 'resp-1' });
+  it('el responsable ya no crea grupos ni su equipo (D150): FORBIDDEN, con o sin líder', () => {
+    forbidden(() => planGroupCreation(resp, null));
+    forbidden(() => planGroupCreation(resp, 'resp-1'));
     forbidden(() => planGroupCreation(resp, 'resp-2'));
-    forbidden(() => planGroupCreation(resp, 'admin-1'));
   });
 
-  it('cualquier otro rol es FORBIDDEN (segunda barrera tras @Roles)', () => {
-    for (const role of ['delegado', 'auditor', 'admin_monkey'] as const) forbidden(() => planGroupCreation({ userId: 'x', role }, null));
+  it('cualquier otro rol es FORBIDDEN (segunda barrera tras @Can)', () => {
+    for (const role of ['delegado', 'auditor', 'colaborador', 'admin_monkey'] as const) forbidden(() => planGroupCreation({ userId: 'x', role }, null));
     expect(() => planGroupCreation({ userId: 'x', role: 'delegado' }, null)).toThrow(DomainError);
   });
 });

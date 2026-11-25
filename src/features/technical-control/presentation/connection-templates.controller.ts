@@ -2,7 +2,7 @@ import { Controller, Get, Header } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { DomainError } from '../../../common/errors/domain-error';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { Can } from '../../../common/authorization/can.decorator';
 import { GCP_SETUP_FILE_NAME, TEMPLATE_FILE_NAME } from '../application/cloud-connection';
 import { ConnectionTemplates } from '../application/connection-templates';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
@@ -10,7 +10,7 @@ import { API_TAGS } from '../../../common/swagger/api-docs.config';
 // La plantilla que el cliente crea en su cuenta de AWS para dar acceso de SOLO LECTURA a Monkey (contracts/modules/control-tecnico.md).
 // Es contenido estático, pero va tras la sesión: no es información para publicar.
 @ApiTags(API_TAGS.connectionTemplates)
-@Roles('admin_empresa')
+@Can('integrations.configure')
 @Controller('connection-templates')
 export class ConnectionTemplatesController {
   constructor(

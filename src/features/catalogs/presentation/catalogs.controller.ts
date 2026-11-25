@@ -4,7 +4,7 @@ import { I18nContext } from 'nestjs-i18n';
 import { SERVICE_COUNTRY_REGIONS } from '../../../common/catalogs/service-catalogs';
 import type { Principal } from '../../../common/auth/principal';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
+import { AnyAuthenticated, Can } from '../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../common/dtos/response.dto';
 import { GetCatalogUseCase } from '../application/use-cases/get-catalog.use-case';
 import { GetContractedFrameworksUseCase } from '../application/use-cases/get-contracted-frameworks.use-case';
@@ -104,7 +104,7 @@ export class CatalogsController {
   @ApiOperation({ summary: 'Marcos contratados por la empresa', description: 'Los marcos que Monkey contrató para la empresa de la sesión (D47). Es lo que el cliente puede elegir al declarar un servicio.' })
   @ApiItems(FrameworkOptionResponse, 'Marcos contratados.')
   @Get('contracted-frameworks')
-  @Roles('admin_empresa')
+  @Can('services.manage')
   async contracted(@CurrentUser() principal: Principal) {
     const items = await this.getContracted.execute(principal);
     return new ResponseDto(HttpStatus.OK, t('framework.contracted'), {
@@ -116,6 +116,7 @@ export class CatalogsController {
   @ApiParam({ name: 'name', description: 'Nombre del catálogo. Además de las listas fijas: `regulations`, `frameworks`, `automated-capabilities`, `<plataforma>_region` (por ejemplo `aws_region`) y `<sistema>_version` (por ejemplo `linux_version`: las versiones que el cliente puede declarar para un servidor, solo las que la sonda entrega).', enum: [...ENUM_CATALOG_NAMES, 'regulations', 'frameworks', 'automated-capabilities', 'aws_region', ...CONNECTION_OPTION_CATALOGS] })
   @ApiItemsOneOf([CatalogOptionResponse, ConnectionOptionResponse, RegulationOptionResponse, FrameworkOptionResponse, CapabilityOptionResponse], 'Opciones del catálogo. La forma depende del nombre: lista simple (`value`/`label`), opciones de conexión (`connection_method`, `gcp_connection_scope`, `gcp_setup_method`: con `description`, `availability` y `tags`), `regulations`, `frameworks` o `automated-capabilities`.')
   @Get(':name')
+  @AnyAuthenticated()
   async get(@Param('name') name: string) {
     const catalog = await this.getCatalog.execute(name);
     return new ResponseDto(HttpStatus.OK, t('catalog.list'), { items: toItems(catalog) });

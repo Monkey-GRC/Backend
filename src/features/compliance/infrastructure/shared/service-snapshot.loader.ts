@@ -7,7 +7,7 @@ import { AssetResult } from '../../domain/engine/states';
 import { ServiceReadoutData } from '../../domain/controls/control.repository';
 import { ManualVerdict } from '../../domain/engine/v2/manual-test';
 import type { WindowMode } from '../../../../common/evaluation-parameters/parameter-definitions';
-import { EvaluationParameters } from '../../domain/engine/v2/parameters';
+import { EvaluationParameters } from '../../../../common/evaluation-parameters/parameters';
 import { ModuleFacts, exceptionEndsOn } from '../../domain/engine/v2/technical-test';
 import { hasPeriodWindows } from '../../domain/engine/v2/windows';
 import { Periodicity, TestType } from '../../domain/engine/v2/types';
@@ -199,7 +199,8 @@ export async function loadServiceSnapshot(
   serviceId: string,
   parameters: EvaluationParameters,
   onlyControlId?: string | readonly string[],
-  options: { withLinkItems?: boolean } = {},
+  // `now` solo lo fija quien evalúa el paso del tiempo con SU reloj (la pasada diaria de las ventanas, MD-515); las lecturas usan el instante actual.
+  options: { withLinkItems?: boolean; now?: Date } = {},
 ): Promise<ServiceReadoutData> {
   const withLinkItems = options.withLinkItems ?? false;
   const contracted = await loadContracted(tx, serviceId);
@@ -225,7 +226,7 @@ export async function loadServiceSnapshot(
     if (verdictStateOf(v.decisions.map((decision) => ({ decision }))) === 'approved') verdicts.set(v.testId, { result: v.result as ManualVerdict['result'], at: v.registeredAt });
   }
 
-  const now = new Date();
+  const now = options.now ?? new Date();
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
   // MD-500 · El período auditado abierto (G-11): con varios marcos en el servicio, el que termina más tarde. Y, solo si hay ventanas de calendario por medir en una prueba técnica,

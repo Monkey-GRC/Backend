@@ -5,6 +5,8 @@ enum UserRole {
   responsable
   delegado
   auditor
+  // D136 · Lee y acepta los documentos que le asignan; no entra a cumplimiento (SEG-85).
+  colaborador
 
   @@map("user_role")
 
@@ -87,6 +89,8 @@ model User {
   isInternal          Boolean?  @map("is_internal")
   // D111 · Con él salen sus correos; lo fija el frontend (`PATCH /v1/auth/me/language`) y la cuenta invitada nace con el de quien la invita.
   preferredLanguage   Language  @default(es) @map("preferred_language")
+  // D143, D151 · El resumen diario de avisos por correo. Los avisos de la app no se apagan.
+  isEmailDigestEnabled Boolean    @default(true) @map("is_email_digest_enabled")
   // D117 · Solo admin_monkey `inactive`: cuándo se borra la cuenta (desactivación + 7 días). Nulo en toda cuenta que no está en gracia.
   purgeAt        DateTime?   @map("purge_at")
   createdAt      DateTime    @default(now()) @map("created_at")
@@ -113,6 +117,10 @@ model User {
   evidenceReviewed          EvidenceReview[]     @relation("EvidenceReviewedBy")
   verdictsRegistered        TestVerdict[]        @relation("VerdictRegisteredBy")
   verdictsReviewed          TestVerdictReview[]  @relation("VerdictReviewedBy")
+  documentVersionsCreated     DocumentVersion[]          @relation("DocumentVersionCreatedBy")
+  documentAssignments         DocumentAssignment[]       @relation("DocumentAssignee")
+  documentAssignmentsGranted  DocumentAssignment[]       @relation("DocumentAssignedBy")
+  documentAcceptances         DocumentAcceptanceRecord[] @relation("DocumentAcceptedBy")
   assessmentsIssued         FrameworkAssessment[] @relation("AssessmentIssuedBy")
   exclusionsProposed        Exclusion[]          @relation("ExclusionProposedBy")
   exclusionsDecided         Exclusion[]          @relation("ExclusionDecidedBy")
@@ -124,6 +132,8 @@ model User {
   evaluationsConfirmed      Evaluation[]
   findingsReported          Finding[]
   evaluationParametersUpdated EvaluationParameter[] @relation("EvaluationParameterUpdatedBy")
+  notifications               Notification[]
+  notificationDigests         NotificationDigest[]
 
   @@index([companyId])
   @@index([groupId])

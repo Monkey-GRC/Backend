@@ -36,6 +36,8 @@ export const API_TAGS = {
   exclusions: 'Cumplimiento · Exclusiones',
   observations: 'Cumplimiento · Observaciones del auditor',
   integrations: 'Integraciones',
+  documents: 'Documentos',
+  notifications: 'Notificaciones',
   admins: 'Monkey Admin · Administradores',
 } as const;
 
@@ -86,6 +88,10 @@ export const API_TAG_DESCRIPTIONS: Record<(typeof API_TAGS)[keyof typeof API_TAG
     'Observaciones que escribe el auditor sobre un servicio, un control o una evidencia, y que la empresa responde y el auditor cierra (D96). No mueven el porcentaje. Contrato: `contracts/modules/compliance-audit.md`.',
   [API_TAGS.integrations]:
     'La sección Integraciones de la empresa: el catálogo de lo que se puede conectar y las integraciones ya conectadas con su estado derivado. Contrato: `contracts/integraciones.md`.',
+  [API_TAGS.documents]:
+    'Corte mínimo de Documentos (D152): los documentos de la empresa, publicar la versión vigente como aprobación importada, asignarla a personas, «Mis documentos» y aceptarla (aceptación inmutable). Contrato: `contracts/documentos.md`.',
+  [API_TAGS.notifications]:
+    'La campana de cada persona: sus avisos de los últimos 90 días, el canal en vivo (SSE) y si recibe el resumen diario por correo. Cualquier cuenta con sesión; todo es de quien llama. Contrato: `contracts/notificaciones.md`.',
   [API_TAGS.admins]:
     'Cuentas de administrador de Monkey: listar, invitar por correo, reenviar la invitación, desactivar (7 días de gracia y luego se borra) y reactivar. Solo `admin_monkey`. Contrato: `contracts/gestion-usuarios/administradores.md`.',
 };
