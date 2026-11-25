@@ -30,7 +30,7 @@ export class ListControlTestsUseCase {
     const scope = { companyId: p.companyId, userId: p.userId, role: p.role };
     // Una sola transacción: sus consultas van en serie, no en paralelo.
     const { tests, shared, last } = await this.tx.run(scope, async () => {
-      const data = await this.controls.loadControl(scope, controlId);
+      const data = await this.controls.loadControl(scope, controlId, false);
       if (!data || data.controls.length === 0) throw new DomainError('NOT_FOUND');
       const readout = readControl(data.controls[0], data);
       const tests = [...readout.tests].sort((a, b) => a.test.code.localeCompare(b.test.code));

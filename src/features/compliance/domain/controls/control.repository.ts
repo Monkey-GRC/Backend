@@ -24,6 +24,8 @@ export type ControlEvidence = {
   sequence: number;
   description: string;
   dimension: string;
+  /** D88: la prueba a la que sirve el requerimiento (null = compartido). */
+  testId: string | null;
   validityWithinPeriod: string;
   origin: 'catalog' | 'own';
   responsible: { id: string; type: string; personName: string } | null;
@@ -45,6 +47,8 @@ export type OverviewFrameworkData = {
   periodStart: Date | null;
   periodEnd: Date | null;
   cutoffDate: Date | null;
+  /** PR-16 (MD-499) · Meses mínimos del período auditado de este marco; nulo si no exige mínimo. */
+  minPeriodMonths: number | null;
 };
 export type OverviewCriterionData = { criterion: string; mandatory: boolean; selected: boolean };
 export type Placement = { frameworkId: string; criterion: string };
@@ -63,7 +67,7 @@ export abstract class ControlRepository {
   abstract loadService(scope: TenantScope, serviceId: string): Promise<ServiceReadoutData | null>;
 
   // null si la acción no existe (o es de otra empresa). Trae solo ese control, pero con los activos y resultados de su servicio.
-  abstract loadControl(scope: TenantScope, controlId: string): Promise<ControlDetailData | null>;
+  abstract loadControl(scope: TenantScope, controlId: string, withLinkItems: boolean): Promise<ControlDetailData | null>;
 
   // Los OTROS controles vigentes del servicio que llevan cada uno de estos tests (D85): test → controles. Vacío si el control no existe para esta empresa.
   abstract sharedControlsOfTests(scope: TenantScope, controlId: string, testIds: string[]): Promise<Map<string, Array<{ id: string; code: string }>>>;

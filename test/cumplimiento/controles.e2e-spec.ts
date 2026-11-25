@@ -129,26 +129,32 @@ describe('Quién puede pedir qué', () => {
     expect(admin.length).toBe(audit.length);
     expect(admin[0].technical).toEqual({
       points_of_focus: expect.any(Array),
-      control_state: expect.any(String),
       level: expect.stringMatching(/^(not_evaluated|ineffective|weak|partial|adequate|solid)$/),
       level_value: expect.any(Number),
       complies: expect.any(Boolean),
       c_percent: nullOr(expect.any(Number)),
-      tests_count: expect.any(Number),
       periodicity_change: null,
       period: null,
     });
     // Una prueba de una dimensión sin activos conectados sale igual, como «Sin activos»; las documentales, pendientes.
     const detailOf = async (agent: Agent, id: string) => (await agent.get(`/v1/controls/${id}?view=technical`).expect(200)).body.data;
-    const withTests = admin.find((c) => c.technical.tests_count > 0)!;
+    const withTests = admin.find((c) => c.technical.level !== undefined)!;
     const adminDetail = await detailOf(a.agent, withTests.id);
-    expect(adminDetail.technical.tests).toHaveLength(withTests.technical.tests_count);
+    expect(adminDetail.technical.tests.length).toBeGreaterThan(0);
+    for (const technical of [adminDetail.technical, withTests.technical]) expect(technical).not.toHaveProperty('control_state');
+    expect(withTests.technical).not.toHaveProperty('tests_count');
+    expect(adminDetail.technical.tests.every((t: any) => t.state === undefined && typeof t.status === 'string')).toBe(true);
+    // MD-499 · `evidence_tests` va en el detalle de todos los roles, también sin `technical`, y es la regla única sobre las pruebas del control.
+    const plain = (await a.agent.get(`/v1/controls/${withTests.id}`).expect(200)).body.data;
+    expect(plain.technical).toBeUndefined();
+    expect(plain.evidence_tests.map((t: any) => t.test_id).sort()).toEqual(adminDetail.technical.tests.filter((t: any) => t.accepts_evidence).map((t: any) => t.test_id).sort());
+    for (const t of plain.evidence_tests) expect(t).toEqual({ test_id: expect.any(String), test_code: expect.any(String), display_name: expect.any(String), dimension: expect.any(String), status: expect.any(String), evidence_fallback: expect.any(Boolean), requirement_id: nullOr(expect.any(String)) });
     // `display_description` es la descripción corta del cliente (D82): texto, o nulo en una prueba que aún no la tiene.
     const { display_description: description, ...firstTest } = adminDetail.technical.tests[0];
     // `test_id` enlaza cada prueba con las evidencias que la respaldan en este control (D88) y lo piden las exclusiones.
-    expect(firstTest).toEqual({ test_id: expect.stringMatching(/^[0-9a-f-]{36}$/), test_code: expect.any(String), display_name: expect.any(String), dimension: expect.any(String), state: expect.any(String) });
+    expect(firstTest).toEqual({ test_id: expect.stringMatching(/^[0-9a-f-]{36}$/), test_code: expect.any(String), display_name: expect.any(String), dimension: expect.any(String), accepts_evidence: expect.any(Boolean), evidence_fallback: expect.any(Boolean), status: expect.any(String) });
     expect(description === null || typeof description === 'string').toBe(true);
-    expect(adminDetail.technical.tests.some((t: any) => t.state === 'no_assets' || t.state === 'pending')).toBe(true);
+    expect(adminDetail.technical.tests.some((t: any) => t.status === 'pending')).toBe(true);
     expect(adminDetail.technical).toEqual((await detailOf(auditor, withTests.id)).technical);
     // MD-498 · el detalle técnico trae los requisitos del control con su estado y sus pruebas.
     expect(adminDetail.technical.requirements.length).toBeGreaterThan(0);
@@ -161,7 +167,7 @@ describe('Quién puede pedir qué', () => {
     });
     expect(requirement.tests[0]).toEqual({
       test_id: expect.any(String), test_code: expect.any(String), display_name: expect.any(String), status: expect.stringMatching(/^(pending|correct|observation|exception|not_applicable|expired)$/),
-      window_end: nullOr(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)), alert_at: nullOr(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)), checks: nullOr(expect.any(Object)), asset_coverage: nullOr(expect.any(Object)),
+      window_end: nullOr(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)), alert_at: nullOr(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)), checks: nullOr(expect.any(Object)), asset_coverage: nullOr(expect.any(Object)), check_links: expect.any(Array), accepts_evidence: expect.any(Boolean), evidence_fallback: expect.any(Boolean),
     });
     expect(JSON.stringify(adminDetail)).not.toMatch(/wazuh|prowler/i);
   });
@@ -184,12 +190,10 @@ describe('Quién puede pedir qué', () => {
     expect(technical.length).toBe((await items(a.agent, '?page_size=100')).length);
     expect(technical[0].technical).toEqual({
       points_of_focus: expect.any(Array),
-      control_state: expect.any(String),
       level: expect.stringMatching(/^(not_evaluated|ineffective|weak|partial|adequate|solid)$/),
       level_value: expect.any(Number),
       complies: expect.any(Boolean),
       c_percent: nullOr(expect.any(Number)),
-      tests_count: expect.any(Number),
       periodicity_change: null,
       period: null,
     });
@@ -228,6 +232,38 @@ describe('Aislamiento entre empresas', () => {
 });
 
 describe('Detalle de una acción', () => {
+  it('las dimensiones incluyen toda en la que el control tiene pruebas, con el tipo según las fuentes de esas pruebas, y la subida se decide por fuente (MD-499)', async () => {
+    const [row] = await owner<{ client_control_id: string }>(
+      `select x.client_control_id from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id join tenant.client_controls c on c.id = x.client_control_id where t.dimension = 'process' and c.service_id = $1 limit 1`,
+      [a.serviceId],
+    );
+    const d = (await a.agent.get(`/v1/controls/${row.client_control_id}`).expect(200)).body.data;
+    const process = d.dimensions.find((x: any) => x.dimension === 'process');
+    expect(process).toEqual({ dimension: 'process', applies: true, type: expect.stringMatching(/^(manual|automated|hybrid)$/), reason_not_applicable: null });
+    const sources = (await owner<{ s: string }>(
+      `select coalesce(t.primary_source::text, 'manual') s from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $1 and t.dimension = 'process'`, [row.client_control_id])).map((r) => r.s);
+    const manual = sources.filter((s) => ['manual', 'document'].includes(s)).length;
+    expect(process.type).toBe(manual === sources.length ? 'manual' : manual === 0 ? 'automated' : 'hybrid');
+  });
+
+  it('la subida se decide por la fuente de cada prueba: ninguna de sonda o motor de nube la ofrece, y la de integración es de respaldo (MD-499)', async () => {
+    const bySource = new Map((await owner<{ id: string; s: string }>(`select id, coalesce(primary_source::text, 'manual') s from catalog.tests`)).map((r) => [r.id, r.s]));
+    const controls = await owner<{ id: string }>(
+      `select distinct c.id from tenant.client_controls c join tenant.client_control_tests x on x.client_control_id = c.id join catalog.tests t on t.id = x.test_id
+        where c.service_id = $1 and c.is_active and t.primary_source in ('probe','cloud_engine','probe_and_cloud_engine') limit 12`,
+      [a.serviceId],
+    );
+    expect(controls.length).toBeGreaterThan(0);
+    for (const c of controls) {
+      const tech = (await a.agent.get(`/v1/controls/${c.id}?view=technical`).expect(200)).body.data.technical;
+      const lists = [tech.tests, tech.requirements.flatMap((q: any) => q.tests)];
+      for (const t of lists.flat()) {
+        const source = bySource.get(t.test_id)!;
+        expect({ source, accepts: t.accepts_evidence, fallback: t.evidence_fallback }).toEqual({ source, accepts: ['manual', 'document', 'integration'].includes(source), fallback: source === 'integration' });
+      }
+    }
+  });
+
   it('trae la interpretación, las dimensiones, la evidencia que se debe aportar y las causas que mitiga', async () => {
     const all = await items(a.agent, '?page_size=100');
     const list = await Promise.all(all.slice(0, 30).map(async (c) => (await a.agent.get(`/v1/controls/${c.id}`).expect(200)).body.data));
@@ -300,14 +336,19 @@ describe('El estado sale de los resultados guardados', () => {
     const passed = (await auditor.get(`/v1/controls/${c.id}?view=technical`).expect(200)).body.data;
     // Un requisito técnico lleva pruebas de varias dimensiones (T-05): el requisito cumple cuando todas cumplen, no solo la de nube.
     expect(cloudTest(passed, c.test_id)).toMatchObject({ status: 'correct', checks: { direct_pass: 1, direct_fail: 0 }, asset_coverage: { with_result: 1, in_scope: 1 } });
-    expect(passed.technical.tests.some((t: any) => t.dimension === 'cloud' && t.state === 'compliant')).toBe(true);
+    expect(passed.technical.tests.some((t: any) => t.dimension === 'cloud' && t.status === 'correct')).toBe(true);
     expect(passed.failing).toEqual([]);
 
     await record(c, 'non_compliant');
     const failed = (await auditor.get(`/v1/controls/${c.id}?view=technical`).expect(200)).body.data;
     expect(cloudTest(failed, c.test_id)).toMatchObject({ status: 'exception', checks: { direct_pass: 0, direct_fail: 1 } });
     expect(failed.technical.requirements.some((r: any) => r.status === 'non_compliant')).toBe(true);
-    expect(failed.technical.control_state).toBe('ineffective');
+    // MD-499 · los vínculos ratificados de la prueba, sin el proveedor ni el identificador interno del check; la vista de negocio no los trae.
+    for (const l of cloudTest(failed, c.test_id).check_links) {
+      expect(l).toEqual({ role: expect.stringMatching(/^(direct|complementary|dependency)$/), kind: expect.stringMatching(/^(check|module)$/), check: nullOr(expect.objectContaining({ id: expect.any(String), title: expect.any(String) })), module: nullOr(expect.any(String)), failing_assets: nullOr(expect.any(Number)), owner: nullOr(expect.any(Object)) });
+    }
+    expect(JSON.stringify(failed)).not.toMatch(/policy_id|platform|sca_policy|module_ref/);
+    expect(failed.technical.level).toBe('ineffective');
     expect(failed.complies).toBeUndefined();
     expect(failed.technical.complies).toBe(false);
     expect(failed.failing).toEqual([{ dimension: 'cloud', affected: [{ kind: 'asset', id: a.assetId, name: a.assetName }] }]);
@@ -317,7 +358,7 @@ describe('El estado sale de los resultados guardados', () => {
     const business = (await a.agent.get(`/v1/controls/${c.id}`).expect(200)).body.data;
     expect(business.failing[0].affected[0].name).toBe(a.assetName);
     expect(business.code).toMatch(/^[A-Z]+-\d+$/);
-    expect(JSON.stringify(business)).not.toMatch(/\bT-[A-Z]{3}-\d{3}\b|control_code/);
+    expect(JSON.stringify(business)).not.toMatch(/\bT-[A-Z]{3}-\d{3}\b|control_code|check_links/);
   });
 
   it('filtrar por semáforo encuentra la acción que ya se midió', async () => {

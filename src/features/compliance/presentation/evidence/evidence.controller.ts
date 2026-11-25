@@ -58,7 +58,7 @@ export class EvidenceController {
     return new ResponseDto(HttpStatus.OK, t('evidence.service_list'), { items: items.map((i) => ({ control_id: i.controlId, ...toRequirement(i.requirement, view) })) });
   }
 
-  @ApiOperation({ summary: 'Evidencia de un test manual', description: 'Lo que se subió para un test **manual o documental** de un control, para mostrarlo en el test. Una prueba documental (D88) devuelve solo el requerimiento de esa prueba en este control; otro test manual (D85) devuelve los de **todos los controles vigentes del servicio que lo llevan**, cada uno con su control, y `shared_with` dice dónde más aplica. Un `responsable` recibe solo lo de las dimensiones de las que es responsable. `404` si el control no lleva el test o no es manual ni documental.' })
+  @ApiOperation({ summary: 'Evidencia de un test manual', description: 'Lo que se subió para un test **manual o documental** de un control, para mostrarlo en el test. Una prueba documental (D88) devuelve solo el requerimiento de esa prueba en este control; otro test manual (D85) devuelve los de **todos los controles vigentes del servicio que lo llevan**, cada uno con su control, y `shared_with` dice dónde más aplica. Un `responsable` recibe solo lo de las dimensiones de las que es responsable. `404` si el control no lleva el test o la prueba no acepta subida (la regla de la subida por prueba: fuente principal y dimensión aplicable).' })
   @ApiData(TestEvidenceResponse, 'Requerimientos del test con sus entregas.')
   @Get('controls/:controlId/tests/:testId/evidence')
   async testEvidence(@CurrentUser() p: Principal, @Param('controlId', idPipe) controlId: string, @Param('testId', idPipe) testId: string, @Query() q: ListEvidenceQuery) {
@@ -95,7 +95,7 @@ export class EvidenceController {
   }
 
   // D88 · La persona lee lo que pide la prueba y sube su documento, en un solo paso. El admin_empresa la valida después.
-  @ApiOperation({ summary: 'Subir la evidencia de una prueba documental', description: 'Multipart, campo `file` (PDF, DOCX, XLSX, PNG o JPG, hasta 25 MB). La evidencia es **de esa prueba en este control** (D88): en la primera entrega se crea el lugar donde queda y las siguientes son versiones nuevas. Suben `admin_empresa` y el `responsable` dueño del control. La prueba debe ser documental (`policy`) y del control; si no, 404 o `422 test.not_documentary`. Subir **no cumple** la prueba: la deja en revisión hasta que el `admin_empresa` valide la evidencia (D96). Queda registro de auditoría.' })
+  @ApiOperation({ summary: 'Subir la evidencia de una prueba de fuente manual', description: 'Multipart, campo `file` (PDF, DOCX, XLSX, PNG o JPG, hasta 25 MB). La evidencia es **de esa prueba en este control** (D88): en la primera entrega se crea el lugar donde queda y las siguientes son versiones nuevas. Suben `admin_empresa` y el `responsable` dueño del control. La prueba debe ser del control (si no, 404) y aceptar subida según su fuente principal: `document` y `manual` sí; `probe`, `cloud_engine` y `probe_and_cloud_engine` no (`422 test.not_manual`); `integration` sí, de respaldo, mientras el servicio no tenga conectada una integración de su categoría. Además, su dimensión debe aplicar en el control (`422 dimension.not_in_control`). Subir **no cumple** la prueba: la deja en revisión hasta que el `admin_empresa` valide la evidencia (D96). Queda registro de auditoría.' })
   @ApiBody({ schema: { type: 'object', required: ['file'], properties: { file: { type: 'string', format: 'binary', description: 'PDF, DOCX, XLSX, PNG o JPG; máx. 25 MB.' } } } })
   @ApiConsumes('multipart/form-data')
   @ApiData(EvidenceSubmissionResponse, 'Entrega registrada para esa prueba.', { status: 201 })
@@ -127,7 +127,7 @@ export class EvidenceController {
   }
 
   // D88 · Una evidencia propia en un control: de una prueba documental concreta, o compartida con todas las del control.
-  @ApiOperation({ summary: 'Agregar una evidencia propia a un control', description: 'Solo `admin_empresa`. Agrega al control una evidencia requerida **propia** (`origin: "own"`). Con `test_id` sirve solo a esa prueba documental del control; sin él queda compartida con todas (D88). Así todo control puede respaldar sus pruebas manuales aunque el catálogo no le haya traído un documento. `dimension` debe ser una que el control exige; con `test_id` debe ser `policy`. Queda registro de auditoría.' })
+  @ApiOperation({ summary: 'Agregar una evidencia propia a un control', description: 'Solo `admin_empresa`. Agrega al control una evidencia requerida **propia** (`origin: "own"`). Con `test_id` sirve solo a esa prueba del control, que debe aceptar subida (la misma regla de la subida por prueba: `test.not_manual`, `test.not_in_control`); sin él queda compartida con todas (D88). Así todo control puede respaldar sus pruebas manuales aunque el catálogo no le haya traído un documento. `dimension` debe ser una que el control exige (`dimension.not_in_control`) y, con `test_id`, la de esa prueba (`dimension.not_of_test`). Queda registro de auditoría.' })
   @ApiData(EvidenceRequirementResponse, 'Evidencia requerida creada.', { status: 201 })
   @ApiDomainErrors('CONTROL_RETIRED')
   @Post('controls/:controlId/evidence-requirements')

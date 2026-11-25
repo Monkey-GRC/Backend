@@ -86,7 +86,7 @@ export function validateCatalog(c: CatalogV2): Validation {
   for (const x of c.controlDimensions) dimsOf.set(x.controlCode, (dimsOf.get(x.controlCode) ?? new Set()).add(x.dimension));
   for (const k of controlCodes) if (!dimsOf.get(k)?.has('policy')) err(`${k}: no aplica la dimensión documental (las 114 la aplican).`);
   for (const t of c.tests) {
-    if (t.controlCode && t.dimension !== 'process' && !dimsOf.get(t.controlCode)?.has(t.dimension)) err(`${t.code}: su dimensión ${t.dimension} no está definida en el control ${t.controlCode}.`);
+    if (t.controlCode && !dimsOf.get(t.controlCode)?.has(t.dimension)) err(`${t.code}: su dimensión ${t.dimension} no está definida en el control ${t.controlCode}.`);
   }
 
   // ---- Pruebas y requisitos ----

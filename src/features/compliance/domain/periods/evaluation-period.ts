@@ -30,6 +30,9 @@ const DAY_MS = 86_400_000;
 /** Los marcos cuyo período auditado tiene una duración mínima (PR-16). */
 export const FRAMEWORKS_WITH_MIN_PERIOD: readonly string[] = ['soc2'];
 
+/** PR-16 · La duración mínima (meses) que exige el marco, o `null` si no exige ninguna. Una sola regla para la validación y para el resumen. */
+export const minPeriodMonthsOf = (frameworkCode: string, prMinMonths: number): number | null => (FRAMEWORKS_WITH_MIN_PERIOD.includes(frameworkCode) ? prMinMonths : null);
+
 /** `date` más `months` meses de calendario (si el día no existe en el mes de destino, el último de ese mes). */
 export function addMonthsUtc(date: Date, months: number): Date {
   const target = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));

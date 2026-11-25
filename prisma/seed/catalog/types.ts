@@ -175,7 +175,7 @@ export const EXPECTED_COUNTS: Counts = {
   // 232 requisitos citan un documento; uno cita dos.
   controlRequirementDocuments: 233,
   controlTests: 658,
-  controlDimensions: 267,
+  controlDimensions: 374, // 267 de las columnas «Definido» + 107 de `process` (MD-499)
   tests: 472,
   testChecks: 4684,
   documents: 42,

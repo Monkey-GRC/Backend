@@ -8,6 +8,9 @@
     "app": "Prueba de aplicación",
     "cloud": "Prueba de nube"
   },
+  "check_link": {
+    "neutral_title": "Comprobación automática"
+  },
   "created": "Listo, creamos tu control propio. Ya cuenta para el cumplimiento.",
   "updated": "Listo, guardamos los cambios del control.",
   "periodicity_set": "Listo, cambiamos la periodicidad del control.",

@@ -10,7 +10,7 @@ import { EvaluationParameters, EvaluationParametersPort } from '../../domain/eng
 import { ControlAccess, NO_ACCESS } from '../../domain/controls/control-access';
 import { dimensionOfAssetType, readControl } from '../../domain/controls/control-readout';
 import type { TestState } from '../../domain/engine/states';
-import { VerdictResult, VerdictReview, verdictStateOf } from '../../domain/verdicts/test-verdict';
+import { isManualDimensionType, VerdictResult, VerdictReview, verdictStateOf } from '../../domain/verdicts/test-verdict';
 import {
   LastVerdict, NewVerdict, NewVerdictReview, TestVerdictRepository, VerdictOrigin, VerdictRecord, VerdictReviewed, VerdictWithTestState,
 } from '../../domain/verdicts/test-verdict.repository';
@@ -20,8 +20,6 @@ import { latestApprovedVerdictIds } from '../shared/latest-results.query';
 import { loadServiceSnapshot } from '../shared/service-snapshot.loader';
 
 const PERSON = { select: { id: true, name: true, lastName: true } } as const;
-// Una dimensión que el control resuelve a mano. `hybrid` y `automated` las resuelve la sonda: su veredicto no se da, se mide.
-const MANUAL_DIMENSION_TYPES = new Set(['manual', 'technical_manual']);
 // Como el resto de lo que relee el servicio entero dentro de la transacción (D91): con la base lejos los 5 s por defecto de Prisma no alcanzan.
 const STATE_TRANSACTION = { timeoutMs: 30_000 };
 const NEWEST_FIRST = [{ registeredAt: 'desc' }, { id: 'desc' }] as const;
@@ -75,7 +73,7 @@ export class TestVerdictPrismaRepository extends TestVerdictRepository {
       // La documental se resuelve revisando su evidencia (D88); la automática, midiendo. El veredicto es solo de lo manual que no es documental.
       if (dimension === 'policy') throw new DomainError('TEST_DECIDED_BY_EVIDENCE');
       const kind = await tx.clientControlDimension.findFirst({ where: { clientControlId: controlId, dimension }, select: { type: true } });
-      if (!kind || !MANUAL_DIMENSION_TYPES.has(kind.type)) throw new DomainError('TEST_NOT_MANUAL');
+      if (!kind || !isManualDimensionType(kind.type)) throw new DomainError('TEST_NOT_MANUAL');
 
       // MD-154, D85 · Con observaciones del auditor abiertas en el control de origen el veredicto se da igual, pero explicando por qué. Criterio provisional: cuenta solo el control de
       // origen y solo las `open` (una que la empresa ya respondió, `answered`, deja de pedir explicación). Una observación no mueve el porcentaje: esto solo exige constancia.

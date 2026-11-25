@@ -19,8 +19,6 @@ import { ALL_REVIEWS, REVIEW_SELECT, toReviewRecord, versionOf } from './evidenc
 const STATE_TRANSACTION = { timeoutMs: 30_000 };
 
 const PERSON ={ select: { id: true, name: true, lastName: true } } as const;
-// Una dimensión que el control resuelve a mano; la documental (`policy`) también es manual (D88). Lo mismo que decide si cabe un veredicto (`test-verdict.prisma.repository.ts`).
-const MANUAL_DIMENSION_TYPES = new Set(['manual', 'technical_manual']);
 // Todas las revisiones de la entrega, la de cada rol (D102): ya no se esconde la de un rol al otro (SEG-61 se retiró, D96).
 const submissionSelect = () =>
   ({
@@ -93,15 +91,19 @@ export class EvidencePrismaRepository extends EvidenceRepository {
     return this.prisma.withScope(scope, async (tx) => {
       const origin = await tx.clientControl.findFirst({
         where: { id: controlId },
-        select: { id: true, serviceId: true, ownCode: true, control: { select: { code: true } }, tests: { where: { testId }, select: { test: { select: { dimension: true } } } } },
+        select: {
+          id: true, serviceId: true, ownCode: true, control: { select: { code: true } }, dimensions: { select: { dimension: true, reasonNotApplicable: true } },
+          tests: { where: { testId }, select: { test: { select: { dimension: true, primarySource: true, integrationCategory: { select: { name: true } } } } } },
+        },
       });
-      const dimension = origin?.tests[0]?.test.dimension;
-      if (!origin || !dimension) return null;
-      // Solo un test manual o documental tiene evidencia que mostrar; uno automático lo mide la sonda.
-      if (dimension !== 'policy') {
-        const kind = await tx.clientControlDimension.findFirst({ where: { clientControlId: controlId, dimension }, select: { type: true } });
-        if (!kind || !MANUAL_DIMENSION_TYPES.has(kind.type)) return null;
-      }
+      const found = origin?.tests[0]?.test;
+      if (!origin || !found) return null;
+      const dimension = found.dimension;
+      // Qué pruebas tienen evidencia que mostrar lo decide el caso de uso con la regla única (`evidenceAcceptanceOf`): aquí solo se traen sus hechos.
+      const test = {
+        primarySource: found.primarySource, integrationCategory: found.integrationCategory?.name ?? null,
+        dimensionApplies: origin.dimensions.some((d) => d.dimension === dimension && d.reasonNotApplicable === null),
+      };
 
       // D88: una prueba documental se respalda en SU control. D85: otro test manual vale en todos los controles vigentes del servicio que lo llevan.
       const others =
@@ -127,7 +129,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       });
       const accessOf = await loadControlAccess(tx, ids);
       return {
-        testId, dimension,
+        testId, dimension, serviceId: origin.serviceId, test,
         controls: controls.map((c) => ({ id: c.id, code: c.code, access: accessOf.get(c.id) ?? NO_ACCESS })),
         items: rows
           .map((r) => ({ controlId: r.clientControlId, requirement: toRequirement(r) }))
@@ -236,7 +238,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         select: {
           id: true, serviceId: true, isActive: true, ownCode: true,
           dimensions: { select: { dimension: true, reasonNotApplicable: true } },
-          tests: { select: { testId: true, test: { select: { code: true, displayName: true, displayNameEn: true, dimension: true } } } },
+          tests: { select: { testId: true, test: { select: { code: true, displayName: true, displayNameEn: true, dimension: true, primarySource: true, integrationCategory: { select: { name: true } } } } } },
           evidenceRequirements: { select: { sequence: true, validityWithinPeriod: true } },
         },
       });
@@ -252,7 +254,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         controlId: c.id, serviceId: c.serviceId, active: c.isActive, ownCode: c.ownCode,
         access,
         dimensions: c.dimensions.filter((d) => d.reasonNotApplicable === null).map((d) => d.dimension),
-        tests: c.tests.map((t) => ({ id: t.testId, code: t.test.code, displayName: t.test.displayName, displayNameEn: t.test.displayNameEn, dimension: t.test.dimension })),
+        tests: c.tests.map((t) => ({ id: t.testId, code: t.test.code, displayName: t.test.displayName, displayNameEn: t.test.displayNameEn, dimension: t.test.dimension, primarySource: t.test.primarySource, integrationCategory: t.test.integrationCategory?.name ?? null })),
         validityWithinPeriod: validity,
       };
     });

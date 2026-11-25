@@ -20,20 +20,31 @@ import { ALL_REVIEWS, requirementState, versionOf } from '../evidence/evidence-r
 // Orden canónico de las categorías (enums.md `trust_criterion`).
 const CRITERIA_ORDER = ['security', 'availability', 'confidentiality', 'integrity', 'privacy'];
 
-const TEST_SELECT = {
-  id: true, code: true, dimension: true, displayName: true, displayNameEn: true, displayDescription: true, type: true,
-  testChecks: { select: { role: true, checkId: true, ownerControlId: true, moduleRef: true, provenance: true } },
-} satisfies Prisma.TestSelect;
+// El título de cada check y el código del control dueño de una Dependencia solo los pide `check_links[]` del detalle técnico (`withLinkItems`): las demás lecturas (lista, resumen, los
+// eventos de estado) no pagan esas uniones.
+const LINK_ITEM_SELECT = { check: { select: { id: true, titleEs: true, titleEn: true } }, ownerControl: { select: { code: true } } } satisfies Prisma.TestCheckSelect;
+const testSelect = (withLinkItems: boolean) =>
+  ({
+    id: true, code: true, dimension: true, displayName: true, displayNameEn: true, displayDescription: true, type: true, primarySource: true, integrationCategory: { select: { name: true } },
+    testChecks: { select: { role: true, checkId: true, ownerControlId: true, moduleRef: true, provenance: true, ...(withLinkItems ? LINK_ITEM_SELECT : {}) } },
+  }) satisfies Prisma.TestSelect;
 
-type TestRow = Prisma.TestGetPayload<{ select: typeof TEST_SELECT }>;
+type TestRow = Prisma.TestGetPayload<{ select: ReturnType<typeof testSelect> }>;
 
-/** Los vínculos de una prueba con sus checks y módulos (T-04 a T-06). Solo cuentan los que el comité ratificó (D56). */
-function linksOf(test: TestRow): TestLinks {
-  const links: TestLinks = { directCheckCount: 0, complementaryCheckIds: [], modules: [], dependencies: [], directKeys: [] };
+/** Los vínculos de una prueba con sus checks y módulos (T-04 a T-06). Solo cuentan los que el comité ratificó (D56). `items` solo se llena con `withLinkItems`. */
+function linksOf(test: TestRow, withLinkItems: boolean): TestLinks {
+  const links: TestLinks = { directCheckCount: 0, complementaryCheckIds: [], modules: [], dependencies: [], directKeys: [], items: [] };
   for (const l of test.testChecks) {
     if (l.provenance !== 'committee_ratified') continue;
     const key = l.checkId ? `check:${l.checkId}` : l.moduleRef ? `module:${l.moduleRef}` : null;
     if (!key) continue;
+    if (withLinkItems) {
+      links.items.push({
+        role: l.role, key, moduleRef: l.checkId ? null : l.moduleRef,
+        check: l.check ? { id: l.check.id, titleEs: l.check.titleEs, titleEn: l.check.titleEn } : null,
+        owner: l.role === 'dependency' && l.ownerControlId ? { controlId: l.ownerControlId, code: l.ownerControl?.code ?? '' } : null,
+      });
+    }
     if (l.role === 'dependency') {
       if (l.ownerControlId) links.dependencies.push({ ownerControlId: l.ownerControlId, key });
     } else if (l.role === 'direct') {
@@ -46,29 +57,59 @@ function linksOf(test: TestRow): TestLinks {
   return links;
 }
 
-const toReadoutTest = (t: TestRow): ReadoutTest => ({
-  testId: t.id, code: t.code, displayName: t.displayName, displayNameEn: t.displayNameEn, displayDescription: t.displayDescription, testType: t.type, dimension: t.dimension as Dimension,
-  mandatory: true, active: true, links: linksOf(t),
+const toReadoutTest = (t: TestRow, withLinkItems: boolean): ReadoutTest => ({
+  testId: t.id, code: t.code, displayName: t.displayName, displayNameEn: t.displayNameEn, displayDescription: t.displayDescription, testType: t.type, dimension: t.dimension as Dimension, primarySource: t.primarySource, integrationCategory: t.integrationCategory?.name ?? null,
+  mandatory: true, active: true, links: linksOf(t, withLinkItems),
 });
+
+/** Los marcos y las categorías contratados del servicio: solo los requisitos de ellos cuentan para un control (D80). */
+export type Contracted = { criteria: Set<string>; frameworks: Set<string> };
+export async function loadContracted(tx: TransactionClient, serviceId: string): Promise<Contracted> {
+  return {
+    criteria: new Set((await tx.serviceTrustCriterion.findMany({ where: { serviceId }, select: { trustCriterion: { select: { criterion: true } } } })).map((r) => r.trustCriterion.criterion)),
+    frameworks: new Set((await tx.serviceFramework.findMany({ where: { serviceId }, select: { frameworkId: true } })).map((r) => r.frameworkId)),
+  };
+}
+
+/** Los requisitos y puntos de enfoque de un control de catálogo que cuentan en el servicio (`POINT_OF_FOCUS_LINKS`, filtrados por lo contratado). */
+export const POINT_OF_FOCUS_LINKS = {
+  pointOfFocusControls: { select: { pointOfFocus: { select: { number: true, requirement: { select: { code: true, frameworkId: true, trustCriterion: { select: { criterion: true } } } } } } } },
+} satisfies Prisma.ControlSelect;
+type PointOfFocusRows = Prisma.ControlGetPayload<{ select: typeof POINT_OF_FOCUS_LINKS }>['pointOfFocusControls'];
+export function placementsOf(links: PointOfFocusRows | undefined, contracted: Contracted): { criteria: Set<string>; requirementCodes: Set<string>; pointsOfFocus: Set<string> } {
+  const out = { criteria: new Set<string>(), requirementCodes: new Set<string>(), pointsOfFocus: new Set<string>() };
+  for (const link of links ?? []) {
+    const req = link.pointOfFocus.requirement;
+    if (!contracted.frameworks.has(req.frameworkId) || !contracted.criteria.has(req.trustCriterion.criterion)) continue;
+    out.criteria.add(req.trustCriterion.criterion);
+    out.requirementCodes.add(req.code);
+    out.pointsOfFocus.add(`${req.code}-POF${link.pointOfFocus.number}`);
+  }
+  return out;
+}
 
 // Los controles del servicio con sus requisitos y las pruebas de cada uno, y la evidencia que se ha entregado. Un número fijo de consultas, sin importar cuántos controles haya.
 async function loadControls(
   tx: TransactionClient,
   serviceId: string,
-  only: string | undefined,
-  contracted: { criteria: Set<string>; frameworks: Set<string> },
+  only: string | readonly string[] | undefined,
+  contracted: Contracted,
+  withLinkItems: boolean,
+  catalogControlIds?: readonly string[],
 ): Promise<ReadoutControl[]> {
   const rows = await tx.clientControl.findMany({
-    where: { serviceId, isActive: true, ...(only ? { id: only } : {}) },
+    where: {
+      serviceId, isActive: true,
+      ...(only === undefined ? {} : { id: typeof only === 'string' ? only : { in: [...only] } }),
+      ...(catalogControlIds ? { controlId: { in: [...catalogControlIds] } } : {}),
+    },
     select: {
       id: true, serviceId: true, ownCode: true, name: true, trustCriterion: true, type: true, clientInterpretation: true, controlId: true,
       periodicityJustification: true, periodicityChangedAt: true,
       control: {
         select: {
           code: true, name: true, description: true, periodicity: true,
-          pointOfFocusControls: {
-            select: { pointOfFocus: { select: { number: true, requirement: { select: { code: true, frameworkId: true, trustCriterion: { select: { criterion: true } } } } } } },
-          },
+          ...POINT_OF_FOCUS_LINKS,
         },
       },
       dimensions: { select: { dimension: true, type: true, reasonNotApplicable: true } },
@@ -76,7 +117,7 @@ async function loadControls(
         select: {
           id: true, periodicity: true, isApplicable: true,
           controlRequirement: {
-            select: { code: true, text: true, type: true, pointNumber: true, periodicity: true, tests: { select: { test: { select: TEST_SELECT } } } },
+            select: { code: true, text: true, type: true, pointNumber: true, periodicity: true, tests: { select: { test: { select: testSelect(withLinkItems) } } } },
           },
         },
       },
@@ -105,16 +146,7 @@ async function loadControls(
   }
 
   return rows.map((c) => {
-    const criteria = new Set<string>();
-    const requirementCodes = new Set<string>();
-    const pointsOfFocus = new Set<string>();
-    for (const link of c.control?.pointOfFocusControls ?? []) {
-      const req = link.pointOfFocus.requirement;
-      if (!contracted.frameworks.has(req.frameworkId) || !contracted.criteria.has(req.trustCriterion.criterion)) continue;
-      criteria.add(req.trustCriterion.criterion);
-      requirementCodes.add(req.code);
-      pointsOfFocus.add(`${req.code}-POF${link.pointOfFocus.number}`);
-    }
+    const { criteria, requirementCodes, pointsOfFocus } = placementsOf(c.control?.pointOfFocusControls, contracted);
     const requirements: ReadoutRequirement[] = c.requirements
       .map((r) => ({
         id: r.id,
@@ -124,7 +156,7 @@ async function loadControls(
         periodicity: (r.periodicity ?? r.controlRequirement.periodicity ?? null) as Periodicity | null,
         suggestedPeriodicity: (r.controlRequirement.periodicity ?? null) as Periodicity | null,
         isApplicable: r.isApplicable,
-        tests: r.controlRequirement.tests.map((t) => toReadoutTest(t.test)).sort((a, b) => a.code.localeCompare(b.code)),
+        tests: r.controlRequirement.tests.map((t) => toReadoutTest(t.test, withLinkItems)).sort((a, b) => a.code.localeCompare(b.code)),
         point: r.controlRequirement.pointNumber ?? 0,
       }))
       .sort((a, b) => a.point - b.point || a.code.localeCompare(b.code))
@@ -166,17 +198,15 @@ export async function loadServiceSnapshot(
   tx: TransactionClient,
   serviceId: string,
   parameters: EvaluationParameters,
-  onlyControlId?: string,
+  onlyControlId?: string | readonly string[],
+  options: { withLinkItems?: boolean } = {},
 ): Promise<ServiceReadoutData> {
-  const contracted = {
-    criteria: new Set((await tx.serviceTrustCriterion.findMany({ where: { serviceId }, select: { trustCriterion: { select: { criterion: true } } } })).map((r) => r.trustCriterion.criterion)),
-    frameworks: new Set((await tx.serviceFramework.findMany({ where: { serviceId }, select: { frameworkId: true } })).map((r) => r.frameworkId)),
-  };
+  const withLinkItems = options.withLinkItems ?? false;
+  const contracted = await loadContracted(tx, serviceId);
 
-  const controls = await loadControls(tx, serviceId, onlyControlId, contracted);
-  // T-06 · Una Dependencia lee la prueba del control dueño: si se lee un solo control que depende de otros, se cargan los demás del servicio.
-  const needsPool = !!onlyControlId && controls.some((c) => c.tests.some((t) => (t.links ?? NO_LINKS).dependencies.length > 0));
-  const pool = needsPool ? await loadControls(tx, serviceId, undefined, contracted) : undefined;
+  const controls = await loadControls(tx, serviceId, onlyControlId, contracted, withLinkItems);
+  // T-06 · Una Dependencia lee la prueba del control dueño: si se leen solo algunos controles que dependen de otros, se cargan también esos dueños (y los de ellos, si a su vez dependen), no todo el servicio.
+  const pool = onlyControlId === undefined ? undefined : await withDependencyOwners(tx, serviceId, controls, contracted, withLinkItems);
   const everyControl = pool ?? controls;
 
   const assets = (await tx.serviceAsset.findMany({ where: { serviceId, asset: { status: 'active' } }, select: { asset: { select: { id: true, name: true, type: true } } } })).map((r) => r.asset);
@@ -215,6 +245,7 @@ export async function loadServiceSnapshot(
   const complementaryByCheck = new Map<string, string[]>();
   for (const c of everyControl) for (const t of c.tests) for (const id of t.links?.complementaryCheckIds ?? []) complementaryByCheck.set(id, [...new Set([...(complementaryByCheck.get(id) ?? []), t.testId])]);
   const complementaryFails = new Set<string>();
+  const complementaryFailChecks = new Set<string>();
   if (complementaryByCheck.size > 0 && technicalAssets.length > 0) {
     const failed = await tx.$queryRaw<{ assetId: string; checkId: string }[]>(Prisma.sql`
       SELECT DISTINCT sa.asset_id AS "assetId", cr.check_id AS "checkId"
@@ -224,7 +255,12 @@ export async function loadServiceSnapshot(
                             ORDER BY x.started_at DESC NULLS LAST, x.queued_at DESC LIMIT 1) ex
         JOIN tenant.check_results cr ON cr.execution_id = ex.id
        WHERE sa.service_id = ${serviceId}::uuid AND cr.result = 'failed' AND cr.check_id = ANY(${[...complementaryByCheck.keys()]}::uuid[])`);
-    for (const f of failed) for (const testId of complementaryByCheck.get(f.checkId) ?? []) complementaryFails.add(testAssetKey(testId, f.assetId));
+    for (const f of failed) {
+      for (const testId of complementaryByCheck.get(f.checkId) ?? []) {
+        complementaryFails.add(testAssetKey(testId, f.assetId));
+        complementaryFailChecks.add(`${testAssetKey(testId, f.assetId)}|${f.checkId}`);
+      }
+    }
   }
 
   // D141 · Los hallazgos críticos y altos abiertos de cada activo (vulnerabilidades activas y hallazgos abiertos), solo de los activos con una corrida completada: sin ella no hay dato y nunca se asume cero.
@@ -249,9 +285,25 @@ export async function loadServiceSnapshot(
     controls,
     assets,
     results,
-    signals: { now, parameters, resultDates, exceptions, complementaryFails, moduleFacts, verdicts, period, ...(resultDays ? { resultDays } : {}) },
+    signals: { now, parameters, resultDates, exceptions, complementaryFails, complementaryFailChecks, moduleFacts, verdicts, period, ...(resultDays ? { resultDays } : {}) },
     ...(pool ? { pool } : {}),
   };
+}
+
+/** Los controles leídos más los dueños de sus Dependencias, a cualquier profundidad (solo los que faltan). `undefined` si ninguno depende de un control que no se leyó. */
+async function withDependencyOwners(tx: TransactionClient, serviceId: string, controls: ReadoutControl[], contracted: Contracted, withLinkItems: boolean): Promise<ReadoutControl[] | undefined> {
+  const known = new Set(controls.map((c) => c.catalogControlId));
+  const extra: ReadoutControl[] = [];
+  let frontier: readonly ReadoutControl[] = controls;
+  for (;;) {
+    const missing = new Set(frontier.flatMap((c) => c.tests.flatMap((t) => (t.links ?? NO_LINKS).dependencies.map((d) => d.ownerControlId))).filter((id) => !known.has(id)));
+    if (missing.size === 0) break;
+    // Un dueño que no existe en el servicio (fuera del alcance) se da por buscado: no se vuelve a pedir.
+    for (const id of missing) known.add(id);
+    frontier = await loadControls(tx, serviceId, undefined, contracted, withLinkItems, [...missing]);
+    extra.push(...frontier);
+  }
+  return extra.length > 0 ? [...controls, ...extra] : undefined;
 }
 
 /** El período auditado abierto del servicio; con varios marcos activos, el que termina más tarde. `null` si ninguno lo tiene definido. */

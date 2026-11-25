@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { FileStorage } from '../../src/common/storage/file-storage';
-import { controlPropioConPruebas } from '../support/controles';
+import { controlPropioConPruebas, controlStateOf } from '../support/controles';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
@@ -23,7 +23,7 @@ const submit = (marca: string) => a.agent.post(`/v1/controls/${controlId}/tests/
 const review = (agent: Agent, submissionId: string) => agent.put(`/v1/evidence-submissions/${submissionId}/review`).send(ALL_OK);
 const detail = async () => {
   const d = (await a.agent.get(`/v1/controls/${controlId}?view=technical`).expect(200)).body.data;
-  return { state: d.technical.control_state as string, readiness: d.readiness as string };
+  return { state: controlStateOf(d.technical), readiness: d.readiness as string };
 };
 const events = (cause: string) =>
   owner<{ previous_value: any; new_value: any; user_id: string | null }>(

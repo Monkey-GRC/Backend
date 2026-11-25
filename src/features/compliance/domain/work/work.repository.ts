@@ -1,4 +1,5 @@
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
+import type { ConnectedIntegrationCategories } from '../evidence/test-evidence-source';
 import type { WorkItem } from './work-bucket';
 
 // Lo que `GET /v1/me/work` y `GET /v1/team/workload` necesitan además del estado de cada control (que sale de `AssignmentRepository.load`): qué se entregó de cada pieza que el control
@@ -14,7 +15,8 @@ export type ControlDeliveries = {
 
 export abstract class WorkRepository {
   // Un número fijo de consultas, sin importar cuántos controles se pidan. Un control sin piezas ni observaciones sale con `items: []` y cero.
-  abstract deliveriesOf(scope: TenantScope, controlIds: string[]): Promise<Map<string, ControlDeliveries>>;
+  // `connected`: las categorías de integración conectadas de cada servicio (se resuelven fuera de la transacción); decide qué pruebas aceptan subida (`workPieceOf`).
+  abstract deliveriesOf(scope: TenantScope, controlIds: string[], connected: ReadonlyMap<string, ConnectedIntegrationCategories>): Promise<Map<string, ControlDeliveries>>;
 
   /** Los `responsable` y `delegado` activos de la empresa y los `admin_empresa` activos (de ellos solo importan los que son dueños de algún control). */
   abstract people(scope: TenantScope): Promise<WorkPerson[]>;

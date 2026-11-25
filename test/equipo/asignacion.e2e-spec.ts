@@ -240,12 +240,12 @@ describe('GET /v1/assignments · filtros, orden y paginación', () => {
   });
 
   it('status se calcula por servicio y se filtra y pagina después: coincide con el estado del listado de controles', async () => {
-    const tecnico = new Map<string, string>();
+    const tecnico = new Map<string, boolean>();
     for (const s of [a.serviceId, servicio2]) {
       const d = (await a.agent.get(`/v1/services/${s}/controls?view=technical&page_size=100`).expect(200)).body.data;
-      for (const c of d.items) tecnico.set(c.id, c.technical.control_state);
+      for (const c of d.items) tecnico.set(c.id, c.technical.complies);
     }
-    for (const i of todosLosA) if (tecnico.has(i.client_control_id)) expect(i.state).toBe(tecnico.get(i.client_control_id));
+    for (const i of todosLosA) if (tecnico.has(i.client_control_id)) expect(i.state === 'effective').toBe(tecnico.get(i.client_control_id));
     const estados = [...new Set(todosLosA.map((i) => i.state))];
     expect(estados.length).toBeGreaterThan(0);
     for (const s of estados) {

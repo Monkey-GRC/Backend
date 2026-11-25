@@ -31,14 +31,12 @@ const category = (c: OverviewCategory, technical: boolean, t: Translate) => ({
           controls: c.technical.controls.map((l) => ({
             control_id: l.readout.control.id,
             control_code: l.code,
-            state: l.readout.state,
             progress: l.readout.progress,
             level: l.readout.level,
             level_value: l.readout.levelValue,
             complies: l.readout.complies,
             c_percent: l.readout.cPercent,
             blocking_requirements: l.readout.blockingRequirements.map((b) => ({ code: b.requirement.code, text: b.requirement.text, status: b.status })),
-            blocking_tests: l.blockingTests.map((b) => ({ test_code: b.code, display_name: neutralName(b, b.dimension as never, t), state: b.state })),
           })),
         },
       }
@@ -48,7 +46,7 @@ const category = (c: OverviewCategory, technical: boolean, t: Translate) => ({
 export const toOverview = (serviceId: string, frameworks: OverviewFramework[], technical: boolean, t: Translate) => ({
   service_id: serviceId,
   frameworks: frameworks.map((f) => {
-    // Sin período auditado (D87) no hay evaluación que mostrar: los cinco datos van en nulo. La fecha de corte efectiva ya viene calculada (hoy o la congelada).
+    // Sin período auditado (D87) no hay evaluación que mostrar: los cinco datos van en nulo (`min_period_months` siempre viaja). La fecha de corte efectiva ya viene calculada (hoy o la congelada).
     const defined = f.evaluation.periodStart !== null && f.evaluation.periodEnd !== null && f.evaluation.cutoffDate !== null;
     return {
       framework_code: f.frameworkCode,
@@ -63,8 +61,9 @@ export const toOverview = (serviceId: string, frameworks: OverviewFramework[], t
             period_end: day(f.evaluation.periodEnd),
             cutoff_date: day(f.evaluation.cutoffDate),
             cutoff_frozen: f.evaluation.cutoffFrozen,
+            min_period_months: f.evaluation.minPeriodMonths,
           }
-        : { catalog_version: null, period_start: null, period_end: null, cutoff_date: null, cutoff_frozen: null },
+        : { catalog_version: null, period_start: null, period_end: null, cutoff_date: null, cutoff_frozen: null, min_period_months: f.evaluation.minPeriodMonths },
       categories: f.categories.map((c) => category(c, technical, t)),
       ...(technical
         ? {

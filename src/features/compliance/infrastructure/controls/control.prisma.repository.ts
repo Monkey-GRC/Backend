@@ -4,6 +4,7 @@ import { PrismaService } from '../../../../infrastructure/database/prisma.servic
 import { EvaluationParametersPort } from '../../domain/engine/v2/parameters';
 import { ControlDetailData, ControlRepository, Placement, ServiceOverviewData, ServiceReadoutData } from '../../domain/controls/control.repository';
 import { evidenceStateOf } from '../../domain/evidence/evidence';
+import { minPeriodMonthsOf } from '../../domain/periods/evaluation-period';
 import { loadServiceSnapshot } from '../shared/service-snapshot.loader';
 import { ALL_REVIEWS, toReviewRecord } from '../evidence/evidence-review.mapper';
 
@@ -28,7 +29,8 @@ export class ControlPrismaRepository extends ControlRepository {
     return this.prisma.withScope(scope, async (tx) => {
       const service = await tx.service.findFirst({ where: { id: serviceId, organization: { companyId: scope.companyId } }, select: { id: true } });
       if (!service) return null;
-      const base = await loadServiceSnapshot(tx, serviceId, await this.evaluationParameters.load(tx));
+      const parameters = await this.evaluationParameters.load(tx);
+      const base = await loadServiceSnapshot(tx, serviceId, parameters);
 
       // Solo los marcos activos del servicio.
       const frameworks = (
@@ -40,6 +42,7 @@ export class ControlPrismaRepository extends ControlRepository {
       ).map((f) => ({
         frameworkId: f.frameworkId, code: f.framework.code, name: f.framework.name, catalogVersion: f.catalogVersion.number,
         periodStart: f.periods[0]?.periodStart ?? null, periodEnd: f.periods[0]?.periodEnd ?? null, cutoffDate: f.periods[0]?.cutoffDate ?? null,
+        minPeriodMonths: minPeriodMonthsOf(f.framework.code, parameters.auditedPeriodMinMonths),
       }));
 
       // Una categoría está en alcance si es obligatoria (Seguridad en SOC 2) o si el servicio la eligió.
@@ -89,17 +92,17 @@ export class ControlPrismaRepository extends ControlRepository {
     });
   }
 
-  loadControl(scope: TenantScope, controlId: string): Promise<ControlDetailData | null> {
+  loadControl(scope: TenantScope, controlId: string, withLinkItems: boolean): Promise<ControlDetailData | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const found = await tx.clientControl.findFirst({ where: { id: controlId, isActive: true }, select: { serviceId: true } });
       if (!found) return null;
-      const base = await loadServiceSnapshot(tx, found.serviceId, await this.evaluationParameters.load(tx), controlId);
+      const base = await loadServiceSnapshot(tx, found.serviceId, await this.evaluationParameters.load(tx), controlId, { withLinkItems });
 
       const requirements = await tx.evidenceRequirement.findMany({
         where: { clientControlId: controlId },
         orderBy: { sequence: 'asc' },
         select: {
-          id: true, code: true, sequence: true, description: true, dimension: true, validityWithinPeriod: true, sourceRef: true,
+          id: true, code: true, sequence: true, description: true, dimension: true, testId: true, validityWithinPeriod: true, sourceRef: true,
           responsible: { select: { id: true, type: true, personName: true } },
           // La revisión del admin_empresa: la única, la que ven todos y la que consume el motor (D96).
           submissions: { select: { id: true, version: true, aiVerdict: true, reviews: ALL_REVIEWS } },
@@ -116,7 +119,7 @@ export class ControlPrismaRepository extends ControlRepository {
           // `version` es texto en el modelo ("1", "2"…): la última es la de mayor número.
           const latest = [...r.submissions].sort((a, b) => (Number(b.version) || 0) - (Number(a.version) || 0))[0];
           return {
-            requirementId: r.id, code: r.code, sequence: r.sequence, description: r.description, dimension: r.dimension,
+            requirementId: r.id, code: r.code, sequence: r.sequence, description: r.description, dimension: r.dimension, testId: r.testId,
             validityWithinPeriod: r.validityWithinPeriod,
             origin: r.sourceRef ? ('catalog' as const) : ('own' as const),
             responsible: r.responsible ? { id: r.responsible.id, type: r.responsible.type, personName: r.responsible.personName } : null,

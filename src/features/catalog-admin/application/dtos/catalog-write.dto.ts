@@ -1,11 +1,11 @@
 import { ApiProperty, ApiPropertyOptional, ApiSchema } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, MaxLength, Min } from 'class-validator';
+import { DIMENSIONS } from '../../../../common/catalogs/dimensions';
 
 // contracts/modules/monkey-admin-catalog.md — escritura. `forbidNonWhitelisted` está activo: un campo que no se declara aquí se rechaza.
 // Los textos del comité no tienen tope corto (son párrafos); los códigos y nombres sí.
 
-export const DIMENSIONS = ['policy', 'server', 'database', 'app', 'cloud'] as const;
 export const CONTROL_TYPES = ['manual', 'automated', 'hybrid', 'technical_manual'] as const;
 export const RISK_CRITERIA = ['confidentiality', 'integrity', 'availability', 'privacy', 'compliance', 'security', 'continuity', 'third_parties', 'fraud', 'reputation', 'operations'] as const;
 export const FAILURE_CATEGORIES = ['human_resource', 'processes', 'information_technology', 'infrastructure', 'external', 'governance'] as const;

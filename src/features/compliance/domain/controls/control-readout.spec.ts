@@ -37,6 +37,16 @@ describe('readControl · el control con el motor v2', () => {
     const r = readControl(c, data([c], []));
     expect(r.tests.map((t) => [t.test.testId, t.state, t.status])).toEqual([['shared', 'compliant', 'correct'], ['x', 'pending', 'pending']]);
   });
+  it('MD-499 · la evidencia validada de una prueba de fuente integration en respaldo cuenta igual que la de una manual', () => {
+    const evidence = [{ testId: 'a', state: 'compliant' as const, submittedAt: new Date('2026-11-10T00:00:00Z') }];
+    const read = (primarySource: string) => {
+      const c = control([requirement('r1', [readoutTest('a', 'operational', { primarySource, integrationCategory: 'Gestión de Identidades' })])], { evidence });
+      const { test: _test, ...calc } = readControl(c, data([c], [])).requirements[0].tests[0];
+      return calc;
+    };
+    expect(read('integration')).toEqual(read('manual'));
+    expect(read('integration').status).toBe('correct');
+  });
   it('el detalle de una prueba manual da window_end de su periodicidad', () => {
     const c = control([requirement('r1', [readoutTest('a', 'operational')], { periodicity: 'quarterly' })]);
     expect(readControl(c, data([c], [])).requirements[0].tests[0]).toMatchObject({ status: 'pending', windowEnd: '2026-12-31', checks: null, assetCoverage: null });

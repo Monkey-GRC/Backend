@@ -1,8 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
-
-const DIMENSIONS = ['policy', 'server', 'database', 'app', 'cloud'] as const;
+import { DIMENSIONS } from '../../../../common/catalogs/dimensions';
 
 // PUT /v1/evidence-submissions/{id}/review (compliance-audit.md, D84). El rol del revisor lo pone el servidor desde la base; el cuerpo no lo lleva.
 // `ai_prevalidated` no se acepta: lo deriva el sistema, nunca una persona. Un atributo ausente o `null` queda sin valorar.

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PersonResponse } from '../../../../common/swagger/shared.responses';
-import { DIMENSIONS } from '../controls/control.responses';
+import { DIMENSIONS } from '../../../../common/catalogs/dimensions';
 import { ResponsibleRefResponse } from '../responsibles/responsible.responses';
 
 // Formas del `data` de contracts/modules/compliance-evidence.md, solo para la documentación (las arma evidence-response.mapper.ts).

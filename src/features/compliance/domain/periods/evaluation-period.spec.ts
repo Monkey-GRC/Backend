@@ -1,4 +1,4 @@
-import { effectiveCutoff, hasEnded, isPeriodDefined, isPeriodTooShort, nextPeriod, utcDay } from './evaluation-period';
+import { effectiveCutoff, hasEnded, isPeriodDefined, isPeriodTooShort, minPeriodMonthsOf, nextPeriod, utcDay } from './evaluation-period';
 
 const d = (s: string) => new Date(`${s}T00:00:00.000Z`);
 const day = (x: Date) => x.toISOString().slice(0, 10);
@@ -69,5 +69,13 @@ describe('El período siguiente (D145)', () => {
   it('un período terminó cuando su último día ya pasó', () => {
     expect(hasEnded(d('2026-10-19'), TODAY)).toBe(true);
     expect(hasEnded(d('2026-10-20'), TODAY)).toBe(false);
+  });
+});
+
+describe('la duración mínima del período por marco (PR-16, MD-499)', () => {
+  it('SOC 2 usa el parámetro; un marco sin mínimo da null', () => {
+    expect(minPeriodMonthsOf('soc2', 6)).toBe(6);
+    expect(minPeriodMonthsOf('soc2', 9)).toBe(9);
+    expect(minPeriodMonthsOf('iso27001', 6)).toBeNull();
   });
 });

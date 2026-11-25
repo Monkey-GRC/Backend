@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { ArrayUnique, IsArray, IsBoolean, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min } from 'class-validator';
+import { COMPLIANCE_ENUM_CATALOGS } from '../../../../common/catalogs/compliance-catalogs';
 import { CAUSE_CONTROL_EFFECTS, FAILURE_CATEGORIES, LOSS_TYPES, RISK_CRITERIA, RISK_LEVELS } from '../../domain/risks/risk-types';
 
 // contracts/modules/compliance-risks.md (MD-122)
@@ -31,12 +32,16 @@ export class CreateCauseDto {
   @ApiProperty({ description: 'Nombre de la causa (máx. 200).' }) @IsString() @IsNotEmpty() @MaxLength(200) name!: string;
   @ApiProperty({ description: 'Descripción de la causa (máx. 2000).' }) @IsString() @IsNotEmpty() @MaxLength(2000) description!: string;
   @ApiProperty({ enum: FAILURE_CATEGORIES, enumName: 'FailureCategory', description: 'Categoría de falla.' }) @IsIn(FAILURE_CATEGORIES) failure_category!: string;
+  @ApiPropertyOptional({ enum: COMPLIANCE_ENUM_CATALOGS.cause_origin, enumName: 'CauseOrigin', description: 'Origen de la causa: interna o externa.' }) @IsOptional() @IsIn(COMPLIANCE_ENUM_CATALOGS.cause_origin) cause_origin?: string;
+  @ApiPropertyOptional({ enum: COMPLIANCE_ENUM_CATALOGS.cause_type, enumName: 'CauseType', description: 'Tipo de causa.' }) @IsOptional() @IsIn(COMPLIANCE_ENUM_CATALOGS.cause_type) cause_type?: string;
 }
 
 export class UpdateCauseDto {
   @ApiPropertyOptional({ description: 'Nuevo nombre (máx. 200).' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(200) name?: string;
   @ApiPropertyOptional({ description: 'Nueva descripción (máx. 2000).' }) @IsOptional() @IsString() @IsNotEmpty() @MaxLength(2000) description?: string;
   @ApiPropertyOptional({ enum: FAILURE_CATEGORIES, enumName: 'FailureCategory', description: 'Nueva categoría de falla.' }) @IsOptional() @IsIn(FAILURE_CATEGORIES) failure_category?: string;
+  @ApiPropertyOptional({ enum: COMPLIANCE_ENUM_CATALOGS.cause_origin, enumName: 'CauseOrigin', nullable: true, description: 'Nuevo origen; `null` lo borra. Solo en una causa propia.' }) @IsOptional() @IsIn(COMPLIANCE_ENUM_CATALOGS.cause_origin) cause_origin?: string | null;
+  @ApiPropertyOptional({ enum: COMPLIANCE_ENUM_CATALOGS.cause_type, enumName: 'CauseType', nullable: true, description: 'Nuevo tipo; `null` lo borra. Solo en una causa propia.' }) @IsOptional() @IsIn(COMPLIANCE_ENUM_CATALOGS.cause_type) cause_type?: string | null;
 }
 
 export class LinkRiskCauseDto {

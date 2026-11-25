@@ -1,3 +1,4 @@
+import { DimensionName } from '../../../../common/catalogs/dimensions';
 import type { ControlAccess } from './control-access';
 import type { EvidenceState } from '../evidence/evidence';
 import { AssetResult, ControlState, TestState } from '../engine/states';
@@ -14,7 +15,7 @@ import { alertDate, closedWindowsWithin, currentWindow, EvaluationWindow, hasPer
 // Lógica pura, sin Prisma ni Nest: recibe una foto del servicio y devuelve el nivel y el estado de cada control con el motor v2 del comité.
 
 // v2 (MD-491): 9 dimensiones. Las cuatro nuevas (network, endpoint, physical, process) aún no tienen fuente automática.
-export type Dimension = 'policy' | 'server' | 'database' | 'app' | 'cloud' | 'network' | 'endpoint' | 'physical' | 'process';
+export type Dimension = DimensionName;
 export type ControlType = 'manual' | 'automated' | 'hybrid' | 'technical_manual';
 export type Readiness = 'ready' | 'almost_ready' | 'needs_work' | 'not_measured';
 
@@ -49,8 +50,19 @@ export type TestLinks = {
   dependencies: Array<{ ownerControlId: string; key: string }>;
   /** Claves (`check:<id>` o `module:<ref>`) de los vínculos Directos: de ahí un control dependiente encuentra la prueba dueña. */
   directKeys: string[];
+  /** MD-499 · Cada vínculo ratificado tal como está en el catálogo, con el título del check: de ahí sale `check_links[]` del detalle. */
+  items: LinkItem[];
 };
-export const NO_LINKS: TestLinks = { directCheckCount: 0, complementaryCheckIds: [], modules: [], dependencies: [], directKeys: [] };
+export type LinkItem = {
+  role: 'direct' | 'complementary' | 'dependency';
+  check: { id: string; titleEs: string | null; titleEn: string } | null;
+  moduleRef: string | null;
+  /** Solo en una Dependencia: el control del catálogo dueño (T-06) y su código, para mostrarlo aunque el servicio no lo tenga. */
+  owner: { controlId: string; code: string } | null;
+  /** `check:<id>` o `module:<ref>`: lo mismo que `directKeys`. */
+  key: string;
+};
+export const NO_LINKS: TestLinks = { directCheckCount: 0, complementaryCheckIds: [], modules: [], dependencies: [], directKeys: [], items: [] };
 
 export type ReadoutTest = {
   testId: string;
@@ -61,6 +73,10 @@ export type ReadoutTest = {
   /** v2: documentary|population|operational|technical (`tests.type`). */
   testType?: string | null;
   dimension: Dimension;
+  /** `tests.primary_source` (catálogo v2): con la dimensión decide si la prueba acepta evidencia subida (`acceptsEvidence`). */
+  primarySource?: string | null;
+  /** Nombre de la categoría de integración de la prueba (`tests.integration_category`); con `primarySource: integration` decide si hay una conectada. */
+  integrationCategory?: string | null;
   mandatory: boolean;
   active: boolean;
   links?: TestLinks;
@@ -136,6 +152,8 @@ export type ReadoutSignals = {
   exceptions: ReadonlySet<string>;
   /** `${testId}|${assetId}` con algún check Complementario en FAIL. */
   complementaryFails: ReadonlySet<string>;
+  /** MD-499 · `${testId}|${assetId}|${checkId}` de cada check Complementario en FAIL: el detalle de `complementaryFails`, por check. */
+  complementaryFailChecks?: ReadonlySet<string>;
   /** Datos de los vínculos de módulo y puntaje, por activo. */
   moduleFacts: ReadonlyMap<string, ModuleFacts>;
   /** El último veredicto aprobado de cada prueba manual (D85, D121). */
@@ -251,26 +269,30 @@ function lastResultAt(control: ReadoutControl, test: ReadoutTest, data: ReadoutD
   return last;
 }
 
+/** El resultado del check o los checks Directos de la prueba en un activo (el motor guarda uno por control, prueba y activo). */
+function directResultOf(control: ReadoutControl, test: ReadoutTest, asset: ReadoutAsset, periodicity: Periodicity | null, data: ReadoutData): CheckOutcome {
+  const { signals, results } = data;
+  const key = resultKey(control.id, test.testId, asset.id);
+  const raw = results.get(key);
+  const at = signals.resultDates.get(key);
+  const decided = raw === 'compliant' || raw === 'non_compliant';
+  if (decided && at && !withinPeriod(at, signals.period)) return { role: 'direct', result: 'no_data' };
+  if (decided && at && !isResultCurrent(periodicity, at, signals.now, signals.parameters)) return { role: 'direct', result: 'no_data', stale: true };
+  const base = checkResultOf(raw === 'compliant' ? 'passed' : raw === 'non_compliant' ? 'failed' : raw === 'not_applicable' ? 'not_applicable' : null);
+  return { role: 'direct', result: withException(base, signals.exceptions.has(testAssetKey(test.testId, asset.id))) };
+}
+
+const moduleFactsOf = (data: ReadoutData, asset: ReadoutAsset): ModuleFacts => data.signals.moduleFacts.get(asset.id) ?? { openCriticalHigh: null, scorePercent: null };
+
 function outcomesOf(control: ReadoutControl, test: ReadoutTest, periodicity: Periodicity | null, data: ReadoutData): AssetOutcomes[] {
   const links = test.links ?? NO_LINKS;
-  const { signals, results } = data;
+  const { signals } = data;
   return data.assets
     .filter((a) => dimensionOfAssetType(a.type) === test.dimension)
     .map((asset) => {
       const outcomes: CheckOutcome[] = [];
-      if (links.directCheckCount > 0) {
-        const key = resultKey(control.id, test.testId, asset.id);
-        const raw = results.get(key);
-        const at = signals.resultDates.get(key);
-        const decided = raw === 'compliant' || raw === 'non_compliant';
-        if (decided && at && !withinPeriod(at, signals.period)) outcomes.push({ role: 'direct', result: 'no_data' });
-        else if (decided && at && !isResultCurrent(periodicity, at, signals.now, signals.parameters)) outcomes.push({ role: 'direct', result: 'no_data', stale: true });
-        else {
-          const base = checkResultOf(raw === 'compliant' ? 'passed' : raw === 'non_compliant' ? 'failed' : raw === 'not_applicable' ? 'not_applicable' : null);
-          outcomes.push({ role: 'direct', result: withException(base, signals.exceptions.has(testAssetKey(test.testId, asset.id))) });
-        }
-      }
-      const facts = signals.moduleFacts.get(asset.id) ?? { openCriticalHigh: null, scorePercent: null };
+      if (links.directCheckCount > 0) outcomes.push(directResultOf(control, test, asset, periodicity, data));
+      const facts = moduleFactsOf(data, asset);
       for (const m of links.modules) outcomes.push({ role: m.role, result: moduleLinkResult(classifyModuleRef(m.ref), facts, signals.parameters) });
       if (signals.complementaryFails.has(testAssetKey(test.testId, asset.id))) outcomes.push({ role: 'complementary', result: 'fail' });
       return { assetId: asset.id, name: asset.name, outcomes };
@@ -316,6 +338,8 @@ function evaluateTest(control: ReadoutControl, entry: Entry, data: ReadoutData, 
     };
   } else {
     // T-05: una prueba técnica sin ningún Directo aplicable no es «No aplica»: se prueba a mano, igual que las demás pruebas manuales.
+    // MD-499/MD-497 · Una prueba de fuente `integration` sin la integración conectada (hoy, todas) se mide con su evidencia subida, igual que una manual. Cuando MD-497 conecte
+    // integraciones, aquí elige la fuente: con la categoría conectada (`IntegrationConnections`) decide la integración y la evidencia subida queda de histórico en las ventanas cerradas.
     const verdict = test.testType === 'documentary' ? null : (signals.verdicts.get(test.testId) ?? null);
     const manual = evaluateManualTest({
       evidence: manualEvidenceOf(control, test.testId, signals.period), verdict: verdict && withinPeriod(verdict.at, signals.period) ? verdict : null, periodicity, now: signals.now,
@@ -326,6 +350,55 @@ function evaluateTest(control: ReadoutControl, entry: Entry, data: ReadoutData, 
   detail = { ...detail, alertAt: alertDate(detail.windowEnd, periodicity, signals.parameters, signals.now) };
   memo.set(key, detail);
   return detail;
+}
+
+// --- Los vínculos de una prueba, para el detalle (MD-499) ------------------------------------------------------------------------------------------
+
+export type CheckLinkReadout = {
+  role: 'direct' | 'complementary' | 'dependency';
+  kind: 'check' | 'module';
+  check: { id: string; titleEs: string | null; titleEn: string } | null;
+  module: 'vulnerabilities' | 'score' | 'other' | null;
+  /** Solo en un Complementario con check: los activos cuyo resultado más reciente de ese check es FAIL. */
+  failingAssets: number | null;
+  owner: { controlId: string | null; controlCode: string; testStatus: TestStatus | null } | null;
+};
+
+const ROLE_ORDER = { direct: 0, complementary: 1, dependency: 2 } as const;
+const MODULE_NAME = { vulnerabilities: 'vulnerabilities', score: 'score', other_module: 'other' } as const;
+
+/** Los vínculos ratificados de una prueba técnica con su rol, el resultado de cada uno por activo y, en una Dependencia, el control dueño y el estado de su prueba. */
+function checkLinksOf(entry: Entry, data: ReadoutData, ownerById: ReadonlyMap<string, ReadoutControl>): CheckLinkReadout[] {
+  const { test } = entry;
+  const items = (test.links ?? NO_LINKS).items;
+  if (test.testType !== 'technical' || items.length === 0) return [];
+  const assets = data.assets.filter((a) => dimensionOfAssetType(a.type) === test.dimension);
+  const titleOf = (i: LinkItem) => i.check?.titleEs ?? i.check?.titleEn ?? i.moduleRef ?? '';
+  return [...items]
+    .sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || titleOf(a).localeCompare(titleOf(b)) || a.key.localeCompare(b.key))
+    .map((item): CheckLinkReadout => {
+      const kind = item.check ? 'check' : 'module';
+      const module = item.moduleRef ? MODULE_NAME[classifyModuleRef(item.moduleRef)] : null;
+      if (item.role === 'dependency') {
+        const owner = item.owner ? ownerById.get(item.owner.controlId) : undefined;
+        const found = owner ? entriesOf(owner).find((e) => (e.test.links ?? NO_LINKS).directKeys.includes(item.key)) : undefined;
+        return {
+          role: item.role, kind, check: item.check, module, failingAssets: null,
+          owner: { controlId: owner?.id ?? null, controlCode: owner ? (owner.catalogCode ?? owner.ownCode) : (item.owner?.code ?? ''), testStatus: owner && found ? evaluateTest(owner, found, data).status : null },
+        };
+      }
+      const check = item.role === 'complementary' ? item.check : null;
+      const failingAssets = check ? assets.filter((asset) => data.signals.complementaryFailChecks?.has(`${test.testId}|${asset.id}|${check.id}`)).length : null;
+      return { role: item.role, kind, check: item.check, module, failingAssets, owner: null };
+    });
+}
+
+/** MD-499 · `check_links[]` de cada prueba técnica del control, por `testId`. Solo el detalle lo pide: la lista no paga este cálculo. */
+export function checkLinksByTest(control: ReadoutControl, data: ReadoutData): Map<string, CheckLinkReadout[]> {
+  const out = new Map<string, CheckLinkReadout[]>();
+  const ownerById = new Map((data.pool ?? data.controls).flatMap((c) => (c.catalogControlId ? [[c.catalogControlId, c] as const] : [])));
+  for (const entry of entriesOf(control)) if (!out.has(entry.test.testId)) out.set(entry.test.testId, checkLinksOf(entry, data, ownerById));
+  return out;
 }
 
 /** Un control propio no tiene requisitos del catálogo: se mide con su evidencia como un requisito documental único. */

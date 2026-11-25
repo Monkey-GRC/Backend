@@ -7,6 +7,7 @@ import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { asApp, failure, withRollback } from '../support/db';
 import { dosEmpresas, Tenant } from '../support/escenario';
 import { asignarControl } from '../support/asignaciones';
+import { resultadoDeStatus } from '../support/controles';
 
 // MD-155 + D85 + D91 + D102 + D121 (MD-194) · El veredicto de una prueba manual que no es documental se REGISTRA (el ejecutor, el dueño o el admin_empresa) y se REVISA (el dueño, si no lo registró él, y
 // el admin_empresa): nace pendiente y no cuenta; el último del test en el servicio decide el estado del test, y solo si está aprobado. Cada cambio de estado de un control queda como evento de
@@ -42,8 +43,10 @@ const stateEvents = (controlId: string) =>
   );
 const auditRows = (action: string) => owner<{ n: number }>('select count(*)::int n from audit.audit_logs where tenant_id = $1 and action = $2', [a.companyId, action]).then((r) => r[0].n);
 /** El estado del test manual en su control de origen, tal como lo ve quien pide la vista técnica. */
-const testState = async (): Promise<string> =>
-  (await a.agent.get(`/v1/controls/${manualControl}?view=technical`).expect(200)).body.data.technical.tests.find((t: any) => t.test_id === manualTest).state;
+const testState = async (): Promise<string> => {
+  const status = (await a.agent.get(`/v1/controls/${manualControl}?view=technical`).expect(200)).body.data.technical.tests.find((t: any) => t.test_id === manualTest).status;
+  return resultadoDeStatus(status);
+};
 const history = async (agent: Agent = a.agent) => (await agent.get(verdicts(manualControl, manualTest)).expect(200)).body.data;
 const reviewsIn = (verdictId: string) => owner<{ reviewer_role: string; decision: string }>('select reviewer_role, decision from tenant.test_verdict_reviews where test_verdict_id = $1 order by reviewer_role', [verdictId]);
 
@@ -133,7 +136,7 @@ describe('Registrar el veredicto de un test manual (D121)', () => {
     expect(res.applies_to_controls.length).toBeGreaterThan(0);
     for (const c of res.applies_to_controls) {
       const d = (await a.agent.get(`/v1/controls/${c.id}?view=technical`).expect(200)).body.data;
-      expect(d.technical.tests.find((t: any) => t.test_id === manualTest).state).toBe('compliant');
+      expect(d.technical.tests.find((t: any) => t.test_id === manualTest).status).toBe('correct');
     }
   });
 

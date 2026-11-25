@@ -2,9 +2,11 @@ import { Injectable } from '@nestjs/common';
 import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
 import { DomainError } from '../../../../common/errors/domain-error';
+import { ValidationException } from '../../../../common/errors/validation.exception';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { Page } from '../../../../common/pagination/page';
 import { CauseInput, CauseNode, CausePatch, RiskGraph, RiskInput, RiskNode, RiskPatch, RiskRepository } from '../../domain/risks/risk.repository';
+import { classificationErrorsOf } from '../../domain/risks/cause-classification';
 import { storedLossTypes, LossType } from '../../domain/risks/risk-types';
 import { ViewMode, viewModeOf } from '../shared/view-access';
 import { canSeeControl } from '../../domain/controls/control-access';
@@ -154,8 +156,8 @@ export class GetCauseUseCase {
 @Injectable()
 export class CreateCauseUseCase {
   constructor(private readonly repo: RiskRepository, private readonly get: GetCauseUseCase) {}
-  async execute(p: Principal, serviceId: string, dto: { code?: string; name: string; description: string; failure_category: string }, meta: RequestMeta) {
-    const input: CauseInput = { code: dto.code, name: dto.name.trim(), description: dto.description.trim(), failureCategory: dto.failure_category };
+  async execute(p: Principal, serviceId: string, dto: { code?: string; name: string; description: string; failure_category: string; cause_origin?: string | null; cause_type?: string | null }, meta: RequestMeta) {
+    const input: CauseInput = { code: dto.code, name: dto.name.trim(), description: dto.description.trim(), failureCategory: dto.failure_category, causeOrigin: dto.cause_origin ?? null, causeType: dto.cause_type ?? null };
     const created = await this.repo.createCause(scopeOf(p), serviceId, input, (done) => audit(p, meta, 'client_cause.create', 'client_cause', null, done));
     if (!created) throw new DomainError('NOT_FOUND');
     return this.get.execute(p, created.id, undefined);
@@ -165,13 +167,19 @@ export class CreateCauseUseCase {
 @Injectable()
 export class UpdateCauseUseCase {
   constructor(private readonly repo: RiskRepository, private readonly get: GetCauseUseCase) {}
-  async execute(p: Principal, id: string, dto: { name?: string; description?: string; failure_category?: string }, meta: RequestMeta) {
+  async execute(p: Principal, id: string, dto: { name?: string; description?: string; failure_category?: string; cause_origin?: string | null; cause_type?: string | null }, meta: RequestMeta) {
     const patch: CausePatch = {
       ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
       ...(dto.description !== undefined ? { description: dto.description.trim() } : {}),
       ...(dto.failure_category !== undefined ? { failureCategory: dto.failure_category } : {}),
+      ...(dto.cause_origin !== undefined ? { causeOrigin: dto.cause_origin } : {}),
+      ...(dto.cause_type !== undefined ? { causeType: dto.cause_type } : {}),
     };
-    const changed = await this.repo.updateCause(scopeOf(p), id, patch, (done) => audit(p, meta, 'client_cause.update', 'client_cause', done.before, done.after));
+    const changed = await this.repo.updateCause(scopeOf(p), id, patch, (done) => audit(p, meta, 'client_cause.update', 'client_cause', done.before, done.after), (cause) => {
+      // Dentro de la transacción del repositorio: el 422 la deshace.
+      const errors = classificationErrorsOf(cause, patch);
+      if (errors.length > 0) throw new ValidationException(errors);
+    });
     if (!changed) throw new DomainError('NOT_FOUND');
     return this.get.execute(p, id, undefined);
   }

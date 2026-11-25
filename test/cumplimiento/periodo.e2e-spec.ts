@@ -50,7 +50,7 @@ afterAll(async () => {
 
 describe('Período auditado — antes de declararlo', () => {
   it('un servicio recién clonado no tiene evaluación: todo en nulo, también la fecha de corte efectiva', async () => {
-    expect(await evaluationOf(a)).toEqual({ catalog_version: null, period_start: null, period_end: null, cutoff_date: null, cutoff_frozen: null });
+    expect(await evaluationOf(a)).toEqual({ catalog_version: null, period_start: null, period_end: null, cutoff_date: null, cutoff_frozen: null, min_period_months: 6 });
   });
 });
 
@@ -62,7 +62,7 @@ describe('Período auditado — declararlo', () => {
   });
 
   it('el resumen ya responde con la evaluación definida, con la fecha de corte de hoy', async () => {
-    expect(await evaluationOf(a)).toEqual({ catalog_version: expect.any(String), period_start: START, period_end: END, cutoff_date: TODAY, cutoff_frozen: false });
+    expect(await evaluationOf(a)).toEqual({ catalog_version: expect.any(String), period_start: START, period_end: END, cutoff_date: TODAY, cutoff_frozen: false, min_period_months: 6 });
   });
 
   it('con una fecha de corte, la congela: queda esa fecha, aunque pase el tiempo', async () => {

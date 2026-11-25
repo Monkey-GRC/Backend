@@ -299,6 +299,16 @@ export function buildCatalog(s: Sheets, source: SourceMeta, checks: ChecksIndex)
   }
   e.unique(tests.map((t) => t.code), 'TEST');
 
+  // MD-499 · La hoja del comité no trae una columna «Definido» para `process`: cada control lleva además una dimensión por cada dimensión de sus pruebas.
+  const dimensionOfTest = new Map(tests.map((t) => [t.code, t.dimension]));
+  const haveDimension = new Set(controlDimensions.map((d) => `${d.controlCode}|${d.dimension}`));
+  for (const ct of controlTests) {
+    const dimension = dimensionOfTest.get(ct.testCode);
+    if (!dimension || haveDimension.has(`${ct.controlCode}|${dimension}`)) continue;
+    haveDimension.add(`${ct.controlCode}|${dimension}`);
+    controlDimensions.push({ controlCode: ct.controlCode, dimension });
+  }
+
   // ---- Riesgos y causas ----
   const risks: CatalogV2['risks'] = [];
   const causesOfRisk = new Map<string, string[]>();

@@ -8,6 +8,9 @@
     "app": "Application check",
     "cloud": "Cloud check"
   },
+  "check_link": {
+    "neutral_title": "Automatic check"
+  },
   "created": "Done, we created your custom control. It now counts toward compliance.",
   "updated": "Done, we saved the control changes.",
   "periodicity_set": "Done, we changed the control periodicity.",

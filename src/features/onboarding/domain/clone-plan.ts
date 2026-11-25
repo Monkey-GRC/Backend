@@ -9,9 +9,10 @@
 //  - Los requisitos, los puntos de enfoque y los tests NO se clonan (se referencian); sí el vínculo con los
 //    tests, las dimensiones, las evidencias requeridas, los riesgos y las causas.
 import { randomUUID } from 'node:crypto';
+import { DimensionName } from '../../../common/catalogs/dimensions';
 
 // v2 (MD-491): 9 dimensiones. Las cuatro nuevas (network, endpoint, physical, process) aún no tienen fuente automática.
-export type Dimension = 'policy' | 'server' | 'database' | 'app' | 'cloud' | 'network' | 'endpoint' | 'physical' | 'process';
+export type Dimension = DimensionName;
 export type ControlDimensionType = 'manual' | 'automated' | 'hybrid' | 'technical_manual';
 
 export interface CatalogSnapshot {

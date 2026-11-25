@@ -1,10 +1,10 @@
+import { isDimension } from '../../../../common/catalogs/dimensions';
 import { FieldError, ValidationException } from '../../../../common/errors/validation.exception';
 import { ControlEdit, DimensionState } from '../../domain/controls/control-edit.repository';
 import { EditClientControlDto, PERIODICITIES, SetControlPeriodicityDto } from './control.dto';
 
 // Las validaciones que dependen del contenido (contracts/modules/compliance-controls.md). Devuelven TODOS los errores a la vez, con el nombre del campo del
 // request y el código corto del contrato.
-const DIMENSIONS = ['policy', 'server', 'database', 'app', 'cloud', 'network', 'endpoint', 'physical', 'process'];
 const REASON_MAX = 500;
 const INTERPRETATION_MAX = 4000;
 
@@ -43,7 +43,7 @@ export function validateControlEdit(dto: EditClientControlDto, origin: 'catalog'
       dto.dimensions.forEach((item, i) => {
         const at = `dimensions[${i}]`;
         const d = isObject(item) ? item : {};
-        if (typeof d.dimension !== 'string' || !DIMENSIONS.includes(d.dimension)) fields.push({ field: `${at}.dimension`, code: 'enum.invalid' });
+        if (!isDimension(d.dimension)) fields.push({ field: `${at}.dimension`, code: 'enum.invalid' });
         else if (seen.has(d.dimension)) fields.push({ field: `${at}.dimension`, code: 'array.unique' });
         else {
           seen.add(d.dimension);
