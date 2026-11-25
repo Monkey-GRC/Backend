@@ -65,6 +65,9 @@ export type CauseNode = {
   description: string;
   failureCategory: string | null;
   origin: 'catalog' | 'own';
+  // Clasificación de la causa (enums cause_origin y cause_type), copiada del catálogo al clonar; nula en las propias.
+  causeOrigin: string | null;
+  causeType: string | null;
   isActive: boolean;
   riskIds: string[];
   controls: ControlLink[];
@@ -74,12 +77,12 @@ export type RiskGraph = { serviceId: string; risks: RiskNode[]; causes: CauseNod
 export type GraphRef = { serviceId: string } | { riskId: string } | { causeId: string };
 
 export type RiskRecord = { id: string; code: string; name: string; description: string; trustCriterion: string; potentialImpact: unknown; isActive: boolean };
-export type CauseRecord = { id: string; code: string; name: string | null; description: string; failureCategory: string | null; isActive: boolean };
+export type CauseRecord = { id: string; code: string; name: string | null; description: string; failureCategory: string | null; causeOrigin: string | null; causeType: string | null; isActive: boolean };
 export type Changed<T> = { before: T; after: T };
 
 export type RiskInput = { code?: string; name: string; description: string; trustCriterion: string; potentialImpact: string[] };
 export type RiskPatch = Partial<Omit<RiskInput, 'code'>>;
-export type CauseInput = { code?: string; name: string; description: string; failureCategory: string };
+export type CauseInput = { code?: string; name: string; description: string; failureCategory: string; causeOrigin?: string | null; causeType?: string | null };
 export type CausePatch = Partial<Omit<CauseInput, 'code'>>;
 
 export abstract class RiskRepository {
@@ -92,7 +95,8 @@ export abstract class RiskRepository {
 
   // null si no existe. Lanzan RISK_INACTIVE / CAUSE_INACTIVE si está dado de baja.
   abstract updateRisk(scope: TenantScope, id: string, patch: RiskPatch, audit: AuditIntent<Changed<RiskRecord>>): Promise<Changed<RiskRecord> | null>;
-  abstract updateCause(scope: TenantScope, id: string, patch: CausePatch, audit: AuditIntent<Changed<CauseRecord>>): Promise<Changed<CauseRecord> | null>;
+  // `guard` corre dentro de la transacción, con la causa ya leída y su origen (`fromCatalog`): es donde el caso de uso aplica sus reglas.
+  abstract updateCause(scope: TenantScope, id: string, patch: CausePatch, audit: AuditIntent<Changed<CauseRecord>>, guard?: (cause: { fromCatalog: boolean }) => void): Promise<Changed<CauseRecord> | null>;
 
   // Baja lógica: nunca se borra. null si no existe.
   abstract deactivateRisk(scope: TenantScope, id: string, audit: AuditIntent<Changed<RiskRecord>>): Promise<Changed<RiskRecord> | null>;

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { DIMENSIONS, TEST_STATES } from './control.responses';
+import { DIMENSIONS } from '../../../../common/catalogs/dimensions';
+import { TEST_STATES } from './control.responses';
 import { AiSuggestionResponse, EvidenceControlRefResponse } from '../evidence/evidence.responses';
 
 // Forma del `data` de GET /v1/controls/{id}/tests (contracts/modules/compliance-audit.md), solo para la documentación: la arma control-test-response.mapper.ts.

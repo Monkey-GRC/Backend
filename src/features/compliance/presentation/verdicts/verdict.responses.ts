@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { DIMENSIONS } from '../../../../common/catalogs/dimensions';
 import { TEST_STATES } from '../controls/control.responses';
 
 export class VerdictPersonResponse {
@@ -28,7 +29,7 @@ export class VerdictResponse {
   @ApiProperty({ format: 'uuid', description: 'El veredicto (D121): del test en el servicio, nunca se edita ni se borra.' }) id!: string;
   @ApiProperty({ format: 'uuid', description: 'El control de origen: desde el que se dio el veredicto (D85).' }) control_id!: string;
   @ApiProperty({ format: 'uuid', description: 'El test al que se le dio el veredicto.' }) test_id!: string;
-  @ApiProperty({ enum: ['server', 'database', 'app', 'cloud'], enumName: 'Dimension', description: 'Dimensión del test.' }) dimension!: string;
+  @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension', description: 'Dimensión del test.' }) dimension!: string;
   @ApiProperty({ enum: ['manual'], enumName: 'EvaluationOrigin', description: 'Siempre `manual`: lo registró una persona.' }) origin!: string;
   @ApiProperty({ enum: ['compliant', 'non_compliant'], enumName: 'VerdictResult' }) result!: string;
   @ApiProperty({ nullable: true, description: 'Por qué.' }) note!: string | null;

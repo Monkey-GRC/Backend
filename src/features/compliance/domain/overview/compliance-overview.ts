@@ -1,7 +1,7 @@
 import { ControlReadout, Readiness, ALMOST_READY_CUTOFF } from '../controls/control-readout';
 import { effectiveCutoff, isPeriodDefined } from '../periods/evaluation-period';
 import { evaluateCategory, evaluateFramework } from '../engine/rollup';
-import { ControlState, RollupState, TestState } from '../engine/states';
+import { ControlState, RollupState } from '../engine/states';
 import type { OverviewCriterionData, OverviewFrameworkData, Placement } from '../controls/control.repository';
 
 // El resumen de un servicio por marco, categoría y acción que falla (contracts/modules/compliance-overview.md, MD-137). Lógica pura: recibe los controles ya leídos con
@@ -20,7 +20,7 @@ export type OverviewFailingControl = {
   requirementCodes: string[];
 };
 
-export type OverviewControlLine = { readout: ControlReadout; code: string; blockingTests: Array<{ code: string; displayName: string | null; displayNameEn: string | null; dimension: string; state: TestState }> };
+export type OverviewControlLine = { readout: ControlReadout; code: string };
 
 export type OverviewCategory = {
   trustCriterion: string;
@@ -38,7 +38,7 @@ export type OverviewFramework = {
   progress: Ratio;
   coverage: Coverage;
   // `cutoffDate` es la fecha de corte EFECTIVA (D87): la congelada o, si no la hay, hoy sin salirse del período. Nula solo si el período no está definido.
-  evaluation: { catalogVersion: number; periodStart: Date | null; periodEnd: Date | null; cutoffDate: Date | null; cutoffFrozen: boolean | null };
+  evaluation: { catalogVersion: number; periodStart: Date | null; periodEnd: Date | null; cutoffDate: Date | null; cutoffFrozen: boolean | null; minPeriodMonths: number | null };
   categories: OverviewCategory[];
   technical: { state: RollupState; uniqueControls: number; failing: string[]; pending: string[] };
 };
@@ -76,11 +76,6 @@ export function summarizeControls(readouts: readonly ControlReadout[], measured 
   const started = readouts.filter((r) => r.level !== 'not_evaluated').length;
   return { readiness: readinessOfRollup({ total: progress.total, measured: started, done: progress.done, failing }), progress, coverage };
 }
-
-const blockingTests = (r: ControlReadout): OverviewControlLine['blockingTests'] =>
-  r.tests
-    .filter((t) => t.state !== 'compliant' && t.state !== 'not_applicable' && t.state !== 'deactivated')
-    .map((t) => ({ code: t.test.code, displayName: t.test.displayName, displayNameEn: t.test.displayNameEn, dimension: t.test.dimension, state: t.state }));
 
 export type OverviewInput = {
   readouts: readonly ControlReadout[];
@@ -133,7 +128,7 @@ export function buildOverview(input: OverviewInput): OverviewFramework[] {
         })),
         technical: {
           state: defined ? evaluation.state : 'evaluating',
-          controls: controls.map((r) => ({ readout: r, code: codeOfControl(r), blockingTests: blockingTests(r) })),
+          controls: controls.map((r) => ({ readout: r, code: codeOfControl(r) })),
         },
       });
     }
@@ -153,7 +148,7 @@ export function buildOverview(input: OverviewInput): OverviewFramework[] {
       readiness: shown.readiness,
       progress: shown.progress,
       coverage: shown.coverage,
-      evaluation: { catalogVersion: fw.catalogVersion, periodStart: fw.periodStart, periodEnd: fw.periodEnd, cutoffDate: cutoff?.date ?? null, cutoffFrozen: cutoff?.frozen ?? null },
+      evaluation: { catalogVersion: fw.catalogVersion, periodStart: fw.periodStart, periodEnd: fw.periodEnd, cutoffDate: cutoff?.date ?? null, cutoffFrozen: cutoff?.frozen ?? null, minPeriodMonths: fw.minPeriodMonths },
       categories,
       technical: {
         state: defined ? engine.state : 'evaluating',

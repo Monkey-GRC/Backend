@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { CONTROL_TYPES, DIMENSIONS, FAILURE_CATEGORIES, RISK_CRITERIA } from '../application/dtos/catalog-write.dto';
+import { DIMENSIONS } from '../../../common/catalogs/dimensions';
+import { CONTROL_TYPES, FAILURE_CATEGORIES, RISK_CRITERIA } from '../application/dtos/catalog-write.dto';
 
 // Formas del `data` de contracts/modules/monkey-admin-catalog.md, solo para la documentación (las arma catalog-admin-response.mapper.ts).
 // Las ve únicamente `admin_monkey`: por eso la prueba lleva aquí los textos del comité, que al cliente no salen nunca (D70).
@@ -51,7 +52,7 @@ export class CatalogControlResponse {
   @ApiProperty({ type: String, isArray: true, description: 'Dominios distintos de los puntos de enfoque del control, en el orden de esos puntos (el dominio es de cada punto, no del control).' }) domains!: string[];
   @ApiProperty({ enum: ORIGIN, description: ORIGIN_DOC }) origin!: string;
   @ApiProperty({ description: 'Los controles no se borran: se dan de baja.' }) is_active!: boolean;
-  @ApiProperty({ enum: DIMENSIONS, isArray: true, description: 'Dimensiones en que se evalúa.' }) dimensions!: string[];
+  @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension', isArray: true, description: 'Dimensiones en que se evalúa.' }) dimensions!: string[];
   @ApiProperty({ example: 3, description: 'Pruebas vinculadas al control.' }) tests_count!: number;
   @ApiProperty({ example: 2, description: 'Plantillas de evidencia vinculadas al control.' }) evidence_templates_count!: number;
 }
@@ -69,7 +70,7 @@ export class FrameworkPointOfFocusResponse extends PointOfFocusResponse {
 }
 
 export class CatalogControlDimensionResponse {
-  @ApiProperty({ enum: DIMENSIONS, description: 'Dimensión en que se evalúa.' }) dimension!: string;
+  @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension', description: 'Dimensión en que se evalúa.' }) dimension!: string;
   @ApiProperty({ enum: CONTROL_TYPES, description: 'Cómo se evalúa en esa dimensión.' }) type!: string;
   @ApiProperty({ description: 'Si requiere la sonda (evaluación automática).' }) requires_probe!: boolean;
   @ApiProperty({ description: 'Si requiere apoyo de IA (siempre etiquetado como generado por IA).' }) requires_ai!: boolean;
@@ -79,7 +80,7 @@ export class CatalogControlDimensionResponse {
 export class ControlTestRefResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ example: 'T-DOC-001' }) code!: string;
-  @ApiProperty({ enum: DIMENSIONS, description: 'Dimensión en que se ejecuta la prueba.' }) dimension!: string;
+  @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension', description: 'Dimensión en que se ejecuta la prueba.' }) dimension!: string;
   @ApiProperty({ nullable: true, description: 'Nombre neutro que ve el cliente.' }) display_name!: string | null;
   @ApiProperty() is_active!: boolean;
 }
@@ -168,7 +169,7 @@ export class CatalogCauseDetailResponse {
 export class CatalogTestResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ example: 'T-DOC-001' }) code!: string;
-  @ApiProperty({ enum: DIMENSIONS, description: 'Dimensión de la prueba.' }) dimension!: string;
+  @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension', description: 'Dimensión de la prueba.' }) dimension!: string;
   @ApiProperty({ description: 'Nombre interno (el del comité).' }) name!: string;
   @ApiProperty({ nullable: true, description: 'Nombre neutro que ve el cliente (D70).' }) display_name!: string | null;
   @ApiProperty({ description: 'Texto libre del comité: Manual, Mixta, Técnica…' }) type!: string;
@@ -202,7 +203,7 @@ export class TestCommitteeResponse {
 export class CatalogTestDetailResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ example: 'T-DOC-001' }) code!: string;
-  @ApiProperty({ enum: DIMENSIONS, description: 'Dimensión de la prueba.' }) dimension!: string;
+  @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension', description: 'Dimensión de la prueba.' }) dimension!: string;
   @ApiProperty({ description: 'Nombre interno (el del comité).' }) name!: string;
   @ApiProperty({ nullable: true, description: 'Nombre neutro que ve el cliente (D70).' }) display_name!: string | null;
   @ApiProperty({ nullable: true, description: 'Descripción corta que ve el cliente (D82).' }) display_description!: string | null;
@@ -216,7 +217,7 @@ export class CatalogEvidenceTemplateResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ example: 'DOC-001' }) code!: string;
   @ApiProperty({ description: 'Qué evidencia se pide.' }) description!: string;
-  @ApiProperty({ enum: DIMENSIONS, description: 'Dimensión de la evidencia.' }) dimension!: string;
+  @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension', description: 'Dimensión de la evidencia.' }) dimension!: string;
   @ApiProperty({ enum: ORIGIN, description: ORIGIN_DOC }) origin!: string;
   @ApiProperty() is_active!: boolean;
   @ApiProperty({ example: 2, description: 'Controles que la piden.' }) controls_count!: number;

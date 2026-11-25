@@ -11,16 +11,14 @@
 //  - Puentes con el código v1 (contracts/catalogo-maestro.md): `control_tests` (658) y `control_dimensions.type` derivado del tipo del control.
 //  - Se niega a correr como `monkey_app` (usa DATABASE_URL, el rol dueño).
 import { connectAsOwner, readCatalogJson } from './db';
+import { dimensionTypeOf } from './catalog/dimension-type';
 import { validateCatalog } from './catalog/validate';
-import { CatalogV2, ControlType } from './catalog/types';
+import { CatalogV2 } from './catalog/types';
 
 const apply = process.argv.includes('--apply');
 const COMMITTEE = { origin: 'committee' } as const;
 const CHUNK = 2000;
 const chunks = <T>(xs: T[], n = CHUNK): T[][] => Array.from({ length: Math.ceil(xs.length / n) }, (_v, i) => xs.slice(i * n, (i + 1) * n));
-
-// control_dimensions.type de la v1 a partir del tipo del control (contrato, «Puentes con el código v1»).
-const DIMENSION_TYPE: Record<ControlType, 'manual' | 'automated' | 'hybrid'> = { manual: 'manual', automated: 'automated', it_dependent_manual: 'hybrid' };
 
 const checkKey = (platform: string, policyId: string, checkId: string) => `${platform}|${policyId}|${checkId}`;
 
@@ -163,9 +161,16 @@ async function main() {
         await tx.pointOfFocusControl.createMany({ data: cat.pointOfFocusControls.map((r) => ({ pointOfFocusId: pofId.get(`${r.requirementCode}#${r.pointNumber}`)!, controlId: ctrlId.get(r.controlCode)!, domain: r.domain })) });
         await tx.causeControl.createMany({ data: cat.causeControls.map((r) => ({ causeId: causeId.get(r.causeCode)!, controlId: ctrlId.get(r.controlCode)! })) });
         await tx.controlDocument.createMany({ data: cat.controlDocuments.map((r) => ({ controlId: ctrlId.get(r.controlCode)!, documentId: docId.get(r.documentCode)! })) });
+        // MD-499 · Las fuentes de las pruebas de cada control por dimensión: de ahí sale el tipo de las cuatro dimensiones nuevas.
+        const testByCode = new Map(cat.tests.map((t) => [t.code, t]));
+        const sourcesOf = new Map<string, string[]>();
+        for (const ct of cat.controlTests) {
+          const t = testByCode.get(ct.testCode);
+          if (t) sourcesOf.set(`${ct.controlCode}|${t.dimension}`, [...(sourcesOf.get(`${ct.controlCode}|${t.dimension}`) ?? []), t.primarySource]);
+        }
         await tx.controlDimensionEntry.createMany({
           data: cat.controlDimensions.map((r) => ({
-            controlId: ctrlId.get(r.controlCode)!, dimension: r.dimension, type: DIMENSION_TYPE[ctrlType.get(r.controlCode)!], requiresProbe: false, requiresAi: false, requiresComplianceConfirmation: false,
+            controlId: ctrlId.get(r.controlCode)!, dimension: r.dimension, type: dimensionTypeOf(r.dimension, ctrlType.get(r.controlCode)!, sourcesOf.get(`${r.controlCode}|${r.dimension}`) ?? []), requiresProbe: false, requiresAi: false, requiresComplianceConfirmation: false,
           })),
         });
         await tx.integrationCategoryControl.createMany({ data: cat.integrationCategoryControls.map((r) => ({ integrationCategoryId: categoryId.get(r.categoryName)!, controlId: ctrlId.get(r.controlCode)! })) });

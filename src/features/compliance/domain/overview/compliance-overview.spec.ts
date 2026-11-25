@@ -7,7 +7,7 @@ import type { OverviewCriterionData, OverviewFrameworkData, Placement } from '..
 // Casos del motor del comité vistos desde el resumen del servicio (MD-137): marco y categorías con controles únicos, «todo o nada» y «sin medir».
 const FW = 'fw-soc2';
 const framework = (patch: Partial<OverviewFrameworkData> = {}): OverviewFrameworkData => ({
-  frameworkId: FW, code: 'soc2', name: 'SOC 2', catalogVersion: 3, periodStart: new Date('2026-01-01'), periodEnd: new Date('2026-12-31'), cutoffDate: new Date('2026-10-14'), ...patch,
+  frameworkId: FW, code: 'soc2', name: 'SOC 2', catalogVersion: 3, periodStart: new Date('2026-01-01'), periodEnd: new Date('2026-12-31'), cutoffDate: new Date('2026-10-14'), minPeriodMonths: 6, ...patch,
 });
 const CRITERIA: OverviewCriterionData[] = [
   { criterion: 'security', mandatory: true, selected: false },
@@ -133,5 +133,14 @@ describe('buildOverview — evaluación sin definir (P26)', () => {
     expect(o.progress).toEqual({ done: 0, total: 1 });
     expect(o.categories[0].failingControls).toEqual([]);
     expect(o.technical.state).toBe('evaluating');
+  });
+});
+
+describe('el mínimo del período en el resumen (MD-499)', () => {
+  it('viaja aunque el período no esté definido, y es null en un marco sin mínimo', () => {
+    const c = control('m1');
+    const sinPeriodo = overview([{ c, result: null, places: ['security'] }], framework({ periodStart: null, periodEnd: null, cutoffDate: null, minPeriodMonths: 6 }));
+    expect(sinPeriodo.evaluation.minPeriodMonths).toBe(6);
+    expect(overview([{ c, result: null, places: ['security'] }], framework({ minPeriodMonths: null })).evaluation.minPeriodMonths).toBeNull();
   });
 });

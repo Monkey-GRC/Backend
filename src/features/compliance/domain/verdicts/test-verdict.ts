@@ -5,6 +5,10 @@ import type { ReviewerRole } from '../evidence/evidence';
 // D102, D121 · El veredicto de una prueba manual no documental se registra y se revisa como la evidencia: lo registra el ejecutor, el dueño o el admin_empresa y lo revisan el dueño
 // (si no lo registró él) y el admin_empresa (siempre). Una revisión por rol; el estado se DERIVA de ellas, nadie lo escribe.
 
+/** Los tipos de dimensión que el control resuelve a mano (`catalog.control_dimension_type`); `hybrid` y `automated` los mide la sonda y su veredicto no se da. */
+const MANUAL_DIMENSION_TYPES: ReadonlySet<string> = new Set(['manual', 'technical_manual']);
+export const isManualDimensionType = (type: string): boolean => MANUAL_DIMENSION_TYPES.has(type);
+
 export type VerdictResult = 'compliant' | 'non_compliant';
 export type VerdictDecision = 'approve' | 'reject';
 export type VerdictState = 'pending' | 'approved' | 'rejected';

@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { acceptsEvidence, evidenceBlockOf } from '../../domain/evidence/test-evidence-source';
+import { IntegrationConnections } from '../../domain/evidence/integration-connections';
 import { Injectable } from '@nestjs/common';
 import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import { AuditLogWriter } from '../../../../common/audit/audit-log.writer';
@@ -63,12 +65,16 @@ export type TestEvidenceView = { view: ViewMode; testId: string; sharedWith: Arr
 // solo ven el código de los otros controles que llevan el test si también son suyos; lo demás se omite, no falla.
 @Injectable()
 export class ListTestEvidenceUseCase {
-  constructor(private readonly repo: EvidenceRepository) {}
+  constructor(private readonly repo: EvidenceRepository, private readonly integrations: IntegrationConnections) {}
 
   async execute(p: Principal, controlId: string, testId: string, view: 'technical' | undefined): Promise<TestEvidenceView> {
     const mode = viewModeOf(p, view);
     const data = await this.repo.listByTest(scopeOf(p), controlId, testId);
     if (!data) throw new DomainError('NOT_FOUND');
+    // Se lee si la prueba acepta subida (la regla de la subida) O si el control ya tiene entregas de ella: al conectar la integración las evidencias subidas quedan de histórico y
+    // no se ocultan. Solo una prueba que no acepta y no tiene nada en este control es 404.
+    const hasHistory = data.items.some((i) => i.controlId === controlId && i.requirement.test?.id === testId && i.requirement.submissions.length > 0);
+    if (!hasHistory && !acceptsEvidence(data.test, await this.integrations.connectedCategories(scopeOf(p), data.serviceId), data.test.dimensionApplies)) throw new DomainError('NOT_FOUND');
     const origin = data.controls.find((c) => c.id === controlId);
     if (!origin) throw new DomainError('NOT_FOUND');
     assertCanTouch(p, origin.access);
@@ -181,7 +187,7 @@ export class ReviewEvidenceUseCase {
 // (el requerimiento de esa prueba) se crea en la primera entrega y las siguientes son versiones nuevas. Después el admin_empresa lo valida (D96).
 @Injectable()
 export class UploadTestEvidenceUseCase {
-  constructor(private readonly repo: EvidenceRepository, private readonly upload: UploadEvidenceUseCase) {}
+  constructor(private readonly repo: EvidenceRepository, private readonly upload: UploadEvidenceUseCase, private readonly integrations: IntegrationConnections) {}
 
   async execute(p: Principal, controlId: string, testId: string, file: UploadedFile | undefined, meta: RequestMeta): Promise<SubmissionRecord> {
     if (!file) throw new DomainError('FILE_REQUIRED');
@@ -191,13 +197,15 @@ export class UploadTestEvidenceUseCase {
     if (!facts.active) throw new DomainError('CONTROL_RETIRED');
     const test = facts.tests.find((t) => t.id === testId);
     if (!test) throw new DomainError('NOT_FOUND');
-    if (test.dimension !== 'policy') throw new ValidationException([{ field: 'test_id', code: 'test.not_documentary' }]);
+    // La dimensión de la prueba debe aplicar en el control (una marcada «no aplica» no se evalúa ahí) y su fuente debe aceptar subida.
+    const block = evidenceBlockOf(test, await this.integrations.connectedCategories(scopeOf(p), facts.serviceId), facts.dimensions.includes(test.dimension));
+    if (block) throw new ValidationException([{ field: 'test_id', code: block }]);
     // El archivo se comprueba ANTES de crear el lugar donde quedará: uno rechazado no deja un requerimiento vacío.
     assertEvidenceFile(file);
 
     const slot = await this.repo.findOrCreateTestRequirement(
       scopeOf(p), controlId, testId,
-      { description: test.displayName ?? test.code, dimension: 'policy', testId, validityWithinPeriod: facts.validityWithinPeriod ?? WITHIN_EVALUATION_PERIOD },
+      { description: test.displayName ?? test.code, dimension: test.dimension, testId, validityWithinPeriod: facts.validityWithinPeriod ?? WITHIN_EVALUATION_PERIOD },
       (done): AuditEntry => ({
         tenantId: p.companyId, userId: p.userId, action: 'evidence_requirement.create', resource: 'evidence_requirement', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
         beforeState: null,
@@ -213,7 +221,7 @@ export class UploadTestEvidenceUseCase {
 // no le haya traído un documento (los 52 controles sin plantilla, B7). La empresa decide qué documento aporta; el admin_empresa lo valida.
 @Injectable()
 export class CreateEvidenceRequirementUseCase {
-  constructor(private readonly repo: EvidenceRepository) {}
+  constructor(private readonly repo: EvidenceRepository, private readonly integrations: IntegrationConnections) {}
 
   async execute(p: Principal, controlId: string, dto: CreateEvidenceRequirementDto, meta: RequestMeta): Promise<RequirementRecord> {
     const facts = await this.repo.controlEvidenceFacts(scopeOf(p), controlId);
@@ -223,11 +231,13 @@ export class CreateEvidenceRequirementUseCase {
     const errors: Array<{ field: string; code: string }> = [];
     const description = dto.description.trim();
     if (!description) errors.push({ field: 'description', code: 'required' });
+    const test = dto.test_id ? facts.tests.find((t) => t.id === dto.test_id) : undefined;
     if (!facts.dimensions.includes(dto.dimension)) errors.push({ field: 'dimension', code: 'dimension.not_in_control' });
-    if (dto.test_id) {
-      const test = facts.tests.find((t) => t.id === dto.test_id);
-      if (!test) errors.push({ field: 'test_id', code: 'test.not_in_control' });
-      else if (test.dimension !== 'policy' || dto.dimension !== 'policy') errors.push({ field: 'test_id', code: 'test.not_documentary' });
+    else if (test && dto.dimension !== test.dimension) errors.push({ field: 'dimension', code: 'dimension.not_of_test' });
+    if (dto.test_id && !test) errors.push({ field: 'test_id', code: 'test.not_in_control' });
+    if (test) {
+      const block = evidenceBlockOf(test, await this.integrations.connectedCategories(scopeOf(p), facts.serviceId), facts.dimensions.includes(test.dimension));
+      if (block) errors.push({ field: 'test_id', code: block });
     }
     if (errors.length > 0) throw new ValidationException(errors);
 

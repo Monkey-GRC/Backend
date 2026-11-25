@@ -26,6 +26,8 @@ import { AssignmentRepository } from './domain/assignments/assignment.repository
 import { ControlEditRepository } from './domain/controls/control-edit.repository';
 import { ControlRepository } from './domain/controls/control.repository';
 import { EvidenceRepository } from './domain/evidence/evidence.repository';
+import { IntegrationConnections } from './domain/evidence/integration-connections';
+import { NoIntegrationConnections } from './infrastructure/evidence/no-integration-connections';
 import { EvaluationPeriodRepository, EvaluationPeriodRollover } from './domain/periods/evaluation-period.repository';
 import { WorkRepository } from './domain/work/work.repository';
 import { ExclusionRepository } from './domain/exclusions/exclusion.repository';
@@ -101,6 +103,7 @@ import { PrismaEvaluationParameters } from './infrastructure/shared/prisma-evalu
     { provide: TestVerdictRepository, useClass: TestVerdictPrismaRepository },
     IssueVerdictUseCase, ListVerdictsUseCase, ReviewVerdictUseCase,
     { provide: EvidenceRepository, useClass: EvidencePrismaRepository },
+    { provide: IntegrationConnections, useClass: NoIntegrationConnections },
     ListEvidenceUseCase, ListServiceEvidenceUseCase, ListSubmissionsUseCase, UploadEvidenceUseCase, GetEvidenceDownloadUseCase, ReviewEvidenceUseCase, CreateEvidenceRequirementUseCase, UploadTestEvidenceUseCase, ListTestEvidenceUseCase, ListControlTestsUseCase,
   ],
 })

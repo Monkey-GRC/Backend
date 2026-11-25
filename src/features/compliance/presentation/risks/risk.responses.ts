@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { COMPLIANCE_ENUM_CATALOGS } from '../../../../common/catalogs/compliance-catalogs';
 import { PersonResponse } from '../../../../common/swagger/shared.responses';
 import { CAUSE_CONTROL_EFFECTS, FAILURE_CATEGORIES, LOSS_TYPES, RISK_CRITERIA, RISK_LEVELS, TREATMENT_DECISIONS } from '../../domain/risks/risk-types';
 import { ResponsibleRefResponse } from '../responsibles/responsible.responses';
@@ -97,6 +98,8 @@ export class CauseResponse {
   @ApiProperty() description!: string;
   @ApiProperty({ enum: FAILURE_CATEGORIES, enumName: 'FailureCategory', nullable: true }) failure_category!: string | null;
   @ApiProperty({ enum: ['catalog', 'own'], enumName: 'ControlOrigin' }) origin!: string;
+  @ApiProperty({ enum: COMPLIANCE_ENUM_CATALOGS.cause_origin, enumName: 'CauseOrigin', nullable: true, description: 'Origen de la causa: interna o externa. Nulo si no está clasificada.' }) cause_origin!: string | null;
+  @ApiProperty({ enum: COMPLIANCE_ENUM_CATALOGS.cause_type, enumName: 'CauseType', nullable: true, description: 'Tipo de causa. Nulo si no está clasificada.' }) cause_type!: string | null;
   @ApiProperty() is_active!: boolean;
   @ApiProperty({ type: CauseRiskRefResponse, isArray: true, description: 'Riesgos activos a los que contribuye.' }) risks!: CauseRiskRefResponse[];
   @ApiProperty({ type: RiskControlLinkResponse, isArray: true, description: 'Controles que la tratan.' }) controls!: RiskControlLinkResponse[];

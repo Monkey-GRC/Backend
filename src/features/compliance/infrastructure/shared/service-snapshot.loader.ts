@@ -20,20 +20,31 @@ import { ALL_REVIEWS, requirementState, versionOf } from '../evidence/evidence-r
 // Orden canónico de las categorías (enums.md `trust_criterion`).
 const CRITERIA_ORDER = ['security', 'availability', 'confidentiality', 'integrity', 'privacy'];
 
-const TEST_SELECT = {
-  id: true, code: true, dimension: true, displayName: true, displayNameEn: true, displayDescription: true, type: true,
-  testChecks: { select: { role: true, checkId: true, ownerControlId: true, moduleRef: true, provenance: true } },
-} satisfies Prisma.TestSelect;
+// El título de cada check y el código del control dueño de una Dependencia solo los pide `check_links[]` del detalle técnico (`withLinkItems`): las demás lecturas (lista, resumen, los
+// eventos de estado) no pagan esas uniones.
+const LINK_ITEM_SELECT = { check: { select: { id: true, titleEs: true, titleEn: true } }, ownerControl: { select: { code: true } } } satisfies Prisma.TestCheckSelect;
+const testSelect = (withLinkItems: boolean) =>
+  ({
+    id: true, code: true, dimension: true, displayName: true, displayNameEn: true, displayDescription: true, type: true, primarySource: true, integrationCategory: { select: { name: true } },
+    testChecks: { select: { role: true, checkId: true, ownerControlId: true, moduleRef: true, provenance: true, ...(withLinkItems ? LINK_ITEM_SELECT : {}) } },
+  }) satisfies Prisma.TestSelect;
 
-type TestRow = Prisma.TestGetPayload<{ select: typeof TEST_SELECT }>;
+type TestRow = Prisma.TestGetPayload<{ select: ReturnType<typeof testSelect> }>;
 
-/** Los vínculos de una prueba con sus checks y módulos (T-04 a T-06). Solo cuentan los que el comité ratificó (D56). */
-function linksOf(test: TestRow): TestLinks {
-  const links: TestLinks = { directCheckCount: 0, complementaryCheckIds: [], modules: [], dependencies: [], directKeys: [] };
+/** Los vínculos de una prueba con sus checks y módulos (T-04 a T-06). Solo cuentan los que el comité ratificó (D56). `items` solo se llena con `withLinkItems`. */
+function linksOf(test: TestRow, withLinkItems: boolean): TestLinks {
+  const links: TestLinks = { directCheckCount: 0, complementaryCheckIds: [], modules: [], dependencies: [], directKeys: [], items: [] };
   for (const l of test.testChecks) {
     if (l.provenance !== 'committee_ratified') continue;
     const key = l.checkId ? `check:${l.checkId}` : l.moduleRef ? `module:${l.moduleRef}` : null;
     if (!key) continue;
+    if (withLinkItems) {
+      links.items.push({
+        role: l.role, key, moduleRef: l.checkId ? null : l.moduleRef,
+        check: l.check ? { id: l.check.id, titleEs: l.check.titleEs, titleEn: l.check.titleEn } : null,
+        owner: l.role === 'dependency' && l.ownerControlId ? { controlId: l.ownerControlId, code: l.ownerControl?.code ?? '' } : null,
+      });
+    }
     if (l.role === 'dependency') {
       if (l.ownerControlId) links.dependencies.push({ ownerControlId: l.ownerControlId, key });
     } else if (l.role === 'direct') {
@@ -46,9 +57,9 @@ function linksOf(test: TestRow): TestLinks {
   return links;
 }
 
-const toReadoutTest = (t: TestRow): ReadoutTest => ({
-  testId: t.id, code: t.code, displayName: t.displayName, displayNameEn: t.displayNameEn, displayDescription: t.displayDescription, testType: t.type, dimension: t.dimension as Dimension,
-  mandatory: true, active: true, links: linksOf(t),
+const toReadoutTest = (t: TestRow, withLinkItems: boolean): ReadoutTest => ({
+  testId: t.id, code: t.code, displayName: t.displayName, displayNameEn: t.displayNameEn, displayDescription: t.displayDescription, testType: t.type, dimension: t.dimension as Dimension, primarySource: t.primarySource, integrationCategory: t.integrationCategory?.name ?? null,
+  mandatory: true, active: true, links: linksOf(t, withLinkItems),
 });
 
 // Los controles del servicio con sus requisitos y las pruebas de cada uno, y la evidencia que se ha entregado. Un número fijo de consultas, sin importar cuántos controles haya.
@@ -57,6 +68,7 @@ async function loadControls(
   serviceId: string,
   only: string | undefined,
   contracted: { criteria: Set<string>; frameworks: Set<string> },
+  withLinkItems: boolean,
 ): Promise<ReadoutControl[]> {
   const rows = await tx.clientControl.findMany({
     where: { serviceId, isActive: true, ...(only ? { id: only } : {}) },
@@ -76,7 +88,7 @@ async function loadControls(
         select: {
           id: true, periodicity: true, isApplicable: true,
           controlRequirement: {
-            select: { code: true, text: true, type: true, pointNumber: true, periodicity: true, tests: { select: { test: { select: TEST_SELECT } } } },
+            select: { code: true, text: true, type: true, pointNumber: true, periodicity: true, tests: { select: { test: { select: testSelect(withLinkItems) } } } },
           },
         },
       },
@@ -124,7 +136,7 @@ async function loadControls(
         periodicity: (r.periodicity ?? r.controlRequirement.periodicity ?? null) as Periodicity | null,
         suggestedPeriodicity: (r.controlRequirement.periodicity ?? null) as Periodicity | null,
         isApplicable: r.isApplicable,
-        tests: r.controlRequirement.tests.map((t) => toReadoutTest(t.test)).sort((a, b) => a.code.localeCompare(b.code)),
+        tests: r.controlRequirement.tests.map((t) => toReadoutTest(t.test, withLinkItems)).sort((a, b) => a.code.localeCompare(b.code)),
         point: r.controlRequirement.pointNumber ?? 0,
       }))
       .sort((a, b) => a.point - b.point || a.code.localeCompare(b.code))
@@ -167,16 +179,18 @@ export async function loadServiceSnapshot(
   serviceId: string,
   parameters: EvaluationParameters,
   onlyControlId?: string,
+  options: { withLinkItems?: boolean } = {},
 ): Promise<ServiceReadoutData> {
+  const withLinkItems = options.withLinkItems ?? false;
   const contracted = {
     criteria: new Set((await tx.serviceTrustCriterion.findMany({ where: { serviceId }, select: { trustCriterion: { select: { criterion: true } } } })).map((r) => r.trustCriterion.criterion)),
     frameworks: new Set((await tx.serviceFramework.findMany({ where: { serviceId }, select: { frameworkId: true } })).map((r) => r.frameworkId)),
   };
 
-  const controls = await loadControls(tx, serviceId, onlyControlId, contracted);
+  const controls = await loadControls(tx, serviceId, onlyControlId, contracted, withLinkItems);
   // T-06 · Una Dependencia lee la prueba del control dueño: si se lee un solo control que depende de otros, se cargan los demás del servicio.
   const needsPool = !!onlyControlId && controls.some((c) => c.tests.some((t) => (t.links ?? NO_LINKS).dependencies.length > 0));
-  const pool = needsPool ? await loadControls(tx, serviceId, undefined, contracted) : undefined;
+  const pool = needsPool ? await loadControls(tx, serviceId, undefined, contracted, withLinkItems) : undefined;
   const everyControl = pool ?? controls;
 
   const assets = (await tx.serviceAsset.findMany({ where: { serviceId, asset: { status: 'active' } }, select: { asset: { select: { id: true, name: true, type: true } } } })).map((r) => r.asset);
@@ -215,6 +229,7 @@ export async function loadServiceSnapshot(
   const complementaryByCheck = new Map<string, string[]>();
   for (const c of everyControl) for (const t of c.tests) for (const id of t.links?.complementaryCheckIds ?? []) complementaryByCheck.set(id, [...new Set([...(complementaryByCheck.get(id) ?? []), t.testId])]);
   const complementaryFails = new Set<string>();
+  const complementaryFailChecks = new Set<string>();
   if (complementaryByCheck.size > 0 && technicalAssets.length > 0) {
     const failed = await tx.$queryRaw<{ assetId: string; checkId: string }[]>(Prisma.sql`
       SELECT DISTINCT sa.asset_id AS "assetId", cr.check_id AS "checkId"
@@ -224,7 +239,12 @@ export async function loadServiceSnapshot(
                             ORDER BY x.started_at DESC NULLS LAST, x.queued_at DESC LIMIT 1) ex
         JOIN tenant.check_results cr ON cr.execution_id = ex.id
        WHERE sa.service_id = ${serviceId}::uuid AND cr.result = 'failed' AND cr.check_id = ANY(${[...complementaryByCheck.keys()]}::uuid[])`);
-    for (const f of failed) for (const testId of complementaryByCheck.get(f.checkId) ?? []) complementaryFails.add(testAssetKey(testId, f.assetId));
+    for (const f of failed) {
+      for (const testId of complementaryByCheck.get(f.checkId) ?? []) {
+        complementaryFails.add(testAssetKey(testId, f.assetId));
+        complementaryFailChecks.add(`${testAssetKey(testId, f.assetId)}|${f.checkId}`);
+      }
+    }
   }
 
   // D141 · Los hallazgos críticos y altos abiertos de cada activo (vulnerabilidades activas y hallazgos abiertos), solo de los activos con una corrida completada: sin ella no hay dato y nunca se asume cero.
@@ -249,7 +269,7 @@ export async function loadServiceSnapshot(
     controls,
     assets,
     results,
-    signals: { now, parameters, resultDates, exceptions, complementaryFails, moduleFacts, verdicts, period, ...(resultDays ? { resultDays } : {}) },
+    signals: { now, parameters, resultDates, exceptions, complementaryFails, complementaryFailChecks, moduleFacts, verdicts, period, ...(resultDays ? { resultDays } : {}) },
     ...(pool ? { pool } : {}),
   };
 }

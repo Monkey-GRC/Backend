@@ -15,7 +15,7 @@
       "controlRequirementTests": 862,
       "controlRequirementDocuments": 233,
       "controlTests": 658,
-      "controlDimensions": 267,
+      "controlDimensions": 374,
       "tests": 472,
       "testChecks": 4684,
       "documents": 42,
@@ -6766,6 +6766,434 @@
     {
       "controlCode": "RED-6",
       "dimension": "endpoint"
+    },
+    {
+      "controlCode": "CAP-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "FIS-4",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "FIS-3",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RIE-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "GOB-5",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CNT-5",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CNT-4",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CNT-6",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "DCL-11",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CNT-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "ACT-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "ACT-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "DCL-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RRH-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RRH-3",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "GOB-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "GOB-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "GOB-3",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "GOB-4",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "GOB-7",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RRH-6",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CON-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RRH-7",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RRH-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RRH-4",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "MNT-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "GOB-6",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CLI-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CLI-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "GOB-10",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RIE-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RIE-3",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "AEV-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "AEV-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "IDA-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CHG-3",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CHG-4",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "TER-5",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "GOB-8",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "ACT-3",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "IDA-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "DCL-3",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "IDA-6",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CIF-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RED-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "DCL-5",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "IDA-3",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "IDA-5",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "IDA-11",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CIF-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "IDA-7",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "FIS-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RED-3",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RED-4",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "MNT-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RED-5",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "MOV-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "EQU-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CFG-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "OPS-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "EQU-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "ACT-4",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "MNT-4",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "INC-3",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "INC-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CHG-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CHG-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CNT-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CNT-3",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "TER-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "TER-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RRH-5",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "PRV-6",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "PRV-3",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "PRV-9",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "PRV-7",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "PRV-4",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "PRV-5",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "PRV-8",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "DCL-6",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "DCL-9",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "DCL-4",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "DCL-8",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "DCL-7",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "PRV-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "TER-3",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "INC-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "PRV-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "TRD-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "TRD-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CIF-7",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CIF-6",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "IDA-8",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "FIS-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "DCL-10",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "VUL-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "VUL-1",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "INC-4",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CNT-7",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "CPL-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "GOB-9",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "DCL-2",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RRH-9",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "MNT-3",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RRH-8",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "TER-4",
+      "dimension": "process"
+    },
+    {
+      "controlCode": "RED-6",
+      "dimension": "process"
     }
   ],
   "controlRequirements": [

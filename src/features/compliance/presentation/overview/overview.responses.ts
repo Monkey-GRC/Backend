@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { CoverageResponse, FailingResponse, ProgressResponse, READINESS, READINESS_DOC, ROLLUP_STATES, TEST_STATES, TRUST_CRITERIA } from '../controls/control.responses';
+import { CoverageResponse, FailingResponse, ProgressResponse, READINESS, READINESS_DOC, ROLLUP_STATES, TRUST_CRITERIA } from '../controls/control.responses';
 
 // Forma del `data` de contracts/modules/compliance-overview.md, solo para la documentación (la arma overview-response.mapper.ts). La unidad es servicio × marco:
 // nunca existe un número de toda la empresa.
@@ -14,12 +14,6 @@ export class OverviewFailingControlResponse {
   @ApiProperty({ type: FailingResponse, isArray: true, description: 'En qué falla, por dimensión.' }) failing!: FailingResponse[];
 }
 
-export class OverviewBlockingTestResponse {
-  @ApiProperty({ example: 'T-CLD-001', description: 'Código de la prueba en el catálogo.' }) test_code!: string;
-  @ApiProperty({ description: 'Nombre neutro de la prueba.' }) display_name!: string;
-  @ApiProperty({ enum: TEST_STATES, enumName: 'TestState' }) state!: string;
-}
-
 export class OverviewBlockingRequirementResponse {
   @ApiProperty({ example: 'IAC-12-L2', description: 'Código del requisito del control.' }) code!: string;
   @ApiProperty({ description: 'Texto del requisito.' }) text!: string;
@@ -29,19 +23,17 @@ export class OverviewBlockingRequirementResponse {
 export class OverviewTechnicalControlResponse {
   @ApiProperty({ format: 'uuid' }) control_id!: string;
   @ApiProperty({ example: 'IAC-12', description: 'Código con el que se nombra el control.' }) control_code!: string;
-  @ApiProperty({ example: 'ineffective', description: 'Estado del control según el motor del comité.' }) state!: string;
   @ApiProperty({ type: ProgressResponse }) progress!: ProgressResponse;
   @ApiProperty({ enum: ['not_evaluated', 'ineffective', 'weak', 'partial', 'adequate', 'solid'], enumName: 'ControlLevel', description: 'Nivel sugerido por el motor v2 (§9).' }) level!: string;
   @ApiProperty({ example: 3, description: 'Valor de la escala del nivel, de 0 a 5.' }) level_value!: number;
   @ApiProperty({ example: false, description: '`true` solo en Adecuado y Sólido (R4).' }) complies!: boolean;
   @ApiProperty({ nullable: true, example: 80, description: 'C%: requisitos que cumplen ÷ aplicables; `null` si no hay aplicables.' }) c_percent!: number | null;
   @ApiProperty({ type: OverviewBlockingRequirementResponse, isArray: true, description: 'Requisitos que impiden el 100 % del control (REQ-026).' }) blocking_requirements!: OverviewBlockingRequirementResponse[];
-  @ApiProperty({ type: OverviewBlockingTestResponse, isArray: true, description: 'Pruebas que impiden que el control sea efectivo.' }) blocking_tests!: OverviewBlockingTestResponse[];
 }
 
 export class OverviewCategoryTechnicalResponse {
   @ApiProperty({ enum: ROLLUP_STATES, enumName: 'RollupState', description: 'Estado de la categoría: todo o nada sobre sus controles.' }) state!: string;
-  @ApiProperty({ type: OverviewTechnicalControlResponse, isArray: true, description: 'Controles de la categoría con su estado y las pruebas que los bloquean.' }) controls!: OverviewTechnicalControlResponse[];
+  @ApiProperty({ type: OverviewTechnicalControlResponse, isArray: true, description: 'Controles de la categoría con su nivel y los requisitos que los bloquean.' }) controls!: OverviewTechnicalControlResponse[];
 }
 
 export class OverviewCategoryResponse {
@@ -59,6 +51,7 @@ export class OverviewEvaluationResponse {
   @ApiProperty({ nullable: true, example: '2026-12-31', description: 'Fin del período evaluado (YYYY-MM-DD).' }) period_end!: string | null;
   @ApiProperty({ nullable: true, example: '2026-10-15', description: 'Fecha de corte con la que se evalúa: la congelada o, si no hay, hoy (sin salirse del período). Nula solo si no hay período definido.' }) cutoff_date!: string | null;
   @ApiProperty({ nullable: true, example: false, description: '`true` si la fecha de corte está congelada; `false` si es «hoy». Nulo si no hay período definido.' }) cutoff_frozen!: boolean | null;
+  @ApiProperty({ type: Number, nullable: true, example: 6, description: 'Duración mínima del período auditado del marco, en meses (SOC 2: parámetro PR-16). Nulo si el marco no tiene mínimo. Viene aunque no haya período definido.' }) min_period_months!: number | null;
 }
 
 export class OverviewFrameworkTechnicalResponse {

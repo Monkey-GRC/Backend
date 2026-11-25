@@ -82,7 +82,7 @@ export type ControlEvidenceFacts = {
   /** Dimensiones que el control exige y aplican. */
   dimensions: string[];
   /** Las pruebas que el control lleva (el vínculo `client_control_tests`). */
-  tests: Array<{ id: string; code: string; displayName: string | null; displayNameEn: string | null; dimension: string }>;
+  tests: Array<{ id: string; code: string; displayName: string | null; displayNameEn: string | null; dimension: string; primarySource: string | null; integrationCategory: string | null }>;
   /** El período de vigencia que ya usa el servicio en sus evidencias, si lo hay. */
   validityWithinPeriod: string | null;
 };
@@ -97,6 +97,9 @@ export type TestEvidenceControl = { id: string; code: string; access: ControlAcc
 export type TestEvidence = {
   testId: string;
   dimension: string;
+  serviceId: string;
+  /** Lo que la regla única necesita para decidir si la prueba acepta subida (`evidenceAcceptanceOf`); `dimensionApplies`: la dimensión de la prueba aplica en el control de origen. */
+  test: { primarySource: string | null; integrationCategory: string | null; dimensionApplies: boolean };
   /** Los controles vigentes del servicio que llevan el test, el de origen incluido y primero. Si el test es documental solo está el de origen (D88). */
   controls: TestEvidenceControl[];
   /** Los requerimientos de esos controles que sirven al test, cada uno con el control de que es. */
@@ -114,7 +117,7 @@ export abstract class EvidenceRepository {
   abstract listByService(scope: TenantScope, serviceId: string): Promise<ServiceEvidence | null>;
   /** Los requerimientos del control con sus entregas. `null` si el control no existe para esta empresa. */
   abstract listByControl(scope: TenantScope, controlId: string): Promise<{ access: ControlAccess; requirements: RequirementRecord[] } | null>;
-  /** `null` si el control no existe, no lleva el test, o el test no es manual ni documental. */
+  /** `null` si el control no existe o no lleva el test. Trae los hechos de la prueba (`test`): si acepta subida o si hay histórico lo decide el caso de uso con la regla única. */
   abstract listByTest(scope: TenantScope, controlId: string, testId: string): Promise<TestEvidence | null>;
   /** `null` si el requerimiento no existe para esta empresa. */
   abstract findRequirement(scope: TenantScope, requirementId: string): Promise<EvidenceAccess | null>;

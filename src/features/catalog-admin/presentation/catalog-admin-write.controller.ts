@@ -37,7 +37,7 @@ import { CatalogLinks, CauseWrites, ControlWrites, EvidenceTemplateWrites, ListP
 import { toCauseDetail, toControlDetail, toEvidenceTemplate, toRiskDetail, toTestDetail } from './catalog-admin-response.mapper';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiItems, ApiNoBody } from '../../../common/swagger/api-envelope';
-import { DIMENSIONS } from '../application/dtos/catalog-write.dto';
+import { DIMENSIONS } from '../../../common/catalogs/dimensions';
 import { CatalogCauseDetailResponse, CatalogControlDetailResponse, CatalogEvidenceTemplateResponse, CatalogRiskDetailResponse, CatalogTestDetailResponse, FrameworkPointOfFocusResponse } from './catalog-admin.responses';
 import { CatalogReadOnlyGuard } from './catalog-read-only.guard';
 import { clientIp } from '../../../common/http/client-ip';

@@ -20,8 +20,8 @@ const asJson = (v: string[]) => v as unknown as Prisma.InputJsonValue;
 const riskRecord = (r: { id: string; code: string; name: string; description: string; trustCriterion: string; potentialImpact: unknown; isActive: boolean }): RiskRecord => ({
   id: r.id, code: r.code, name: r.name, description: r.description, trustCriterion: r.trustCriterion, potentialImpact: r.potentialImpact, isActive: r.isActive,
 });
-const causeRecord = (c: { id: string; code: string; name: string | null; description: string; failureCategory: string | null; isActive: boolean }): CauseRecord => ({
-  id: c.id, code: c.code, name: c.name ?? c.description, description: c.description, failureCategory: c.failureCategory, isActive: c.isActive,
+const causeRecord = (c: { id: string; code: string; name: string | null; description: string; failureCategory: string | null; origin: string | null; causeType: string | null; isActive: boolean }): CauseRecord => ({
+  id: c.id, code: c.code, name: c.name ?? c.description, description: c.description, failureCategory: c.failureCategory, causeOrigin: c.origin, causeType: c.causeType, isActive: c.isActive,
 });
 
 type TreatmentRow = {
@@ -78,7 +78,7 @@ export class RiskPrismaRepository extends RiskRepository {
           inherentRiskLevel: r.inherentRiskLevel, treatment: r.riskTreatments[0] ? toTreatment(r.riskTreatments[0]) : null, causeIds: r.riskCauses.map((x) => x.clientCauseId),
         })),
         causes: causes.map<CauseNode>((c) => ({
-          id: c.id, serviceId, code: c.code, name: c.name ?? c.description, description: c.description, failureCategory: c.failureCategory, origin: c.causeId ? 'catalog' : 'own',
+          id: c.id, serviceId, code: c.code, name: c.name ?? c.description, description: c.description, failureCategory: c.failureCategory, origin: c.causeId ? 'catalog' : 'own', causeOrigin: c.origin, causeType: c.causeType,
           isActive: c.isActive, riskIds: c.riskCauses.map((x) => x.clientRiskId),
           controls: c.causeControls
             .filter((l) => l.clientControl.isActive)
@@ -180,7 +180,7 @@ export class RiskPrismaRepository extends RiskRepository {
           if (!service) return null;
           const code = input.code ?? nextCode('F', (await tx.clientCause.findMany({ where: { serviceId }, select: { code: true } })).map((c) => c.code));
           const row = await tx.clientCause.create({
-            data: { tenantId: scope.companyId, serviceId, causeId: null, code, name: input.name, description: input.description, failureCategory: input.failureCategory as never, isActive: true },
+            data: { tenantId: scope.companyId, serviceId, causeId: null, code, name: input.name, description: input.description, failureCategory: input.failureCategory as never, origin: (input.causeOrigin ?? null) as never, causeType: (input.causeType ?? null) as never, isActive: true },
           });
           const record = causeRecord(row);
           await insertAuditLog(tx, audit(record));
@@ -196,17 +196,20 @@ export class RiskPrismaRepository extends RiskRepository {
     }
   }
 
-  updateCause(scope: TenantScope, id: string, patch: CausePatch, audit: Parameters<RiskRepository['updateCause']>[3]): Promise<Changed<CauseRecord> | null> {
+  updateCause(scope: TenantScope, id: string, patch: CausePatch, audit: Parameters<RiskRepository['updateCause']>[3], guard?: Parameters<RiskRepository['updateCause']>[4]): Promise<Changed<CauseRecord> | null> {
     return this.prisma.withScope(scope, async (tx) => {
       const before = await tx.clientCause.findFirst({ where: { id } });
       if (!before) return null;
       if (!before.isActive) throw new DomainError('CAUSE_INACTIVE');
+      guard?.({ fromCatalog: before.causeId !== null });
       const after = await tx.clientCause.update({
         where: { id },
         data: {
           ...(patch.name !== undefined ? { name: patch.name } : {}),
           ...(patch.description !== undefined ? { description: patch.description } : {}),
           ...(patch.failureCategory !== undefined ? { failureCategory: patch.failureCategory as never } : {}),
+          ...(patch.causeOrigin !== undefined ? { origin: patch.causeOrigin as never } : {}),
+          ...(patch.causeType !== undefined ? { causeType: patch.causeType as never } : {}),
         },
       });
       const change = { before: causeRecord(before), after: causeRecord(after) };

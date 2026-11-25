@@ -63,7 +63,7 @@ export const toRiskDetail = (r: RiskNode, g: RiskGraph, on: boolean) => ({
 });
 
 export const toCause = (c: CauseNode, g: RiskGraph, on: boolean) => ({
-  id: c.id, service_id: c.serviceId, code: c.code, name: c.name, description: c.description, failure_category: c.failureCategory, origin: c.origin, is_active: c.isActive,
+  id: c.id, service_id: c.serviceId, code: c.code, name: c.name, description: c.description, failure_category: c.failureCategory, origin: c.origin, cause_origin: c.causeOrigin, cause_type: c.causeType, is_active: c.isActive,
   risks: activeRisks(g, c).map((r) => ({ id: r.id, code: r.code, name: r.name })),
   controls: c.controls.map((k) => controlLink(k, on)),
   ...technical(on, c.origin === 'catalog' ? c.code : null),

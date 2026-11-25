@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PersonResponse } from '../../../../common/swagger/shared.responses';
+import { DIMENSIONS } from '../../../../common/catalogs/dimensions';
 import { ResponsibleRefResponse } from '../responsibles/responsible.responses';
 
 // Formas del `data` de contracts/modules/compliance-controls.md y compliance-overview.md, solo para la documentación (las arman control-response.mapper.ts y
@@ -10,8 +11,6 @@ export const READINESS_DOC =
   '`ready` Preparado (100 %) · `almost_ready` Casi listo (80 % o más, o todo lo medido cumple pero falta algo) · `needs_work` Requiere trabajo (menos de 80 %) · `not_measured` Sin medir (aún nada con resultado: un hueco de cobertura, no un fallo).';
 export const TRUST_CRITERIA = ['security', 'availability', 'confidentiality', 'integrity', 'privacy'] as const;
 export const CONTROL_TYPES = ['manual', 'automated', 'hybrid', 'technical_manual'] as const;
-export const DIMENSIONS = ['policy', 'server', 'database', 'app', 'cloud', 'network', 'endpoint', 'physical', 'process'] as const;
-export const CONTROL_STATES = ['effective', 'ineffective', 'expired', 'error', 'incomplete', 'evaluating', 'no_tests'] as const;
 export const TEST_STATES = ['compliant', 'non_compliant', 'pending', 'evaluating', 'in_review', 'expired', 'error', 'no_assets', 'not_applicable', 'deactivated'] as const;
 export const ROLLUP_STATES = ['compliant', 'non_compliant', 'evaluating', 'no_controls', 'out_of_scope'] as const;
 export const CONTROL_LEVELS = ['not_evaluated', 'ineffective', 'weak', 'partial', 'adequate', 'solid'] as const;
@@ -56,7 +55,9 @@ export class ControlTechnicalTestResponse {
   @ApiProperty({ description: 'Nombre neutro de la prueba.' }) display_name!: string;
   @ApiProperty({ nullable: true, description: 'Descripción corta de la prueba para el cliente.' }) display_description!: string | null;
   @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension' }) dimension!: string;
-  @ApiProperty({ enum: TEST_STATES, enumName: 'TestState' }) state!: string;
+  @ApiProperty({ description: 'MD-499 · `true` si la prueba es de fuente manual y acepta `POST …/tests/{test_id}/evidence`.' }) accepts_evidence!: boolean;
+  @ApiProperty({ description: 'MD-499 · `true` solo si la prueba es de fuente `integration` y acepta subida de respaldo porque el servicio no tiene conectada esa integración (se calcula; no se guarda).' }) evidence_fallback!: boolean;
+  @ApiProperty({ enum: TEST_STATUSES, enumName: 'TestStatus', description: 'Estado de la prueba en este control (`test_status`, §9).' }) status!: string;
 }
 
 export class ControlCheckCountsResponse {
@@ -72,6 +73,26 @@ export class ControlAssetCoverageResponse {
   @ApiProperty({ example: 50, description: 'Activos en alcance de la prueba.' }) in_scope!: number;
 }
 
+export class ControlCheckLinkCheckResponse {
+  @ApiProperty({ format: 'uuid', description: 'Identificador del check en el catálogo.' }) id!: string;
+  @ApiProperty({ description: 'Título del check en el idioma de la petición (`title_es` y, sin traducción, `title_en`).' }) title!: string;
+}
+
+export class ControlCheckLinkOwnerResponse {
+  @ApiProperty({ format: 'uuid', nullable: true, description: 'Control del cliente dueño en el mismo servicio; `null` si el dueño no está en el alcance.' }) control_id!: string | null;
+  @ApiProperty({ example: 'IAC-15', description: 'Código del control dueño en el catálogo.' }) control_code!: string;
+  @ApiProperty({ enum: TEST_STATUSES, enumName: 'TestStatus', nullable: true, description: 'Estado de la prueba del control dueño, que es el que toma la Dependencia; `null` si el dueño no está en el alcance.' }) test_status!: string | null;
+}
+
+export class ControlCheckLinkResponse {
+  @ApiProperty({ enum: ['direct', 'complementary', 'dependency'], enumName: 'CheckRole', description: 'Rol del vínculo en la prueba (D129).' }) role!: string;
+  @ApiProperty({ enum: ['check', 'module'], description: 'Un check, o un vínculo a un módulo o puntaje global.' }) kind!: string;
+  @ApiProperty({ type: ControlCheckLinkCheckResponse, nullable: true, description: 'Con `kind: check`: el check; `null` en un módulo.' }) check!: ControlCheckLinkCheckResponse | null;
+  @ApiProperty({ enum: ['vulnerabilities', 'score', 'other'], nullable: true, description: 'Con `kind: module`: qué módulo es; `null` en un check.' }) module!: string | null;
+  @ApiProperty({ type: Number, nullable: true, example: 1, description: 'Solo en un Complementario: activos en alcance cuyo resultado más reciente de ese check es FAIL; `null` en Directos y Dependencias.' }) failing_assets!: number | null;
+  @ApiProperty({ type: ControlCheckLinkOwnerResponse, nullable: true, description: 'Solo en una Dependencia: el control dueño y el estado de su prueba.' }) owner!: ControlCheckLinkOwnerResponse | null;
+}
+
 export class RequirementTestResponse {
   @ApiProperty({ format: 'uuid', description: 'Identificador de la prueba.' }) test_id!: string;
   @ApiProperty({ example: 'T-IAC-12-02', description: 'Código de la prueba en el catálogo.' }) test_code!: string;
@@ -81,6 +102,9 @@ export class RequirementTestResponse {
   @ApiProperty({ nullable: true, example: '2026-12-26', description: 'Día del aviso previo (MD-500, PR-06): `window_end` menos los días de aviso de la periodicidad; `null` sin ventana.' }) alert_at!: string | null;
   @ApiProperty({ type: ControlCheckCountsResponse, nullable: true, description: 'Solo en las pruebas técnicas que deciden los checks: el conteo de resultados.' }) checks!: ControlCheckCountsResponse | null;
   @ApiProperty({ type: ControlAssetCoverageResponse, nullable: true, description: 'Solo en las pruebas técnicas que deciden los checks: la cobertura de activos.' }) asset_coverage!: ControlAssetCoverageResponse | null;
+  @ApiProperty({ description: 'MD-499 · `true` si la prueba es de fuente manual y acepta `POST …/tests/{test_id}/evidence`.' }) accepts_evidence!: boolean;
+  @ApiProperty({ description: 'MD-499 · `true` solo si la prueba es de fuente `integration` y acepta subida de respaldo porque el servicio no tiene conectada esa integración (se calcula; no se guarda).' }) evidence_fallback!: boolean;
+  @ApiProperty({ type: ControlCheckLinkResponse, isArray: true, description: 'MD-499 · Los vínculos ratificados de la prueba (Directos, Complementarios, Dependencias); `[]` en las pruebas no técnicas.' }) check_links!: ControlCheckLinkResponse[];
 }
 
 export class ControlRequirementResponse {
@@ -121,12 +145,10 @@ export class ControlPeriodResponse {
 
 export class ControlTechnicalResponse {
   @ApiProperty({ isArray: true, type: String, description: 'Puntos de enfoque a los que sirve.' }) points_of_focus!: string[];
-  @ApiProperty({ enum: CONTROL_STATES, enumName: 'ControlState', description: 'Estado del control según el motor del comité (derivado, nunca almacenado).' }) control_state!: string;
   @ApiProperty({ enum: CONTROL_LEVELS, enumName: 'ControlLevel', description: 'Nivel sugerido por el motor v2 (R1 a R6, §9).' }) level!: string;
   @ApiProperty({ example: 3, description: 'Valor de la escala del nivel, de 0 (No evaluado) a 5 (Sólido).' }) level_value!: number;
   @ApiProperty({ example: false, description: '`true` solo en los niveles Adecuado y Sólido (R4).' }) complies!: boolean;
   @ApiProperty({ nullable: true, example: 80, description: 'C%: requisitos que cumplen ÷ requisitos aplicables, con dos decimales; `null` si no hay requisitos aplicables.' }) c_percent!: number | null;
-  @ApiProperty({ example: 3, description: 'Pruebas del control.' }) tests_count!: number;
   @ApiProperty({ type: PeriodicityChangeResponse, nullable: true, description: 'MD-500 · El último cambio de periodicidad del control (D147); `null` si usa la sugerida del catálogo.' }) periodicity_change!: PeriodicityChangeResponse | null;
   @ApiProperty({ type: ControlPeriodResponse, nullable: true, description: 'MD-500 (R6) · La vista del período auditado abierto; `null` si el período no está definido. Los demás campos son la vista a la fecha.' }) period!: ControlPeriodResponse | null;
   @ApiProperty({ type: ControlRequirementResponse, isArray: true, required: false, description: 'Solo en el detalle: los requisitos del control con su estado y sus pruebas.' }) requirements?: ControlRequirementResponse[];
@@ -182,11 +204,22 @@ export class ControlCauseRefResponse {
   @ApiProperty({ type: String, nullable: true, description: 'Nombre de la causa. Nulo en las causas del catálogo v2.' }) name!: string | null;
 }
 
+export class ControlEvidenceTestResponse {
+  @ApiProperty({ format: 'uuid', description: 'Identificador de la prueba: es el `test_id` de `POST /v1/controls/{id}/tests/{test_id}/evidence`.' }) test_id!: string;
+  @ApiProperty({ example: 'T-PRO-001', description: 'Código de la prueba en el catálogo.' }) test_code!: string;
+  @ApiProperty({ description: 'Nombre neutro de la prueba.' }) display_name!: string;
+  @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension', description: 'Dimensión de la prueba.' }) dimension!: string;
+  @ApiProperty({ enum: TEST_STATUSES, enumName: 'TestStatus', description: 'Estado de la prueba en este control (`test_status`).' }) status!: string;
+  @ApiProperty({ description: 'MD-499 · `true` solo si la prueba es de fuente `integration` y acepta subida de respaldo (se calcula; no se guarda).' }) evidence_fallback!: boolean;
+  @ApiProperty({ format: 'uuid', nullable: true, description: 'El requerimiento que creó la primera entrega de esta prueba; `null` si aún no hay.' }) requirement_id!: string | null;
+}
+
 export class ControlDetailResponse extends ControlListItemResponse {
   @ApiProperty({ format: 'uuid' }) service_id!: string;
   @ApiProperty({ type: ControlInterpretationResponse }) interpretation!: ControlInterpretationResponse;
   @ApiProperty({ type: ControlDimensionResponse, isArray: true, description: 'Dimensiones en que se evalúa el control y si aplican.' }) dimensions!: ControlDimensionResponse[];
   @ApiProperty({ type: EvidenceRequirementSummaryResponse, isArray: true, description: 'Evidencias que pide el control y su última entrega.' }) evidence!: EvidenceRequirementSummaryResponse[];
+  @ApiProperty({ type: ControlEvidenceTestResponse, isArray: true, description: 'MD-499 · Las pruebas del control que aceptan evidencia subida, para todos los roles que leen el detalle.' }) evidence_tests!: ControlEvidenceTestResponse[];
   @ApiProperty({ type: ControlCauseRefResponse, isArray: true, description: 'Causas de riesgo que el control trata.' }) causes!: ControlCauseRefResponse[];
   @ApiProperty({ type: FailingResponse, isArray: true, description: 'En qué falla el control, por dimensión.' }) failing!: FailingResponse[];
 }
