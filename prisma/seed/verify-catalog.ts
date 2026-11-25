@@ -10,7 +10,8 @@ import { Client } from 'pg';
 import { CloudDataset } from './cloud/build';
 import { namesProvider } from './catalog/display-names';
 import { readCloudDatasets, readSondaDataset } from './catalog/checks-index';
-import { CatalogV2, EXPECTED_COUNTS, EXPECTED_DETAIL } from './catalog/types';
+import { dimensionTypeOf } from './catalog/dimension-type';
+import { CatalogV2, ControlType, EXPECTED_COUNTS, EXPECTED_DETAIL } from './catalog/types';
 import { validateCatalog } from './catalog/validate';
 import { connectAsOwner, readCatalogJson, short } from './db';
 
@@ -171,10 +172,19 @@ async function main() {
     const own = testDb.filter((t) => t.control).length;
     const viaDocs = new Set(cdDb.flatMap((r) => (docDb.find((d) => d.id === r.documentId)?.test ? [`${r.control.code}#${docDb.find((d) => d.id === r.documentId)!.test!.code}`] : [])));
     check(own + viaDocs.size === ctDb.length, `control_tests = ${own} por tests.control_id + ${viaDocs.size} T-DOC por control_documents`, `control_tests (${ctDb.length}) ≠ ${own} + ${viaDocs.size}`);
-    const ctype = new Map(ctrlDb.map((k) => [k.id, k.type]));
-    const wantType = { manual: 'manual', automated: 'automated', it_dependent_manual: 'hybrid' } as Record<string, string>;
-    const badDim = dimDb.filter((r) => r.type !== wantType[ctype.get(r.controlId) ?? ''] || r.requiresProbe || r.requiresAi || r.requiresComplianceConfirmation || r.reasonNotApplicable !== null);
-    check(badDim.length === 0, 'control_dimensions.type sale del tipo del control (manual→manual, automated→automated, it_dependent_manual→hybrid) y sin banderas', `${badDim.length} dimensiones con tipo o banderas distintos`);
+    const ctype = new Map(ctrlDb.map((k) => [k.id, k.type as ControlType]));
+    // MD-499 · Las cinco dimensiones de siempre conservan el tipo del control (manual→manual, automated→automated, it_dependent_manual→hybrid); network, endpoint, physical y process lo sacan de las
+    // FUENTES de las pruebas del control en esa dimensión (`dimensionTypeOf`, la misma regla de la semilla y de la migración 20261124120000).
+    const sourcesOf = new Map<string, string[]>();
+    for (const r of ctDb) sourcesOf.set(`${r.controlId}|${r.test.dimension}`, [...(sourcesOf.get(`${r.controlId}|${r.test.dimension}`) ?? []), r.test.primarySource ?? 'manual']);
+    const badDim = dimDb.filter(
+      (r) => r.type !== dimensionTypeOf(r.dimension, ctype.get(r.controlId) as ControlType, sourcesOf.get(`${r.controlId}|${r.dimension}`) ?? []) || r.requiresProbe || r.requiresAi || r.requiresComplianceConfirmation || r.reasonNotApplicable !== null,
+    );
+    check(
+      badDim.length === 0,
+      'control_dimensions.type: las 5 dimensiones de siempre salen del tipo del control (manual→manual, automated→automated, it_dependent_manual→hybrid); network, endpoint, physical y process, de las fuentes de sus pruebas (todas manual/document→manual, todas automáticas→automated, mezcla→hybrid); sin banderas',
+      `${badDim.length} dimensiones con tipo o banderas distintos`,
+    );
 
     // ---- 4. Integridad relacional ----
     console.log('\n4. Integridad relacional');
