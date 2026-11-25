@@ -5,6 +5,7 @@ import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { asApp, failure, withRollback } from '../support/db';
 import { dosEmpresas, Tenant } from '../support/escenario';
 import { asignarControl, asignarServicio } from '../support/asignaciones';
+import { controlPropioConPruebas, resultadoDeStatus } from '../support/controles';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
 // MD-127 + D88 + D102 (MD-194) · La persona lee lo que pide una prueba documental y sube su documento PARA ESA PRUEBA en ese control; la revisan el responsable dueño (si no la subió él) y el
@@ -37,7 +38,7 @@ const review = (agent: Agent, submissionId: string, body: Record<string, unknown
 /** El estado de cada prueba documental de un control, tal como lo ve quien pide la vista técnica. */
 async function docStates(controlId: string): Promise<Record<string, string>> {
   const d = (await a.agent.get(`/v1/controls/${controlId}?view=technical`).expect(200)).body.data;
-  return Object.fromEntries(d.technical.tests.filter((t: any) => t.dimension === 'policy').map((t: any) => [t.test_code, t.state]));
+  return Object.fromEntries(d.technical.tests.filter((t: any) => t.dimension === 'policy').map((t: any) => [t.test_code, resultadoDeStatus(t.status)]));
 }
 const requirementsOf = async (agent: Agent, controlId: string, view?: 'technical') =>
   (await agent.get(`/v1/controls/${controlId}/evidence${view ? `?view=${view}` : ''}`).expect(200)).body.data.items as any[];
@@ -181,12 +182,55 @@ describe('D88 · reglas de la subida por prueba', () => {
     await forTest(a.agent, controlX, 'no-es-uuid', 'x').expect(404);
     const sinVinculo = (await owner<{ id: string }>(`select id from catalog.tests where dimension = 'policy' and id not in (select test_id from tenant.client_control_tests where client_control_id = $1) limit 1`, [controlX]))[0];
     await forTest(a.agent, controlX, sinVinculo.id, 'x').expect(404);
-    const automated = (await owner<{ id: string }>(
-      `select t.id from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $1 and t.dimension <> 'policy' limit 1`, [controlX]))[0];
-    if (automated) {
-      const res = await forTest(a.agent, controlX, automated.id, 'x').expect(422);
-      expect(res.body.error.fields[0]).toMatchObject({ field: 'test_id', code: 'test.not_documentary' });
+    // MD-499 · Una prueba cuya evidencia toma una fuente automática no acepta subida (test.not_manual); una de proceso, sí.
+    const link = async (testId: string) => owner(`insert into tenant.client_control_tests (id, tenant_id, client_control_id, test_id) values (gen_random_uuid(), $1, $2, $3) on conflict do nothing`, [a.companyId, controlX, testId]);
+    const automated = (await owner<{ id: string }>(`select id from catalog.tests where primary_source in ('probe','cloud_engine','probe_and_cloud_engine') limit 1`))[0];
+    await link(automated.id);
+    const res = await forTest(a.agent, controlX, automated.id, 'x').expect(422);
+    expect(res.body.error.fields[0]).toMatchObject({ field: 'test_id', code: 'test.not_manual' });
+    expect(res.body.error.fields[0].message).not.toMatch(/^validation\./);
+    const proceso = (await owner<{ id: string }>(`select t.id from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $1 and t.dimension = 'process' and t.primary_source in ('manual','document') limit 1`, [controlX]))[0];
+    expect(proceso).toBeDefined(); // el catálogo lleva pruebas de proceso en este control
+    const ok = await forTest(a.agent, controlX, proceso.id, 'proc').expect(201);
+    expect(ok.body.data).toBeDefined();
+    const req = await requirementOfTest(controlX, proceso.id);
+    expect(req).toMatchObject({ dimension: 'process' });
+    // El motor la cuenta: pendiente al subir, cumplida cuando el admin_empresa la valida.
+    const stateOf = async () => (await a.agent.get(`/v1/controls/${controlX}?view=technical`).expect(200)).body.data.technical.tests.find((t: any) => t.test_id === proceso.id).status;
+    expect(await stateOf()).toBe('pending');
+    await review(a.agent, ok.body.data.id, ALL_OK).expect(200);
+    expect(await stateOf()).toBe('correct');
+    // MD-499 · si la dimensión de la prueba se marca «no aplica» en el control, deja de aceptar subida y de salir en evidence_tests.
+    await owner(`update tenant.client_control_dimensions set reason_not_applicable = 'No operamos esa parte.' where client_control_id = $1 and dimension = 'process'`, [controlX]);
+    try {
+      const sinAplicar = await forTest(a.agent, controlX, proceso.id, 'proc-no-aplica').expect(422);
+      expect(sinAplicar.body.error.fields[0]).toMatchObject({ field: 'test_id', code: 'dimension.not_in_control' });
+      const d = (await a.agent.get(`/v1/controls/${controlX}?view=technical`).expect(200)).body.data;
+      expect(d.evidence_tests.some((t: any) => t.test_id === proceso.id)).toBe(false);
+      expect(d.technical.tests.find((t: any) => t.test_id === proceso.id)).toMatchObject({ accepts_evidence: false, evidence_fallback: false });
+    } finally {
+      await owner(`update tenant.client_control_dimensions set reason_not_applicable = null where client_control_id = $1 and dimension = 'process'`, [controlX]);
     }
+    const detail = (await a.agent.get(`/v1/controls/${controlX}?view=technical`).expect(200)).body.data;
+    expect(detail.technical.tests.find((t: any) => t.test_id === proceso.id)).toMatchObject({ accepts_evidence: true, evidence_fallback: false });
+    expect(detail.technical.requirements.flatMap((r: any) => r.tests).every((t: any) => typeof t.accepts_evidence === 'boolean')).toBe(true);
+  });
+
+  it('el ejecutor y el dueño suben en una prueba de proceso, y evidence_tests la ofrece a todos los roles, sin technical (MD-499)', async () => {
+    const proceso = (await owner<{ id: string }>(`select t.id from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $1 and t.dimension = 'process' and t.primary_source in ('manual','document') limit 1`, [controlY]))[0];
+    expect(proceso).toBeDefined(); // el control Y lleva pruebas de proceso manuales
+    const leer = async (agent: Agent) => (await agent.get(`/v1/controls/${controlY}`).expect(200)).body.data;
+    for (const agent of [a.agent, responsable, delegado]) {
+      const d = await leer(agent);
+      expect(d.technical).toBeUndefined();
+      const et = d.evidence_tests.find((t: any) => t.test_id === proceso.id);
+      expect(et).toEqual({ test_id: proceso.id, test_code: expect.any(String), display_name: expect.any(String), dimension: 'process', status: expect.any(String), evidence_fallback: false, requirement_id: null });
+    }
+    await forTest(delegado, controlY, proceso.id, 'proc-ejecutor').expect(201);
+    await forTest(responsable, controlY, proceso.id, 'proc-dueno').expect(201);
+    const req = await requirementOfTest(controlY, proceso.id);
+    const despues = (await leer(delegado)).evidence_tests.find((t: any) => t.test_id === proceso.id);
+    expect(despues.requirement_id).toBe(req.id);
   });
 
   it('un archivo rechazado no deja un lugar vacío; sin archivo, 422; sin almacenamiento, 503; un control dado de baja, 409', async () => {
@@ -400,7 +444,29 @@ describe('D88 · agregar una evidencia propia con descripción (para quien quier
     const ajena = (await owner<{ id: string }>(`select id from catalog.tests where dimension = 'policy' and id not in (select test_id from tenant.client_control_tests where client_control_id = $1) limit 1`, [controlX]))[0];
     expect((await a.agent.post(`/v1/controls/${controlX}/evidence-requirements`).send({ description: 'x', dimension: 'policy', test_id: ajena.id }).expect(422)).body.error.fields[0]).toMatchObject({ code: 'test.not_in_control' });
     expect((await a.agent.post(`/v1/controls/${controlX}/evidence-requirements`).send({ description: 'x', dimension: 'app' }).expect(422)).body.error.fields[0]).toMatchObject({ code: 'dimension.not_in_control' });
+    // MD-499 · con test_id, la dimensión del requerimiento debe ser la de la prueba.
+    const delProceso = (await owner<{ id: string }>(`select t.id from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $1 and t.dimension = 'process' and t.primary_source in ('manual','document') limit 1`, [controlX]))[0];
+    const distinta = await a.agent.post(`/v1/controls/${controlX}/evidence-requirements`).send({ description: 'x', dimension: 'policy', test_id: delProceso.id }).expect(422);
+    expect(distinta.body.error.fields).toEqual(expect.arrayContaining([{ field: 'dimension', code: 'dimension.not_of_test', message: expect.any(String) }]));
     await responsable.post(`/v1/controls/${controlX}/evidence-requirements`).send({ description: 'x', dimension: 'policy' }).expect(403);
+  });
+
+  it('MD-499 · la dimensión `process` con su prueba: la acepta si el control la exige (aunque sea híbrida); otra dimensión del control o una que no tiene, 422', async () => {
+    const [t] = await owner<{ id: string }>(`select id from catalog.tests where dimension = 'process' and primary_source = 'manual' order by code limit 1`);
+    const control = await controlPropioConPruebas(a.companyId, a.serviceId, `P${RUN.toUpperCase()}`, [t.id], 'process', 'hybrid');
+    await owner(`insert into tenant.client_control_dimensions (id, tenant_id, client_control_id, dimension, type) values (gen_random_uuid(), $1, $2, 'policy'::catalog.dimension, 'manual')`, [a.companyId, control]);
+    const post = (body: object) => a.agent.post(`/v1/controls/${control}/evidence-requirements`).send({ description: 'Acta firmada', ...body });
+    const ok = await post({ dimension: 'process', test_id: t.id }).expect(201);
+    expect(ok.body.data).toMatchObject({ dimension: 'process', origin: 'own', test: { id: t.id } });
+    // Del control, pero no la de la prueba: un solo error, `dimension.not_of_test`.
+    expect((await post({ dimension: 'policy', test_id: t.id }).expect(422)).body.error.fields).toEqual([{ field: 'dimension', code: 'dimension.not_of_test', message: expect.any(String) }]);
+    // Una dimensión que el control no exige: el 422 de siempre.
+    expect((await post({ dimension: 'network', test_id: t.id }).expect(422)).body.error.fields).toEqual([{ field: 'dimension', code: 'dimension.not_in_control', message: expect.any(String) }]);
+    // La dimensión de la prueba marcada «no aplica»: la prueba no se evalúa ahí y no recibe evidencia.
+    await owner(`update tenant.client_control_dimensions set reason_not_applicable = 'No aplica' where client_control_id = $1 and dimension = 'process'::catalog.dimension`, [control]);
+    expect((await post({ dimension: 'policy', test_id: t.id }).expect(422)).body.error.fields).toEqual(
+      expect.arrayContaining([{ field: 'test_id', code: 'dimension.not_in_control', message: expect.any(String) }]),
+    );
   });
 });
 

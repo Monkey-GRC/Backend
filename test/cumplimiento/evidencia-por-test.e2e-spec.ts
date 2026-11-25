@@ -1,9 +1,11 @@
 import type { INestApplication } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { FileStorage } from '../../src/common/storage/file-storage';
+import { IntegrationConnections } from '../../src/features/compliance/domain/evidence/integration-connections';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
 import { asignarControl, asignarServicio } from '../support/asignaciones';
+import { controlPropioConPruebas } from '../support/controles';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
 // MD-177 · Ver la evidencia de un test manual y listarla por test; ver un PDF, PNG o JPG sin descargarlo (contracts/modules/compliance-evidence.md, D85, D88, D96).
@@ -25,6 +27,9 @@ let docTest: TestRef;
 let sharedTest: TestRef; // un test manual no documental que llevan al menos dos controles
 let sharedControls: string[];
 const storage = new StorageEnMemoria();
+// Las categorías de integración que el servicio tiene «conectadas»: vacío salvo en la prueba que las conecta (MD-497 construye las reales).
+const conectadas = new Set<string>();
+const integraciones: IntegrationConnections = { connectedCategories: () => Promise.resolve(conectadas) };
 
 const pdf = (marca: string) => Buffer.from(`%PDF-1.7\n% evidencia ${marca} ${RUN}\n`);
 const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from(`png ${RUN}`)]);
@@ -40,7 +45,7 @@ async function cuenta(companyId: string, email: string, role: 'auditor' | 'respo
   ))[0].id;
 }
 beforeAll(async () => {
-  app = await bootApp({}, (builder) => builder.overrideProvider(FileStorage).useValue(storage));
+  app = await bootApp({}, (builder) => builder.overrideProvider(FileStorage).useValue(storage).overrideProvider(IntegrationConnections).useValue(integraciones));
   ({ a, b, monkey } = await dosEmpresas(app));
   adminId = (await owner<{ id: string }>(`select id from platform.users where email = $1`, [a.email]))[0].id;
   await cuenta(a.companyId, `auditor-evt-${RUN}@cumplimiento.test`, 'auditor');
@@ -65,11 +70,11 @@ beforeAll(async () => {
   controlY = (await owner<{ id: string }>(`select client_control_id id from tenant.client_control_tests where test_id = $1 and client_control_id <> $2 and client_control_id in (select id from tenant.client_controls where service_id = $3 and is_active) limit 1`, [docTest.id, controlX, a.serviceId]))[0].id;
   await asignarServicio(a.companyId, a.serviceId, docId);
 
-  // En la v2 una prueba que no es documental es de un solo control: se le suma un segundo control (con su dimensión) para que dos controles la lleven.
+  // En la v2 una prueba que no es documental es de un solo control (y solo las de fuente manual o documental tienen evidencia, MD-499): se le suma un segundo control (con su dimensión) para que dos controles la lleven.
   const [seed] = await owner<{ test_id: string; control_id: string; dimension: string }>(
     `select x.test_id, x.client_control_id control_id, t.dimension::text dimension from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id
        join tenant.client_controls cc on cc.id = x.client_control_id and cc.service_id = $1 and cc.is_active
-      where t.dimension not in ('policy', 'process') order by t.code limit 1`,
+      where t.dimension not in ('policy', 'process') and t.primary_source in ('manual', 'document') order by t.code limit 1`,
     [a.serviceId],
   );
   const [second] = await owner<{ id: string }>(
@@ -88,7 +93,7 @@ beforeAll(async () => {
   // Un test no documental que lleven al menos dos controles vigentes: se marca como manual en esos controles y se les pone un requerimiento que lo sirva.
   const shared = await owner<{ id: string; code: string; dimension: string }>(
     `select t.id, t.code, t.dimension from catalog.tests t join tenant.client_control_tests x on x.test_id = t.id join tenant.client_controls cc on cc.id = x.client_control_id and cc.service_id = $1 and cc.is_active
-      where t.dimension <> 'policy' group by t.id, t.code, t.dimension having count(*) >= 2 order by count(*) desc, t.code limit 1`,
+      where t.dimension <> 'policy' and t.primary_source in ('manual', 'document') group by t.id, t.code, t.dimension having count(*) >= 2 order by count(*) desc, t.code limit 1`,
     [a.serviceId],
   );
   expect(shared.length).toBe(1);
@@ -161,12 +166,6 @@ describe('MD-177 · la evidencia de una prueba documental, en su control (D88)',
     await listOf(a.agent, 'no-es-un-uuid', docTest.id).expect(404);
     await listOf(a.agent, controlX, 'no-es-un-uuid').expect(404);
     await listOf(a.agent, controlX, '00000000-0000-4000-8000-000000000000').expect(404);
-    const automatic = await owner<{ id: string }>(
-      `select t.id from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id join tenant.client_control_dimensions d on d.client_control_id = x.client_control_id and d.dimension = t.dimension
-        where x.client_control_id = $1 and t.dimension <> 'policy' and d.type not in ('manual', 'technical_manual') limit 1`,
-      [controlX],
-    );
-    if (automatic.length) await listOf(a.agent, controlX, automatic[0].id).expect(404);
   });
 });
 
@@ -335,5 +334,58 @@ describe('MD-177 · las pruebas de un control, con lo que comparten (D85, D88)',
     await testsOf(b.agent, controlX).expect(404);
     await testsOf(a.agent, 'no-es-un-uuid').expect(404);
     await testsOf(a.agent, '00000000-0000-4000-8000-000000000000').expect(404);
+  });
+});
+
+// MD-499 · Qué pruebas tienen evidencia que mostrar lo decide la fuente principal de la prueba (la regla de la subida), no el tipo de su dimensión en el control.
+describe('MD-499 · la lectura por prueba usa la regla de la subida', () => {
+  const testOf = async (dimension: string, source: string) =>
+    (await owner<{ id: string }>(`select id from catalog.tests where dimension = $1::catalog.dimension and primary_source = $2::catalog.test_primary_source order by code limit 1`, [dimension, source]))[0].id;
+
+  it('una prueba `process` manual de una dimensión híbrida: se lee (200), acepta la subida y la entrega aparece', async () => {
+    const test = await testOf('process', 'manual');
+    const control = await controlPropioConPruebas(a.companyId, a.serviceId, `E${RUN.toUpperCase()}`, [test], 'process', 'hybrid');
+    expect((await listOf(a.agent, control, test).expect(200)).body.data).toMatchObject({ test_id: test, items: [] });
+    await forTest(a.agent, control, test, 'acta-proceso').expect(201);
+    const { items } = (await listOf(a.agent, control, test).expect(200)).body.data;
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ dimension: 'process', test: { id: test }, control: { id: control } });
+  });
+
+  it('una prueba de sonda es 404 aunque su dimensión sea manual; igual la subida es 422', async () => {
+    const test = await testOf('server', 'probe');
+    const control = await controlPropioConPruebas(a.companyId, a.serviceId, `F${RUN.toUpperCase()}`, [test], 'server', 'manual');
+    await listOf(a.agent, control, test).expect(404);
+    expect(fields(await forTest(a.agent, control, test, 'no-aplica').expect(422))).toEqual([{ field: 'test_id', code: 'test.not_manual' }]);
+  });
+
+  it('una prueba manual cuya dimensión el control marcó «no aplica» es 404 y la subida, 422 dimension.not_in_control', async () => {
+    const test = await testOf('process', 'manual');
+    const control = await controlPropioConPruebas(a.companyId, a.serviceId, `G${RUN.toUpperCase()}`, [test], 'process', 'manual');
+    await owner(`update tenant.client_control_dimensions set reason_not_applicable = 'No aplica' where client_control_id = $1 and dimension = 'process'::catalog.dimension`, [control]);
+    await listOf(a.agent, control, test).expect(404);
+    expect(fields(await forTest(a.agent, control, test, 'no-aplica').expect(422))).toEqual([{ field: 'test_id', code: 'dimension.not_in_control' }]);
+  });
+
+  it('una integración conectada no oculta lo subido de respaldo: el GET sigue en 200 con la entrega (histórico) y la subida es 422; sin entregas, 404', async () => {
+    const [t] = await owner<{ id: string; category: string }>(
+      `select t.id, c.name category from catalog.tests t join catalog.integration_categories c on c.id = t.integration_category_id
+        where t.dimension = 'process'::catalog.dimension and t.primary_source = 'integration'::catalog.test_primary_source order by t.code limit 1`,
+    );
+    const control = await controlPropioConPruebas(a.companyId, a.serviceId, `H${RUN.toUpperCase()}`, [t.id], 'process', 'manual');
+    const vacio = await controlPropioConPruebas(a.companyId, a.serviceId, `J${RUN.toUpperCase()}`, [t.id], 'process', 'manual');
+    await forTest(a.agent, control, t.id, 'respaldo').expect(201); // sin integración conectada, acepta subida de respaldo
+    conectadas.add(t.category);
+    try {
+      const { items } = (await listOf(a.agent, control, t.id).expect(200)).body.data;
+      expect(items).toHaveLength(1);
+      expect(items[0].submissions).toHaveLength(1);
+      expect(fields(await forTest(a.agent, control, t.id, 'ya-conectada').expect(422))).toEqual([{ field: 'test_id', code: 'test.not_manual' }]);
+      await listOf(a.agent, vacio, t.id).expect(404);
+    } finally {
+      conectadas.delete(t.category);
+    }
+    // Al desconectarla vuelve a aceptar subida.
+    await forTest(a.agent, control, t.id, 'desconectada').expect(201);
   });
 });

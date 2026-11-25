@@ -46,7 +46,7 @@ describe('Resumen del servicio — la evaluación aún sin definir (P26)', () =>
     expect(res.body.data.service_id).toBe(a.serviceId);
     const fw = soc2(res.body.data);
     expect(fw).toMatchObject({ framework_code: 'soc2', name: 'SOC 2', readiness: 'not_measured' });
-    expect(fw.evaluation).toEqual({ catalog_version: null, period_start: null, period_end: null, cutoff_date: null, cutoff_frozen: null });
+    expect(fw.evaluation).toEqual({ catalog_version: null, period_start: null, period_end: null, cutoff_date: null, cutoff_frozen: null, min_period_months: 6 }); // MD-499: el mínimo de PR-16 viaja aunque no haya período
     expect(fw.progress.done).toBe(0);
     expect(fw.progress.total).toBeGreaterThan(20);
     expect(fw.coverage).toEqual({ measured: 0, applicable: fw.progress.total });
@@ -94,7 +94,7 @@ describe('Resumen del servicio — con la evaluación definida y resultados', ()
   it('la evaluación sale con la versión del catálogo, el período y la fecha de corte', async () => {
     const fw = soc2(await read(a.agent));
     // La fecha de corte está guardada (congelada): sale tal cual, sin importar qué día sea hoy (D87).
-    expect(fw.evaluation).toEqual({ catalog_version: expect.stringMatching(/^\d+$/), period_start: '2026-01-01', period_end: '2026-12-31', cutoff_date: '2026-10-14', cutoff_frozen: true });
+    expect(fw.evaluation).toEqual({ catalog_version: expect.stringMatching(/^\d+$/), period_start: '2026-01-01', period_end: '2026-12-31', cutoff_date: '2026-10-14', cutoff_frozen: true, min_period_months: 6 });
   });
 
   it('un control que no cumple aparece donde falla, con su código, sus requisitos y el activo afectado', async () => {
@@ -201,15 +201,17 @@ describe('Resumen del servicio — quién puede pedir qué', () => {
     const category = fw.categories[0];
     expect(category.technical.state).toEqual(expect.any(String));
     const line = category.technical.controls[0];
-    expect(line).toEqual({ control_id: expect.any(String), control_code: expect.stringMatching(/^[A-Z]+-\d+$/), state: expect.any(String), progress: { done: expect.any(Number), total: expect.any(Number) }, level: expect.stringMatching(/^(not_evaluated|ineffective|weak|partial|adequate|solid)$/), level_value: expect.any(Number), complies: expect.any(Boolean), c_percent: { asymmetricMatch: (v: unknown) => v === null || typeof v === 'number' }, blocking_requirements: expect.any(Array), blocking_tests: expect.any(Array) });
+    expect(line).toEqual({ control_id: expect.any(String), control_code: expect.stringMatching(/^[A-Z]+-\d+$/), progress: { done: expect.any(Number), total: expect.any(Number) }, level: expect.stringMatching(/^(not_evaluated|ineffective|weak|partial|adequate|solid)$/), level_value: expect.any(Number), complies: expect.any(Boolean), c_percent: { asymmetricMatch: (v: unknown) => v === null || typeof v === 'number' }, blocking_requirements: expect.any(Array) });
   });
 
-  it('el control que no cumple lista, en la vista técnica, los tests que lo bloquean', async () => {
+  it('el control que no cumple lista, en la vista técnica, los requisitos que lo bloquean (blocking_requirements)', async () => {
     const fw = soc2(await read(a.agent, '?view=technical'));
     const lines = fw.categories.flatMap((c: any) => c.technical.controls);
-    const blocked = lines.find((l: any) => l.state === 'ineffective');
+    const blocked = lines.find((l: any) => l.blocking_requirements.some((r: any) => r.status === 'non_compliant'));
     expect(blocked).toBeTruthy();
-    expect(blocked.blocking_tests.some((t: any) => t.state === 'non_compliant' && /^T-[A-Z]{3}-\d+-\d+$/.test(t.test_code))).toBe(true);
+    expect(blocked).not.toHaveProperty('state');
+    expect(blocked).not.toHaveProperty('blocking_tests');
+    expect(blocked.blocking_requirements.length).toBeGreaterThan(0);
     expect(fw.technical.state).toBe('non_compliant');
     expect(fw.technical.failing).toContain(blocked.control_code);
   });

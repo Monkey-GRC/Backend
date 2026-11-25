@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import * as auditInsert from '../../src/infrastructure/audit/audit-log.insert';
+import { controlStateOf, resultadoDeStatus } from '../support/controles';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { definirPeriodo, dosEmpresas, Tenant } from '../support/escenario';
 
@@ -42,12 +43,13 @@ async function cuenta(companyId: string, email: string, role: 'auditor' | 'respo
 // El estado que el motor da a la prueba `testId` de una acción de A, tal como lo ve el administrador en la vista técnica.
 const stateOfTest = async (): Promise<string> => {
   const detail = (await a.agent.get(`/v1/controls/${controlId}?view=technical`).expect(200)).body.data;
-  return detail.technical.tests.find((t: any) => t.test_code === testCode).state;
+  const status = detail.technical.tests.find((t: any) => t.test_code === testCode).status;
+  return resultadoDeStatus(status);
 };
 let testCode: string;
 const controlState = async () => {
   const d = (await a.agent.get(`/v1/controls/${controlId}?view=technical`).expect(200)).body.data;
-  return { state: d.technical.control_state as string, readiness: d.readiness as string };
+  return { state: controlStateOf(d.technical), readiness: d.readiness as string };
 };
 const definePeriod = (end: string | null) =>
   definirPeriodo(a.serviceId, end ? day(-30) : null, end, end ? day(-30) : null);

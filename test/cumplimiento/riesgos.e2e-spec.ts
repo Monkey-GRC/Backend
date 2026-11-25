@@ -91,6 +91,10 @@ describe('Lo que trae un servicio recién clonado', () => {
     expect(list.length).toBe(catalog.causes.length);
     const withRisk = list.find((c) => c.risks.length > 0)!;
     expect(withRisk).toMatchObject({ code: expect.stringMatching(/^F\d{3}$/), origin: 'catalog', is_active: true, failure_category: null });
+    // La clonación copia la clasificación del catálogo a la causa del cliente.
+    expect(list.every((c) => 'cause_origin' in c && 'cause_type' in c)).toBe(true);
+    const [catalogCause] = await owner<{ cause_origin: string | null; cause_type: string | null }>(`select cause_origin::text, cause_type::text from catalog.causes where code = $1`, [withRisk.code]);
+    expect({ o: withRisk.cause_origin, t: withRisk.cause_type }).toEqual({ o: catalogCause.cause_origin, t: catalogCause.cause_type });
     expect((await all(a.agent, causes(a, `?risk_id=${withRisk.risks[0].id}`))).map((c) => c.id)).toContain(withRisk.id);
     // v2: la causa del catálogo ya no trae categoría de falla (la reemplazan origen y tipo): ninguna cae en un filtro por categoría.
     expect(await all(a.agent, causes(a, '?failure_category=governance'))).toEqual([]);
@@ -113,7 +117,7 @@ describe('Crear y vincular (el árbol se lee completo)', () => {
   it('crea una causa propia (F101), la vincula al riesgo y a una acción, y el árbol queda completo', async () => {
     const cause = (await a.agent.post(causes(a)).send(CAUSE).expect(201)).body.data;
     causeId = cause.id;
-    expect(cause).toMatchObject({ code: 'F101', origin: 'own', risks: [], controls: [] });
+    expect(cause).toMatchObject({ code: 'F101', origin: 'own', cause_origin: null, cause_type: null, risks: [], controls: [] });
     controlId = (await all(a.agent, `/v1/services/${a.serviceId}/controls`))[0].id;
 
     await a.agent.post(`/v1/risks/${riskId}/causes`).send({ cause_id: causeId }).expect(201).expect((r) => expect(r.body.data).toEqual({ risk_id: riskId, cause_id: causeId }));
@@ -176,6 +180,34 @@ describe('Editar es sobre la copia de la empresa', () => {
     const c = (await all(a.agent, causes(a)))[0];
     const edited = await a.agent.patch(`/v1/causes/${c.id}`).send({ failure_category: 'external', name: 'Cambio de nombre' }).expect(200);
     expect(edited.body.data).toMatchObject({ id: c.id, name: 'Cambio de nombre', failure_category: 'external' });
+  });
+
+  it('la clasificación (MD-499): se crea, se edita y se borra con null en una causa propia; en una del catálogo es 422', async () => {
+    const own = (await a.agent.post(causes(a)).send({ ...CAUSE, cause_origin: 'external', cause_type: 'climate' }).expect(201)).body.data;
+    expect(own).toMatchObject({ origin: 'own', cause_origin: 'external', cause_type: 'climate' });
+    const edited = await a.agent.patch(`/v1/causes/${own.id}`).send({ cause_origin: 'internal', cause_type: 'human' }).expect(200);
+    expect(edited.body.data).toMatchObject({ cause_origin: 'internal', cause_type: 'human' });
+    const only = await a.agent.patch(`/v1/causes/${own.id}`).send({ cause_type: null }).expect(200);
+    expect(only.body.data).toMatchObject({ cause_origin: 'internal', cause_type: null });
+    const rows = await owner<{ before_state: { causeType: string | null }; after_state: { causeType: string | null } }>(
+      `select before_state, after_state from audit.audit_logs where tenant_id = $1 and action = 'client_cause.update' and after_state->>'id' = $2 order by created_at desc limit 1`,
+      [a.companyId, own.id],
+    );
+    expect(rows[0].before_state.causeType).toBe('human');
+    expect(rows[0].after_state.causeType).toBeNull();
+    const cleared = await a.agent.patch(`/v1/causes/${own.id}`).send({ cause_origin: null }).expect(200);
+    expect(cleared.body.data).toMatchObject({ cause_origin: null, cause_type: null });
+
+    const bad = await a.agent.post(causes(a)).send({ ...CAUSE, cause_origin: 'lunar' }).expect(422);
+    expect(fields(bad)).toEqual(expect.arrayContaining([{ field: 'cause_origin', code: 'enum.invalid' }]));
+    await a.agent.patch(`/v1/causes/${own.id}`).send({ cause_type: 'nope' }).expect(422);
+
+    const fromCatalog = (await all(a.agent, causes(a))).find((c) => c.origin === 'catalog')!;
+    const res = await a.agent.patch(`/v1/causes/${fromCatalog.id}`).send({ cause_origin: 'external' }).expect(422);
+    expect(res.body.error.code).toBe('VALIDATION_FAILED');
+    expect(fields(res)).toEqual([{ field: 'cause_origin', code: 'cause.catalog_classification' }]);
+    expect(res.body.error.fields[0].message).not.toMatch(/^validation\./);
+    await a.agent.patch(`/v1/causes/${fromCatalog.id}`).send({ name: 'Solo nombre' }).expect(200);
   });
 });
 

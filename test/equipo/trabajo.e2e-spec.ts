@@ -89,7 +89,7 @@ beforeAll(async () => {
     `select cc.id control, x.test_id test from tenant.client_controls cc
        join tenant.client_control_dimensions d on d.client_control_id = cc.id and d.dimension = 'cloud' and d.type = 'manual'
        join tenant.client_control_tests x on x.client_control_id = cc.id join catalog.tests t on t.id = x.test_id and t.dimension = 'cloud'
-      where cc.service_id = $1 and cc.is_active order by cc.own_code, t.code`,
+      where cc.service_id = $1 and cc.is_active and t.primary_source not in ('manual', 'document') order by cc.own_code, t.code`,
     [a.serviceId],
   );
   expect(manual.length).toBeGreaterThan(0);
@@ -320,5 +320,29 @@ describe('carga de trabajo', () => {
     withScope.mockRestore();
     expect(conMuchos).toBeLessThanOrEqual(4);
     expect(mias).toBeLessThanOrEqual(4);
+  });
+});
+
+// MD-499 · De qué cuenta cada prueba lo decide la regla de la subida (fuente principal y dimensión aplicable), no el tipo de la dimensión: una prueba `process` manual de una dimensión
+// híbrida es una pieza de evidencia; el veredicto (D85) queda para la manual que no acepta subida (la prueba de nube de arriba).
+describe('una prueba de proceso cuenta como evidencia (MD-499)', () => {
+  it('una prueba `process` manual en una dimensión híbrida es una pieza por subir; al subirla pasa a revisión y la valida el dueño', async () => {
+    const [test] = await owner<{ id: string }>(`select id from catalog.tests where dimension = 'process' and primary_source = 'manual' order by code limit 1`);
+    const control = await controlPropioConPruebas(a.companyId, a.serviceId, `W${RUN.toUpperCase()}`, [test.id], 'process', 'hybrid');
+    await asignarControl(a.companyId, control, r1.id, d1.id);
+    expect(await de(r1.session, control)).toMatchObject({ bucket: 'to_upload', pending_items: 1 });
+    const id = await subir(d1.session, control, test.id, 'proceso');
+    expect(await de(r1.session, control)).toMatchObject({ bucket: 'to_review' });
+    expect(await de(d1.session, control)).toMatchObject({ bucket: 'in_review' });
+    await revisar(r1.session, id).expect(200);
+    expect(await de(r1.session, control)).toMatchObject({ bucket: 'done' });
+  });
+
+  it('la misma prueba con la dimensión «no aplica» no es pieza: el control no tiene nada pendiente', async () => {
+    const [test] = await owner<{ id: string }>(`select id from catalog.tests where dimension = 'process' and primary_source = 'manual' order by code offset 1 limit 1`);
+    const control = await controlPropioConPruebas(a.companyId, a.serviceId, `X${RUN.toUpperCase()}`, [test.id], 'process', 'manual');
+    await owner(`update tenant.client_control_dimensions set reason_not_applicable = 'No aplica' where client_control_id = $1 and dimension = 'process'::catalog.dimension`, [control]);
+    await asignarControl(a.companyId, control, r1.id, d1.id);
+    expect(await de(r1.session, control)).toMatchObject({ pending_items: 0 });
   });
 });
