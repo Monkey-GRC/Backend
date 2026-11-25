@@ -53,6 +53,9 @@ export async function bootApp(env: Record<string, string> = {}, configure?: (bui
     COMPANY_PURGE_INTERVAL_MINUTES: '0',
     // D148 · Sin tarea diaria de períodos auditados: las pruebas la ejecutan a mano.
     EVALUATION_PERIOD_INTERVAL_MINUTES: '0',
+    // MD-515 · Sin tarea del resumen diario de avisos: las pruebas la ejecutan a mano (hora de salida: las 12:00 UTC).
+    NOTIFICATION_DIGEST_INTERVAL_MINUTES: '0',
+    NOTIFICATION_DIGEST_HOUR_UTC: '12',
     ...env,
   });
   // Las variables se fijan antes de compilar el módulo: es cuando los servicios leen la configuración.

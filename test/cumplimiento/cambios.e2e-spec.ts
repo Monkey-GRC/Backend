@@ -212,8 +212,13 @@ describe('D96 · editar un control: directo, sin propuesta', () => {
     await patch(a.agent, ownId, { interpretation: { text: 'Cada semestre.' } }).expect(200);
   });
 
-  it('solo el administrador de la empresa; otra empresa y un id inválido, 404', async () => {
-    await patch(responsable, catalogId, { interpretation: { text: 'x' } }).expect(403);
+  it('el administrador y, D150, el responsable DUEÑO del control (los suyos, no los ajenos); el auditor y admin_monkey no; otra empresa y un id inválido, 404', async () => {
+    // `controls[0]` es del responsable (beforeAll): lo edita; el control propio de la empresa, que nadie le asignó, no.
+    expect(controls[0].id).toBeTruthy();
+    await patch(responsable, ownId, { interpretation: { text: 'x' } }).expect(403);
+    expect((await patch(responsable, controls[0].id, { interpretation: { text: 'Lo edita su responsable.' } }).expect(200)).body.data.interpretation.text).toBe('Lo edita su responsable.');
+    const rastro = await owner<{ user_id: string }>(`select user_id from audit.audit_logs where tenant_id = $1 and action = 'client_control.update' order by created_at desc limit 1`, [a.companyId]);
+    expect(rastro[0].user_id).toBe(responsableId);
     await patch(auditor, catalogId, { interpretation: { text: 'x' } }).expect(403);
     await patch(monkey, catalogId, { interpretation: { text: 'x' } }).expect(403);
     await patch(b.agent, catalogId, { interpretation: { text: 'x' } }).expect(404);

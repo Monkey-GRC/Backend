@@ -1,5 +1,5 @@
 import { TransactionClient } from '../../src/infrastructure/database/prisma.service';
-import { BOOK_PARAMETERS } from '../../src/features/compliance/domain/engine/v2/parameters.fixtures';
+import { BOOK_PARAMETERS } from '../../src/common/evaluation-parameters/parameters.fixtures';
 import { loadServiceSnapshot } from '../../src/features/compliance/infrastructure/shared/service-snapshot.loader';
 
 // MD-498 · La foto de un servicio hace un número FIJO de consultas, sin importar cuántos controles tenga (no hay N+1). Se cuenta cada llamada al cliente transaccional.

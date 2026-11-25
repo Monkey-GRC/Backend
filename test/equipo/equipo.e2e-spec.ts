@@ -12,7 +12,7 @@ import { claveEnviadaA } from '../support/correo-en-memoria';
 // D102 · El equipo de la empresa (contracts/gestion-usuarios.md). Todo por HTTP real contra el Postgres desechable, con el rol de la app
 // (sujeto a RLS): quien tiene permiso invita, la persona activa su cuenta y entra, y el administrador desactiva.
 type Agent = Awaited<ReturnType<typeof login>>;
-type Rol = 'admin_empresa' | 'responsable' | 'delegado' | 'auditor';
+type Rol = 'admin_empresa' | 'responsable' | 'delegado' | 'auditor' | 'colaborador';
 let app: INestApplication;
 let a: Tenant;
 let b: Tenant;
@@ -122,16 +122,15 @@ describe('Invitar a una persona del equipo', () => {
       expect(await gruposDe(a.companyId)).toBe(antes);
     });
 
-    it('un responsable sin equipo no puede crear delegados: 409 RESPONSIBLE_HAS_NO_TEAM; con un group_id (que no puede ser el suyo) sigue siendo 403', async () => {
+    it('D150 · un responsable ya no crea a nadie, tenga equipo o no: 403 en cualquier rol y no se crea nada', async () => {
       const sin = await activo(a.agent, 'sin-equipo', 'responsable');
-      const res = await invite(sin.session, delegado('sin-eq-d', null, true)).expect(409);
-      expect(res.body.error.code).toBe('RESPONSIBLE_HAS_NO_TEAM');
-      expect(res.body.message).toBe('Ese responsable aún no tiene un equipo de delegados. Crea el equipo primero y vuelve a invitar a la persona.');
-      await invite(sin.session, delegado('sin-eq-d', t1, true)).expect(403);
+      for (const session of [sin.session, r1.session]) {
+        for (const body of [delegado('sin-eq-d', null, true), delegado('sin-eq-d', t1, true), { email: email('sin-eq-d'), role: 'auditor' }, { email: email('sin-eq-d'), role: 'colaborador' }]) {
+          const res = await invite(session, body).expect(403);
+          expect(res.body.error.code).toBe('FORBIDDEN');
+        }
+      }
       expect(await owner('select 1 from platform.users where email = $1', [email('sin-eq-d')])).toHaveLength(0);
-      // En cuanto tiene equipo, puede.
-      await sembrarEquipo(a.companyId, sin.id);
-      await invite(sin.session, delegado('sin-eq-d', null, true)).expect(201);
     });
 
     it('si el nombre «Responsables» lo tiene un grupo que no lidera un administrador no se reutiliza: 409 RESPONSIBLES_GROUP_INVALID y no se crea nada; eligiendo otro grupo de responsables sí', async () => {
@@ -233,35 +232,32 @@ describe('Invitar a una persona del equipo', () => {
     });
   });
 
-  describe('lo que crea un responsable', () => {
-    it('un delegado en su equipo: sin group_id o con el suyo; la cuenta nace pending y su responsable es quien la crea', async () => {
-      const sin = (await invite(r1.session, delegado('r1-sin', null, false)).expect(201)).body.data;
+  describe('el delegado y el colaborador (D136, D150: solo los crea el administrador)', () => {
+    it('el administrador crea un delegado en el equipo que elija: la cuenta nace pending y su responsable es el líder del equipo; sin group_id es 422', async () => {
+      const sin = (await invite(a.agent, delegado('r1-sin', t1, false)).expect(201)).body.data;
       expect(sin).toMatchObject({ role: 'delegado', status: 'pending', is_internal: false, group: { id: t1 }, responsible: { id: r1.id } });
-      const con = (await invite(r1.session, delegado('r1-con', t1, true)).expect(201)).body.data;
-      expect(con).toMatchObject({ is_internal: true, group: { id: t1 }, responsible: { id: r1.id } });
       expect(await fila(sin.id)).toMatchObject({ group_id: t1, is_internal: false, status: 'pending' });
+      expect(fields(await invite(a.agent, { email: email('r1-int'), role: 'delegado', is_internal: true }).expect(422))).toEqual([{ field: 'group_id', code: 'required' }]);
+      expect(fields(await invite(a.agent, { email: email('r1-int'), role: 'delegado', group_id: t1 }).expect(422))).toEqual([{ field: 'is_internal', code: 'required' }]);
+      expect((await invite(a.agent, delegado('r1-sin', t1, true)).expect(409)).body.error.code).toBe('EMAIL_TAKEN');
     });
 
-    it('is_internal es obligatorio también aquí (422), y el correo repetido es 409', async () => {
-      expect(fields(await invite(r1.session, { email: email('r1-int'), role: 'delegado' }).expect(422))).toEqual([{ field: 'is_internal', code: 'required' }]);
-      expect((await invite(r1.session, delegado('r1-sin', null, true)).expect(409)).body.error.code).toBe('EMAIL_TAKEN');
+    it('el colaborador nace sin grupo ni is_internal, pending, y cuenta para el cupo; con group_id o is_internal es 422', async () => {
+      const c = (await invite(a.agent, { email: email('colab'), role: 'colaborador' }).expect(201)).body.data;
+      expect(c).toMatchObject({ role: 'colaborador', status: 'pending', is_internal: null, group: null, invitation: { delivery_status: 'sent' } });
+      expect(c).not.toHaveProperty('responsible');
+      expect(await fila(c.id)).toMatchObject({ role: 'colaborador', group_id: null, is_internal: null });
+      expect(fields(await invite(a.agent, { email: email('colab2'), role: 'colaborador', group_id: t1 }).expect(422))).toEqual([{ field: 'group_id', code: 'group_id.not_allowed' }]);
+      expect(fields(await invite(a.agent, { email: email('colab2'), role: 'colaborador', is_internal: true }).expect(422))).toEqual([{ field: 'is_internal', code: 'is_internal.not_allowed' }]);
+      const e = await empresaConCupo(app, monkey, 'CupoColab', 2);
+      await invite(e.agent, { email: email('cc-1'), role: 'colaborador' }).expect(201); // el administrador + 1 = lleno
+      expect((await invite(e.agent, { email: email('cc-2'), role: 'colaborador' }).expect(409)).body.error).toMatchObject({ code: 'USER_LIMIT_REACHED', max_users: 2, users_count: 2 });
     });
 
-    it('con el equipo de otro responsable, de otra empresa o inexistente es 403 FORBIDDEN y no crea nada', async () => {
-      const ajeno = await sembrarEquipo(b.companyId, (await invite(b.agent, { email: email('b-resp2'), role: 'responsable' }).expect(201)).body.data.id);
-      const [gAdmin] = await owner<{ id: string }>(`select id from platform.user_groups where company_id = $1 and name = 'Responsables'`, [a.companyId]);
-      for (const group_id of [t2, ajeno, gAdmin.id, '00000000-0000-4000-8000-000000000000']) {
-        await invite(r1.session, delegado('r1-mal', group_id)).expect(403);
-      }
-      expect(await owner('select 1 from platform.users where email = $1', [email('r1-mal')])).toHaveLength(0);
-    });
-
-    it('solo delegados: crear responsable, auditor o administrador es 403, aunque el cuerpo sea válido', async () => {
-      for (const role of ['responsable', 'auditor', 'admin_empresa']) {
-        const res = await invite(r1.session, { email: email('r1-rol'), role }).expect(403);
-        expect(res.body.error.code).toBe('FORBIDDEN');
-      }
-      expect(await owner('select 1 from platform.users where email = $1', [email('r1-rol')])).toHaveLength(0);
+    it('el colaborador activa su cuenta con el código del correo y su rol sale de la base; su correo lo llama «colaborador» / «collaborator»', async () => {
+      const c = await activo(a.agent, 'colab-activo', 'colaborador');
+      expect((await c.session.get('/v1/auth/me').expect(200)).body.data.user).toMatchObject({ role: 'colaborador', group: null });
+      expect(claveEnviadaA(email('colab-activo'))).toMatch(/^MNK-/);
     });
   });
 
@@ -289,21 +285,23 @@ describe('Invitar a una persona del equipo', () => {
     expect(await gruposDe(e.companyId)).toBe(0);
   });
 
-  it('un responsable que crea un delegado también cuenta para el cupo', async () => {
+  it('un delegado que crea el administrador también cuenta para el cupo', async () => {
     const e = await empresaConCupo(app, monkey, 'CupoDel', 3);
     const resp = await invitarYActivar(app, e.agent, { email: email('cd-r'), name: 'R', last_name: 'R', role: 'responsable' }); // 2 de 3
-    await sembrarEquipo(e.companyId, resp.id);
-    await invite(resp.session as unknown as Agent, delegado('cd-d1', null, true)).expect(201); // 3 de 3
-    const res = await invite(resp.session as unknown as Agent, delegado('cd-d2', null, true)).expect(409);
+    const equipo = await sembrarEquipo(e.companyId, resp.id);
+    await invite(e.agent, delegado('cd-d1', equipo, true)).expect(201); // 3 de 3
+    const res = await invite(e.agent, delegado('cd-d2', equipo, true)).expect(409);
     expect(res.body.error).toMatchObject({ code: 'USER_LIMIT_REACHED', max_users: 3, users_count: 3 });
   });
 
   it('quién puede crear: admin_empresa cualquier rol; delegado, auditor y admin_monkey reciben 403 con cualquier cuerpo, y también al listar', async () => {
     const d = await activo(a.agent, 'rol-d', 'delegado', t1);
     const au = await activo(a.agent, 'rol-a', 'auditor');
-    for (const agent of [d.session, au.session, monkey]) {
+    for (const agent of [r1.session, d.session, au.session, monkey]) {
       await invite(agent, { email: email('z'), role: 'auditor' }).expect(403);
       await invite(agent, delegado('z', t1, true)).expect(403);
+    }
+    for (const agent of [d.session, au.session, monkey]) {
       await agent.get('/v1/users').expect(403);
       await agent.get(`/v1/users?group_id=${t1}`).expect(403);
     }
@@ -317,7 +315,7 @@ describe('Invitar a una persona del equipo', () => {
   });
 
   describe('auditoría y secretos', () => {
-    it('deja user.create con quien creó (el administrador o el responsable), el grupo y la marca, sin el código ni su huella', async () => {
+    it('deja user.create con quien creó (el administrador), el grupo y la marca, sin el código ni su huella', async () => {
       const before = await auditRows('user.create');
       const res = await invite(a.agent, delegado('aud', t1, false)).expect(201);
       expect(await auditRows('user.create')).toBe(before + 1);
@@ -328,10 +326,9 @@ describe('Invitar a una persona del equipo', () => {
       expect(row).toMatchObject({ user_id: adminId, tenant_id: a.companyId, resource: 'user', before_state: null });
       expect(row.after_state).toMatchObject({ id: res.body.data.id, email: email('aud'), role: 'delegado', status: 'pending', group_id: t1, is_internal: false });
 
-      const porResponsable = await invite(r1.session, delegado('aud-r', null, true)).expect(201);
-      const [row2] = await owner<{ user_id: string; after_state: unknown }>(`select user_id, after_state from audit.audit_logs where tenant_id = $1 and action = 'user.create' order by created_at desc limit 1`, [a.companyId]);
-      expect(row2.user_id).toBe(r1.id);
-      expect(row2.after_state).toMatchObject({ id: porResponsable.body.data.id, group_id: t1 });
+      // El responsable ya no crea: su intento no deja un `user.create`.
+      await invite(r1.session, delegado('aud-r', null, true)).expect(403);
+      expect(await auditRows('user.create')).toBe(before + 1);
 
       // El código nace y se guarda como huella, pero ni la huella ni el código aparecen en la respuesta ni en ninguna fila de auditoría.
       const [{ code_hash }] = await owner<{ code_hash: string }>('select code_hash from platform.user_activation_codes where user_id = $1', [res.body.data.id]);
@@ -413,8 +410,8 @@ describe('Listar el equipo', () => {
     const otro = mails(await r2.session.get('/v1/users?page_size=100').expect(200));
     expect(otro).toContain(email('d3'));
     expect(otro).not.toContain(email('d1'));
-    // el delegado que crea un responsable aparece de inmediato en su lista
-    await invite(r1.session, delegado('lst-r1', null, true)).expect(201);
+    // el delegado que crea el administrador en su equipo aparece de inmediato en su lista
+    await invite(a.agent, delegado('lst-r1', t1, true)).expect(201);
     expect(mails(await r1.session.get('/v1/users?page_size=100').expect(200))).toContain(email('lst-r1'));
   });
 
@@ -556,14 +553,18 @@ describe('Alcance del responsable y del delegado (D102)', () => {
       for (const id of ajenos) expect({ quien, id, status: (await session.get(`/v1/controls/${id}`)).status }).toEqual({ quien, id, status: 403 });
       expect({ quien, status: (await session.get(`/v1/controls/${ajeno}`)).status }).toEqual({ quien, status: 404 });
       expect({ quien, status: (await session.get(`/v1/services/${a.serviceId}/controls?view=technical`)).status }).toEqual({ quien, status: 403 });
-      // El resumen es siempre 200 (sin controles, sin marcos): nunca 403 por no tener nada.
-      const resumen = await session.get(`/v1/services/${a.serviceId}/compliance-overview`).expect(200);
-      expect({ quien, hayMarcos: resumen.body.data.frameworks.length > 0 }).toEqual({ quien, hayMarcos: propios.length > 0 });
+      // El resumen del responsable es siempre 200 (sin controles, sin marcos): nunca 403 por no tener nada. El delegado ya no lo ve (D136, D150).
+      if (session === p1.session || session === p2.session) {
+        const resumen = await session.get(`/v1/services/${a.serviceId}/compliance-overview`).expect(200);
+        expect({ quien, hayMarcos: resumen.body.data.frameworks.length > 0 }).toEqual({ quien, hayMarcos: propios.length > 0 });
+      } else {
+        expect({ quien, status: (await session.get(`/v1/services/${a.serviceId}/compliance-overview`)).status }).toEqual({ quien, status: 403 });
+      }
     }
   });
 
   // D102 · Sin controles, el responsable y el delegado reciben listas vacías (200), nunca 403; lo ajeno de su empresa, por id, es 403.
-  it('el responsable y el delegado sin controles reciben listas vacías en riesgos, causas, servicios y observaciones (200); el detalle ajeno es 403; el resumen, 200 (D118)', async () => {
+  it('el responsable y el delegado sin controles reciben listas vacías en riesgos, causas, servicios y observaciones (200); el detalle ajeno es 403; el resumen, 200 para el responsable y 403 para el delegado (D118, D150)', async () => {
     const responsable = await activo(a.agent, 'vis-403r', 'responsable');
     const ejecutor = await activo(a.agent, 'vis-403', 'delegado', await sembrarEquipo(a.companyId, responsable.id));
     for (const quien of [responsable, ejecutor]) {
@@ -573,7 +574,7 @@ describe('Alcance del responsable y del delegado (D102)', () => {
       }
       await quien.session.get('/v1/risk-matrix').expect(200);
       await quien.session.get(`/v1/services/${a.serviceId}`).expect(403);
-      await quien.session.get(`/v1/services/${a.serviceId}/compliance-overview`).expect(200);
+      await quien.session.get(`/v1/services/${a.serviceId}/compliance-overview`).expect(quien === responsable ? 200 : 403);
       await quien.session.get(`/v1/services/${b.serviceId}`).expect(404);
     }
   });

@@ -355,16 +355,28 @@ describe('Vista de cada rol', () => {
     expect((await all(auditor, risks(a))).length).toBe(allRisks.length);
     await auditor.get(`/v1/risks/${others[0].id}/evaluation-history`).expect(200);
   });
-  it('el responsable y el delegado no escriben nada: crear, evaluar y tratar son 403; la matriz 5×5 la leen', async () => {
-    const id = (await all(a.agent, risks(a)))[0].id;
+  it('el responsable y el delegado no crean, evalúan ni tratan: 403; la matriz 5×5 la leen; el responsable edita solo un riesgo ligado a un control suyo (D150)', async () => {
+    const todos = await all(a.agent, risks(a));
+    const suyos = new Set((await all(responsable, risks(a))).map((r) => r.id));
+    expect(suyos.size).toBeGreaterThan(0); // el control del test anterior sigue siendo suyo
+    const ajeno = todos.find((r) => !suyos.has(r.id))!.id;
+    const propio = [...suyos][0];
     for (const agent of [responsable, delegadoEjecutor, delegadoSin]) {
       await agent.post(risks(a)).send(RISK).expect(403);
       await agent.post(causes(a)).send(CAUSE).expect(403);
-      await agent.patch(`/v1/risks/${id}`).send({ name: 'x' }).expect(403);
-      await agent.post(`/v1/risks/${id}/evaluation`).send({ likelihood: 3, impact: 3 }).expect(403);
-      await agent.post(`/v1/risks/${id}/treatments`).send({}).expect(403);
+      await agent.patch(`/v1/risks/${ajeno}`).send({ name: 'x' }).expect(403);
+      await agent.post(`/v1/risks/${propio}/evaluation`).send({ likelihood: 3, impact: 3 }).expect(403);
+      await agent.post(`/v1/risks/${propio}/treatments`).send({}).expect(403);
       await agent.get('/v1/risk-matrix').expect(200);
     }
+    // El delegado no edita ni lo suyo; el responsable sí, y deja el rastro con quién lo hizo. Un riesgo inexistente o de otra empresa no es 403.
+    for (const agent of [delegadoEjecutor, delegadoSin]) await agent.patch(`/v1/risks/${propio}`).send({ name: 'x' }).expect(403);
+    const nombre = `Riesgo editado por su responsable ${RUN}`;
+    expect((await responsable.patch(`/v1/risks/${propio}`).send({ name: nombre }).expect(200)).body.data.name).toBe(nombre);
+    const rastro = await owner<{ user_id: string }>(`select user_id from audit.audit_logs where tenant_id = $1 and action = 'client_risk.update' order by created_at desc limit 1`, [a.companyId]);
+    expect(rastro[0].user_id).toBe(responsableId);
+    await responsable.patch('/v1/risks/00000000-0000-4000-8000-000000000001').send({ name: 'x' }).expect(404);
+    await responsable.patch(`/v1/risks/${(await all(b.agent, risks(b)))[0].id}`).send({ name: 'x' }).expect(404);
   });
   it('la vista técnica trae los códigos del catálogo para el auditor y para el administrador (D81); el responsable y el delegado reciben 403', async () => {
     for (const agent of [responsable, delegadoEjecutor, delegadoSin]) {

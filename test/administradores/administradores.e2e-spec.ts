@@ -2,6 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PurgeExpiredAdminsUseCase } from '../../src/features/admin-users/application/use-cases/purge-expired-admins.use-case';
 import { Agent, bootApp, login, owner, PASSWORD, RUN } from '../support/app';
+import { sembrarAviso } from '../support/avisos';
 import { claveEnviadaA, correo } from '../support/correo-en-memoria';
 import { dosEmpresas, empresaConCupo } from '../support/escenario';
 
@@ -153,6 +154,8 @@ describe('purga vencida: sello y atribución', () => {
     await a.post(`/v1/admins/${b.id}/deactivation`).send({ totp_code: code }).expect(200);
     const sinVencer = await app.get(PurgeExpiredAdminsUseCase).execute();
     expect(sinVencer.purged).not.toContain(b.id);
+    // MD-515 · Ninguna FK hacia `users` borra en cascada: la purga se lleva a mano los avisos de la cuenta.
+    await sembrarAviso({ companyId: internalCompanyId, userId: b.id });
     // Reactivar después del plazo, aunque la purga aún no haya pasado, es 404.
     await owner(`update platform.users set purge_at = (now() at time zone 'utc') - interval '1 minute' where id = $1`, [b.id]);
     expect((await a.post(`/v1/admins/${b.id}/reactivation`)).status).toBe(404);
@@ -161,6 +164,7 @@ describe('purga vencida: sello y atribución', () => {
     expect(summary.purged).toContain(b.id);
     expect(summary.failed).toEqual([]);
     expect(await estado(b.id)).toBeUndefined();
+    expect((await owner('select 1 from platform.notifications where user_id = $1', [b.id])).length).toBe(0);
     expect((await owner('select 1 from platform.sessions where user_id = $1', [b.id])).length).toBe(0);
     expect((await app.get(PurgeExpiredAdminsUseCase).execute()).purged).not.toContain(b.id);
     expect(await owner('select user_id, name, last_name, role::text from audit.admin_tombstones where user_id = $1', [b.id])).toEqual([{ user_id: b.id, name: 'Beta', last_name: 'Prueba', role: 'admin_monkey' }]);

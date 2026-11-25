@@ -5,6 +5,7 @@ import { FileStorage } from '../../src/common/storage/file-storage';
 import { PurgeExpiredCompaniesUseCase } from '../../src/features/companies/application/use-cases/purge-expired-companies.use-case';
 import { generateTotpSecret, totpAt } from '../../src/features/auth/domain/totp';
 import { bootApp, owner, PASSWORD, RUN } from '../support/app';
+import { idDe, sembrarAviso } from '../support/avisos';
 import { connect } from '../support/db';
 import { dosEmpresas, Tenant } from '../support/escenario';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
@@ -199,10 +200,27 @@ describe('reactivar y volver a archivar', () => {
 
 describe('borrado definitivo', () => {
   let antesB: Record<string, number>;
+  let antesCampanaA: { avisos: number; resumenes: number };
+  let antesCampanaB: { avisos: number; resumenes: number };
   let antesAuditoriaB: number;
   let resumen: Awaited<ReturnType<PurgeExpiredCompaniesUseCase['execute']>>;
 
+  const campana = (companyId: string) =>
+    owner<{ avisos: number; resumenes: number }>(
+      `select (select count(*)::int from platform.notifications where company_id = $1) avisos, (select count(*)::int from platform.notification_digests where company_id = $1) resumenes`,
+      [companyId],
+    ).then((r) => r[0]);
+
   beforeAll(async () => {
+    // MD-515 · Filas reales de la campana (avisos y resúmenes) en las dos empresas: el borrado definitivo las descubre por `company_id`, aunque su RLS no deje borrar a ninguna persona.
+    for (const t of [a, b]) {
+      const userId = await idDe(t.email);
+      await sembrarAviso({ companyId: t.companyId, userId, dedupe: 'purga:1' });
+      await sembrarAviso({ companyId: t.companyId, userId, dedupe: 'purga:2', hace: '100 days' });
+      await owner(`insert into platform.notification_digests (id, company_id, user_id, digest_date, status) values (gen_random_uuid(), $1, $2, current_date, 'sent')`, [t.companyId, userId]);
+    }
+    antesCampanaA = await campana(a.companyId);
+    antesCampanaB = await campana(b.companyId);
     antesB = await filasDe(b.companyId);
     [{ n: antesAuditoriaB }] = await owner<{ n: number }>(`select count(*)::int n from audit.audit_logs where tenant_id = $1`, [b.companyId]);
     // El plazo vence (como dueño: la app no puede adelantarlo).
@@ -223,6 +241,13 @@ describe('borrado definitivo', () => {
     expect(quedan).toEqual([]);
     expect(await owner(`select 1 from audit.audit_logs where after_state->>'company_id' = $1`, [a.companyId])).toHaveLength(0);
     expect(await owner(`select 1 from audit.audit_logs where attempted_email = $1`, [a.email])).toHaveLength(0);
+  });
+
+  it('borra los avisos y resúmenes de la campana de la empresa (con filas reales) y deja los de la otra', async () => {
+    expect(antesCampanaA).toEqual({ avisos: 2, resumenes: 1 });
+    expect(await campana(a.companyId)).toEqual({ avisos: 0, resumenes: 0 });
+    expect(await campana(b.companyId)).toEqual(antesCampanaB);
+    expect(antesCampanaB).toEqual({ avisos: 2, resumenes: 1 });
   });
 
   it('borra sus archivos y su copia, y deja los de la otra empresa', () => {
