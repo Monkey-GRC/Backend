@@ -102,16 +102,16 @@ describe('ListTestEvidenceUseCase · histórico (MD-499)', () => {
 
   it('una prueba que ya no acepta subida se lee mientras el control tenga entregas DE ELLA', async () => {
     const uc = build('integration', [{ controlId: 'c1', requirement: requirement('t1', 1) }], ['Identidades']);
-    expect((await uc.execute(p, 'c1', 't1', undefined)).items).toHaveLength(1);
+    expect((await uc.execute(p, 'c1', 't1')).items).toHaveLength(1);
   });
 
   it('un requerimiento compartido (sin prueba) con entregas no abre la lectura de una prueba de sonda', async () => {
-    await expect(build('probe', [{ controlId: 'c1', requirement: requirement(null, 2) }]).execute(p, 'c1', 't1', undefined)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(build('probe', [{ controlId: 'c1', requirement: requirement(null, 2) }]).execute(p, 'c1', 't1')).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('ni las entregas de otra prueba, ni las de otro control, ni un requerimiento sin entregas', async () => {
     for (const item of [{ controlId: 'c1', requirement: requirement('otra', 1) }, { controlId: 'c2', requirement: requirement('t1', 1) }, { controlId: 'c1', requirement: requirement('t1', 0) }]) {
-      await expect(build('probe', [item]).execute(p, 'c1', 't1', undefined)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      await expect(build('probe', [item]).execute(p, 'c1', 't1')).rejects.toMatchObject({ code: 'NOT_FOUND' });
     }
   });
 });

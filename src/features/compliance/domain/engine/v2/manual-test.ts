@@ -3,20 +3,23 @@ import type { EvidenceState } from '../../evidence/evidence';
 import { isEvidenceCurrent, currentWindow, windowEndDate } from './windows';
 import { Periodicity, TestStatus } from './types';
 
-// Puente de las pruebas manuales (DT-114): documental, población, operativa y técnica manual toman su estado de la evidencia que se sube hoy para ellas y, en las que no son
-// documentales, del último veredicto aprobado (D85, D121). Lo cierran MD-504 (el resultado lo registra el responsable, D140) y MD-506 (Documentos, T-01).
+// Pruebas manuales: documental, población, operativa y técnica manual toman su estado de la evidencia que se sube para ellas (cuenta si no fue devuelta, D132) y, en las que no son
+// documentales, del resultado que el responsable registró de la prueba EN ESE control (D140 puntos 1 y 2, MD-504). Lo que falta de DT-114 lo cierra MD-506 (Documentos, T-01).
 
 export type ManualEvidence = {
-  /** Estado de la entrega MÁS RECIENTE del requerimiento (combinación de las revisiones, D102). */
+  /** Estado de la entrega MÁS RECIENTE del requerimiento (`compliant` si cuenta, `non_compliant` si el control se devolvió por ella, D132). */
   state: EvidenceState;
   /** Cuándo se entregó; `null` si no hay entrega. */
   submittedAt: Date | null;
 };
-export type ManualVerdict = { result: 'compliant' | 'non_compliant'; at: Date };
+/** El último resultado registrado de la prueba en el control (`manual_test_results`). */
+export type ManualResult = { result: 'correct' | 'observation' | 'exception'; at: Date };
 
 export type ManualTestInput = {
   evidence: readonly ManualEvidence[];
-  verdict?: ManualVerdict | null;
+  result?: ManualResult | null;
+  /** Las pruebas operativas, de población y técnicas manuales se deciden por el resultado del responsable (D140 punto 2); la documental, por su evidencia. */
+  requiresResult?: boolean;
   periodicity: Periodicity | null;
   now: Date;
   /** PR-07 · Sin él, `calendar`. */
@@ -39,7 +42,7 @@ function statusOfEvidence(evidence: readonly ManualEvidence[], periodicity: Peri
 }
 
 /**
- * Estado de una prueba manual: validada → Correcto · rechazada → Excepción · sin entrega o sin revisar → Pendiente · fuera de su ventana → Vencido. Nunca produce Observación.
+ * Estado de una prueba manual: con resultado registrado, el resultado (Correcto, Observación o Excepción) y la evidencia devuelta lo vuelve Excepción; sin resultado, una prueba que lo exige queda Pendiente y la documental sigue a su evidencia: cuenta → Correcto · devuelta → Excepción · sin entrega → Pendiente · fuera de su ventana → Vencido.
  * `window_end` es el cierre de la ventana vigente (o de 12 meses desde la última evidencia, en la anual).
  */
 export function evaluateManualTest(input: ManualTestInput): ManualTestEvaluation {
@@ -47,15 +50,17 @@ export function evaluateManualTest(input: ManualTestInput): ManualTestEvaluation
   const mode = input.windowMode ?? 'calendar';
   const fromEvidence = statusOfEvidence(input.evidence, periodicity, now, mode);
   let status = fromEvidence;
-  const v = input.verdict;
-  if (v) {
-    const fromVerdict: TestStatus = v.result === 'non_compliant' ? 'exception' : isEvidenceCurrent(periodicity, v.at, now, mode) ? 'correct' : 'expired';
-    if (fromVerdict === 'exception' || fromEvidence === 'exception') status = 'exception';
-    else if (fromVerdict === 'correct') status = 'correct';
-    else status = fromEvidence === 'correct' ? 'correct' : 'expired';
+  const r = input.result;
+  if (r) {
+    // El resultado manual decide solo (D140 punto 1): un resultado vigente es Correcto, Observación o Excepción; uno vencido, Vencido. La evidencia devuelta (`exception`) también cuenta.
+    const fromResult: TestStatus = r.result === 'exception' ? 'exception' : isEvidenceCurrent(periodicity, r.at, now, mode) ? (r.result === 'observation' ? 'observation' : 'correct') : 'expired';
+    status = fromResult === 'exception' || fromEvidence === 'exception' ? 'exception' : fromResult;
+  } else if (input.requiresResult && fromEvidence !== 'exception') {
+    // Sin resultado del responsable la prueba sigue pendiente aunque haya evidencia cargada.
+    status = fromEvidence === 'not_applicable' ? 'not_applicable' : 'pending';
   }
   const dates = input.evidence.filter((e) => e.state === 'compliant' && e.submittedAt).map((e) => (e.submittedAt as Date).getTime());
-  if (v?.result === 'compliant') dates.push(v.at.getTime());
+  if (r && r.result !== 'exception') dates.push(r.at.getTime());
   const lastValidAt = dates.length > 0 ? new Date(Math.max(...dates)) : null;
   return { status, windowEnd: windowEndDate(currentWindow({ periodicity, now, lastValidAt, mode, periodStart: input.periodStart })) };
 }

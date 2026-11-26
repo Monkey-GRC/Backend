@@ -13,7 +13,7 @@ const valid = (...days: string[]) => days.map((d) => ({ state: 'compliant' as co
 const evidence = (testId: string, ...days: string[]) => ({ testId, state: 'compliant' as const, submittedAt: new Date(`${days[days.length - 1]}T10:00:00Z`), history: valid(...days) });
 
 const monthly = (patch: Parameters<typeof control>[1] = {}, periodicity: 'monthly' | 'daily' | 'quarterly' = 'monthly') =>
-  control([requirement('r1', [readoutTest('t1', 'operational')], { periodicity })], { access: { owner: OWNER, executor: EXECUTOR }, ...patch });
+  control([requirement('r1', [readoutTest('t1', 'documentary')], { periodicity })], { access: { owner: OWNER, executor: EXECUTOR }, ...patch });
 
 function notices(c: ReturnType<typeof monthly>, today: string, extra: { period?: typeof PERIOD; adminIds?: string[] } = {}) {
   const readout = readControl(c, data([c], [], { signals: { now: at(today), ...(extra.period ? { period: extra.period } : {}) } }));

@@ -2,38 +2,37 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../../generated/prisma/client';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { NotificationEmitter } from '../../../../common/notifications/notification-emitter';
+import { STATE_TRANSACTION } from '../../../../common/tenancy/state-transaction';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { EvaluationParametersPort } from '../../../../common/evaluation-parameters/parameters';
 import {
-  ControlEvidenceFacts, EvidenceAccess, EvidenceRepository, NewRequirement, NewReview, NewSubmission, RequirementRecord, ReviewSaved, ServiceEvidence, SubmissionRecord, TestEvidence,
+  ControlEvidenceFacts, EvidenceAccess, EvidenceRepository, NewRequirement, NewSubmission, RequirementRecord, ServiceEvidence, SubmissionRecord, TestEvidence,
 } from '../../domain/evidence/evidence.repository';
 import { loadControlAccess } from '../shared/control-access.loader';
 import { ControlAccess, NO_ACCESS } from '../../domain/controls/control-access';
-import { evidenceStateOf } from '../../domain/evidence/evidence';
 import { captureControlStates, recordControlStateChanges } from '../shared/control-state-events';
-import { ALL_REVIEWS, REVIEW_SELECT, toReviewRecord, versionOf } from './evidence-review.mapper';
+import { versionOf } from './evidence-state.mapper';
 
-// Subir o revisar una evidencia relee el servicio entero (captura el estado de sus controles antes y después, D91) dentro de la misma transacción: con la base lejos
+// Subir una evidencia relee el servicio entero (captura el estado de sus controles antes y después, D91) dentro de la misma transacción: con la base lejos
 // (desarrollo contra una base remota) los 5 s por defecto de Prisma no alcanzan y la subida responde 500 (P2028).
-const STATE_TRANSACTION = { timeoutMs: 30_000 };
 
 const PERSON ={ select: { id: true, name: true, lastName: true } } as const;
-// Todas las revisiones de la entrega, la de cada rol (D102): ya no se esconde la de un rol al otro (SEG-61 se retiró, D96).
+// D132 · La entrega devuelta lleva la devolución que la dejó sin contar (motivo y fecha).
 const submissionSelect = () =>
   ({
     id: true, evidenceRequirementId: true, version: true, filePath: true, fileType: true, fileSize: true, integrityHash: true, submittedAt: true, aiVerdict: true,
     submittedByUser: PERSON,
-    reviews: ALL_REVIEWS,
+    returnedApproval: { select: { reason: true, at: true } },
   }) as const;
 type SubmissionRow = Prisma.EvidenceSubmissionGetPayload<{ select: ReturnType<typeof submissionSelect> }>;
 
 const toSubmission = (r: SubmissionRow): SubmissionRecord => ({
   id: r.id, requirementId: r.evidenceRequirementId, version: versionOf(r.version), fileKey: r.filePath, fileType: r.fileType, fileSize: r.fileSize,
   integrityHash: r.integrityHash, submittedBy: r.submittedByUser, submittedAt: r.submittedAt, aiVerdict: r.aiVerdict,
-  reviews: r.reviews.map(toReviewRecord),
+  returned: r.returnedApproval ? { reason: r.returnedApproval.reason ?? '', at: r.returnedApproval.at } : null,
 });
 const newestFirst = (a: SubmissionRecord, b: SubmissionRecord) => b.version - a.version;
 
@@ -178,7 +177,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         const created = toSubmission(row);
         await insertAuditLog(tx, audit(created));
         await recordControlStateChanges(tx, { parameters,
-          tenantId: scope.companyId, serviceId: access.serviceId, before, cause: 'evidence_submission',
+          tenantId: scope.companyId, serviceId: access.serviceId, before, cause: 'evidence_submission', notifications: this.notifications,
           actor: { userId: input.submittedBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent },
         });
         return created;
@@ -197,48 +196,6 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       const access = await this.accessOf(tx, row.evidenceRequirementId);
       return access ? { submission: toSubmission(row), access } : null;
     });
-  }
-
-  saveReview(scope: TenantScope, submissionId: string, input: NewReview, audit: Parameters<EvidenceRepository['saveReview']>[3]): Promise<ReviewSaved | null> {
-    return this.prisma.withScope(scope, async (tx) => {
-      const found = await tx.evidenceSubmission.findFirst({ where: { id: submissionId }, select: { evidenceRequirementId: true } });
-      if (!found) return null;
-      const access = await this.accessOf(tx, found.evidenceRequirementId);
-      if (!access) return null;
-      // D91 · La revisión de un rol mueve el estado de las pruebas (D96) y deja el evento de cada control que cambie.
-      const parameters = await this.evaluationParameters.load(tx);
-      const before = await captureControlStates(tx, access.serviceId, parameters);
-      const key = { evidenceSubmissionId_reviewerRole: { evidenceSubmissionId: submissionId, reviewerRole: input.reviewerRole } };
-      const previous = await tx.evidenceReview.findUnique({ where: key, select: REVIEW_SELECT });
-      const values = {
-        reviewedBy: input.reviewedBy, reviewedAt: new Date(), typeOk: input.typeOk, periodOk: input.periodOk, validOk: input.validOk, approvedOk: input.approvedOk,
-        signedOk: input.signedOk, contentOk: input.contentOk, review: input.review, note: input.note,
-      };
-      await tx.evidenceReview.upsert({
-        where: key,
-        create: { tenantId: scope.companyId, evidenceSubmissionId: submissionId, reviewerRole: input.reviewerRole, ...values },
-        update: values,
-      });
-      const row = await tx.evidenceSubmission.findFirstOrThrow({ where: { id: submissionId }, select: submissionSelect() });
-      const submission = toSubmission(row);
-      const saved: ReviewSaved = { submission, access, before: previous ? toReviewRecord(previous) : null, after: submission.reviews.find((r) => r.reviewerRole === input.reviewerRole)! };
-      await insertAuditLog(tx, audit(saved));
-      // MD-515 · D151 · Validar o rechazar avisa a quien subió la entrega y al dueño del control (no a quien revisó), en esta misma transacción.
-      const decided = evidenceStateOf({ aiVerdict: null, reviews: [saved.after] });
-      const type = decided === 'compliant' ? 'evidence_approved' : decided === 'non_compliant' || decided === 'expired' ? 'evidence_rejected' : null;
-      if (type) {
-        await this.notifications.emitForControls(tx, scope.companyId, [
-          { type, controlId: access.controlId, uploaderId: submission.submittedBy.id, actorId: input.reviewedBy, dedupeSuffix: `${submissionId}:${input.reviewerRole}:${saved.after.reviewedAt.getTime()}` },
-        ]);
-      }
-      if (before) {
-        await recordControlStateChanges(tx, { parameters,
-          tenantId: scope.companyId, serviceId: access.serviceId, before, cause: 'evidence_review',
-          actor: { userId: input.reviewedBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent },
-        });
-      }
-      return saved;
-    }, STATE_TRANSACTION);
   }
 
   controlEvidenceFacts(scope: TenantScope, controlId: string): Promise<ControlEvidenceFacts | null> {

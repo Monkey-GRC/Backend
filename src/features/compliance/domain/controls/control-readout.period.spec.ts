@@ -10,7 +10,7 @@ const evidence = (testId: string, ...days: string[]) => ({ testId, state: 'compl
 
 describe('readControl · el período auditado (R6)', () => {
   const monthly = (days: string[], periodicity: 'monthly' | 'quarterly' = 'monthly') =>
-    control([requirement('r1', [readoutTest('t1', 'operational')], { periodicity })], { evidence: [evidence('t1', ...days)] });
+    control([requirement('r1', [readoutTest('t1', 'documentary')], { periodicity })], { evidence: [evidence('t1', ...days)] });
 
   it('sin período definido no hay vista del período y nada se descarta', () => {
     const c = monthly(['2026-11-10']);

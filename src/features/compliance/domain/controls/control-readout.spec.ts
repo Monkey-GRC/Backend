@@ -1,5 +1,5 @@
 import { compareOwnCode, dimensionOfAssetType, legacyTestState, readControl, readinessOf } from './control-readout';
-import { asset, control, data, readoutTest, requirement } from './readout.fixtures';
+import { asset, control, correct, data, readoutTest, requirement } from './readout.fixtures';
 
 describe('dimensionOfAssetType (§2, D5)', () => {
   it('servidor, base de datos, servicio en nube y aplicación son dimensiones', () => {
@@ -19,7 +19,7 @@ describe('readControl · el control con el motor v2', () => {
   it('los campos de siempre se derivan del nivel: progress es el C%, el semáforo sale del avance', () => {
     const c = control(
       Array.from({ length: 5 }, (_, i) => requirement(`r${i}`, [readoutTest(`d${i}`, 'operational')])),
-      { evidence: [0, 1, 2, 3].map((i) => ({ testId: `d${i}`, state: 'compliant' as const, submittedAt: new Date('2026-11-10T00:00:00Z') })) },
+      { manualResults: correct('d0', 'd1', 'd2', 'd3') },
     );
     const r = readControl(c, data([c], []));
     expect(r).toMatchObject({ progress: { done: 4, total: 5 }, coverage: { measured: 4, applicable: 5 }, cPercent: 80, level: 'partial', complies: false, readiness: 'almost_ready' });
@@ -32,15 +32,15 @@ describe('readControl · el control con el motor v2', () => {
   it('las pruebas salen con el estado de siempre derivado de test_status, sin repetirse', () => {
     const shared = readoutTest('shared', 'operational');
     const c = control([requirement('r1', [shared]), requirement('r2', [shared, readoutTest('x', 'operational')])], {
-      evidence: [{ testId: 'shared', state: 'compliant', submittedAt: new Date('2026-11-10T00:00:00Z') }],
+      manualResults: correct('shared'),
     });
     const r = readControl(c, data([c], []));
     expect(r.tests.map((t) => [t.test.testId, t.state, t.status])).toEqual([['shared', 'compliant', 'correct'], ['x', 'pending', 'pending']]);
   });
-  it('MD-499 · la evidencia validada de una prueba de fuente integration en respaldo cuenta igual que la de una manual', () => {
+  it('MD-499 · la evidencia de una prueba de fuente integration en respaldo cuenta igual que la de una manual', () => {
     const evidence = [{ testId: 'a', state: 'compliant' as const, submittedAt: new Date('2026-11-10T00:00:00Z') }];
     const read = (primarySource: string) => {
-      const c = control([requirement('r1', [readoutTest('a', 'operational', { primarySource, integrationCategory: 'Gestión de Identidades' })])], { evidence });
+      const c = control([requirement('r1', [readoutTest('a', 'operational', { primarySource, integrationCategory: 'Gestión de Identidades' })])], { evidence, manualResults: correct('a') });
       const { test: _test, ...calc } = readControl(c, data([c], [])).requirements[0].tests[0];
       return calc;
     };

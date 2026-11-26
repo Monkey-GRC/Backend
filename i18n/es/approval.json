@@ -1,0 +1,8 @@
+{
+  "approved": "Listo, aprobaste el control.",
+  "returned": "Listo, devolvimos el control con tu motivo.",
+  "control_not_compliant": "Este control todavía no cumple al 100 %: no se puede aprobar.",
+  "owner_approval_required": "Primero debe aprobar el responsable de este control.",
+  "already_approved": "Este paso ya está aprobado.",
+  "nothing_to_return": "Este control no está esperando aprobación: no hay nada que devolver."
+}

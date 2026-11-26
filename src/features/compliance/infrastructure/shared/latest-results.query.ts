@@ -1,5 +1,4 @@
 import { Prisma } from '../../../../../generated/prisma/client';
-import { VerdictDecision } from '../../domain/verdicts/test-verdict';
 import { TransactionClient } from '../../../../infrastructure/database/prisma.service';
 
 // MD-220 · «Lo último» de un histórico inmutable, acotado de verdad: se arma el conjunto de CLAVES (control, test, activo / servicio, test) y por cada una se hace UNA búsqueda en el índice con
@@ -29,44 +28,18 @@ export function latestEvaluations(tx: TransactionClient, serviceId: string, cont
   return tx.$queryRaw<LatestEvaluationRow[]>(latestEvaluationsSql(serviceId, controlIds));
 }
 
-export type LatestVerdictRow = { serviceId: string; testId: string; clientControlId: string; registeredBy: string; registeredAt: Date; result: string; decisions: VerdictDecision[] };
+export type LatestManualResultRow = { clientControlId: string; testId: string; result: 'correct' | 'observation' | 'exception'; registeredAt: Date };
 
-// El último veredicto de cada (servicio, test) con las decisiones de sus revisiones, en una sola consulta y sin listas de ids. Las claves son los tests que llevan los controles del servicio.
-export function latestVerdictsSql(serviceIds: string[]): Prisma.Sql {
+// MD-504 · El último resultado manual de cada (control, test) con un `LIMIT 1` por clave sobre el índice (control, test, fecha desc): el costo crece con las claves, no con el histórico.
+export function latestManualResultsSql(controlIds: string[]): Prisma.Sql {
   return Prisma.sql`
-    SELECT v.service_id AS "serviceId", v.test_id AS "testId", v.client_control_id AS "clientControlId", v.registered_by AS "registeredBy", v.registered_at AS "registeredAt", v.result::text AS "result",
-           ARRAY(SELECT r.decision::text FROM tenant.test_verdict_reviews r WHERE r.test_verdict_id = v.id) AS "decisions"
-      FROM (SELECT DISTINCT cc.service_id, cct.test_id
-              FROM tenant.client_controls cc
-              JOIN tenant.client_control_requirements ccr ON ccr.client_control_id = cc.id
-              JOIN catalog.control_requirement_tests cct ON cct.control_requirement_id = ccr.control_requirement_id
-             WHERE cc.service_id = ANY(${serviceIds}::uuid[])) k
-     CROSS JOIN LATERAL (SELECT v.*
-                           FROM tenant.test_verdicts v
-                          WHERE v.service_id = k.service_id AND v.test_id = k.test_id
-                          ORDER BY v.registered_at DESC, v.id DESC
-                          LIMIT 1) v`;
+    SELECT k.client_control_id AS "clientControlId", k.test_id AS "testId", r.result::text AS "result", r.registered_at AS "registeredAt"
+      FROM (SELECT DISTINCT client_control_id, test_id FROM tenant.manual_test_results WHERE client_control_id = ANY(${controlIds}::uuid[])) k
+     CROSS JOIN LATERAL (SELECT x.result, x.registered_at FROM tenant.manual_test_results x
+                          WHERE x.client_control_id = k.client_control_id AND x.test_id = k.test_id
+                          ORDER BY x.registered_at DESC, x.id DESC LIMIT 1) r`;
 }
 
-export function latestVerdicts(tx: TransactionClient, serviceIds: string[]): Promise<LatestVerdictRow[]> {
-  return serviceIds.length ? tx.$queryRaw<LatestVerdictRow[]>(latestVerdictsSql(serviceIds)) : Promise.resolve([]);
-}
-
-// Los ids del último veredicto APROBADO (alguna aprobación y ningún rechazo) de cada test del control: el filtro va antes de elegir el último. Son a lo más los tests de un control.
-export function latestApprovedVerdictIdsSql(serviceId: string, controlId: string): Prisma.Sql {
-  return Prisma.sql`
-    SELECT v.id
-      FROM tenant.client_control_tests k
-     CROSS JOIN LATERAL (SELECT v.id
-                           FROM tenant.test_verdicts v
-                          WHERE v.service_id = ${serviceId}::uuid AND v.test_id = k.test_id
-                            AND EXISTS (SELECT 1 FROM tenant.test_verdict_reviews r WHERE r.test_verdict_id = v.id AND r.decision = 'approve')
-                            AND NOT EXISTS (SELECT 1 FROM tenant.test_verdict_reviews r WHERE r.test_verdict_id = v.id AND r.decision = 'reject')
-                          ORDER BY v.registered_at DESC, v.id DESC
-                          LIMIT 1) v
-     WHERE k.client_control_id = ${controlId}::uuid`;
-}
-
-export async function latestApprovedVerdictIds(tx: TransactionClient, serviceId: string, controlId: string): Promise<string[]> {
-  return (await tx.$queryRaw<{ id: string }[]>(latestApprovedVerdictIdsSql(serviceId, controlId))).map((r) => r.id);
+export function latestManualResults(tx: TransactionClient, controlIds: string[]): Promise<LatestManualResultRow[]> {
+  return controlIds.length ? tx.$queryRaw<LatestManualResultRow[]>(latestManualResultsSql(controlIds)) : Promise.resolve([]);
 }

@@ -67,11 +67,13 @@ export const DOMAIN_ERROR_CATALOG: Record<
   // Exclusiones (contracts/modules/compliance-audit.md).
   EXCLUSION_ALREADY_EXISTS: { status: HttpStatus.CONFLICT, messageKey: 'exclusion.already_exists' },
   EVALUATION_NOT_DEFINED: { status: HttpStatus.CONFLICT, messageKey: 'exclusion.evaluation_not_defined' },
-  // Veredictos y evaluaciones del servicio (MD-155).
+  // Aprobación del control (MD-504, D132).
+  CONTROL_NOT_COMPLIANT: { status: HttpStatus.CONFLICT, messageKey: 'approval.control_not_compliant' },
+  OWNER_APPROVAL_REQUIRED: { status: HttpStatus.CONFLICT, messageKey: 'approval.owner_approval_required' },
+  ALREADY_APPROVED: { status: HttpStatus.CONFLICT, messageKey: 'approval.already_approved' },
+  NOTHING_TO_RETURN: { status: HttpStatus.CONFLICT, messageKey: 'approval.nothing_to_return' },
+  // Resultado de una prueba manual (MD-504).
   TEST_NOT_MANUAL: { status: HttpStatus.CONFLICT, messageKey: 'verdict.test_not_manual' },
-  TEST_DECIDED_BY_EVIDENCE: { status: HttpStatus.CONFLICT, messageKey: 'verdict.decided_by_evidence' },
-  TEST_HAS_NO_ASSETS: { status: HttpStatus.CONFLICT, messageKey: 'verdict.test_has_no_assets' },
-  VERDICT_SUPERSEDED: { status: HttpStatus.CONFLICT, messageKey: 'verdict.superseded' },
   OBSERVATION_CLOSED: { status: HttpStatus.CONFLICT, messageKey: 'observation.closed_locked' },
   OBSERVATION_NOT_OPEN: { status: HttpStatus.CONFLICT, messageKey: 'observation.not_open' },
   INVALID_TRANSITION: { status: HttpStatus.CONFLICT, messageKey: 'observation.invalid_transition' },

@@ -59,8 +59,8 @@ export const AUDIENCES: Record<NotificationType, readonly NotificationAudience[]
   company_purge_upcoming: ['monkey_admins'],
 };
 
-/** Los tipos que se emiten hoy; el resto está reservado (los emiten MD-504, MD-506 y DT-83). */
-export const EMITTED_TYPES: readonly NotificationType[] = ['window_due_soon', 'window_expired', 'control_assigned', 'evidence_approved', 'evidence_rejected', 'direct_check_failed', 'check_parameters_changed', 'automatic_evidence_stale'];
+/** Los tipos que se emiten hoy; el resto está reservado (los emiten MD-506 y DT-83). `evidence_approved` y `evidence_rejected` ya no se emiten: la aprobación es del control (D132, MD-504). */
+export const EMITTED_TYPES: readonly NotificationType[] = ['window_due_soon', 'window_expired', 'control_assigned', 'direct_check_failed', 'check_parameters_changed', 'automatic_evidence_stale', 'control_pending_approval', 'control_owner_approved', 'control_returned'];
 
 /** El historial de la campana: la API nunca devuelve más viejo y una pasada diaria lo borra. */
 export const NOTIFICATION_RETENTION_DAYS = 90;

@@ -1,6 +1,6 @@
 import { buildOverview, readinessOfRollup } from './compliance-overview';
 import { ReadoutAsset, ReadoutControl, readControl, resultKey, ResultsIndex } from '../controls/control-readout';
-import { control as v2Control, data, readoutTest, requirement } from '../controls/readout.fixtures';
+import { APPROVED, control as v2Control, data, readoutTest, requirement } from '../controls/readout.fixtures';
 import { AssetResult } from '../engine/states';
 import type { OverviewCriterionData, OverviewFrameworkData, Placement } from '../controls/control.repository';
 
@@ -16,7 +16,7 @@ const CRITERIA: OverviewCriterionData[] = [
 ];
 
 const control = (id: string, patch: Partial<ReadoutControl> = {}): ReadoutControl =>
-  v2Control([requirement(`r-${id}`, [readoutTest(`t-${id}`, 'technical', { dimension: 'cloud' })])], { id, ownCode: id.toUpperCase(), name: `Control ${id}`, type: 'automated', catalogCode: `IAC-${id}`, ...patch });
+  v2Control([requirement(`r-${id}`, [readoutTest(`t-${id}`, 'technical', { dimension: 'cloud' })])], { id, ownCode: id.toUpperCase(), name: `Control ${id}`, type: 'automated', catalogCode: `IAC-${id}`, management: APPROVED, ...patch });
 const ASSETS: ReadoutAsset[] = [{ id: 'a1', name: 'cuenta-aws', type: 'cloud_service' }];
 const outcome = (c: ReadoutControl, result: AssetResult | null): ResultsIndex => (result ? new Map([[resultKey(c.id, `t-${c.id}`, 'a1'), result]]) : new Map());
 
@@ -77,6 +77,17 @@ describe('buildOverview — todo o nada (RN-17, RN-19)', () => {
     const o = overview([{ c: control('1'), result: 'compliant', places: ['security'] }, { c: control('2'), result: 'compliant', places: ['security'] }]);
     expect(o.technical.state).toBe('compliant');
     expect(o.readiness).toBe('ready');
+  });
+
+  it('MD-504 (D130 puntos 4 y 5) · un control que cumple pero no está aprobado no cuenta como cumplido: solo `approved` cuenta', () => {
+    const sinAprobar = { c: control('2', { management: { approvals: [], resultDates: [] } }), result: 'compliant' as AssetResult, places: ['security'] };
+    const o = overview([{ c: control('1'), result: 'compliant', places: ['security'] }, sinAprobar]);
+    expect(o.progress).toEqual({ done: 1, total: 2 });
+    expect(o.technical.state).toBe('evaluating');
+    expect(o.categories[0].progress).toEqual({ done: 1, total: 2 });
+    expect(o.readiness).toBe('almost_ready');
+    const aprobadoPorElResponsable = control('3', { management: { approvals: [{ ...APPROVED.approvals[0], step: 'owner' }], resultDates: [] } });
+    expect(overview([{ c: aprobadoPorElResponsable, result: 'compliant', places: ['security'] }]).progress).toEqual({ done: 0, total: 1 });
   });
 
   it('lo pendiente nunca cuenta como cumplido: el marco queda en evaluación', () => {

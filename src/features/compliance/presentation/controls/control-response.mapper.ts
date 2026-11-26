@@ -35,6 +35,19 @@ export const neutralName = (test: TestNames, dimension: Dimension, t: Translate)
 
 const party = (p: ControlAccess['owner']) => (p ? { id: p.id, name: p.name, last_name: p.lastName, role: p.role } : null);
 
+const personOf = (p: { id: string; name: string | null; lastName: string | null } | null | undefined) => (p ? { id: p.id, name: p.name, last_name: p.lastName } : null);
+
+// MD-504 · El estado de gestión y quién aprobó o devolvió (solo lo vigente). `approval` (el alta del control propio) no cambia.
+const managementBlock = (r: ControlReadout) => ({
+  owner_approved_by: personOf(r.management.ownerApproved?.by),
+  owner_approved_at: r.management.ownerApproved?.at.toISOString() ?? null,
+  approved_by: personOf(r.management.approved?.by),
+  approved_at: r.management.approved?.at.toISOString() ?? null,
+  returned_reason: r.management.returned?.reason ?? null,
+  returned_by: personOf(r.management.returned?.by),
+  returned_at: r.management.returned?.at.toISOString() ?? null,
+});
+
 const base = (r: ControlReadout) => ({
   id: r.control.id,
   // D80: el código se muestra siempre, el del catálogo (`IAC-12`) o el propio (`C01`). `own_code` es solo la numeración de los controles propios.
@@ -46,6 +59,8 @@ const base = (r: ControlReadout) => ({
   type: r.control.type,
   trust_criteria: r.control.trustCriteria,
   approval: r.approval,
+  management_state: r.managementState,
+  management: managementBlock(r),
   readiness: r.readiness,
   progress: r.progress,
   coverage: r.coverage,

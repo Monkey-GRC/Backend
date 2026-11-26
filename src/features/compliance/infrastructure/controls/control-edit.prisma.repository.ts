@@ -4,6 +4,7 @@ import { DomainError } from '../../../../common/errors/domain-error';
 import { ValidationException } from '../../../../common/errors/validation.exception';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
+import { NotificationEmitter } from '../../../../common/notifications/notification-emitter';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { EvaluationParametersPort } from '../../../../common/evaluation-parameters/parameters';
 import { ControlAccess, ControlEdit, ControlEditRepository, ControlSnapshot, DimensionState, OwnControlCreated, OwnControlInput, PeriodicityChange, PeriodicityState } from '../../domain/controls/control-edit.repository';
@@ -19,7 +20,7 @@ const dimensionsJson = (s: ControlSnapshot) => s.dimensions.map((d) => ({ dimens
 
 @Injectable()
 export class ControlEditPrismaRepository extends ControlEditRepository {
-  constructor(private readonly prisma: PrismaService, private readonly evaluationParameters: EvaluationParametersPort) {
+  constructor(private readonly prisma: PrismaService, private readonly evaluationParameters: EvaluationParametersPort, private readonly notifications: NotificationEmitter) {
     super();
   }
 
@@ -127,7 +128,7 @@ export class ControlEditPrismaRepository extends ControlEditRepository {
       await insertAuditLog(tx, audit({ before, after }));
       if (states && parameters) {
         await recordControlStateChanges(tx, { parameters,
-          tenantId: scope.companyId, serviceId: found.serviceId, before: states, cause: 'control_updated',
+          tenantId: scope.companyId, serviceId: found.serviceId, before: states, cause: 'control_updated', notifications: this.notifications,
           actor: { userId: actor.userId, ipAddress: actor.meta.ipAddress, userAgent: actor.meta.userAgent },
         });
       }
@@ -176,7 +177,7 @@ export class ControlEditPrismaRepository extends ControlEditRepository {
       const after = state(input.periodicity === null ? (found.requirements[0]?.controlRequirement.periodicity ?? null) : input.periodicity, input.periodicity !== null, input.periodicity === null ? null : input.justification);
       await insertAuditLog(tx, audit({ before, after }));
       await recordControlStateChanges(tx, {
-        parameters, tenantId: scope.companyId, serviceId: found.serviceId, before: states, cause: 'periodicity_changed',
+        parameters, tenantId: scope.companyId, serviceId: found.serviceId, before: states, cause: 'periodicity_changed', notifications: this.notifications,
         actor: { userId: actor.userId, ipAddress: actor.meta.ipAddress, userAgent: actor.meta.userAgent },
       });
       return { changed: true, before, after };

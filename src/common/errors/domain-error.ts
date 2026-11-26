@@ -9,6 +9,11 @@ export type DomainErrorCode =
   | 'INVALID_CREDENTIALS'
   | 'SESSION_EXPIRED'
   | 'ACCOUNT_LOCKED'
+  // MD-504 · Aprobación del control (contracts/cumplimiento/aprobacion.md).
+  | 'CONTROL_NOT_COMPLIANT'
+  | 'OWNER_APPROVAL_REQUIRED'
+  | 'ALREADY_APPROVED'
+  | 'NOTHING_TO_RETURN'
   | 'ACCOUNT_INACTIVE'
   | 'MFA_CHALLENGE_INVALID'
   | 'MFA_CODE_INVALID'
@@ -53,12 +58,8 @@ export type DomainErrorCode =
   // Exclusiones (contracts/modules/compliance-audit.md, MD-144).
   | 'EXCLUSION_ALREADY_EXISTS'
   | 'EVALUATION_NOT_DEFINED'
-  // Veredictos y evaluaciones del servicio (contracts/modules/compliance-audit.md y compliance-overview.md, MD-155).
+  // Resultado de una prueba manual (contracts/cumplimiento/aprobacion.md, MD-504).
   | 'TEST_NOT_MANUAL'
-  | 'TEST_DECIDED_BY_EVIDENCE'
-  | 'TEST_HAS_NO_ASSETS'
-  // D121 · Revisar un veredicto que ya no es el último del test en el servicio.
-  | 'VERDICT_SUPERSEDED'
   // Observaciones del auditor (contracts/modules/compliance-audit.md, MD-154): una cerrada no se toca; responder solo una abierta; cerrar o devolver solo una respondida.
   | 'OBSERVATION_CLOSED'
   | 'OBSERVATION_NOT_OPEN'

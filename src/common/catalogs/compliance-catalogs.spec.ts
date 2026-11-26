@@ -53,6 +53,9 @@ const POSTGRES_ENUM: Record<string, string> = {
   evaluation_parameter_unit: 'EvaluationParameterUnit',
   evaluation_period_status: 'EvaluationPeriodStatus',
   evaluation_period_origin: 'EvaluationPeriodOrigin',
+  control_approval_step: 'ControlApprovalStep',
+  control_approval_decision: 'ControlApprovalDecision',
+  manual_test_result_value: 'ManualTestResultValue',
 };
 
 describe('catálogos de Cumplimiento', () => {

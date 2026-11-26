@@ -554,7 +554,7 @@ export class ScanPrismaRepository extends ScanRepository {
       });
       for (const part of chunks(rows)) await tx.evaluation.createMany({ data: part });
       written += rows.length;
-      await recordControlStateChanges(tx, { parameters, tenantId: scope.companyId, serviceId, before, cause: 'probe_result', actor: { userId: null, ipAddress: null, userAgent: null } });
+      await recordControlStateChanges(tx, { parameters, tenantId: scope.companyId, serviceId, before, cause: 'probe_result', notifications: this.notifications, actor: { userId: null, ipAddress: null, userAgent: null } });
     }
     return written;
   }

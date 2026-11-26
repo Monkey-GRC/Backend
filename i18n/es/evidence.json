@@ -3,9 +3,8 @@
   "service_list": "Evidencias de tu servicio.",
   "test_list": "Evidencias de este test.",
   "submission_list": "Versiones entregadas de esta evidencia.",
-  "submitted": "Listo, recibimos tu evidencia. El administrador de tu empresa la revisará.",
+  "submitted": "Listo, recibimos tu evidencia.",
   "download": "Enlace temporal para ver o descargar la evidencia.",
-  "reviewed": "Listo, guardamos tu revisión de esta evidencia.",
   "requirement_created": "Listo, agregamos la evidencia a este control.",
   "version_conflict": "Alguien subió otra versión al mismo tiempo. Vuelve a intentarlo.",
   "validity": {

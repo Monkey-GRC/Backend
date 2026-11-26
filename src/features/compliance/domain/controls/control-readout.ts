@@ -1,10 +1,11 @@
 import { DimensionName } from '../../../../common/catalogs/dimensions';
 import type { ControlAccess } from './control-access';
+import { ApprovalRecord, controlWindowStart, countsAsCompliant, deriveManagement, ManagementReadout, ManagementState } from './management-state';
 import type { EvidenceState } from '../evidence/evidence';
 import { AssetResult, ControlState, TestState } from '../engine/states';
 import { evaluateControlLevel } from '../engine/v2/control-level';
 import type { SolidConditions } from '../engine/v2/control-level';
-import { evaluateManualTest, ManualEvidence, ManualVerdict } from '../engine/v2/manual-test';
+import { evaluateManualTest, ManualEvidence, ManualResult } from '../engine/v2/manual-test';
 import { EvaluationParameters } from '../../../../common/evaluation-parameters/parameters';
 import { evaluateRequirement, requirementStatusInPeriod } from '../engine/v2/requirement';
 import { AssetOutcomes, checkResultOf, CheckCounts, CheckOutcome, classifyModuleRef, evaluateTechnicalTest, ModuleFacts, moduleLinkResult, withException, worstStatus } from '../engine/v2/technical-test';
@@ -135,6 +136,10 @@ export type ReadoutControl = {
   requirements?: ReadoutRequirement[];
   /** MD-500 · Con valor, el `admin_empresa` cambió la periodicidad del control (`periodicity_source = client`). */
   periodicityChange?: PeriodicityChange | null;
+  /** MD-504 · El último resultado registrado de cada prueba manual EN ESTE control (`manual_test_results`), por `testId` (D140 punto 2, D129). */
+  manualResults?: ReadonlyMap<string, ManualResult>;
+  /** MD-504 · Las aprobaciones y devoluciones del control (`control_approvals`) y cuándo se registró cada resultado manual: de ahí sale el estado de gestión (D132). */
+  management?: { approvals: readonly ApprovalRecord[]; resultDates: readonly Date[] };
 };
 
 /** Último resultado de cada activo en cada test de cada control: `${controlId}|${testId}|${assetId}`. */
@@ -156,8 +161,6 @@ export type ReadoutSignals = {
   complementaryFailChecks?: ReadonlySet<string>;
   /** Datos de los vínculos de módulo y puntaje, por activo. */
   moduleFacts: ReadonlyMap<string, ModuleFacts>;
-  /** El último veredicto aprobado de cada prueba manual (D85, D121). */
-  verdicts: ReadonlyMap<string, ManualVerdict>;
   /** MD-500 · El período auditado abierto; `null` si no está definido (no hay ventanas que contar ni evidencia que descartar). */
   period?: AuditedPeriod | null;
   /** MD-500 · Los días (UTC, en ms) con un resultado automático decidido dentro del período, por `resultKey`: de ahí sale la cobertura de las ventanas ya cerradas. */
@@ -177,6 +180,8 @@ export type TestEvaluationDetail = {
   failingAssetIds: string[];
   /** El día del aviso previo (PR-06); `null` sin ventana. */
   alertAt: string | null;
+  /** MD-504 · La prueba se resuelve a mano (evidencia y, si no es documental, el resultado del responsable); `false` si la mide el motor de checks o una Dependencia. */
+  manual: boolean;
 };
 
 /** La vista del período auditado (R6): cada ventana cerrada del período cuenta. */
@@ -201,8 +206,13 @@ export type ControlReadout = {
   coverage: { measured: number; applicable: number };
   failing: FailingItem[];
   /** Las pruebas del control con su estado derivado de `test_status` (`compliant` y `observation` → `compliant`, `exception` → `non_compliant`). */
-  tests: Array<{ test: ReadoutTest; state: TestState; status: TestStatus }>;
+  tests: Array<{ test: ReadoutTest; state: TestState; status: TestStatus; manual: boolean }>;
   approval: 'approved' | 'pending' | 'rejected';
+  /** MD-504 (D132) · El estado de gestión: lo que el motor dice más lo que las personas aprobaron, devolvieron o cargaron. */
+  managementState: ManagementState;
+  management: ManagementReadout;
+  /** El estado del control para la categoría y el marco (D130 puntos 4 y 5): solo `approved` cuenta como cumplido; un control que cumple pero no está aprobado sigue «en evaluación». */
+  rollupState: ControlState;
   level: ControlLevel;
   levelValue: number;
   complies: boolean;
@@ -253,6 +263,12 @@ const dayOf = (d: Date) => d.toISOString().slice(0, 10);
 /** G-11 · Lo fechado fuera del período auditado no cuenta. Sin período, todo cuenta. */
 const withinPeriod = (at: Date | null, period: AuditedPeriod | null | undefined): boolean =>
   !period || !at || (at.getTime() >= period.start.getTime() && at.getTime() < period.end.getTime() + DAY_MS);
+
+/** El resultado manual vigente de la prueba en el control, dentro del período auditado (G-11). */
+function manualResultOf(control: ReadoutControl, testId: string, period?: AuditedPeriod | null): ManualResult | null {
+  const r = control.manualResults?.get(testId) ?? null;
+  return r && withinPeriod(r.at, period) ? r : null;
+}
 
 function manualEvidenceOf(control: ReadoutControl, testId: string | null, period?: AuditedPeriod | null): ManualEvidence[] {
   return control.evidence.filter((e) => (testId === null || e.testId === testId) && withinPeriod(e.submittedAt, period)).map((e) => ({ state: e.state, submittedAt: e.submittedAt }));
@@ -335,17 +351,18 @@ function evaluateTest(control: ReadoutControl, entry: Entry, data: ReadoutData, 
       assetCoverage: technical?.applicable ? technical.assetCoverage : null,
       failingAssetIds: technical?.failingAssetIds ?? [],
       alertAt: null,
+      manual: false,
     };
   } else {
     // T-05: una prueba técnica sin ningún Directo aplicable no es «No aplica»: se prueba a mano, igual que las demás pruebas manuales.
     // MD-499/MD-497 · Una prueba de fuente `integration` sin la integración conectada (hoy, todas) se mide con su evidencia subida, igual que una manual. Cuando MD-497 conecte
     // integraciones, aquí elige la fuente: con la categoría conectada (`IntegrationConnections`) decide la integración y la evidencia subida queda de histórico en las ventanas cerradas.
-    const verdict = test.testType === 'documentary' ? null : (signals.verdicts.get(test.testId) ?? null);
+    const documentary = test.testType === 'documentary';
     const manual = evaluateManualTest({
-      evidence: manualEvidenceOf(control, test.testId, signals.period), verdict: verdict && withinPeriod(verdict.at, signals.period) ? verdict : null, periodicity, now: signals.now,
+      evidence: manualEvidenceOf(control, test.testId, signals.period), result: documentary ? null : manualResultOf(control, test.testId, signals.period), requiresResult: !documentary, periodicity, now: signals.now,
       windowMode: signals.parameters.validityWindows, periodStart: signals.period?.start,
     });
-    detail = { status: manual.status, windowEnd: manual.windowEnd, checks: null, assetCoverage: null, failingAssetIds: [], alertAt: null };
+    detail = { status: manual.status, windowEnd: manual.windowEnd, checks: null, assetCoverage: null, failingAssetIds: [], alertAt: null, manual: true };
   }
   detail = { ...detail, alertAt: alertDate(detail.windowEnd, periodicity, signals.parameters, signals.now) };
   memo.set(key, detail);
@@ -415,9 +432,9 @@ type RequirementWindows = { total: number; missing: MissingWindow[] };
 
 const inWindow = (at: Date, w: EvaluationWindow) => at.getTime() >= w.start.getTime() && at.getTime() < w.end.getTime();
 
-/** ¿La evidencia manual de la prueba cubre la ventana? Una entrega validada fechada dentro de ella, o un veredicto aprobado de la prueba. */
-function manualCovers(items: ReadonlyArray<ControlEvidenceItem>, verdict: { result: string; at: Date } | null, w: EvaluationWindow): boolean {
-  if (verdict?.result === 'compliant' && inWindow(verdict.at, w)) return true;
+/** ¿La evidencia manual de la prueba cubre la ventana? Una entrega que cuenta fechada dentro de ella, o un resultado registrado (no una excepción) de la prueba. */
+function manualCovers(items: ReadonlyArray<ControlEvidenceItem>, result: { result: string; at: Date } | null, w: EvaluationWindow): boolean {
+  if (result && result.result !== 'exception' && inWindow(result.at, w)) return true;
   return items.some((e) => (e.history ?? [{ state: e.state, submittedAt: e.submittedAt }]).some((h) => h.state === 'compliant' && h.submittedAt !== null && inWindow(h.submittedAt, w)));
 }
 
@@ -452,10 +469,10 @@ function hasDayIn(days: ReadonlySet<number>, w: EvaluationWindow): boolean {
   return lo < sorted.length && sorted[lo] < w.end.getTime();
 }
 
-/** Las fechas (ms) en que la evidencia manual de la prueba fue válida: entregas validadas y el veredicto aprobado. */
-function manualDates(items: ReadonlyArray<ControlEvidenceItem>, verdict: { result: string; at: Date } | null): number[] {
+/** Las fechas (ms) en que la evidencia manual de la prueba fue válida: entregas que cuentan y el resultado registrado. */
+function manualDates(items: ReadonlyArray<ControlEvidenceItem>, result: { result: string; at: Date } | null): number[] {
   const dates = items.flatMap((e) => (e.history ?? [{ state: e.state, submittedAt: e.submittedAt }]).flatMap((h) => (h.state === 'compliant' && h.submittedAt ? [h.submittedAt.getTime()] : [])));
-  if (verdict?.result === 'compliant') dates.push(verdict.at.getTime());
+  if (result && result.result !== 'exception') dates.push(result.at.getTime());
   return dates;
 }
 
@@ -480,8 +497,8 @@ function rollingWindowsOf(control: ReadoutControl, r: RequirementReadout, data: 
         const links = t.test.links ?? NO_LINKS;
         if (t.assetCoverage !== null) return [{ dates: technicalDates(control, t.test, data), technical: true }];
         if (t.test.testType === 'technical' && links.dependencies.length > 0) return [];
-        const verdict = t.test.testType === 'documentary' ? null : (data.signals.verdicts.get(t.test.testId) ?? null);
-        return [{ dates: manualDates(control.evidence.filter((e) => e.testId === t.test.testId), verdict), technical: false }];
+        const result = t.test.testType === 'documentary' ? null : (control.manualResults?.get(t.test.testId) ?? null);
+        return [{ dates: manualDates(control.evidence.filter((e) => e.testId === t.test.testId), result), technical: false }];
       });
   let total = 0;
   const missing = new Map<number, MissingWindow>();
@@ -509,8 +526,8 @@ function windowsOf(control: ReadoutControl, r: RequirementReadout, data: Readout
           const links = t.test.links ?? NO_LINKS;
           if (t.assetCoverage !== null) return !technicalCovers(control, t.test, periodicity, w, data);
           if (t.test.testType === 'technical' && links.dependencies.length > 0) return false;
-          const verdict = t.test.testType === 'documentary' ? null : (data.signals.verdicts.get(t.test.testId) ?? null);
-          return !manualCovers(control.evidence.filter((e) => e.testId === t.test.testId), verdict, w);
+          const result = t.test.testType === 'documentary' ? null : (control.manualResults?.get(t.test.testId) ?? null);
+          return !manualCovers(control.evidence.filter((e) => e.testId === t.test.testId), result, w);
         });
     if (uncovered) missing.push({ requirementCode: r.requirement.code, window: w, technical: !own && r.tests.some((t) => t.assetCoverage !== null) });
   }
@@ -565,8 +582,25 @@ export function readControl(control: ReadoutControl, data: ReadoutData): Control
     byDimension.set(test.dimension, list);
   }
 
+  // MD-504 · D132: el estado de gestión sale del nivel del motor y de lo que las personas hicieron. El inicio de la ventana es el del control (la más reciente de sus requisitos).
+  const periodicities = requirements.filter((r) => r.status !== 'not_applicable').map((r) => r.requirement.periodicity);
+  const loads = [
+    ...control.evidence.flatMap((e) => (e.history ?? [{ submittedAt: e.submittedAt }]).flatMap((h) => (h.submittedAt ? [h.submittedAt] : []))),
+    ...(control.management?.resultDates ?? []),
+  ];
+  const management = deriveManagement({
+    complies: level.complies,
+    directFail: requirements.some((r) => r.tests.some((t) => t.failingAssetIds.length > 0)),
+    windowStart: controlWindowStart(periodicities, data.signals.now, data.signals.parameters.validityWindows),
+    approvals: control.management?.approvals ?? [],
+    loads,
+  });
+
   return {
     control,
+    managementState: management.state,
+    management,
+    rollupState: level.state === 'effective' && !countsAsCompliant(management.state) ? 'evaluating' : level.state,
     readiness: readinessOf({
       state: level.state,
       done: level.compliant,
@@ -578,7 +612,7 @@ export function readControl(control: ReadoutControl, data: ReadoutData): Control
     progress: { done: level.compliant, total: level.applicable },
     coverage: { measured: level.measured, applicable: level.applicable },
     failing: [...byDimension.entries()].map(([dimension, affected]) => ({ dimension, affected })),
-    tests: [...unique.values()].map((u) => ({ test: u.test, state: legacyTestState(u.status), status: u.status })),
+    tests: [...unique.values()].map((u) => ({ test: u.test, state: legacyTestState(u.status), status: u.status, manual: u.detail.manual })),
     approval: control.approval,
     level: level.level,
     levelValue: level.levelValue,

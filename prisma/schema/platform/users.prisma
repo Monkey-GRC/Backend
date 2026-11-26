@@ -110,13 +110,11 @@ model User {
   passwordResetTokens       PasswordResetToken[]
   recoveryCodes             UserRecoveryCode[]
   apiKeysCreated            ApiKey[]
-  actionPlansResponsible    ActionPlan[]
   residualRisksAccepted     ResidualRisk[]
   riskTreatmentsCreated     RiskTreatment[] @relation("RiskTreatmentCreatedBy")
   evidenceSubmitted         EvidenceSubmission[] @relation("EvidenceSubmittedBy")
-  evidenceReviewed          EvidenceReview[]     @relation("EvidenceReviewedBy")
-  verdictsRegistered        TestVerdict[]        @relation("VerdictRegisteredBy")
-  verdictsReviewed          TestVerdictReview[]  @relation("VerdictReviewedBy")
+  controlApprovalsGiven     ControlApproval[]    @relation("ControlApprovalActor")
+  manualTestResultsRegistered ManualTestResult[] @relation("ManualTestResultRegisteredBy")
   documentVersionsCreated     DocumentVersion[]          @relation("DocumentVersionCreatedBy")
   documentAssignments         DocumentAssignment[]       @relation("DocumentAssignee")
   documentAssignmentsGranted  DocumentAssignment[]       @relation("DocumentAssignedBy")
