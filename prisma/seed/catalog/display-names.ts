@@ -5,34 +5,12 @@
 //  - `display_description` es el objetivo con la tabla 9.
 
 // La regla de qué es «nombrar al proveedor» vive en un solo sitio (SEG-39): la misma que usa Monkey Admin al dar de alta una prueba.
-export { namesProvider, PROVIDER_PATTERN } from '../../../src/common/text/provider-names';
+import { whiteLabel } from '../../../src/common/text/provider-names';
+import { CatalogV2 } from './types';
 
-const POSSIBLE_CHECKS = /^Posible Checks\b/i;
+export { namesProvider, PROVIDER_PATTERN, whiteLabel } from '../../../src/common/text/provider-names';
 
-// Tabla 9, en el orden en que se aplica (lo más específico primero). Gramática: «de Prowler» → «del motor de nube», «a Prowler» → «al motor de nube».
-const WHITE_LABEL: readonly (readonly [RegExp, string])[] = [
-  [/Posible Checks (?:de )?Wazuh/gi, 'Verificaciones automáticas de la sonda'],
-  [/Posible Checks (?:de )?Prowler/gi, 'Verificaciones automáticas del motor de nube'],
-  [/Wazuh\s*\+\s*Prowler/gi, 'sonda y motor de nube'],
-  [/Wazuh\s+y\s+Prowler/gi, 'la sonda y el motor de nube'],
-  [/Wazuh\s*\/\s*OSSEC/gi, 'la sonda/OSSEC'],
-  [/\b(agentes?) (?:de )?Wazuh\b/gi, '$1 de la sonda'],
-  [/\bWazuh SCA\b/gi, 'evaluación de configuración de la sonda'],
-  [/\bm[oó]dulos? (?:de )?Wazuh\b/gi, 'módulo de la sonda'],
-  [/\bSyscollector\b/gi, 'inventario de la sonda'],
-  [/\bde Prowler\b/gi, 'del motor de nube'],
-  [/\ba Prowler\b/gi, 'al motor de nube'],
-  [/\bProwler\b/gi, 'el motor de nube'],
-  [/\bWazuh\b/gi, 'la sonda'],
-];
-
-/** Aplica la tabla 9: el texto del libro → lo que ve el cliente. */
-export function whiteLabel(s: string): string {
-  let out = s;
-  for (const [re, to] of WHITE_LABEL) out = out.replace(re, to);
-  // «la sonda» al inicio de una frase se escribe con mayúscula.
-  return out.replace(/(^|[.:!?]\s+)(la sonda|el motor de nube|sonda y motor de nube)/g, (_m, pre: string, w: string) => pre + w.charAt(0).toUpperCase() + w.slice(1));
-}
+const POSSIBLE_CHECKS = /^Posibles? checks?\b/i;
 
 export type DisplayInput = {
   code: string;
@@ -50,3 +28,29 @@ export function displayNameOf(t: DisplayInput): string {
 }
 
 export const displayDescriptionOf = (objective: string): string => whiteLabel(objective);
+
+// Los campos de prosa del libro que llegan al cliente (SEG-39, D128). Un solo sitio: lo usan `validate.ts`, `catalog:verify` y la prueba que recorre el JSON.
+// Quedan fuera las claves internas del motor (`testChecks.appliesWhen`, `testChecks.moduleRef`), que no son texto de cliente.
+export const CLIENT_VISIBLE_TEXT_FIELDS: { [K in 'tests' | 'controlRequirements' | 'standardProcedures' | 'integrationCategories' | 'testChecks']: readonly (keyof CatalogV2[K][number])[] } = {
+  tests: ['displayName', 'displayDescription', 'objective', 'whyItMatters', 'stepByStep', 'correctIf', 'exceptionIf', 'observationIf', 'evidenceToRetain'],
+  controlRequirements: ['text', 'assemblyNote'],
+  standardProcedures: ['whenUsed', 'genericSteps', 'typicalEvidence'],
+  integrationCategories: ['exampleTools'],
+  testChecks: ['commonObjective'],
+};
+
+/** Cada texto visible al cliente tal como sale del libro (sin tabla 9), con su ubicación para el mensaje de error. */
+export function clientVisibleTexts(c: CatalogV2): { where: string; text: string }[] {
+  const out: { where: string; text: string }[] = [];
+  const ident = (k: string, r: Record<string, unknown>, i: number): string => String(r.code ?? r.name ?? r.testCode ?? i) + (k === 'testChecks' ? `#${i}` : '');
+  for (const [coll, fields] of Object.entries(CLIENT_VISIBLE_TEXT_FIELDS)) {
+    const rows: unknown = c[coll as keyof typeof CLIENT_VISIBLE_TEXT_FIELDS];
+    (Array.isArray(rows) ? (rows as Record<string, unknown>[]) : []).forEach((row, i) => {
+      for (const f of fields as readonly string[]) {
+        const v = row[f];
+        if (typeof v === 'string' && v) out.push({ where: `${coll}[${ident(coll, row, i)}].${f}`, text: v });
+      }
+    });
+  }
+  return out;
+}

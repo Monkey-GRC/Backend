@@ -1,4 +1,7 @@
-import { displayDescriptionOf, displayNameOf, namesProvider, whiteLabel } from './display-names';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { CLIENT_VISIBLE_TEXT_FIELDS, clientVisibleTexts, displayDescriptionOf, displayNameOf, namesProvider, whiteLabel } from './display-names';
+import { CatalogV2 } from './types';
 
 describe('marca blanca (tabla 9)', () => {
   it.each([
@@ -50,5 +53,31 @@ describe('nombre y descripción que ve el cliente', () => {
 
   it('la descripción es el objetivo con la tabla 9', () => {
     expect(displayDescriptionOf('Que Wazuh detecta cambios en los archivos.')).toBe('Que la sonda detecta cambios en los archivos.');
+  });
+});
+
+describe('libro del comité (catalog-v2.json) y marca blanca', () => {
+  const catalog = JSON.parse(readFileSync(join(__dirname, '../data/catalog-v2.json'), 'utf8')) as CatalogV2;
+
+  it('recorre los campos de prosa del libro', () => {
+    const wheres = clientVisibleTexts(catalog).map((x) => x.where);
+    for (const [coll, fields] of Object.entries(CLIENT_VISIBLE_TEXT_FIELDS)) {
+      for (const f of fields as readonly string[]) {
+        expect([`${coll}.${f}`, wheres.some((w) => w.startsWith(`${coll}[`) && w.endsWith(`].${f}`))]).toEqual([`${coll}.${f}`, true]);
+      }
+    }
+  });
+
+  it('la tabla 9 es idempotente sobre todo el libro', () => {
+    for (const { text } of clientVisibleTexts(catalog)) expect(whiteLabel(whiteLabel(text))).toBe(whiteLabel(text));
+  });
+
+  it('clientVisibleTexts no lanza si falta una colección', () => {
+    expect(clientVisibleTexts({} as CatalogV2)).toEqual([]);
+  });
+
+  it('ningún texto visible al cliente nombra al proveedor tras la tabla 9', () => {
+    const leaks = clientVisibleTexts(catalog).filter((x) => namesProvider(whiteLabel(x.text))).map((x) => x.where);
+    expect(leaks).toEqual([]);
   });
 });
