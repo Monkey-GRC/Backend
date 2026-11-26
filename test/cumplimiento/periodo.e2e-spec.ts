@@ -258,7 +258,7 @@ describe('Período auditado — histórico y período siguiente (D145, D148)', (
     await owner(
       `insert into audit.compliance_events (id, tenant_id, changed_field, new_value)
        values (gen_random_uuid(), $1, 'control.state', $2::jsonb)`,
-      [a.companyId, JSON.stringify({ control_id: ctl.id, control_code: ctl.own_code, service_id: a.serviceId, cause: 'evidence_review', state: 'effective', level: 'adequate', level_value: 4, readiness: 'ready', progress: { done: 1, total: 1 } })],
+      [a.companyId, JSON.stringify({ control_id: ctl.id, control_code: ctl.own_code, service_id: a.serviceId, cause: 'control_approval', state: 'effective', level: 'adequate', level_value: 4, readiness: 'ready', progress: { done: 1, total: 1 } })],
     );
     const events = () =>
       owner<{ previous_value: any; new_value: any; user_id: string | null }>(

@@ -129,7 +129,7 @@ describe('MD-177 · la evidencia de una prueba documental, en su control (D88)',
     const [item] = res.body.data.items;
     expect(item).toMatchObject({ dimension: 'policy', test: { id: docTest.id, code: docTest.code }, control: { id: controlX, code: expect.stringMatching(/^[A-Z]+-\d+$/) } });
     expect(item.submissions).toHaveLength(1);
-    expect(item.submissions[0]).toMatchObject({ id: submissionId, version: 1, file_type: 'application/pdf', evidence_state: 'pending' });
+    expect(item.submissions[0]).toMatchObject({ id: submissionId, version: 1, file_type: 'application/pdf', evidence_state: 'compliant' });
     expect(item.submissions[0]).not.toHaveProperty('technical');
     expect(JSON.stringify(res.body)).not.toMatch(/file_key|file_path|X-Signature/);
   });
@@ -147,11 +147,11 @@ describe('MD-177 · la evidencia de una prueba documental, en su control (D88)',
     expect(item.submissions.map((s: any) => s.version)).toEqual([2, 1]);
   });
 
-  it('?view=technical lo piden el administrador y el auditor; el responsable recibe 403', async () => {
-    const [item] = (await listOf(auditor, controlX, docTest.id, '?view=technical').expect(200)).body.data.items;
-    expect(item.submissions[0].technical).toMatchObject({ review: expect.any(String), attributes: expect.any(Object) });
-    await listOf(a.agent, controlX, docTest.id, '?view=technical').expect(200);
-    await listOf(responsableDoc, controlX, docTest.id, '?view=technical').expect(403);
+  it('`view=technical` se retiró (D132): no hay bloque `technical` y ningún rol lo necesita', async () => {
+    const [item] = (await listOf(auditor, controlX, docTest.id).expect(200)).body.data.items;
+    expect(item.submissions[0]).not.toHaveProperty('technical');
+    await listOf(a.agent, controlX, docTest.id).expect(200);
+    await listOf(responsableDoc, controlX, docTest.id).expect(200);
   });
 
   it('el responsable dueño la ve; otro responsable, sobre un control que no es suyo, 403 (D102); el auditor ve todo', async () => {
@@ -288,7 +288,7 @@ describe('MD-177 · las pruebas de un control, con lo que comparten (D85, D88)',
     expect(items.map((i) => i.test_code)).toEqual([...items.map((i) => i.test_code)].sort((x, y) => x.localeCompare(y)));
     expect(items[0]).toEqual({
       test_id: expect.any(String), test_code: expect.any(String), display_name: expect.any(String), dimension: expect.any(String), type: expect.stringMatching(/^(documentary|population|operational|technical)$/),
-      is_mandatory: expect.any(Boolean), is_active: expect.any(Boolean), shared_with: expect.any(Array), state: expect.any(String), last_verdict: null, ai_suggestion: null,
+      is_mandatory: expect.any(Boolean), is_active: expect.any(Boolean), shared_with: expect.any(Array), state: expect.any(String), ai_suggestion: null,
     });
     expect(items.find((i) => i.test_id === docTest.id)).toMatchObject({ dimension: 'policy', shared_with: [] }); // D88: una prueba documental es de su control
     expect(JSON.stringify(res.body)).not.toMatch(/wazuh|prowler/i);
@@ -310,20 +310,6 @@ describe('MD-177 · las pruebas de un control, con lo que comparten (D85, D88)',
     expect(first.items).toHaveLength(1);
     expect([first.page, first.page_size, first.total]).toEqual([1, 1, all.total]);
     expect(first.items[0].test_code).toBe(all.items[0].test_code);
-  });
-
-  it('last_verdict trae el último veredicto del admin_empresa sobre una prueba manual', async () => {
-    const [manual] = await owner<{ control: string; test: string }>(
-      `select cc.id control, x.test_id test from tenant.client_controls cc
-         join tenant.client_control_dimensions d on d.client_control_id = cc.id and d.dimension = 'cloud'::catalog.dimension and d.type = 'manual'::catalog.control_dimension_type
-         join tenant.client_control_tests x on x.client_control_id = cc.id join catalog.tests t on t.id = x.test_id and t.dimension = 'cloud'::catalog.dimension
-        where cc.service_id = $1 and cc.is_active order by cc.own_code, t.code limit 1`,
-      [a.serviceId],
-    );
-    expect(manual).toBeDefined();
-    await a.agent.post(`/v1/controls/${manual.control}/tests/${manual.test}/verdicts`).send({ result: 'compliant', note: 'Revisado por la empresa.' }).expect(201);
-    const item = ((await testsOf(auditor, manual.control, '?page_size=100').expect(200)).body.data.items as any[]).find((i) => i.test_id === manual.test);
-    expect(item).toMatchObject({ state: 'compliant', last_verdict: { result: 'compliant', evaluated_at: expect.any(String), confirmed_by: { id: adminId } } });
   });
 
   it('es la vista técnica: el auditor la ve; el responsable y admin_monkey, 403; otra empresa, un id inválido o inexistente, 404', async () => {

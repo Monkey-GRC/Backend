@@ -63,11 +63,10 @@ const RUTAS: Partial<Record<Permission, Call>> = {
   'assignments.view': (g) => g.get('/v1/assignments'),
   'risks.manage': (g) => g.delete(`/v1/risks/${U}`),
   'risks.history': (g) => g.get(`/v1/risks/${U}/evaluation-history`),
-  'evidence.review': (g) => g.put(`/v1/evidence-submissions/${U}/review`).send({ review: 'human_validated' }),
   'evidence.requirements': (g) => g.post(`/v1/controls/${U}/evidence-requirements`).send({}),
   'exclusions.view': (g, t) => g.get(`/v1/services/${sid(t)}/exclusions`),
-  'verdicts.register': (g) => g.post(`/v1/controls/${U}/tests/${U}/verdicts`).send({}),
-  'verdicts.review': (g) => g.put(`/v1/verdicts/${U}/review`).send({}),
+  'verdicts.register': (g) => g.post(`/v1/controls/${U}/tests/${U}/result`).send({ result: 'correct' }),
+  'controls.approve_first': (g) => g.post(`/v1/controls/${U}/approval`).send({ decision: 'approve' }),
   'observations.view': (g, t) => g.get(`/v1/services/${sid(t)}/observations`),
   'periods.manage': (g, t) => g.put(`/v1/services/${sid(t)}/frameworks/soc2/evaluation-period`).send({}),
   'periods.view': (g, t) => g.get(`/v1/services/${sid(t)}/frameworks/soc2/evaluation-periods`),
@@ -79,7 +78,7 @@ const RUTAS: Partial<Record<Permission, Call>> = {
 
 // Filas del libro sin ruta todavía: la matriz ya las declara y un guard las aplicará el día que alguien las construya.
 const SIN_RUTA: Permission[] = [
-  'controls.approve_first', 'controls.approve_final', 'evidence.retire', 'documents.assign_owner', 'documents.workflow', 'documents.approve', 'documents.archive', 'audit.log', 'reports.export',
+  'controls.approve_final', 'evidence.retire', 'documents.assign_owner', 'documents.workflow', 'documents.approve', 'documents.archive', 'audit.log', 'reports.export',
   'reports.technical_view', 'security.policies',
 ];
 

@@ -51,7 +51,6 @@ describe('Lo que cuelga de un control dado de baja', () => {
     `/v1/controls/${control}/tests/${testId}/evidence`,
     `/v1/evidence-requirements/${requirement}/submissions`,
     `/v1/evidence-submissions/${submission}/download`,
-    `/v1/controls/${control}/tests/${testId}/verdicts`,
     `/v1/services/${a.serviceId}/observations?client_control_id=${control}`,
     `/v1/observations/${observation}`,
   ];

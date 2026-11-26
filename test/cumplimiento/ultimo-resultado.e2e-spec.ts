@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import { bootApp, owner } from '../support/app';
 import { connect } from '../support/db';
 import { definirPeriodo, dosEmpresas, Tenant } from '../support/escenario';
-import { latestEvaluationsSql, latestVerdictsSql } from '../../src/features/compliance/infrastructure/shared/latest-results.query';
+import { latestEvaluationsSql, latestManualResultsSql } from '../../src/features/compliance/infrastructure/shared/latest-results.query';
 
 // MD-220 · El último resultado de cada (control, test, activo) no crece con el histórico: la base entrega una fila por clave (DISTINCT ON) y el resumen no cambia por tener 50 corridas.
 let app: INestApplication;
@@ -124,8 +124,8 @@ describe('El último resultado no depende del largo del histórico', () => {
     expect((await a.agent.get(path()).expect(200)).body.data).not.toEqual(base);
   });
 
-  it('el último veredicto por test sale con su desempate y sin listas de ids', async () => {
-    const q = latestVerdictsSql([a.serviceId]);
+  it('el último resultado manual por control y prueba sale con su desempate y sin listas de ids', async () => {
+    const q = latestManualResultsSql([a.serviceId]);
     const db = await connect();
     try {
       expect((await db.query(`explain ${q.text}`, q.values)).rows.length).toBeGreaterThan(0);
@@ -135,7 +135,7 @@ describe('El último resultado no depende del largo del histórico', () => {
   });
 
   it('los índices del último resultado existen y el de evaluaciones es parcial en lo que lee la consulta', async () => {
-    const defs = (await owner<{ indexdef: string }>(`select indexdef from pg_indexes where schemaname = 'tenant' and indexname in ('evaluations_latest_idx', 'test_verdicts_service_id_test_id_registered_at_id_idx')`)).map((r) => r.indexdef);
+    const defs = (await owner<{ indexdef: string }>(`select indexdef from pg_indexes where schemaname = 'tenant' and indexname in ('evaluations_latest_idx', 'manual_test_results_client_control_id_test_id_registered_at_idx')`)).map((r) => r.indexdef);
     expect(defs).toHaveLength(2);
     expect(defs.join(' ')).toMatch(/WHERE \(origin <> 'manual'/);
   });

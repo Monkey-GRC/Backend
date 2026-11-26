@@ -10,7 +10,8 @@ import { dosEmpresas, servicePayload, Tenant } from '../support/escenario';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
 // MD-195 · D122 · «Mi trabajo» (`GET /v1/me/work`) y la carga de trabajo (`GET /v1/team/workload`), por HTTP real contra el Postgres desechable. Cada control cae en UN bucket, el primero que le
-// aplique visto desde quien pregunta: rejected → to_review (solo el dueño) → to_upload → in_review → done.
+// aplique visto desde quien pregunta: rejected → to_review (solo el dueño) → to_upload → in_review → done. Desde MD-504 (D132) la evidencia cuenta al subirla y ya no se revisa: lo
+// «rechazado» es lo que una devolución del control dejó sin contar, y «por revisar» y «en revisión» ya no ocurren.
 let app: INestApplication;
 let a: Tenant;
 let b: Tenant;
@@ -30,11 +31,11 @@ const storage = new StorageEnMemoria();
 let n = 0;
 
 const pdf = (marca: string) => Buffer.from(`%PDF-1.7\n% trabajo ${marca} ${RUN}\n`);
-const ALL_OK = { type_ok: true, period_ok: true, valid_ok: true, approved_ok: true, signed_ok: true, content_ok: true, review: 'human_validated' as const };
 const subir = async (agent: Agent, controlId: string, testId: string, marca: string): Promise<string> =>
   (await agent.post(`/v1/controls/${controlId}/tests/${testId}/evidence`).attach('file', pdf(marca), `${marca}.pdf`).expect(201)).body.data.id;
-const revisar = (agent: Agent, submissionId: string, body: Record<string, unknown> = ALL_OK) => agent.put(`/v1/evidence-submissions/${submissionId}/review`).send(body);
-const rechazar = (agent: Agent, submissionId: string) => revisar(agent, submissionId, { ...ALL_OK, approved_ok: false, note: 'Falta la firma de la dirección.' }).expect(200);
+// Devolver el control (D132) deja sin contar las entregas dadas; lo hace el responsable sobre un control «por aprobar».
+const devolver = (agent: Agent, controlId: string, submissionIds: string[]) =>
+  agent.post(`/v1/controls/${controlId}/approval`).send({ decision: 'return', reason: 'Falta la firma de la dirección.', returned_submission_ids: submissionIds }).expect(200);
 const docTests = (controlId: string) =>
   owner<{ id: string }>(`select t.id from tenant.client_control_tests x join catalog.tests t on t.id = x.test_id where x.client_control_id = $1 and t.dimension = 'policy' order by t.code`, [controlId]).then((r) => r.map((t) => t.id));
 
@@ -149,31 +150,22 @@ describe('los buckets (D122)', () => {
     expect(Object.keys(mios[0]).sort()).toEqual(['bucket', 'client_control_id', 'code', 'pending_items', 'role_in_control', 'service', 'state', 'title']);
   });
 
-  it('lo que sube el ejecutor está «en revisión» para él y «por revisar» solo para el dueño', async () => {
+  it('lo que sube el ejecutor cuenta al subirlo: el control queda «listo» para él y para el dueño, y nadie lo revisa', async () => {
     await subir(d1.session, c.c1, (await docTests(c.c1))[0], 'c1');
-    expect(await de(d1.session, c.c1)).toMatchObject({ bucket: 'in_review', pending_items: 0 });
-    expect(await de(r1.session, c.c1)).toMatchObject({ bucket: 'to_review', pending_items: 1 });
-    expect((await trabajo(r1.session, 'bucket=to_review')).items.map((i: any) => i.client_control_id)).toEqual([c.c1]);
-    expect((await trabajo(d1.session, 'bucket=to_review')).total).toBe(0); // el delegado nunca revisa
+    expect(await de(d1.session, c.c1)).toMatchObject({ bucket: 'done', pending_items: 0 });
+    expect(await de(r1.session, c.c1)).toMatchObject({ bucket: 'done', pending_items: 0, state: 'effective' });
+    expect((await trabajo(r1.session, 'bucket=to_review')).total).toBe(0);
+    expect((await trabajo(d1.session, 'bucket=in_review')).total).toBe(0);
   });
 
-  it('lo que sube el dueño espera a otra persona: «en revisión», no «por revisar»; al validarlo el admin_empresa queda «listo»', async () => {
-    const id = await subir(r1.session, c.c4, (await docTests(c.c4))[0], 'c4');
-    expect(await de(r1.session, c.c4)).toMatchObject({ bucket: 'in_review', pending_items: 0 });
-    await revisar(a.agent, id).expect(200);
+  it('lo que sube el dueño también cuenta: «listo»', async () => {
+    await subir(r1.session, c.c4, (await docTests(c.c4))[0], 'c4');
     expect(await de(r1.session, c.c4)).toMatchObject({ bucket: 'done', pending_items: 0, state: 'effective' });
   });
 
-  it('el dueño valida lo del ejecutor: el control queda «listo» para los dos', async () => {
-    const id = (await owner<{ id: string }>(`select s.id from tenant.evidence_submissions s join tenant.evidence_requirements r on r.id = s.evidence_requirement_id where r.client_control_id = $1`, [c.c1]))[0].id;
-    await revisar(r1.session, id).expect(200);
-    expect(await de(r1.session, c.c1)).toMatchObject({ bucket: 'done', pending_items: 0, state: 'effective' });
-    expect(await de(d1.session, c.c1)).toMatchObject({ bucket: 'done', pending_items: 0 });
-  });
-
-  it('rechazado: lo que subió el ejecutor y el dueño rechazó es «rechazado» para el ejecutor y para su dueño', async () => {
+  it('devuelto: lo que el responsable devolvió con el control es «rechazado» para el ejecutor y para su dueño', async () => {
     const id = await subir(d1.session, c.c2, (await docTests(c.c2))[0], 'c2');
-    await rechazar(r1.session, id);
+    await devolver(r1.session, c.c2, [id]);
     expect(await de(d1.session, c.c2)).toMatchObject({ bucket: 'rejected', pending_items: 1 });
     expect(await de(r1.session, c.c2)).toMatchObject({ bucket: 'rejected', pending_items: 1 });
     expect((await trabajo(r1.session, 'bucket=rejected')).items.map((i: any) => i.client_control_id)).toEqual([c.c2]);
@@ -188,25 +180,24 @@ describe('los buckets (D122)', () => {
     expect((await de(r1.session, c.c3)).pending_items).toBe(antes);
   });
 
-  it('cuando aplican varios, gana el primero: «por revisar» antes que «por subir», y «rechazado» antes que los dos', async () => {
+  it('cuando aplican varios, gana el primero: «rechazado» antes que «por subir»', async () => {
     const [tA, tB] = await docTests(c.c5);
     const a1 = await subir(d1.session, c.c5, tA, 'c5a');
-    expect(await de(r1.session, c.c5)).toMatchObject({ bucket: 'to_review', pending_items: 2 }); // una por revisar y otra por subir
-    expect(await de(d1.session, c.c5)).toMatchObject({ bucket: 'to_upload', pending_items: 1 });
+    expect(await de(r1.session, c.c5)).toMatchObject({ bucket: 'to_upload', pending_items: 1 }); // una entregada y otra por subir
     await subir(d1.session, c.c5, tB, 'c5b');
-    await rechazar(r1.session, a1);
-    expect(await de(r1.session, c.c5)).toMatchObject({ bucket: 'rejected', pending_items: 2 }); // una rechazada y otra por revisar
+    expect(await de(r1.session, c.c5)).toMatchObject({ bucket: 'done', pending_items: 0 });
+    await devolver(r1.session, c.c5, [a1]);
+    expect(await de(r1.session, c.c5)).toMatchObject({ bucket: 'rejected', pending_items: 1 });
     expect(await de(d1.session, c.c5)).toMatchObject({ bucket: 'rejected', pending_items: 1 });
   });
 
-  it('un veredicto manual se trata como una pieza más: lo registra el ejecutor, lo revisa el dueño y un rechazo lo devuelve', async () => {
+  it('el resultado de una prueba manual se trata como una pieza más: lo registra el dueño y el ejecutor no puede', async () => {
     expect(await de(r1.session, c.m)).toMatchObject({ bucket: 'to_upload' });
-    const v = (await d1.session.post(`/v1/controls/${c.m}/tests/${manualTest}/verdicts`).send({ result: 'compliant' }).expect(201)).body.data.id;
-    expect(await de(r1.session, c.m)).toMatchObject({ bucket: 'to_review' });
-    expect((await de(d1.session, c.m)).bucket).toBe('to_upload'); // al ejecutor le sigue faltando alguna pieza
-    await r1.session.put(`/v1/verdicts/${v}/review`).send({ decision: 'reject', note: 'No coincide con la consola.' }).expect(200);
-    expect(await de(r1.session, c.m)).toMatchObject({ bucket: 'rejected' });
-    expect(await de(d1.session, c.m)).toMatchObject({ bucket: 'rejected' });
+    const antes = (await de(r1.session, c.m)).pending_items;
+    await d1.session.post(`/v1/controls/${c.m}/tests/${manualTest}/result`).send({ result: 'correct' }).expect(403); // el delegado carga la evidencia, no registra el resultado (D140)
+    expect((await de(r1.session, c.m)).pending_items).toBe(antes);
+    await r1.session.post(`/v1/controls/${c.m}/tests/${manualTest}/result`).send({ result: 'correct' }).expect(201);
+    expect((await de(r1.session, c.m)).pending_items).toBe(antes - 1);
   });
 
   it('la lista sale en el orden de los buckets, y el avance es el objeto del marco: semáforo, hechos y cobertura', async () => {
@@ -215,10 +206,10 @@ describe('los buckets (D122)', () => {
     const idx = d.items.map((i: any) => orden.indexOf(i.bucket));
     expect(idx).toEqual([...idx].sort((x, y) => x - y));
     const items = d.items as any[];
-    const hechos = items.filter((i) => i.state === 'effective').length;
+    expect(items.filter((i) => i.state === 'effective').length).toBe(2); // c1 y c4
     const medidos = items.filter((i) => ['effective', 'ineffective', 'expired'].includes(i.state)).length;
-    expect(d.progress).toEqual({ readiness: expect.stringMatching(/^(ready|almost_ready|needs_work|not_measured)$/), progress: { done: hechos, total: 8 }, coverage: { measured: medidos, applicable: 8 } });
-    expect(d.progress).toMatchObject({ progress: { done: 2 }, readiness: 'needs_work' }); // c1 y c4
+    expect(d.progress).toEqual({ readiness: expect.stringMatching(/^(ready|almost_ready|needs_work|not_measured)$/), progress: { done: 0, total: 8 }, coverage: { measured: medidos, applicable: 8 } });
+    expect(d.progress).toMatchObject({ progress: { done: 0 }, readiness: 'needs_work' }); // c1 y c4 cumplen pero falta la aprobación: solo `approved` cuenta (D130)
     expect(d.progress).not.toHaveProperty('percent');
   });
 });
@@ -326,16 +317,14 @@ describe('carga de trabajo', () => {
 // MD-499 · De qué cuenta cada prueba lo decide la regla de la subida (fuente principal y dimensión aplicable), no el tipo de la dimensión: una prueba `process` manual de una dimensión
 // híbrida es una pieza de evidencia; el veredicto (D85) queda para la manual que no acepta subida (la prueba de nube de arriba).
 describe('una prueba de proceso cuenta como evidencia (MD-499)', () => {
-  it('una prueba `process` manual en una dimensión híbrida es una pieza por subir; al subirla pasa a revisión y la valida el dueño', async () => {
+  it('una prueba `process` manual en una dimensión híbrida es una pieza por subir; al subirla queda entregada', async () => {
     const [test] = await owner<{ id: string }>(`select id from catalog.tests where dimension = 'process' and primary_source = 'manual' order by code limit 1`);
     const control = await controlPropioConPruebas(a.companyId, a.serviceId, `W${RUN.toUpperCase()}`, [test.id], 'process', 'hybrid');
     await asignarControl(a.companyId, control, r1.id, d1.id);
     expect(await de(r1.session, control)).toMatchObject({ bucket: 'to_upload', pending_items: 1 });
-    const id = await subir(d1.session, control, test.id, 'proceso');
-    expect(await de(r1.session, control)).toMatchObject({ bucket: 'to_review' });
-    expect(await de(d1.session, control)).toMatchObject({ bucket: 'in_review' });
-    await revisar(r1.session, id).expect(200);
+    await subir(d1.session, control, test.id, 'proceso');
     expect(await de(r1.session, control)).toMatchObject({ bucket: 'done' });
+    expect(await de(d1.session, control)).toMatchObject({ bucket: 'done' });
   });
 
   it('la misma prueba con la dimensión «no aplica» no es pieza: el control no tiene nada pendiente', async () => {

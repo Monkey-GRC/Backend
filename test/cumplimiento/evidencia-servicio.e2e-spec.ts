@@ -113,12 +113,11 @@ describe('MD-208 · evidencia de un servicio', () => {
     expect(controlsOf(itemsOf(await delegado.get(url(a.serviceId)).expect(200)))).toEqual([controlD]);
   });
 
-  it('?view=technical: el administrador y el auditor lo piden; el responsable y el delegado reciben 403', async () => {
-    const items = itemsOf(await a.agent.get(url(a.serviceId, '?view=technical')).expect(200));
-    expect(items.every((i) => i.submissions.every((s) => 'technical' in (s as object)))).toBe(true);
-    await auditor.get(url(a.serviceId, '?view=technical')).expect(200);
-    await responsable.get(url(a.serviceId, '?view=technical')).expect(403);
-    await delegado.get(url(a.serviceId, '?view=technical')).expect(403);
+  it('`view=technical` se retiró (D132): ningún rol recibe un bloque `technical` ni otro resultado por pedirlo', async () => {
+    const plain = itemsOf(await a.agent.get(url(a.serviceId)).expect(200));
+    expect(plain.every((i) => i.submissions.every((s) => !('technical' in (s as object))))).toBe(true);
+    expect(itemsOf(await a.agent.get(url(a.serviceId, '?view=technical')).expect(200))).toEqual(plain);
+    for (const agent of [auditor, responsable, delegado]) await agent.get(url(a.serviceId, '?view=technical')).expect(200);
   });
 
   it('un servicio de otra empresa o inexistente es 404', async () => {
