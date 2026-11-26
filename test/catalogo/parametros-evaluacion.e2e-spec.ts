@@ -166,8 +166,8 @@ describe('PATCH /v1/catalog/evaluation-parameters/{key}', () => {
   });
 });
 
-// Un control del catálogo con DOS requisitos y una sola prueba operativa en uno de ellos: aprobar el veredicto de esa prueba deja C% = 50 (el otro requisito sigue pendiente).
-// El veredicto se inserta con su aprobación (como lo deja el admin_empresa que registra) para poder fecharlo: el motor lee `test_verdicts`.
+// Un control del catálogo con DOS requisitos y una sola prueba operativa en uno de ellos: registrar el resultado de esa prueba deja C% = 50 (el otro requisito sigue pendiente).
+// El resultado se inserta directo (MD-504: `manual_test_results`) para poder fecharlo.
 async function controlYPrueba(code: string): Promise<{ control: string; test: string }> {
   const [row] = await owner<{ control: string; test: string }>(
     `select cc.id control, crt.test_id test from tenant.client_controls cc
@@ -184,14 +184,10 @@ async function controlYPrueba(code: string): Promise<{ control: string; test: st
 }
 async function veredicto(control: string, test: string, daysAgo: number): Promise<void> {
   const [{ id: userId }] = await owner<{ id: string }>('select id from platform.users where email = $1', [a.email]);
-  const [{ id }] = await owner<{ id: string }>(
-    `insert into tenant.test_verdicts (id, tenant_id, service_id, client_control_id, test_id, result, note, registered_by, registered_at)
-     values (gen_random_uuid(), $1, $2, $3, $4, 'compliant', 'Revisión manual firmada.', $5, now() - ($6 || ' days')::interval) returning id`,
-    [a.companyId, a.serviceId, control, test, userId, String(daysAgo)],
-  );
   await owner(
-    `insert into tenant.test_verdict_reviews (id, tenant_id, test_verdict_id, reviewer_role, decision, reviewed_by) values (gen_random_uuid(), $1, $2, 'admin_empresa', 'approve', $3)`,
-    [a.companyId, id, userId],
+    `insert into tenant.manual_test_results (id, tenant_id, client_control_id, test_id, result, registered_by, registered_at)
+     values (gen_random_uuid(), $1, $2, $3, 'correct', $4, now() - ($5 || ' days')::interval)`,
+    [a.companyId, control, test, userId, String(daysAgo)],
   );
 }
 const technical = async (control: string) => (await a.agent.get(`/v1/controls/${control}?view=technical`).expect(200)).body.data.technical;

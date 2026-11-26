@@ -510,5 +510,26 @@
     "pending": "Por aceptar",
     "accepted": "Aceptado",
     "overdue": "Vencido"
+  },
+  "control_management_state": {
+    "non_compliant": "Incumplimiento",
+    "in_progress": "En gestión",
+    "pending_approval": "Cumple – por aprobar",
+    "owner_approved": "Aprobado por el responsable",
+    "approved": "Cumplimiento aprobado",
+    "returned": "Devuelto"
+  },
+  "control_approval_step": {
+    "owner": "Primera aprobación (responsable)",
+    "final": "Aprobación final (administrador de la empresa)"
+  },
+  "control_approval_decision": {
+    "approved": "Aprobado",
+    "returned": "Devuelto"
+  },
+  "manual_test_result_value": {
+    "correct": "Correcto",
+    "observation": "Observación",
+    "exception": "Excepción"
   }
 }

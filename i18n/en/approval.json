@@ -1,0 +1,8 @@
+{
+  "approved": "Done, you approved the control.",
+  "returned": "Done, we returned the control with your reason.",
+  "control_not_compliant": "This control does not meet 100% yet: it cannot be approved.",
+  "owner_approval_required": "The control's owner has to approve first.",
+  "already_approved": "This step is already approved.",
+  "nothing_to_return": "This control is not waiting for approval: there is nothing to return."
+}

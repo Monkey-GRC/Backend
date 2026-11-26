@@ -12,13 +12,12 @@ import { FileStorage } from '../../../../common/storage/file-storage';
 import type { UploadedFile } from '../../../../common/storage/uploaded-file';
 import { ValidationException } from '../../../../common/errors/validation.exception';
 import { TransactionRunner } from '../../../../common/tenancy/transaction-runner';
-import { evidenceStateOf, ReviewerRole, reviewerRoleFor, WITHIN_EVALUATION_PERIOD } from '../../domain/evidence/evidence';
+import { WITHIN_EVALUATION_PERIOD } from '../../domain/evidence/evidence';
 import { EvidenceAccess, EvidenceRepository, RequirementRecord, ServiceEvidence, SubmissionRecord, TestEvidence } from '../../domain/evidence/evidence.repository';
-import { CreateEvidenceRequirementDto, ReviewEvidenceDto } from './evidence.dto';
+import { CreateEvidenceRequirementDto } from './evidence.dto';
 import { assertEvidenceFile, evidenceKey, fileNameOfKey, INLINE_TYPES } from './evidence-file';
 import { compareOwnCode } from '../../domain/controls/control-readout';
 import { canSeeControl, ControlAccess } from '../../domain/controls/control-access';
-import { ViewMode, viewModeOf } from '../shared/view-access';
 
 // MD-126 · Evidencias de un control (contracts/modules/compliance-evidence.md, D84). La empresa solo APORTA: sube `admin_empresa` y el `responsable` dueño del control;
 // el auditor lee y descarga (lo impone @Can en la ruta). Subir no valida: la validación es del admin_empresa (MD-127, D96).
@@ -34,12 +33,11 @@ export const DOWNLOAD_LINK_SECONDS = 300;
 export class ListEvidenceUseCase {
   constructor(private readonly repo: EvidenceRepository) {}
 
-  async execute(p: Principal, controlId: string, view: 'technical' | undefined): Promise<{ view: ViewMode; requirements: RequirementRecord[] }> {
-    const mode = viewModeOf(p, view);
+  async execute(p: Principal, controlId: string): Promise<{ requirements: RequirementRecord[] }> {
     const data = await this.repo.listByControl(scopeOf(p), controlId);
     if (!data) throw new DomainError('NOT_FOUND');
     assertCanTouch(p, data.access);
-    return { view: mode, requirements: data.requirements };
+    return { requirements: data.requirements };
   }
 }
 
@@ -48,18 +46,17 @@ export class ListEvidenceUseCase {
 export class ListServiceEvidenceUseCase {
   constructor(private readonly repo: EvidenceRepository) {}
 
-  async execute(p: Principal, serviceId: string, view: 'technical' | undefined): Promise<{ view: ViewMode; items: ServiceEvidence['items'] }> {
-    const mode = viewModeOf(p, view);
+  async execute(p: Principal, serviceId: string): Promise<{ items: ServiceEvidence['items'] }> {
     const data = await this.repo.listByService(scopeOf(p), serviceId);
     if (!data) throw new DomainError('NOT_FOUND');
     const visible = data.controls.filter((c) => canSeeControl(p, c.access)).sort((a, b) => compareOwnCode(a.ownCode, b.ownCode));
     const items = visible.flatMap((c) => data.items.filter((i) => i.controlId === c.id).sort((a, b) => a.requirement.sequence - b.requirement.sequence));
-    return { view: mode, items };
+    return { items };
   }
 }
 
 /** Lo que se subió para un test manual o documental, ya filtrado para quien pregunta. */
-export type TestEvidenceView = { view: ViewMode; testId: string; sharedWith: Array<{ id: string; code: string }>; items: TestEvidence['items']; controlCodes: Map<string, string> };
+export type TestEvidenceView = { testId: string; sharedWith: Array<{ id: string; code: string }>; items: TestEvidence['items']; controlCodes: Map<string, string> };
 
 // D85, D88 · La evidencia de un test manual o documental, para mostrarla en el test del control. D102: el `responsable` y el `delegado` reciben solo lo de sus controles y
 // solo ven el código de los otros controles que llevan el test si también son suyos; lo demás se omite, no falla.
@@ -67,8 +64,7 @@ export type TestEvidenceView = { view: ViewMode; testId: string; sharedWith: Arr
 export class ListTestEvidenceUseCase {
   constructor(private readonly repo: EvidenceRepository, private readonly integrations: IntegrationConnections) {}
 
-  async execute(p: Principal, controlId: string, testId: string, view: 'technical' | undefined): Promise<TestEvidenceView> {
-    const mode = viewModeOf(p, view);
+  async execute(p: Principal, controlId: string, testId: string): Promise<TestEvidenceView> {
     const data = await this.repo.listByTest(scopeOf(p), controlId, testId);
     if (!data) throw new DomainError('NOT_FOUND');
     // Se lee si la prueba acepta subida (la regla de la subida) O si el control ya tiene entregas de ella: al conectar la integración las evidencias subidas quedan de histórico y
@@ -81,7 +77,6 @@ export class ListTestEvidenceUseCase {
     const mine = (control: string) => { const c = data.controls.find((x) => x.id === control); return !!c && canSeeControl(p, c.access); };
     const items = data.items.filter((i) => mine(i.controlId));
     return {
-      view: mode,
       testId: data.testId,
       sharedWith: data.controls.filter((c) => c.id !== controlId && mine(c.id)).map((c) => ({ id: c.id, code: c.code })),
       items,
@@ -94,13 +89,12 @@ export class ListTestEvidenceUseCase {
 export class ListSubmissionsUseCase {
   constructor(private readonly repo: EvidenceRepository, private readonly tx: TransactionRunner) {}
 
-  async execute(p: Principal, requirementId: string, page: number, pageSize: number, view: 'technical' | undefined): Promise<{ view: ViewMode; page: Page<SubmissionRecord> }> {
-    const mode = viewModeOf(p, view);
+  async execute(p: Principal, requirementId: string, page: number, pageSize: number): Promise<{ page: Page<SubmissionRecord> }> {
     return this.tx.run(scopeOf(p), async () => {
       const access = await this.repo.findRequirement(scopeOf(p), requirementId);
       if (!access) throw new DomainError('NOT_FOUND');
       assertCanTouch(p, access.access);
-      return { view: mode, page: await this.repo.listSubmissions(scopeOf(p), requirementId, page, pageSize) };
+      return { page: await this.repo.listSubmissions(scopeOf(p), requirementId, page, pageSize) };
     });
   }
 }
@@ -143,43 +137,6 @@ export class UploadEvidenceUseCase {
       throw new DomainError('NOT_FOUND');
     }
     return created;
-  }
-}
-
-// D102 · La revisión de una entrega la hacen el `responsable` dueño del control (si no la subió él) y el `admin_empresa` (siempre), una revisión por rol (el rol sale de la sesión, no del
-// cuerpo): la valida o la rechaza con motivo y `PUT` crea o reemplaza la de su rol. El estado de la evidencia, y con él el de las pruebas documentales de su control (D88), sale de
-// COMBINAR las revisiones de los dos roles.
-@Injectable()
-export class ReviewEvidenceUseCase {
-  constructor(private readonly repo: EvidenceRepository) {}
-
-  async execute(p: Principal, submissionId: string, dto: ReviewEvidenceDto, meta: RequestMeta): Promise<{ submission: SubmissionRecord; reviewerRole: ReviewerRole }> {
-    // Primero qué entrega es y si esta persona puede revisarla: una ajena o inexistente es 404; una de su empresa que no le toca, 403.
-    const found = await this.repo.findSubmission(scopeOf(p), submissionId);
-    if (!found) throw new DomainError('NOT_FOUND');
-    const reviewerRole = reviewerRoleFor(p, found.access.access, found.submission.submittedBy.id);
-    if (!reviewerRole) throw new DomainError('FORBIDDEN');
-    // Rechazar es dejar algún atributo en `false`: quien subió necesita el motivo para saber qué corregir (compliance-audit.md).
-    const rejects = [dto.type_ok, dto.period_ok, dto.valid_ok, dto.approved_ok, dto.signed_ok, dto.content_ok].some((v) => v === false);
-    if (rejects && !dto.note?.trim()) throw new ValidationException([{ field: 'note', code: 'note.required' }]);
-    const saved = await this.repo.saveReview(
-      scopeOf(p), submissionId,
-      {
-        reviewerRole, reviewedBy: p.userId, typeOk: dto.type_ok ?? null, periodOk: dto.period_ok ?? null, validOk: dto.valid_ok ?? null, approvedOk: dto.approved_ok ?? null,
-        signedOk: dto.signed_ok ?? null, contentOk: dto.content_ok ?? null, review: dto.review, note: dto.note?.trim() || null, meta,
-      },
-      // Sin los atributos en el detalle (compliance-audit.md): se audita quién revisó qué entrega, con qué rol, quién la subió y con qué resultado.
-      (done): AuditEntry => ({
-        tenantId: p.companyId, userId: p.userId, action: 'evidence_review.update', resource: 'evidence_review', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
-        beforeState: done.before ? { submission_id: done.submission.id, reviewer_role: reviewerRole, review: done.before.review } : null,
-        afterState: {
-          submission_id: done.submission.id, requirement_id: done.submission.requirementId, version: done.submission.version, reviewer_role: reviewerRole, review: done.after.review,
-          submitted_by: done.submission.submittedBy.id, evidence_state: evidenceStateOf(done.submission),
-        },
-      }),
-    );
-    if (!saved) throw new DomainError('NOT_FOUND');
-    return { submission: saved.submission, reviewerRole };
   }
 }
 

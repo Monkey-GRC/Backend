@@ -60,7 +60,7 @@ export function readinessOfRollup(input: { total: number; measured: number; done
 }
 
 const ratioOf = (controls: readonly ControlReadout[]): { progress: Ratio; coverage: Coverage; failing: number } => ({
-  progress: { done: controls.filter((c) => c.state === 'effective').length, total: controls.length },
+  progress: { done: controls.filter((c) => c.rollupState === 'effective').length, total: controls.length },
   coverage: { measured: controls.filter((c) => c.decided).length, applicable: controls.length },
   failing: controls.filter((c) => isFailing(c.state)).length,
 });
@@ -112,7 +112,7 @@ export function buildOverview(input: OverviewInput): OverviewFramework[] {
       const controls = input.readouts.filter((r) => (input.placements.get(r.control.id) ?? []).some((p) => p.frameworkId === fw.frameworkId && p.criterion === criterion));
       const mandatory = input.criteria.find((c) => c.criterion === criterion)?.mandatory ?? false;
       if (controls.length === 0 && (!mandatory || input.scoped)) continue;
-      const evaluation = evaluateCategory({ inScope: true, controls: controls.map((r) => ({ controlId: r.control.id, state: r.state, decided: r.decided })) });
+      const evaluation = evaluateCategory({ inScope: true, controls: controls.map((r) => ({ controlId: r.control.id, state: r.rollupState, decided: r.decided })) });
       const shown = summarizeControls(controls, defined);
       const failing = !defined ? [] : controls.filter((r) => isFailing(r.state));
       categories.push({
@@ -139,7 +139,7 @@ export function buildOverview(input: OverviewInput): OverviewFramework[] {
     const all = [...unique.values()];
     const shown = summarizeControls(all, defined);
     const engine = evaluateFramework(
-      categories.map((c) => ({ inScope: true, controls: c.technical.controls.map((l) => ({ controlId: l.readout.control.id, state: l.readout.state })) })),
+      categories.map((c) => ({ inScope: true, controls: c.technical.controls.map((l) => ({ controlId: l.readout.control.id, state: l.readout.rollupState })) })),
     );
 
     return {

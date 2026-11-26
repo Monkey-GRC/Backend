@@ -32,7 +32,7 @@ describe('readControl · PR-07 rolling con prueba técnica', () => {
 
 describe('readControl · PR-07 rolling, vencimiento perdido', () => {
   const period = { start: new Date('2026-07-01T00:00:00Z'), end: new Date('2026-12-31T00:00:00Z') };
-  const monthly = (days: string[]) => control([requirement('r1', [readoutTest('t1', 'operational')], { periodicity: 'monthly' })], { evidence: [evidence('t1', ...days)] });
+  const monthly = (days: string[]) => control([requirement('r1', [readoutTest('t1', 'documentary')], { periodicity: 'monthly' })], { evidence: [evidence('t1', ...days)] });
   const read = (days: string[]) => { const c = monthly(days); return readControl(c, data([c], [], { signals: { period, parameters: rolling() } })); };
 
   it('una evidencia vieja sin renovar deja `missing` no vacío en la vista del período', () => {

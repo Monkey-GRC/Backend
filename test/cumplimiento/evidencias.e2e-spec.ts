@@ -97,21 +97,21 @@ describe('MD-126 · listar la evidencia de un control', () => {
     await monkey.get(`/v1/controls/${controlId}/evidence`).expect(403);
   });
 
-  it('?view=technical lo piden el administrador y el auditor; el responsable recibe 403', async () => {
-    await responsable.get(`/v1/controls/${controlId}/evidence?view=technical`).expect(403);
-    await a.agent.get(`/v1/controls/${controlId}/evidence?view=technical`).expect(200);
-    await auditor.get(`/v1/controls/${controlId}/evidence?view=technical`).expect(200);
+  it('`view=technical` se retiró (D132): ya no cambia la respuesta ni exige otro rol', async () => {
+    const plain = (await a.agent.get(`/v1/controls/${controlId}/evidence`).expect(200)).body.data;
+    expect((await a.agent.get(`/v1/controls/${controlId}/evidence?view=technical`).expect(200)).body.data).toEqual(plain);
+    await responsable.get(`/v1/controls/${controlId}/evidence`).expect(200);
   });
 });
 
 describe('MD-126 · subir una evidencia', () => {
-  it('guarda el archivo con su huella SHA-256, nace sin revisión, y no filtra la llave del objeto', async () => {
+  it('guarda el archivo con su huella SHA-256, cuenta desde que se sube (D132) y no filtra la llave del objeto', async () => {
     const file = pdf('v1');
     const res = await upload(a.agent, requirementId, file, 'Política de accesos.pdf').expect(201);
     const s = res.body.data;
     expect(s).toMatchObject({
       requirement_id: requirementId, version: 1, file_name: 'Politica_de_accesos.pdf', file_type: 'application/pdf', file_size: file.length,
-      integrity_hash: sha256(file), evidence_state: 'pending', ai: null,
+      integrity_hash: sha256(file), evidence_state: 'compliant', review_note: null, ai: null,
     });
     expect(s.submitted_by.id).toBeTruthy();
     expect(new Date(s.submitted_at).getTime()).not.toBeNaN();
@@ -215,17 +215,12 @@ describe('MD-126 · subir una evidencia', () => {
     expect(objectsBefore).toBeLessThan(storage.objects.size);
   });
 
-  it('en la técnica trae la revisión de quien pregunta, vacía mientras nadie la haya hecho (la revisión está en revision-evidencia.e2e-spec.ts)', async () => {
-    const res = await a.agent.get(`/v1/evidence-requirements/${requirementId}/submissions?view=technical`).expect(200);
-    expect(res.body.data.items[0].technical).toEqual({
-      review: 'pending_review',
-      attributes: { type_ok: null, period_ok: null, valid_ok: null, approved_ok: null, signed_ok: null, content_ok: null },
-      note: null,
-      reviewed_by: null,
-      reviewed_at: null,
-      reviews: [],
-    });
-    await responsable.get(`/v1/evidence-requirements/${requirementId}/submissions?view=technical`).expect(403);
+  it('la revisión por evidencia se retiró (D132): no hay bloque `technical`, `view` ya no se acepta y el estado lo da el control', async () => {
+    const res = await a.agent.get(`/v1/evidence-requirements/${requirementId}/submissions`).expect(200);
+    expect(res.body.data.items[0]).not.toHaveProperty('technical');
+    expect(res.body.data.items[0].evidence_state).toBe('compliant');
+    await a.agent.get(`/v1/evidence-requirements/${requirementId}/submissions?view=technical`).expect(422);
+    await responsable.get(`/v1/evidence-requirements/${requirementId}/submissions`).expect(200);
   });
 });
 
@@ -367,9 +362,4 @@ describe('D102 · quién toca la evidencia de un control', () => {
     await b.agent.get(`/v1/evidence-submissions/${entrega}/download`).expect(404);
   });
 
-  it('?view=technical es 403 para el delegado', async () => {
-    await ejecutor.get(`/v1/controls/${controlId}/evidence?view=technical`).expect(403);
-    await ejecutor.get(`/v1/services/${a.serviceId}/evidence?view=technical`).expect(403);
-    await ejecutor.get(`/v1/evidence-requirements/${requirementId}/submissions?view=technical`).expect(403);
-  });
 });

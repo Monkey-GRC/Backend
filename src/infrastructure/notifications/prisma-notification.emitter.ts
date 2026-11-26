@@ -24,6 +24,13 @@ export class PrismaNotificationEmitter extends NotificationEmitter {
       const control = facts.get(event.controlId);
       if (!control) continue;
       const base = { companyId, type: event.type, targetKind: 'control' as const, targetId: control.controlId, dueAt: null };
+      if (event.type === 'control_pending_approval') {
+        // «Por aprobar» lo causa el cambio de estado: nadie es el actor. El dueño recibe; sin dueño, los administradores (así el `admin_empresa` responsable o un control sin responsable).
+        for (const userId of resolveRecipients(AUDIENCES.control_pending_approval, { chain: control.chain })) {
+          drafts.push({ ...base, userId, params: { ...control.params }, dedupeKey: `control_pending_approval:${control.controlId}:${event.dedupeSuffix}` });
+        }
+        continue;
+      }
       if (event.type === 'direct_check_failed' || event.type === 'automatic_evidence_stale') {
         // D153 · Los avisos de la evaluación automática no tienen actor: los causa la lectura, no una persona.
         const extra = event.type === 'direct_check_failed' ? { failures: event.failures, failure_count: event.failureCount } : { stale_assets: event.staleAssets, stale_count: event.staleCount };
@@ -38,7 +45,7 @@ export class PrismaNotificationEmitter extends NotificationEmitter {
           drafts.push({ ...base, userId, params: { ...control.params, actor, assignee_role: event.assigneeRole }, dedupeKey: `control_assigned:${control.controlId}:${event.assigneeRole}:${event.dedupeSuffix}` });
         }
       } else {
-        for (const userId of resolveRecipients(AUDIENCES[event.type], { chain: control.chain, uploaderId: event.uploaderId, actorId: event.actorId })) {
+        for (const userId of resolveRecipients(AUDIENCES[event.type], { chain: control.chain, actorId: event.actorId })) {
           drafts.push({ ...base, userId, params: { ...control.params, actor }, dedupeKey: `${event.type}:${event.dedupeSuffix}` });
         }
       }

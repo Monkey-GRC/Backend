@@ -67,9 +67,9 @@ describe('la matriz de permisos (§5.5, D136, D150)', () => {
     for (const [key] of BOOK) expect(PERMISSION_KEYS).toContain(key);
     const extras = PERMISSION_KEYS.filter((k) => !book.has(k)).sort();
     expect(extras).toEqual([
-      'account.devices', 'assignments.view', 'catalog.manage', 'controls.periodicity', 'documents.mine', 'evidence.requirements', 'evidence.review', 'exclusions.view', 'groups.list', 'monkey_admins.manage',
+      'account.devices', 'assignments.view', 'catalog.manage', 'controls.periodicity', 'documents.mine', 'evidence.requirements', 'exclusions.view', 'groups.list', 'monkey_admins.manage',
       'observations.view', 'periods.manage', 'periods.view', 'responsibles.manage', 'responsibles.view', 'risks.history', 'risks.manage', 'services.manage', 'services.view', 'users.list', 'verdicts.register',
-      'verdicts.review', 'work.mine',
+      'work.mine',
     ]);
   });
 

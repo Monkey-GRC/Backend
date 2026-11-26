@@ -1,14 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
-import { evidenceStateOf } from '../../domain/evidence/evidence';
 import { ConnectedIntegrationCategories, NO_INTEGRATIONS } from '../../domain/evidence/test-evidence-source';
-import { verdictStateOf } from '../../domain/verdicts/test-verdict';
-import { outcomeOfEvidence, outcomeOfVerdict } from '../../domain/work/work-bucket';
+import { outcomeOfEvidence } from '../../domain/work/work-bucket';
 import { workPieceOf } from '../../domain/work/work-piece';
 import { ControlDeliveries, WorkPerson, WorkRepository } from '../../domain/work/work.repository';
-import { latestVerdicts } from '../shared/latest-results.query';
-import { ALL_REVIEWS, toReviewRecord, versionOf } from '../evidence/evidence-review.mapper';
+import { submissionState, SUBMISSION_STATE_SELECT, versionOf } from '../evidence/evidence-state.mapper';
 
 const READ_TRANSACTION = { timeoutMs: 30_000 };
 
@@ -28,7 +25,6 @@ export class WorkPrismaRepository extends WorkRepository {
         select: { id: true, serviceId: true, dimensions: { select: { dimension: true, type: true, reasonNotApplicable: true } }, tests: { select: { testId: true, test: { select: { dimension: true, primarySource: true, integrationCategory: { select: { name: true } } } } } } },
       });
       // Qué cuenta cada prueba (evidencia o veredicto) lo decide `workPieceOf`; las categorías conectadas son del servicio y llegan resueltas.
-      const serviceIds = [...new Set(controls.map((c) => c.serviceId))];
       const pieces = new Map(controls.map((c) => [c.id, c.tests.map((t) => {
           const dimension = c.dimensions.find((d) => d.dimension === t.test.dimension);
           const test = { dimension: t.test.dimension, primarySource: t.test.primarySource, integrationCategory: t.test.integrationCategory?.name ?? null };
@@ -39,7 +35,7 @@ export class WorkPrismaRepository extends WorkRepository {
       // por entregar. Cuenta la entrega más reciente de cada una.
       const requirements = await tx.evidenceRequirement.findMany({
         where: { clientControlId: { in: controlIds }, testId: { not: null } },
-        select: { clientControlId: true, testId: true, submissions: { select: { version: true, aiVerdict: true, submittedBy: true, reviews: ALL_REVIEWS } } },
+        select: { clientControlId: true, testId: true, submissions: { select: { ...SUBMISSION_STATE_SELECT, submittedBy: true } } },
       });
       for (const c of controls) {
         const items = (byControl.get(c.id) as ControlDeliveries).items;
@@ -49,19 +45,25 @@ export class WorkPrismaRepository extends WorkRepository {
           for (const r of own) {
             const latest = [...r.submissions].sort((x, y) => versionOf(y.version) - versionOf(x.version))[0];
             items.push({
-              delivery: latest ? { by: latest.submittedBy, outcome: outcomeOfEvidence(evidenceStateOf({ aiVerdict: latest.aiVerdict, reviews: latest.reviews.map(toReviewRecord) })), ownerCanReview: true } : null,
+              delivery: latest ? { by: latest.submittedBy, outcome: outcomeOfEvidence(submissionState(latest)), ownerCanReview: true } : null,
             });
           }
         }
       }
 
-      // Veredictos: una pieza por prueba manual que no acepta subida de cada control; cuenta el último veredicto de la prueba en el servicio (D85, D121).
-      const verdicts = await latestVerdicts(tx, serviceIds);
-      const latestOf = new Map(verdicts.map((v) => [`${v.serviceId}|${v.testId}`, v]));
+      // Resultados (MD-504, D140 punto 2): una pieza por prueba manual que no acepta subida; cuenta el último resultado que el responsable registró de la prueba EN ESE control. Registrado es
+      // entregado: lo que no cumpla lo muestra el estado del control, no un rechazo de la pieza.
+      const results = await tx.manualTestResult.findMany({
+        where: { clientControlId: { in: controlIds } },
+        orderBy: [{ registeredAt: 'desc' }, { id: 'desc' }],
+        select: { clientControlId: true, testId: true, registeredBy: true },
+      });
+      const latestResult = new Map<string, string>();
+      for (const r of results) if (!latestResult.has(`${r.clientControlId}|${r.testId}`)) latestResult.set(`${r.clientControlId}|${r.testId}`, r.registeredBy);
       for (const c of controls) {
         for (const t of (pieces.get(c.id) ?? []).filter((x) => x.piece === 'verdict')) {
-          const v = latestOf.get(`${c.serviceId}|${t.testId}`);
-          byControl.get(c.id)?.items.push({ delivery: v ? { by: v.registeredBy, outcome: outcomeOfVerdict(verdictStateOf(v.decisions.map((decision) => ({ decision })))), ownerCanReview: v.clientControlId === c.id } : null });
+          const by = latestResult.get(`${c.id}|${t.testId}`);
+          byControl.get(c.id)?.items.push({ delivery: by ? { by, outcome: 'accepted', ownerCanReview: false } : null });
         }
       }
 

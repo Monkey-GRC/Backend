@@ -55,7 +55,7 @@ describe('Lista de acciones de protección', () => {
     expect([page, page_size, total_pages]).toEqual([1, 25, Math.ceil(total / 25)]);
     const first = list[0];
     expect(Object.keys(first).sort()).toEqual(
-      ['approval', 'code', 'coverage', 'executor', 'id', 'name', 'origin', 'owner', 'own_code', 'progress', 'readiness', 'requirement_codes', 'trust_criteria', 'type'].sort(),
+      ['approval', 'code', 'coverage', 'executor', 'id', 'management', 'management_state', 'name', 'origin', 'owner', 'own_code', 'progress', 'readiness', 'requirement_codes', 'trust_criteria', 'type'].sort(),
     );
     expect(first).toMatchObject({ origin: 'catalog', own_code: null, approval: 'approved', owner: null, executor: null, code: expect.stringMatching(/^[A-Z]+-\d+$/) });
   });

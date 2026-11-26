@@ -4,7 +4,6 @@
 export type AssetResult = 'compliant' | 'non_compliant' | 'pending' | 'error' | 'excluded' | 'not_applicable';
 
 export type EvidenceState = 'compliant' | 'non_compliant' | 'pending' | 'in_review' | 'expired' | 'not_applicable';
-export type EvidenceReview = 'pending_review' | 'ai_prevalidated' | 'human_validated';
 
 export type TestState =
   | 'compliant'

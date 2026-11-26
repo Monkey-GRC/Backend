@@ -6,8 +6,8 @@ import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
 import { dosEmpresas, Tenant } from '../support/escenario';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
-// D91 · Todo cambio de estado de un control deja un evento inmutable con el estado anterior y el nuevo (REQ-044). Aquí, el de la evidencia: una entrega nueva devuelve la prueba a
-// revisión y la revisión del admin_empresa la mueve (D96); el auditor no revisa. Los eventos del veredicto, de la sonda y de la exclusión se prueban junto a su escritura.
+// D91 · Todo cambio de estado de un control deja un evento inmutable con el estado anterior y el nuevo (REQ-044). Aquí, el de la evidencia (una entrega que cuenta mueve el control) y el de la
+// aprobación (MD-504, D132: aprobar mueve el estado de gestión); el auditor no aprueba. Los eventos del resultado manual, de la sonda y de la exclusión se prueban junto a su escritura.
 type Agent = Awaited<ReturnType<typeof login>>;
 let app: INestApplication;
 let a: Tenant;
@@ -18,12 +18,11 @@ let testId: string;
 const storage = new StorageEnMemoria();
 
 const pdf = (marca: string) => Buffer.from(`%PDF-1.7\n% evidencia ${marca} ${RUN}\n`);
-const ALL_OK = { type_ok: true, period_ok: true, valid_ok: true, approved_ok: true, signed_ok: true, content_ok: true, review: 'human_validated' as const };
 const submit = (marca: string) => a.agent.post(`/v1/controls/${controlId}/tests/${testId}/evidence`).attach('file', pdf(marca), `${marca}.pdf`);
-const review = (agent: Agent, submissionId: string) => agent.put(`/v1/evidence-submissions/${submissionId}/review`).send(ALL_OK);
+const approve = (agent: Agent) => agent.post(`/v1/controls/${controlId}/approval`).send({ decision: 'approve' });
 const detail = async () => {
   const d = (await a.agent.get(`/v1/controls/${controlId}?view=technical`).expect(200)).body.data;
-  return { state: controlStateOf(d.technical), readiness: d.readiness as string };
+  return { state: controlStateOf(d.technical), readiness: d.readiness as string, management_state: d.management_state as string };
 };
 const events = (cause: string) =>
   owner<{ previous_value: any; new_value: any; user_id: string | null }>(
@@ -56,44 +55,46 @@ afterAll(async () => {
   await app?.close();
 });
 
-describe('La evidencia mueve el estado de un control y queda el evento (D91)', () => {
-  let submissionId: string;
-  let beforeReview: { state: string; readiness: string };
+describe('La evidencia y la aprobación mueven el estado de un control y queda el evento (D91)', () => {
+  let beforeUpload: { state: string; readiness: string; management_state: string };
+  let afterUpload: { state: string; readiness: string; management_state: string };
 
-  it('una primera entrega queda por revisar: el control no cambia y no deja evento', async () => {
-    const before = await detail();
-    submissionId = (await submit('v1').expect(201)).body.data.id;
-    expect(await detail()).toEqual(before);
-    expect(await events('evidence_submission')).toHaveLength(0);
-  });
-
-  it('la revisión del admin_empresa la valida, mueve el control y deja el evento con el estado anterior y el nuevo, a su nombre', async () => {
-    beforeReview = await detail();
-    await review(a.agent, submissionId).expect(200);
-    const after = await detail();
-    expect(after).not.toEqual(beforeReview);
-    const [event, ...rest] = await events('evidence_review');
-    expect(rest).toHaveLength(0);
-    expect(event.user_id).toBe(adminId);
-    expect(event.previous_value).toMatchObject(beforeReview);
-    expect(event.new_value).toMatchObject({ ...after, control_id: controlId, service_id: a.serviceId, cause: 'evidence_review' });
-  });
-
-  it('el auditor no revisa (403): no mueve el estado ni deja evento', async () => {
-    const before = (await events('evidence_review')).length;
-    await review(auditor, submissionId).expect(403);
-    expect(await events('evidence_review')).toHaveLength(before);
-  });
-
-  it('una versión nueva devuelve la prueba a revisión: mueve el control de vuelta y deja su evento', async () => {
-    const validated = await detail();
-    await submit('v2').expect(201);
-    const back = await detail();
-    expect(back).toEqual(beforeReview);
+  it('una primera entrega cuenta (D132): mueve el control a «por aprobar» y deja el evento a nombre de quien la subió', async () => {
+    beforeUpload = await detail();
+    expect(beforeUpload.management_state).toBe('non_compliant');
+    await submit('v1').expect(201);
+    afterUpload = await detail();
+    expect(afterUpload).not.toEqual(beforeUpload);
+    expect(afterUpload.management_state).toBe('pending_approval');
     const [event, ...rest] = await events('evidence_submission');
     expect(rest).toHaveLength(0);
-    expect(event.previous_value).toMatchObject(validated);
-    expect(event.new_value).toMatchObject({ ...back, cause: 'evidence_submission' });
+    expect(event.user_id).toBe(adminId);
+    expect(event.previous_value).toMatchObject(beforeUpload);
+    expect(event.new_value).toMatchObject({ ...afterUpload, control_id: controlId, service_id: a.serviceId, cause: 'evidence_submission' });
+  });
+
+  it('el admin_empresa aprueba (no hay responsable): el estado de gestión pasa a aprobado y deja el evento a su nombre', async () => {
+    await approve(a.agent).expect(200);
+    const after = await detail();
+    expect(after.management_state).toBe('approved');
+    const [event, ...rest] = await events('control_approval');
+    expect(rest).toHaveLength(0);
+    expect(event.user_id).toBe(adminId);
+    expect(event.previous_value).toMatchObject(afterUpload);
+    expect(event.new_value).toMatchObject({ ...after, control_id: controlId, cause: 'control_approval' });
+  });
+
+  it('el auditor no aprueba (403): no mueve el estado ni deja evento', async () => {
+    const before = (await events('control_approval')).length;
+    await approve(auditor).expect(403);
+    expect(await events('control_approval')).toHaveLength(before);
+  });
+
+  it('una versión nueva que no cambia el resultado no mueve el control, no quita la aprobación y no deja evento', async () => {
+    const before = await detail();
+    await submit('v2').expect(201);
+    expect(await detail()).toEqual(before);
+    expect(await events('evidence_submission')).toHaveLength(1);
   });
 
   it('el historial encadena: cada evento parte de donde terminó el anterior', async () => {
@@ -103,7 +104,9 @@ describe('La evidencia mueve el estado de un control y queda el evento (D91)', (
     );
     expect(all.length).toBeGreaterThanOrEqual(2);
     for (let i = 1; i < all.length; i++) {
-      expect({ state: all[i].previous_value.state, readiness: all[i].previous_value.readiness }).toEqual({ state: all[i - 1].new_value.state, readiness: all[i - 1].new_value.readiness });
+      expect({ state: all[i].previous_value.state, readiness: all[i].previous_value.readiness, management_state: all[i].previous_value.management_state }).toEqual({
+        state: all[i - 1].new_value.state, readiness: all[i - 1].new_value.readiness, management_state: all[i - 1].new_value.management_state,
+      });
     }
   });
 });

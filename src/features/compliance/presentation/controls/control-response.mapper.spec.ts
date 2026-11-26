@@ -1,6 +1,6 @@
 import { checkTitleOf, evidenceTestsOf } from './control-response.mapper';
 
-const test = (testId: string, primarySource: string, extra: object = {}) => ({ test: { testId, code: `C-${testId}`, dimension: 'process', primarySource, integrationCategory: 'Identidades', ...extra } as never, state: 'pending' as const, status: 'pending' as const });
+const test = (testId: string, primarySource: string, extra: object = {}) => ({ test: { testId, code: `C-${testId}`, dimension: 'process', primarySource, integrationCategory: 'Identidades', ...extra } as never, state: 'pending' as const, status: 'pending' as const, manual: true });
 
 const ALL = new Set(['process']);
 

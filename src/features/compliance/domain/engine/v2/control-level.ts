@@ -35,7 +35,7 @@ export type ControlLevelEvaluation = {
  * R2: si el documento base falta, está vencido o no está aprobado, el nivel máximo es Débil. Mientras el módulo Documentos no exista (DT-114) el documento base son las pruebas
  * documentales del control.
  *
- * Parcial exige además un plan de remediación por cada excepción (D140); ese plan todavía no existe (MD-504, DT-114): hoy Parcial se asigna por C%.
+ * Parcial exige además un plan de remediación por cada excepción (D140); ese plan todavía no existe (MD-529, DT-114): hoy Parcial se asigna por C%.
  */
 export function evaluateControlLevel(requirements: readonly RequirementForLevel[], params: EvaluationParameters, solid: SolidConditions = { periodComplete: true, coverageFull: true }): ControlLevelEvaluation {
   const indexed = requirements.map((r, index) => ({ ...r, index })).filter((r) => r.status !== 'not_applicable');

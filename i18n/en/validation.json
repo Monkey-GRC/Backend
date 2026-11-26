@@ -30,11 +30,11 @@
   "platform_not_in_category": "That platform doesn't belong to this type of connection.",
   "dimension_policy_only": "A custom control is document-only: its only dimension is the document one.",
   "category_not_in_scope": "Your service has not contracted that category.",
-  "reason_required": "Say why this dimension does not apply.",
+  "reason_required": "Write the reason.",
   "number_range": "Must be between 1 and 5.",
   "date_past": "The date cannot be earlier than today.",
   "date_invalid": "Write the date as YYYY-MM-DD.",
-  "note_required": "Write the reason for the rejection.",
+  "note_required": "Write the note that is required here.",
   "text_names_provider": "The client sees this text, so it cannot name the probe provider.",
   "code_dimension_mismatch": "The code prefix does not match the dimension (T-DOC, T-SRV, T-BD, T-APP or T-CLD).",
   "sequence_range": "The position must be between 1 and the next free one.",
@@ -58,5 +58,7 @@
   "value_order": "The value breaks the rule with another parameter: change the one that keeps the pair valid first.",
   "value_periodicities": "Provide the days for all 7 periodicities: daily, weekly, monthly, bimonthly, quarterly, semiannual and annual.",
   "approved_at_future": "The approval date cannot be in the future.",
-  "disposition_not_inline": "That file type cannot be shown on screen: only PDF, PNG and JPG. Download it to view it."
+  "disposition_not_inline": "That file type cannot be shown on screen: only PDF, PNG and JPG. Download it to view it.",
+  "result_invalid": "Choose correct, observation or exception.",
+  "returned_submission_ids_invalid": "One of those submissions does not belong to this control."
 }

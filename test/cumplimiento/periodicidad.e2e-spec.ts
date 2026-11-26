@@ -122,11 +122,10 @@ describe('Periodicidad del control — cambiarla', () => {
 });
 
 describe('Periodicidad del control — el cambio mueve el estado (D91)', () => {
-  const ALL_OK = { type_ok: true, period_ok: true, valid_ok: true, approved_ok: true, signed_ok: true, content_ok: true, review: 'human_validated' as const };
   const state = async (id: string) => (await a.agent.get(`/v1/controls/${id}?view=technical`).expect(200)).body.data.technical;
   const stateOf = async (id: string) => controlStateOf(await state(id));
 
-  it('con una evidencia validada fuera de la ventana nueva, el control pasa a Vencido y queda el evento a nombre del admin_empresa', async () => {
+  it('con una evidencia cargada fuera de la ventana nueva, el control pasa a Vencido y queda el evento a nombre del admin_empresa', async () => {
     // Un control del catálogo cuyos requisitos no son de calendario y con una prueba documental: la evidencia vale mientras no haya ventana.
     const [pick] = await owner<{ id: string; test_id: string }>(
       `select c.id, min(crt.test_id::text)::uuid as test_id
@@ -140,8 +139,7 @@ describe('Periodicidad del control — el cambio mueve el estado (D91)', () => {
       [a.serviceId, controlId, retiredId],
     );
     const id = pick.id;
-    const sub = (await a.agent.post(`/v1/controls/${id}/tests/${pick.test_id}/evidence`).attach('file', Buffer.from(`%PDF-1.7\n% periodicidad ${RUN}\n`), 'p.pdf').expect(201)).body.data.id;
-    await a.agent.put(`/v1/evidence-submissions/${sub}/review`).send(ALL_OK).expect(200);
+    await (a.agent.post(`/v1/controls/${id}/tests/${pick.test_id}/evidence`).attach('file', Buffer.from(`%PDF-1.7\n% periodicidad ${RUN}\n`), 'p.pdf').expect(201));
     await owner(`update tenant.evidence_submissions set submitted_at = now() - interval '5 days' where evidence_requirement_id in (select id from tenant.evidence_requirements where client_control_id = $1)`, [id]);
     const before = await stateOf(id);
     await a.agent.put(path(id)).send({ periodicity: 'daily', justification: JUSTIFICATION }).expect(200);

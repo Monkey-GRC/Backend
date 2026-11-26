@@ -237,16 +237,14 @@ export class ServicePrismaRepository extends ServiceRepository {
       const before = await this.readOrNull(tx, id);
       if (!before) return null;
 
-      // El histórico es inmutable: con evaluaciones, evidencias entregadas, planes de acción u observaciones
+      // El histórico es inmutable: con evaluaciones, evidencias entregadas u observaciones
       // del auditor (que nunca se borran, MD-154) el servicio no se borra.
       const history =
         (await tx.evaluation.count({ where: { serviceId: id } })) +
-        (await tx.testVerdict.count({ where: { serviceId: id } })) +
         (await tx.auditObservation.count({ where: { serviceId: id } })) +
         (await tx.evidenceSubmission.count({
           where: { evidenceRequirement: { clientControl: { serviceId: id } } },
-        })) +
-        (await tx.actionPlan.count({ where: { clientControl: { serviceId: id } } }));
+        }));
       if (history > 0) throw new DomainError('SERVICE_HAS_EVALUATIONS');
 
       // Solo lo que clonó el onboarding y lo que el cliente declaró; en el orden de las FK.

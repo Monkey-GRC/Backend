@@ -1,4 +1,4 @@
-import { classifyControlWork, outcomeOfEvidence, outcomeOfVerdict, pendingItemsOf, WorkItem, WorkViewer } from './work-bucket';
+import { classifyControlWork, outcomeOfEvidence, pendingItemsOf, WorkItem, WorkViewer } from './work-bucket';
 
 const owner: WorkViewer = { userId: 'r1', role: 'owner', executorId: 'd1' };
 const executor: WorkViewer = { userId: 'd1', role: 'executor', executorId: 'd1' };
@@ -42,8 +42,7 @@ describe('classifyControlWork (D122)', () => {
 });
 
 describe('outcomes', () => {
-  it('evidencia y veredicto', () => {
+  it('evidencia', () => {
     expect(['non_compliant', 'expired', 'pending', 'in_review', 'compliant', 'not_applicable'].map((s) => outcomeOfEvidence(s as never))).toEqual(['rejected', 'rejected', 'waiting', 'waiting', 'accepted', 'accepted']);
-    expect((['rejected', 'pending', 'approved'] as const).map(outcomeOfVerdict)).toEqual(['rejected', 'waiting', 'accepted']);
   });
 });

@@ -1,5 +1,4 @@
 import type { EvidenceState } from '../evidence/evidence';
-import type { VerdictState } from '../verdicts/test-verdict';
 
 // D122 · En qué bucket de «Mi trabajo» cae un control visto desde quien pregunta. Lógica pura, sin Prisma ni Nest.
 
@@ -11,15 +10,13 @@ export type RoleInControl = 'owner' | 'executor';
 export type DeliveryOutcome = 'rejected' | 'waiting' | 'accepted';
 
 /**
- * Una pieza que el control pide: una evidencia requerida por una prueba documental o el veredicto de una prueba manual no documental. `null` = todavía no se entregó nada.
+ * Una pieza que el control pide: una evidencia requerida por una prueba documental o el resultado de una prueba manual no documental. `null` = todavía no se entregó nada.
  * `ownerCanReview` es falso cuando el dueño de ESTE control no es quien revisa la pieza (un veredicto registrado desde otro control: lo revisa el dueño del de origen).
  */
 export type WorkItem = { delivery: { by: string; outcome: DeliveryOutcome; ownerCanReview: boolean } | null };
 
 export const outcomeOfEvidence = (state: EvidenceState): DeliveryOutcome =>
   state === 'non_compliant' || state === 'expired' ? 'rejected' : state === 'pending' || state === 'in_review' ? 'waiting' : 'accepted';
-
-export const outcomeOfVerdict = (state: VerdictState): DeliveryOutcome => (state === 'rejected' ? 'rejected' : state === 'pending' ? 'waiting' : 'accepted');
 
 export type WorkViewer = { userId: string; role: RoleInControl; executorId: string | null };
 

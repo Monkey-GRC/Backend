@@ -19,6 +19,9 @@ export const TEST_STATUSES = ['pending', 'correct', 'observation', 'exception', 
 export const REQUIREMENT_TYPES = ['documentary', 'population', 'operational', 'technical'] as const;
 export const PERIODICITIES = ['permanent', 'daily', 'weekly', 'monthly', 'bimonthly', 'quarterly', 'semiannual', 'annual', 'on_demand'] as const;
 export const APPROVAL = ['approved', 'pending', 'rejected'] as const;
+export const CONTROL_MANAGEMENT_STATES = ['non_compliant', 'in_progress', 'returned', 'pending_approval', 'owner_approved', 'approved'] as const;
+export const CONTROL_MANAGEMENT_STATE_DOC =
+  'MD-504 (D132) · Lo calcula el servidor con el nivel del motor y lo que las personas hicieron: `non_compliant` sin evidencia ni resultado en la ventana vigente (o un check Directo en FAIL) · `in_progress` ya hay evidencia o resultado · `returned` la última decisión fue una devolución · `pending_approval` el motor da el 100 % y falta la aprobación · `owner_approved` aprobó el responsable, falta la final · `approved` cumplimiento aprobado: el único estado que cuenta como cumplido en la categoría y el marco.';
 
 export class ProgressResponse {
   @ApiProperty({ example: 7, description: 'Cuántos están cumplidos (todo o nada: lo pendiente no cuenta como cumplido).' }) done!: number;
@@ -155,6 +158,16 @@ export class ControlTechnicalResponse {
   @ApiProperty({ type: ControlTechnicalTestResponse, isArray: true, required: false, description: 'Solo en el detalle: las pruebas con su estado.' }) tests?: ControlTechnicalTestResponse[];
 }
 
+export class ControlManagementResponse {
+  @ApiProperty({ type: PersonResponse, nullable: true, description: 'Quién dio la primera aprobación vigente (el responsable); `null` si no la hay.' }) owner_approved_by!: PersonResponse | null;
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'Cuándo se dio la primera aprobación vigente.' }) owner_approved_at!: string | null;
+  @ApiProperty({ type: PersonResponse, nullable: true, description: 'Quién dio la aprobación final vigente (el `admin_empresa`); `null` si no la hay.' }) approved_by!: PersonResponse | null;
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'Cuándo se dio la aprobación final vigente.' }) approved_at!: string | null;
+  @ApiProperty({ nullable: true, description: 'El motivo de la última devolución, si el estado es `returned`; `null` si no.' }) returned_reason!: string | null;
+  @ApiProperty({ type: PersonResponse, nullable: true, description: 'Quién devolvió el control, si el estado es `returned`.' }) returned_by!: PersonResponse | null;
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'Cuándo se devolvió, si el estado es `returned`.' }) returned_at!: string | null;
+}
+
 export class ControlListItemResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ example: 'IAC-12', description: 'Código que identifica al control y se muestra siempre (D80): el del catálogo (`IAC-12`) o el propio (`C01`).' }) code!: string;
@@ -165,6 +178,8 @@ export class ControlListItemResponse {
   @ApiProperty({ enum: CONTROL_TYPES, enumName: 'ControlType' }) type!: string;
   @ApiProperty({ enum: TRUST_CRITERIA, enumName: 'TrustCriterion', isArray: true, description: 'Categorías (criterios de confianza) a las que sirve el control.' }) trust_criteria!: string[];
   @ApiProperty({ enum: APPROVAL, enumName: 'Approval', description: 'Siempre `approved` desde D96: el `admin_empresa` crea el control propio y nace aprobado.' }) approval!: string;
+  @ApiProperty({ enum: CONTROL_MANAGEMENT_STATES, enumName: 'ControlManagementState', description: CONTROL_MANAGEMENT_STATE_DOC }) management_state!: string;
+  @ApiProperty({ type: ControlManagementResponse, description: 'MD-504 · Quién aprobó o devolvió el control y cuándo; solo lo vigente.' }) management!: ControlManagementResponse;
   @ApiProperty({ enum: READINESS, enumName: 'Readiness', description: READINESS_DOC }) readiness!: string;
   @ApiProperty({ type: ProgressResponse, description: 'Avance: pruebas cumplidas de las que cuentan. Informa; no decide el cumplimiento.' }) progress!: ProgressResponse;
   @ApiProperty({ type: CoverageResponse, description: 'Cobertura: cuánto de lo medible se midió.' }) coverage!: CoverageResponse;

@@ -5,18 +5,18 @@ import {
 } from '../../domain/controls/control-readout';
 import { AssetResult } from '../../domain/engine/states';
 import { ServiceReadoutData } from '../../domain/controls/control.repository';
-import { ManualVerdict } from '../../domain/engine/v2/manual-test';
+import { ManualResult } from '../../domain/engine/v2/manual-test';
+import type { ApprovalRecord } from '../../domain/controls/management-state';
 import type { WindowMode } from '../../../../common/evaluation-parameters/parameter-definitions';
 import { EvaluationParameters } from '../../../../common/evaluation-parameters/parameters';
 import { exceptionEndsOn } from '../../../../common/evaluation-parameters/exception-window';
 import { ModuleFacts } from '../../domain/engine/v2/technical-test';
 import { hasPeriodWindows } from '../../domain/engine/v2/windows';
 import { Periodicity, TestType } from '../../domain/engine/v2/types';
-import { verdictStateOf } from '../../domain/verdicts/test-verdict';
 import { NO_ACCESS } from '../../domain/controls/control-access';
 import { loadControlAccess } from './control-access.loader';
-import { latestEvaluations, latestVerdicts } from './latest-results.query';
-import { ALL_REVIEWS, requirementState, versionOf } from '../evidence/evidence-review.mapper';
+import { latestEvaluations, latestManualResults } from './latest-results.query';
+import { requirementState, submissionState, SUBMISSION_STATE_SELECT } from '../evidence/evidence-state.mapper';
 
 // Orden canónico de las categorías (enums.md `trust_criterion`).
 const CRITERIA_ORDER = ['security', 'availability', 'confidentiality', 'integrity', 'privacy'];
@@ -128,22 +128,49 @@ async function loadControls(
   // D102 · Dueño y ejecutor de cada control: de ahí sale lo que ven el responsable y el delegado.
   const accessOf = await loadControlAccess(tx, rows.map((r) => r.id));
 
-  // DT-114 · La evidencia que se sube hoy para cada prueba manual (D88), con el estado de su entrega más reciente según la combinación de las revisiones de cada rol (D102) y su fecha.
+  // DT-114 · La evidencia que se sube hoy para cada prueba manual (D88), con el estado de su entrega más reciente según haya sido devuelta o no (D132) y su fecha.
   // Un control propio se mide con TODA su evidencia como un requisito documental único. Una sola consulta para el servicio.
   const evidenceRows = rows.length
     ? await tx.evidenceRequirement.findMany({
         where: { clientControlId: { in: rows.map((r) => r.id) } },
-        select: { clientControlId: true, testId: true, submissions: { select: { version: true, aiVerdict: true, submittedAt: true, reviews: ALL_REVIEWS } } },
+        select: { clientControlId: true, testId: true, submissions: { select: { ...SUBMISSION_STATE_SELECT, submittedAt: true } } },
       })
     : [];
   const evidenceOf = new Map<string, ControlEvidenceItem[]>();
   for (const e of evidenceRows) {
-    const latest = [...e.submissions].sort((a, b) => versionOf(b.version) - versionOf(a.version))[0];
+    const latest = [...e.submissions].sort((a, b) => (Number(b.version) || 0) - (Number(a.version) || 0))[0];
     const item: ControlEvidenceItem = {
       testId: e.testId, state: requirementState(e.submissions), submittedAt: latest?.submittedAt ?? null,
-      history: e.submissions.map((sub) => ({ state: requirementState([sub]), submittedAt: sub.submittedAt })),
+      history: e.submissions.map((sub) => ({ state: submissionState(sub), submittedAt: sub.submittedAt })),
     };
     evidenceOf.set(e.clientControlId, [...(evidenceOf.get(e.clientControlId) ?? []), item]);
+  }
+
+  // MD-504 · D132, D140 · Las aprobaciones y devoluciones del control y el último resultado de cada prueba manual en él. Dos consultas para todos los controles.
+  const ids = rows.map((r) => r.id);
+  // Solo lo que `deriveManagement` lee: las aprobaciones que nadie invalidó y la última devolución de cada control (las invalidadas y las devoluciones viejas no cambian el estado).
+  const lastReturns = ids.length
+    ? await tx.$queryRaw<{ id: string }[]>(Prisma.sql`
+        SELECT DISTINCT ON (client_control_id) id FROM tenant.control_approvals
+         WHERE client_control_id = ANY(${ids}::uuid[]) AND decision = 'returned' ORDER BY client_control_id, at DESC, id DESC`)
+    : [];
+  const approvalRows = ids.length
+    ? await tx.controlApproval.findMany({
+        where: { clientControlId: { in: ids }, OR: [{ decision: 'approved', invalidatedAt: null }, { id: { in: lastReturns.map((r) => r.id) } }] },
+        select: { id: true, clientControlId: true, step: true, decision: true, reason: true, at: true, windowStart: true, invalidatedAt: true, actor: { select: { id: true, name: true, lastName: true } } },
+        orderBy: { at: 'asc' },
+      })
+    : [];
+  const approvalsOf = new Map<string, ApprovalRecord[]>();
+  for (const a of approvalRows) {
+    approvalsOf.set(a.clientControlId, [...(approvalsOf.get(a.clientControlId) ?? []), { id: a.id, step: a.step, decision: a.decision, reason: a.reason, actor: a.actor, at: a.at, windowStart: a.windowStart, invalidatedAt: a.invalidatedAt }]);
+  }
+  const resultRows = await latestManualResults(tx, ids);
+  const resultsOf = new Map<string, Map<string, ManualResult>>();
+  for (const r of resultRows) {
+    const byTest = resultsOf.get(r.clientControlId) ?? new Map<string, ManualResult>();
+    byTest.set(r.testId, { result: r.result, at: r.registeredAt });
+    resultsOf.set(r.clientControlId, byTest);
   }
 
   return rows.map((c) => {
@@ -186,6 +213,8 @@ async function loadControls(
       catalogControlId: c.controlId,
       periodicity: (c.control?.periodicity ?? null) as Periodicity | null,
       requirements,
+      manualResults: resultsOf.get(c.id) ?? new Map<string, ManualResult>(),
+      management: { approvals: approvalsOf.get(c.id) ?? [], resultDates: [...(resultsOf.get(c.id)?.values() ?? [])].map((r) => r.at) },
       periodicityChange: c.periodicityChangedAt
         ? { periodicity: requirements[0]?.periodicity ?? null, justification: c.periodicityJustification ?? '', changedAt: c.periodicityChangedAt }
         : null,
@@ -214,18 +243,11 @@ export async function loadServiceSnapshot(
   const assets = (await tx.serviceAsset.findMany({ where: { serviceId, asset: { status: 'active' } }, select: { asset: { select: { id: true, name: true, type: true } } } })).map((r) => r.asset);
   const technicalAssets = assets.filter((a) => dimensionOfAssetType(a.type) !== null);
 
-  // El último resultado de cada (control, test, activo): el histórico es inmutable y la lectura toma el más reciente. Las evaluaciones de origen `manual` son las de antes de D121 (ya
-  // migradas a `test_verdicts`): el motor ya no las lee, un veredicto manual solo cuenta si está aprobado.
+  // El último resultado de cada (control, test, activo): el histórico es inmutable y la lectura toma el más reciente. Las evaluaciones de origen `manual` son las de antes de D121: el motor ya no las lee;
+  // lo manual sale de `manual_test_results` (MD-504).
   const latest = everyControl.length ? await latestEvaluations(tx, serviceId, everyControl.map((c) => c.id)) : [];
   const results = new Map<string, AssetResult>(latest.map((e) => [resultKey(e.clientControlId, e.testId, e.assetId), e.result as AssetResult]));
   const resultDates = new Map<string, Date>(latest.map((e) => [resultKey(e.clientControlId, e.testId, e.assetId), e.evaluatedAt]));
-
-  // D85, D121 · El último veredicto del test en el servicio: solo cuenta el aprobado, y vale para todos los controles que llevan la prueba. Una sola consulta para el servicio.
-  const verdictRows = everyControl.length ? await latestVerdicts(tx, [serviceId]) : [];
-  const verdicts = new Map<string, ManualVerdict>();
-  for (const v of verdictRows) {
-    if (verdictStateOf(v.decisions.map((decision) => ({ decision }))) === 'approved') verdicts.set(v.testId, { result: v.result as ManualVerdict['result'], at: v.registeredAt });
-  }
 
   const now = options.now ?? new Date();
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -287,7 +309,7 @@ export async function loadServiceSnapshot(
     controls,
     assets,
     results,
-    signals: { now, parameters, resultDates, exceptions, complementaryFails, complementaryFailChecks, moduleFacts, verdicts, period, ...(resultDays ? { resultDays } : {}) },
+    signals: { now, parameters, resultDates, exceptions, complementaryFails, complementaryFailChecks, moduleFacts, period, ...(resultDays ? { resultDays } : {}) },
     ...(pool ? { pool } : {}),
   };
 }

@@ -5,7 +5,7 @@ import {
   AnswerObservationUseCase, CreateObservationUseCase, GetObservationUseCase, ListObservationsUseCase, UpdateObservationUseCase,
 } from './application/observations/observation.use-cases';
 import {
-  CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListServiceEvidenceUseCase, ListSubmissionsUseCase, ListTestEvidenceUseCase, ReviewEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
+  CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListServiceEvidenceUseCase, ListSubmissionsUseCase, ListTestEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
 } from './application/evidence/evidence.use-cases';
 import { ListAssignmentsUseCase } from './application/assignments/list-assignments.use-case';
 import { ListMyWorkUseCase, TeamWorkloadUseCase } from './application/work/work.use-cases';
@@ -16,7 +16,10 @@ import { ListControlTestsUseCase } from './application/controls/list-control-tes
 import { GetOverviewUseCase } from './application/overview/get-overview.use-case';
 import { ListControlsUseCase } from './application/controls/list-controls.use-case';
 import { CreateTreatmentUseCase, EvaluateRiskUseCase, EvaluationHistoryUseCase, ListTreatmentsUseCase } from './application/risks/risk-assessment.use-cases';
-import { IssueVerdictUseCase, ListVerdictsUseCase, ReviewVerdictUseCase } from './application/verdicts/verdict.use-cases';
+import { ApproveControlUseCase, RegisterManualResultUseCase } from './application/management/management.use-cases';
+import { ControlManagementRepository } from './domain/management/control-management.repository';
+import { ControlManagementPrismaRepository } from './infrastructure/management/control-management.prisma.repository';
+import { ManagementController } from './presentation/management/management.controller';
 import { CreateResponsibleUseCase, DeleteResponsibleUseCase, ListResponsiblesUseCase, UpdateResponsibleUseCase } from './application/responsibles/responsible.use-cases';
 import {
   CreateCauseUseCase, CreateRiskUseCase, DeactivateCauseUseCase, DeactivateRiskUseCase, GetCauseUseCase, GetRiskUseCase, LinkUseCases, ListCausesUseCase, ListRisksUseCase, ReactivateRiskUseCase,
@@ -32,7 +35,6 @@ import { EvaluationPeriodRepository, EvaluationPeriodRollover } from './domain/p
 import { WorkRepository } from './domain/work/work.repository';
 import { ExclusionRepository } from './domain/exclusions/exclusion.repository';
 import { ObservationRepository } from './domain/observations/observation.repository';
-import { TestVerdictRepository } from './domain/verdicts/test-verdict.repository';
 import { RiskRepository } from './domain/risks/risk.repository';
 import { ResponsibleRepository } from './domain/responsibles/responsible.repository';
 import { AssignmentPrismaRepository } from './infrastructure/assignments/assignment.prisma.repository';
@@ -42,14 +44,12 @@ import { EvaluationPeriodPrismaRepository, EvaluationPeriodRolloverPrismaReposit
 import { EvaluationPeriodScheduler } from './infrastructure/periods/evaluation-period.scheduler';
 import { ExclusionPrismaRepository } from './infrastructure/exclusions/exclusion.prisma.repository';
 import { ObservationPrismaRepository } from './infrastructure/observations/observation.prisma.repository';
-import { TestVerdictPrismaRepository } from './infrastructure/verdicts/test-verdict.prisma.repository';
 import { ControlPrismaRepository } from './infrastructure/controls/control.prisma.repository';
 import { RiskPrismaRepository } from './infrastructure/risks/risk.prisma.repository';
 import { ResponsiblePrismaRepository } from './infrastructure/responsibles/responsible.prisma.repository';
 import { WorkPrismaRepository } from './infrastructure/work/work.prisma.repository';
 import { WorkController } from './presentation/work/work.controller';
 import { AssignmentsListController } from './presentation/assignments/assignments.controller';
-import { VerdictsController } from './presentation/verdicts/verdicts.controller';
 import { ControlsController } from './presentation/controls/controls.controller';
 import { EvaluationPeriodController } from './presentation/periods/evaluation-period.controller';
 import { EvidenceController } from './presentation/evidence/evidence.controller';
@@ -64,7 +64,7 @@ import { EvaluationParametersModule } from '../../infrastructure/evaluation-para
 // Cumplimiento (modelo-datos.md §7 y §9). El motor de evaluación vive en `domain/engine/` (funciones puras).
 @Module({
   imports: [EvaluationParametersModule],
-  controllers: [AssignmentsListController, WorkController, ControlsController, ResponsiblesController, RisksController, RiskAssessmentController, ExclusionsController, ObservationsController, EvidenceController, OverviewController, VerdictsController, EvaluationPeriodController],
+  controllers: [AssignmentsListController, WorkController, ControlsController, ResponsiblesController, RisksController, RiskAssessmentController, ExclusionsController, ObservationsController, EvidenceController, OverviewController, ManagementController, EvaluationPeriodController],
   providers: [
     { provide: ControlRepository, useClass: ControlPrismaRepository },
     { provide: ControlEditRepository, useClass: ControlEditPrismaRepository },
@@ -99,11 +99,11 @@ import { EvaluationParametersModule } from '../../infrastructure/evaluation-para
     { provide: EvaluationPeriodRollover, useClass: EvaluationPeriodRolloverPrismaRepository },
     RollEvaluationPeriodsUseCase,
     EvaluationPeriodScheduler,
-    { provide: TestVerdictRepository, useClass: TestVerdictPrismaRepository },
-    IssueVerdictUseCase, ListVerdictsUseCase, ReviewVerdictUseCase,
+    { provide: ControlManagementRepository, useClass: ControlManagementPrismaRepository },
+    ApproveControlUseCase, RegisterManualResultUseCase,
     { provide: EvidenceRepository, useClass: EvidencePrismaRepository },
     { provide: IntegrationConnections, useClass: NoIntegrationConnections },
-    ListEvidenceUseCase, ListServiceEvidenceUseCase, ListSubmissionsUseCase, UploadEvidenceUseCase, GetEvidenceDownloadUseCase, ReviewEvidenceUseCase, CreateEvidenceRequirementUseCase, UploadTestEvidenceUseCase, ListTestEvidenceUseCase, ListControlTestsUseCase,
+    ListEvidenceUseCase, ListServiceEvidenceUseCase, ListSubmissionsUseCase, UploadEvidenceUseCase, GetEvidenceDownloadUseCase, CreateEvidenceRequirementUseCase, UploadTestEvidenceUseCase, ListTestEvidenceUseCase, ListControlTestsUseCase,
   ],
 })
 export class ComplianceModule {}

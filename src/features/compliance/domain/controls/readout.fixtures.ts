@@ -30,7 +30,7 @@ export const asset = (id: string, type = 'server'): ReadoutAsset => ({ id, name:
 export const servers = (n: number): ReadoutAsset[] => Array.from({ length: n }, (_, i) => asset(`a${i + 1}`));
 
 export const signals = (patch: Partial<ReadoutSignals> = {}): ReadoutSignals => ({
-  now: NOW, parameters: PARAMS, resultDates: new Map(), exceptions: new Set(), complementaryFails: new Set(), moduleFacts: new Map(), verdicts: new Map(), ...patch,
+  now: NOW, parameters: PARAMS, resultDates: new Map(), exceptions: new Set(), complementaryFails: new Set(), moduleFacts: new Map(), ...patch,
 });
 
 /** Resultado por activo de una prueba técnica de un control: `compliant` los primeros `pass`, etc. Todos fechados «hace una hora». */
@@ -54,3 +54,11 @@ export function data(controls: ReadoutControl[], assets: ReadoutAsset[], extra: 
 }
 
 export const periodic = (periodicity: Periodicity | null): Pick<ReadoutRequirement, 'periodicity'> => ({ periodicity });
+
+/** MD-504 · Las aprobaciones vigentes de un control cuyas ventanas no cambian (`windowStart` nulo): la final del `admin_empresa`, así que cuenta como cumplido si el motor da el 100 %. */
+export const APPROVED: NonNullable<ReadoutControl['management']> = {
+  approvals: [{ id: 'ap-1', step: 'final', decision: 'approved', reason: null, actor: { id: 'u-admin', name: 'Ana', lastName: 'Pérez' }, at: new Date('2026-11-01T00:00:00Z'), windowStart: null, invalidatedAt: null }],
+  resultDates: [],
+};
+/** Un resultado manual correcto registrado antes de `NOW`, para las pruebas manuales que no son documentales. */
+export const correct = (...testIds: string[]): NonNullable<ReadoutControl['manualResults']> => new Map(testIds.map((id) => [id, { result: 'correct' as const, at: new Date('2026-11-20T00:00:00Z') }]));

@@ -8,6 +8,8 @@ import {
   CauseType,
   CheckRole,
   ClientCauseControlEffect,
+  ControlApprovalDecision,
+  ControlApprovalStep,
   ControlDimensionType,
   ControlType,
   Dimension,
@@ -19,6 +21,7 @@ import {
   EvaluationPeriodStatus,
   ExclusionStatus,
   FailureCategory,
+  ManualTestResultValue,
   OrganizationResponsibleType,
   Periodicity,
   RequirementType,
@@ -29,6 +32,7 @@ import {
   TestLevel,
   TestPrimarySource,
 } from '../../../generated/prisma/enums';
+import { MANAGEMENT_STATES } from '../../features/compliance/domain/controls/management-state';
 import { LOSS_TYPES, RISK_SCALE } from '../../features/compliance/domain/risks/risk-types';
 
 // Las listas de Cumplimiento que el frontend necesita para armar sus formularios y filtros (contracts/enums.md, contracts/conventions.md): `GET /v1/catalogs/{nombre}`.
@@ -69,6 +73,11 @@ export const COMPLIANCE_ENUM_CATALOGS = {
   window_mode: ['calendar', 'rolling'],
   evaluation_period_status: values(EvaluationPeriodStatus),
   evaluation_period_origin: values(EvaluationPeriodOrigin),
+  // MD-504 (D132, D140) · La gestión del control se deriva al leer (no es un enum de Postgres); los otros tres sí lo son.
+  control_management_state: [...MANAGEMENT_STATES],
+  control_approval_step: values(ControlApprovalStep),
+  control_approval_decision: values(ControlApprovalDecision),
+  manual_test_result_value: values(ManualTestResultValue),
   // MD-500 · No es un enum de Postgres: se deriva (de si el `admin_empresa` cambió la periodicidad del control, D147).
   periodicity_source: ['catalog', 'client'],
   // No es un enum de Postgres: el impacto potencial se guarda como texto del comité y la API lo traduce a estos valores (`risk-types.ts`, P9).

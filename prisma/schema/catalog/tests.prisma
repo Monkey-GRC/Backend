@@ -175,7 +175,7 @@ model Test {
   testChecks   TestCheck[]
   exclusions Exclusion[]
   evaluations Evaluation[]
-  testVerdicts TestVerdict[]
+  manualTestResults ManualTestResult[]
   clientControlTests ClientControlTest[]
   // D88: los documentos que sirven a esta prueba (plantillas del catálogo y evidencias de cada control del cliente).
   controlEvidenceTemplates ControlEvidenceTemplate[]

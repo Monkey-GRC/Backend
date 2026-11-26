@@ -87,11 +87,9 @@ export const PERMISSIONS = {
   'assignments.view': [P, A, S, S, A, N], // Ver la asignación de dueño y ejecutor
   'risks.manage': [N, A, N, N, N, N], // Dar de baja, reactivar y vincular riesgos y causas; evaluar y tratar un riesgo
   'risks.history': [N, A, N, N, A, N], // El historial de evaluaciones de un riesgo
-  'evidence.review': [N, A, S, N, N, N], // D121 · Revisar una entrega de evidencia (dos niveles)
   'evidence.requirements': [N, A, N, N, N, N], // Agregar un requisito de evidencia a un control
   'exclusions.view': [N, A, N, N, A, N], // Ver las exclusiones de un servicio
-  'verdicts.register': [N, A, S, S, N, N], // MD-155 · Registrar el veredicto de una prueba manual
-  'verdicts.review': [N, A, S, N, N, N], // D121 · Revisar un veredicto
+  'verdicts.register': [N, A, S, N, N, N], // MD-504 · D140 punto 2 · Registrar el resultado de una prueba manual (el responsable; el delegado solo carga la evidencia)
   'observations.view': [N, A, S, S, A, N], // Ver las observaciones del auditor
   'periods.manage': [N, A, N, N, N, N], // D87 · Fijar el período auditado de un servicio y marco
   'periods.view': [N, A, N, N, A, N], // Ver los períodos auditados

@@ -23,7 +23,7 @@ const MAX_CATCH_UP = 120;
 
 @Injectable()
 export class EvaluationPeriodPrismaRepository extends EvaluationPeriodRepository {
-  constructor(private readonly prisma: PrismaService, private readonly parameters: EvaluationParametersPort) {
+  constructor(private readonly prisma: PrismaService, private readonly parameters: EvaluationParametersPort, private readonly notifications: NotificationEmitter) {
     super();
   }
 
@@ -74,7 +74,7 @@ export class EvaluationPeriodPrismaRepository extends EvaluationPeriodRepository
       const after = record(row);
       await insertAuditLog(tx, audit({ before, after }));
       await recordControlStateChanges(tx, {
-        tenantId: scope.companyId, serviceId, parameters, before: states, cause: 'evaluation_period_set', actor: { userId: actor.userId, ipAddress: actor.meta.ipAddress, userAgent: actor.meta.userAgent },
+        tenantId: scope.companyId, serviceId, parameters, before: states, cause: 'evaluation_period_set', notifications: this.notifications, actor: { userId: actor.userId, ipAddress: actor.meta.ipAddress, userAgent: actor.meta.userAgent },
       });
       return { before, after };
     }, { timeoutMs: 30_000 });
@@ -140,7 +140,7 @@ export class EvaluationPeriodRolloverPrismaRepository extends EvaluationPeriodRo
         const [{ locked }] = await tx.$queryRaw<Array<{ locked: boolean }>>`SELECT pg_try_advisory_xact_lock(hashtextextended(${'evaluation_period_state:' + service.id}, 0)) AS locked`;
         if (!locked) return 0;
         const { written, readouts } = await recordTimeDrivenStateChanges(tx, {
-          tenantId, serviceId: service.id, parameters, now, actor: { userId: null, ipAddress: null, userAgent: 'system' }, recordEvents: eventServiceIds.has(service.id),
+          tenantId, serviceId: service.id, parameters, now, actor: { userId: null, ipAddress: null, userAgent: 'system' }, recordEvents: eventServiceIds.has(service.id), notifications: this.notifications,
         });
         // MD-515 · Los avisos nacen en la misma transacción que el evento de estado: o quedan los dos o ninguno.
         await this.notifications.emit(tx, windowNotifications({ companyId: tenantId, service, readouts, adminIds, today }));

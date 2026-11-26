@@ -58,18 +58,6 @@ enum VulnerabilityStatus {
   @@schema("tenant")
 }
 
-// Plan de acción sobre un control incumplido (§7.1). El vencimiento no es un estado: se deriva de due_date.
-enum ActionPlanStatus {
-  open
-  in_progress
-  done
-  cancelled
-
-  @@map("action_plan_status")
-  @@schema("tenant")
-}
-
-
 // Quién produjo la evaluación: la sonda (R-04), el admin_empresa con evidencia (R-03) o la revisión documental con IA (§2, dimensión policy).
 enum EvaluationOrigin {
   automated
@@ -118,11 +106,11 @@ model ClientControl {
   service Service  @relation(fields: [serviceId], references: [id])
   tenant  Company @relation(fields: [tenantId], references: [id])
 
-  actionPlans           ActionPlan[]
   assignment ClientControlAssignment?
   clientCauseControls   ClientCauseControl[]
   evaluations           Evaluation[]
-  testVerdicts          TestVerdict[]
+  controlApprovals      ControlApproval[]
+  manualTestResults     ManualTestResult[]
   auditObservations     AuditObservation[]
   evidenceRequirements  EvidenceRequirement[]
   dimensions            ClientControlDimension[]
@@ -193,26 +181,6 @@ model ClientControlChange {
   @@index([serviceId, status])
   @@index([clientControlId])
   @@map("client_control_changes")
-  @@schema("tenant")
-}
-
-model ActionPlan {
-  id                String    @id @default(uuid()) @db.Uuid
-  tenantId          String    @map("tenant_id") @db.Uuid
-  clientControlId   String    @map("client_control_id") @db.Uuid
-  responsibleId     String    @map("responsible_id") @db.Uuid
-  actionDescription String    @map("action_description") @db.Text
-  dueDate           DateTime  @map("due_date") @db.Date
-  status            ActionPlanStatus
-
-  clientControl   ClientControl @relation(fields: [clientControlId], references: [id])
-  responsibleUser User          @relation(fields: [responsibleId], references: [id])
-  tenant          Company       @relation(fields: [tenantId], references: [id])
-
-  @@index([tenantId])
-  @@index([clientControlId])
-  @@index([responsibleId])
-  @@map("action_plans")
   @@schema("tenant")
 }
 
@@ -323,12 +291,14 @@ model EvidenceSubmission {
   integrityHash          String   @map("integrity_hash")
   version                String // entero creciente por requerimiento, guardado como texto (§7.3); una versión nueva nunca pisa la anterior
   aiVerdict              String?  @map("ai_verdict") @db.Text // siempre etiquetado como generado por IA
+  // MD-504 (D132) · La devolución del control que dejó esta entrega sin contar: nulo = no fue devuelta. Es la única marca; el motivo y quién la devolvió salen de `control_approvals`.
+  returnedApprovalId     String?  @map("returned_approval_id") @db.Uuid
+  returnedApproval       ControlApproval? @relation("ApprovalReturnedSubmissions", fields: [returnedApprovalId], references: [id])
 
   evidenceRequirement EvidenceRequirement @relation(fields: [evidenceRequirementId], references: [id])
   submittedByUser     User                @relation("EvidenceSubmittedBy", fields: [submittedBy], references: [id])
   tenant              Company             @relation(fields: [tenantId], references: [id])
 
-  reviews EvidenceReview[]
 
   observations       AuditObservation[] @relation("ObservationEvidence")
   observationAnswers AuditObservation[] @relation("ObservationAnswerEvidence")
@@ -337,119 +307,6 @@ model EvidenceSubmission {
   @@unique([evidenceRequirementId, version])
   @@index([evidenceRequirementId])
   @@map("evidence_submissions")
-  @@schema("tenant")
-}
-
-// Quién revisó una entrega (D102, §7.3): dos niveles, el `responsable` dueño y el `admin_empresa`, una fila por rol; un rechazo gana. `PUT` crea o reemplaza la de su rol (queda en el rastro).
-// `ai_prevalidated` no se guarda: se deriva (la entrega tiene `ai_verdict` y ninguna revisión humana).
-enum EvidenceReviewerRole {
-  admin_empresa
-  responsable
-
-  @@map("evidence_reviewer_role")
-  @@schema("tenant")
-}
-
-enum EvidenceReviewState {
-  pending_review
-  human_validated
-
-  @@map("evidence_review")
-  @@schema("tenant")
-}
-
-model EvidenceReview {
-  id                   String               @id @default(uuid()) @db.Uuid
-  tenantId             String               @map("tenant_id") @db.Uuid
-  evidenceSubmissionId String               @map("evidence_submission_id") @db.Uuid
-  reviewerRole         EvidenceReviewerRole @map("reviewer_role")
-  reviewedBy           String               @map("reviewed_by") @db.Uuid
-  reviewedAt           DateTime             @default(now()) @map("reviewed_at")
-  // Los seis atributos de la evidencia (RN-01 a RN-03). Nulo = sin valorar.
-  typeOk               Boolean?             @map("type_ok")
-  periodOk             Boolean?             @map("period_ok")
-  validOk              Boolean?             @map("valid_ok")
-  approvedOk           Boolean?             @map("approved_ok")
-  signedOk             Boolean?             @map("signed_ok")
-  contentOk            Boolean?             @map("content_ok")
-  review               EvidenceReviewState  @default(pending_review)
-  note                 String?              @db.Text
-
-  evidenceSubmission EvidenceSubmission @relation(fields: [evidenceSubmissionId], references: [id])
-  reviewedByUser     User                @relation("EvidenceReviewedBy", fields: [reviewedBy], references: [id])
-  tenant             Company             @relation(fields: [tenantId], references: [id])
-
-  @@unique([evidenceSubmissionId, reviewerRole])
-  @@index([tenantId])
-  @@index([reviewedBy])
-  @@map("evidence_reviews")
-  @@schema("tenant")
-}
-
-enum VerdictResult {
-  compliant
-  non_compliant
-
-  @@map("verdict_result")
-  @@schema("tenant")
-}
-
-enum VerdictReviewDecision {
-  approve
-  reject
-
-  @@map("verdict_review_decision")
-  @@schema("tenant")
-}
-
-// El veredicto de una prueba manual no documental (D85, D121, §7.4b): lo registra el ejecutor, el dueño o el admin_empresa y lo revisan el dueño y el admin_empresa.
-// Inmutable. Es del test en el servicio; `client_control_id` es el control de origen. El último de un test en un servicio decide el estado del test (solo cuenta si está aprobado).
-model TestVerdict {
-  id                       String        @id @default(uuid()) @db.Uuid
-  tenantId                 String        @map("tenant_id") @db.Uuid
-  serviceId                String        @map("service_id") @db.Uuid
-  clientControlId          String        @map("client_control_id") @db.Uuid
-  testId                   String        @map("test_id") @db.Uuid
-  result                   VerdictResult
-  note                     String?       @db.Text
-  closureObservationReason String?       @map("closure_observation_reason") @db.Text
-  registeredBy             String        @map("registered_by") @db.Uuid
-  registeredAt             DateTime      @default(now()) @map("registered_at")
-
-  service          Service             @relation(fields: [serviceId], references: [id])
-  clientControl    ClientControl       @relation(fields: [clientControlId], references: [id])
-  test             Test                @relation(fields: [testId], references: [id])
-  registeredByUser User                @relation("VerdictRegisteredBy", fields: [registeredBy], references: [id])
-  tenant           Company             @relation(fields: [tenantId], references: [id])
-  reviews          TestVerdictReview[]
-
-  @@index([tenantId])
-  @@index([serviceId, testId, registeredAt(sort: Desc), id(sort: Desc)])
-  @@index([clientControlId])
-  @@index([registeredBy])
-  @@map("test_verdicts")
-  @@schema("tenant")
-}
-
-// Una revisión por rol y veredicto; un segundo PUT del mismo rol la reemplaza. `note` es obligatoria al rechazar (la aplicación y un CHECK).
-model TestVerdictReview {
-  id            String                @id @default(uuid()) @db.Uuid
-  tenantId      String                @map("tenant_id") @db.Uuid
-  testVerdictId String                @map("test_verdict_id") @db.Uuid
-  reviewerRole  EvidenceReviewerRole  @map("reviewer_role")
-  decision      VerdictReviewDecision
-  note          String?               @db.Text
-  reviewedBy    String                @map("reviewed_by") @db.Uuid
-  reviewedAt    DateTime              @default(now()) @map("reviewed_at")
-
-  verdict        TestVerdict @relation(fields: [testVerdictId], references: [id])
-  reviewedByUser User        @relation("VerdictReviewedBy", fields: [reviewedBy], references: [id])
-  tenant         Company     @relation(fields: [tenantId], references: [id])
-
-  @@unique([testVerdictId, reviewerRole])
-  @@index([tenantId])
-  @@index([reviewedBy])
-  @@map("test_verdict_reviews")
   @@schema("tenant")
 }
 
@@ -867,5 +724,81 @@ model FrameworkAssessment {
   @@index([tenantId])
   @@index([issuedBy])
   @@map("framework_assessments")
+  @@schema("tenant")
+}
+
+enum ControlApprovalStep {
+  owner
+  final
+
+  @@map("control_approval_step")
+  @@schema("tenant")
+}
+
+enum ControlApprovalDecision {
+  approved
+  returned
+
+  @@map("control_approval_decision")
+  @@schema("tenant")
+}
+
+// MD-504 (D132) · Cada aprobación o devolución del control (aprobación del responsable y final del admin_empresa). Inmutable salvo `invalidated_at`, que se escribe una vez cuando la
+// aprobación deja de valer (el control dejó de cumplir, o se devolvió). `window_start` es el inicio de la ventana del control cuando se dio: otra ventana, otra aprobación.
+model ControlApproval {
+  id              String                  @id @default(uuid()) @db.Uuid
+  tenantId        String                  @map("tenant_id") @db.Uuid
+  clientControlId String                  @map("client_control_id") @db.Uuid
+  step            ControlApprovalStep
+  decision        ControlApprovalDecision
+  reason          String?                 @db.Text
+  actorId         String                  @map("actor_id") @db.Uuid
+  at              DateTime                @default(now())
+  windowStart     DateTime?               @map("window_start")
+  invalidatedAt   DateTime?               @map("invalidated_at")
+
+  clientControl      ClientControl        @relation(fields: [clientControlId], references: [id])
+  actor              User                 @relation("ControlApprovalActor", fields: [actorId], references: [id])
+  tenant             Company              @relation(fields: [tenantId], references: [id])
+  returnedSubmissions EvidenceSubmission[] @relation("ApprovalReturnedSubmissions")
+
+  @@index([tenantId])
+  @@index([clientControlId, at(sort: Desc)])
+  @@index([actorId])
+  @@map("control_approvals")
+  @@schema("tenant")
+}
+
+enum ManualTestResultValue {
+  correct
+  observation
+  exception
+
+  @@map("manual_test_result_value")
+  @@schema("tenant")
+}
+
+// MD-504 (D140 puntos 1 y 2, D129) · El resultado que el responsable registra de una prueba manual EN ESE control. Inmutable: cada registro es una fila nueva y el último de la ventana
+// vigente decide. Reemplaza a `test_verdicts` (D85) para lo manual.
+model ManualTestResult {
+  id              String                @id @default(uuid()) @db.Uuid
+  tenantId        String                @map("tenant_id") @db.Uuid
+  clientControlId String                @map("client_control_id") @db.Uuid
+  testId          String                @map("test_id") @db.Uuid
+  result          ManualTestResultValue
+  note            String?               @db.Text
+  registeredBy    String                @map("registered_by") @db.Uuid
+  registeredAt    DateTime              @default(now()) @map("registered_at")
+
+  clientControl    ClientControl @relation(fields: [clientControlId], references: [id])
+  test             Test          @relation(fields: [testId], references: [id])
+  registeredByUser User          @relation("ManualTestResultRegisteredBy", fields: [registeredBy], references: [id])
+  tenant           Company       @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([clientControlId, testId, registeredAt(sort: Desc)])
+  @@index([testId])
+  @@index([registeredBy])
+  @@map("manual_test_results")
   @@schema("tenant")
 }

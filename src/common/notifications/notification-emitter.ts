@@ -9,7 +9,9 @@ export type NotificationTransaction = object;
 /** Un hecho de un control cuyos destinatarios resuelve el adaptador con la cadena del control (dueño, ejecutor, administradores). */
 export type ControlNotificationEvent =
   | { type: 'control_assigned'; controlId: string; assigneeId: string; assigneeRole: 'owner' | 'executor'; actorId: string; dedupeSuffix: string }
-  | { type: 'evidence_approved' | 'evidence_rejected'; controlId: string; uploaderId: string; actorId: string; dedupeSuffix: string }
+  // D132 · La gestión del control. «Por aprobar» lo causa el cambio de estado (sin actor); la primera aprobación y la devolución, una persona.
+  | { type: 'control_pending_approval'; controlId: string; dedupeSuffix: string }
+  | { type: 'control_owner_approved' | 'control_returned'; controlId: string; actorId: string; dedupeSuffix: string }
   // D153 · Los avisos de la evaluación automática los causa el sistema: no hay actor. `dedupeSuffix` es lo que sigue a `<tipo>:<control>:` en la clave.
   | { type: 'direct_check_failed'; controlId: string; dedupeSuffix: string; failures: FailureParam[]; failureCount: number }
   | { type: 'automatic_evidence_stale'; controlId: string; dedupeSuffix: string; staleAssets: StaleAssetParam[]; staleCount: number };

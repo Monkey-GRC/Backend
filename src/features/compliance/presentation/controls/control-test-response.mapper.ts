@@ -14,8 +14,5 @@ export const toControlTestItem = (i: ControlTestItem, t: Translate) => ({
   is_active: i.test.active,
   shared_with: i.sharedWith,
   state: i.state,
-  last_verdict: i.lastVerdict
-    ? { result: i.lastVerdict.result, evaluated_at: i.lastVerdict.evaluatedAt.toISOString(), confirmed_by: { id: i.lastVerdict.confirmedBy.id, name: i.lastVerdict.confirmedBy.name, last_name: i.lastVerdict.confirmedBy.lastName } }
-    : null,
   ai_suggestion: null,
 });

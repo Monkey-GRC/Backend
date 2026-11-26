@@ -143,7 +143,8 @@ describe('documentación de la API encendida (local)', () => {
     // + 2 de MD-495: `GET /v1/catalog/evaluation-parameters` y `PATCH /v1/catalog/evaluation-parameters/{key}`.
     // + 8 de MD-503: Documentos (listar, detalle, publicar versión, archivo, asignar, quitar, aceptar y `GET /v1/me/documents`).
     // + 7 de MD-515: Notificaciones.
-    expect(ids.length).toBe(195);
+    // - 3 y + 2 de MD-504: se retiran `PUT /v1/evidence-submissions/{id}/review`, `POST …/verdicts` y `PUT /v1/verdicts/{id}/review`; entran `POST /v1/controls/{id}/approval` y `POST …/tests/{test_id}/result`; también se retira `GET …/tests/{test_id}/verdicts` (el historial v1 se borra): −1.
+    expect(ids.length).toBe(193);
     expect(ids.some((id) => id.includes('/internal/'))).toBe(false);
   });
 

@@ -54,14 +54,18 @@ describe('ejemplo de §9: 50 servidores y sus checks Directos (T-04)', () => {
     expect(technical.checks).toMatchObject({ directException: 3, directPass: 47 });
     expect(readout.complies).toBe(true);
   });
-  it('C6 · ningún Directo aplica → se prueba a mano (T-05): sin evidencia, Pendiente; con evidencia validada, Correcto', () => {
+  it('C6 · ningún Directo aplica → se prueba a mano (T-05): sin evidencia, Pendiente; con el resultado del responsable, Correcto', () => {
     const assets = servers(3);
     const ctl = control([requirement('r1', [SRV])]);
     const sinEvidencia = readControl(ctl, data([ctl], assets, { results: new Map(assets.map((a) => [`c1|srv|${a.id}`, 'not_applicable' as const])) }));
     expect(sinEvidencia.requirements[0].tests[0].status).toBe('pending');
     expect(sinEvidencia.requirements[0].tests[0].checks).toBeNull();
-    const conEvidencia = control([requirement('r1', [SRV])], { evidence: [{ testId: 'srv', state: 'compliant', submittedAt: new Date('2026-11-20T00:00:00Z') }] });
-    expect(readControl(conEvidencia, data([conEvidencia], [])).requirements[0].tests[0].status).toBe('correct');
+    // D140 punto 2 · La evidencia la carga el delegado, pero el resultado lo registra el responsable: sola, no decide la prueba.
+    const evidence = [{ testId: 'srv', state: 'compliant' as const, submittedAt: new Date('2026-11-20T00:00:00Z') }];
+    const soloEvidencia = control([requirement('r1', [SRV])], { evidence });
+    expect(readControl(soloEvidencia, data([soloEvidencia], [])).requirements[0].tests[0]).toMatchObject({ status: 'pending', manual: true });
+    const conResultado = control([requirement('r1', [SRV])], { evidence, manualResults: new Map([['srv', { result: 'correct' as const, at: new Date('2026-11-20T00:00:00Z') }]]) });
+    expect(readControl(conResultado, data([conResultado], [])).requirements[0].tests[0].status).toBe('correct');
   });
   it('C7 · ningún resultado todavía → Pendiente y el control, No evaluado', () => {
     const ctl = control([requirement('r1', [SRV])]);
@@ -146,14 +150,16 @@ describe('vínculos de módulo (D141) dentro de una prueba', () => {
   });
 });
 
-describe('verdicts y control propio', () => {
-  it('un veredicto aprobado decide una prueba manual que no es documental', () => {
+describe('resultado manual y control propio', () => {
+  it('el resultado registrado en el control decide una prueba manual que no es documental; la documental sigue a su evidencia (D140)', () => {
     const op = readoutTest('op', 'operational');
-    const ctl = control([requirement('r1', [op])]);
-    const d = data([ctl], [], { signals: { verdicts: new Map([['op', { result: 'compliant', at: new Date('2026-11-20T00:00:00Z') }]]) } });
-    expect(readControl(ctl, d).requirements[0].tests[0].status).toBe('correct');
-    const doc = control([requirement('r1', [DOC])]);
-    expect(readControl(doc, data([doc], [], { signals: { verdicts: new Map([['doc', { result: 'compliant', at: new Date('2026-11-20T00:00:00Z') }]]) } })).requirements[0].tests[0].status).toBe('pending');
+    const result = new Map([['op', { result: 'correct' as const, at: new Date('2026-11-20T00:00:00Z') }]]);
+    const ctl = control([requirement('r1', [op])], { manualResults: result });
+    expect(readControl(ctl, data([ctl], [])).requirements[0].tests[0].status).toBe('correct');
+    const sinResultado = control([requirement('r1', [op])], { evidence: [{ testId: 'op', state: 'compliant', submittedAt: new Date('2026-11-20T00:00:00Z') }] });
+    expect(readControl(sinResultado, data([sinResultado], [])).requirements[0].tests[0].status).toBe('pending');
+    const doc = control([requirement('r1', [DOC])], { manualResults: new Map([['doc', { result: 'correct' as const, at: new Date('2026-11-20T00:00:00Z') }]]) });
+    expect(readControl(doc, data([doc], [])).requirements[0].tests[0].status).toBe('pending');
   });
   it('un control propio se mide con su evidencia como un requisito documental único', () => {
     const own = (evidence: ReadoutControl['evidence']) => control([], { id: 'own', origin: 'own', catalogCode: null, catalogControlId: null, evidence, name: 'Revisión de proveedores' });

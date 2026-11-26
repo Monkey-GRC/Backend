@@ -2,8 +2,6 @@ import type { ControlAccess } from '../controls/control-access';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
-import type { EvidenceAttribute } from '../engine/documentary-test';
-import type { EvidenceReviewRecord, ReviewerRole, StoredReview } from './evidence';
 
 export type PersonRef = { id: string; name: string | null; lastName: string | null };
 
@@ -20,8 +18,8 @@ export type SubmissionRecord = {
   submittedBy: PersonRef;
   submittedAt: Date;
   aiVerdict: string | null;
-  /** Las revisiones de la entrega, a lo sumo una por rol (D102): la del `responsable` dueño y la del `admin_empresa`. */
-  reviews: EvidenceReviewRecord[];
+  /** D132 · Si el control se devolvió por esta entrega: el motivo y cuándo. `null` = no fue devuelta y cuenta. */
+  returned: { reason: string; at: Date } | null;
 };
 
 /** La prueba documental a la que sirve un requerimiento (D88). */
@@ -53,23 +51,6 @@ export type EvidenceAccess = {
 };
 
 export type NewSubmission = { fileKey: string; fileType: string; fileSize: number; integrityHash: string; submittedBy: string; meta: { ipAddress: string; userAgent: string } };
-
-export type NewReview = {
-  reviewerRole: ReviewerRole;
-  reviewedBy: string;
-  typeOk: EvidenceAttribute;
-  periodOk: EvidenceAttribute;
-  validOk: EvidenceAttribute;
-  approvedOk: EvidenceAttribute;
-  signedOk: EvidenceAttribute;
-  contentOk: EvidenceAttribute;
-  review: StoredReview;
-  note: string | null;
-  meta: { ipAddress: string; userAgent: string };
-};
-
-/** Lo que cambió al revisar: la revisión anterior del mismo rol (si la había) y la nueva, para el rastro. La entrega trae las revisiones de todos los roles. */
-export type ReviewSaved = { submission: SubmissionRecord; access: EvidenceAccess; before: EvidenceReviewRecord | null; after: EvidenceReviewRecord };
 
 /** Qué hace falta saber de un control para agregarle una evidencia propia (D88). */
 export type ControlEvidenceFacts = {
@@ -125,8 +106,6 @@ export abstract class EvidenceRepository {
   /** Guarda la entrega con la versión siguiente y su rastro de auditoría en la misma transacción. `null` si el requerimiento no existe. */
   abstract createSubmission(scope: TenantScope, requirementId: string, input: NewSubmission, audit: AuditIntent<SubmissionRecord>): Promise<SubmissionRecord | null>;
   abstract findSubmission(scope: TenantScope, submissionId: string): Promise<{ submission: SubmissionRecord; access: EvidenceAccess } | null>;
-  /** Crea o reemplaza la revisión de ESE rol sobre la entrega, con su rastro en la misma transacción (D84). `null` si la entrega no existe para esta empresa. */
-  abstract saveReview(scope: TenantScope, submissionId: string, input: NewReview, audit: AuditIntent<ReviewSaved>): Promise<ReviewSaved | null>;
   /** `null` si el control no existe para esta empresa. */
   abstract controlEvidenceFacts(scope: TenantScope, controlId: string): Promise<ControlEvidenceFacts | null>;
   /** Agrega una evidencia propia al control, con su rastro en la misma transacción. */

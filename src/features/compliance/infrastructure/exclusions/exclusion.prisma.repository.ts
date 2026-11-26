@@ -5,6 +5,7 @@ import { ValidationException } from '../../../../common/errors/validation.except
 import { Page } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
+import { NotificationEmitter } from '../../../../common/notifications/notification-emitter';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { EvaluationParametersPort } from '../../../../common/evaluation-parameters/parameters';
 import { dimensionOfAssetType } from '../../domain/controls/control-readout';
@@ -40,7 +41,7 @@ const today = (): Date => {
 
 @Injectable()
 export class ExclusionPrismaRepository extends ExclusionRepository {
-  constructor(private readonly prisma: PrismaService, private readonly evaluationParameters: EvaluationParametersPort) {
+  constructor(private readonly prisma: PrismaService, private readonly evaluationParameters: EvaluationParametersPort, private readonly notifications: NotificationEmitter) {
     super();
   }
 
@@ -123,7 +124,7 @@ export class ExclusionPrismaRepository extends ExclusionRepository {
         });
         await insertAuditLog(tx, audit(created));
         await recordControlStateChanges(tx, { parameters,
-          tenantId: scope.companyId, serviceId, before: states, cause: 'exclusion_approved',
+          tenantId: scope.companyId, serviceId, before: states, cause: 'exclusion_approved', notifications: this.notifications,
           actor: { userId: input.decidedBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent },
         });
         return created;
