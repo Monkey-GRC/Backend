@@ -1,5 +1,5 @@
 import { PARAMS } from '../../controls/readout.fixtures';
-import { AssetOutcomes, CheckOutcome, checkResultOf, classifyModuleRef, evaluateTechnicalTest, exceptionEndsOn, moduleLinkResult, withException, worstStatus } from './technical-test';
+import { AssetOutcomes, CheckOutcome, checkResultOf, classifyModuleRef, evaluateTechnicalTest, moduleLinkResult, withException, worstStatus } from './technical-test';
 import { CheckResult } from './types';
 
 const direct = (result: CheckResult, stale = false): CheckOutcome => ({ role: 'direct', result, ...(stale ? { stale } : {}) });
@@ -133,10 +133,5 @@ describe('lecturas de los motores y excepciones (D135)', () => {
     expect(withException('fail', false)).toBe('fail');
     expect(withException('pass', true)).toBe('pass');
     expect(withException('no_data', true)).toBe('no_data');
-  });
-  it('dura como máximo PR-04 días desde su inicio', () => {
-    const from = new Date('2026-01-01');
-    expect(exceptionEndsOn(from, new Date('2026-12-31'), PARAMS).toISOString().slice(0, 10)).toBe('2026-04-01');
-    expect(exceptionEndsOn(from, new Date('2026-02-01'), PARAMS).toISOString().slice(0, 10)).toBe('2026-02-01');
   });
 });

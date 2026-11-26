@@ -58,7 +58,7 @@ export class SendNotificationDigestsUseCase {
   private async send(batch: DigestBatch, appUrl: string | undefined, now: Date, today: Date): Promise<'sent' | 'failed'> {
     const lang = batch.language;
     const t = (key: string, args?: Record<string, string | number>): string => this.i18n.t(key, { lang, ...(args ? { args } : {}) }) as string;
-    const lines = batch.items.map((record) => ({ title: this.viewer.view(record, lang, now).title, serviceName: record.params.service_name ?? null }));
+    const lines = batch.items.map((record) => ({ title: this.viewer.view(record, lang, now).title, serviceName: 'service_name' in record.params ? (record.params.service_name ?? null) : null }));
     try {
       await this.mailer.send(buildDigestEmail({ to: batch.email, lang, date: today.toISOString().slice(0, 10), lines, total: batch.total, appUrl }, t));
       return 'sent';

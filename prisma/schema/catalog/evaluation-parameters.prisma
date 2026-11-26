@@ -30,3 +30,19 @@ model EvaluationParameter {
   @@map("evaluation_parameters")
   @@schema("catalog")
 }
+
+// MD-508, D153 · El historial de cambios (valor anterior y nuevo) de cada parámetro: lo escribe el PATCH y lo leen las pasadas por empresa para avisar el cambio. Inmutable.
+model EvaluationParameterChange {
+  id            String   @id @default(uuid()) @db.Uuid
+  parameterKey  String   @map("parameter_key")
+  code          String?
+  previousValue Json     @map("previous_value")
+  newValue      Json     @map("new_value")
+  changedAt     DateTime @default(now()) @map("changed_at")
+  // Sin clave foránea (como `audit_logs.user_id`, D117): el historial no se reescribe aunque la cuenta se purgue.
+  changedById   String?  @map("changed_by") @db.Uuid
+
+  @@index([changedAt])
+  @@map("evaluation_parameter_changes")
+  @@schema("catalog")
+}

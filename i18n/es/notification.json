@@ -136,32 +136,32 @@
       "impact": "El auditor la cierra cuando la respuesta le basta."
     },
     "direct_check_failed": {
-      "title": "{control_code} · Una verificación automática del control está fallando",
-      "what_happened": "Una verificación automática del control {control_label} del servicio {service_name} no se cumple.",
+      "title": "{control_code} · Una verificación automática del control pasó a fallar",
+      "what_happened": "En el control {control_label} del servicio {service_name} pasaron a fallar {failure_count} verificaciones automáticas: {failure_list}.",
       "why_it_matters": "Mientras la verificación siga fallando, el control vuelve a Incumplimiento.",
-      "how_to_fix": "Corrige lo que señala el detalle del control; la siguiente lectura automática lo vuelve a medir.",
+      "how_to_fix": "Abre el control y corrige lo que señala cada verificación; la siguiente lectura automática la vuelve a medir.",
       "who": "Ejecuta: {executor} · Dueño: {owner}",
       "time_needed": "La siguiente lectura automática confirma la corrección.",
       "evidence": "El resultado nuevo de la verificación: no hay que subir nada.",
       "impact": "Al pasar la verificación, el control recupera su nivel."
     },
     "check_parameters_changed": {
-      "title": "{control_code} · Cambió la parametrización de una verificación",
-      "what_happened": "Cambió la parametrización de una verificación automática del control {control_label} del servicio {service_name}.",
-      "why_it_matters": "Una verificación con otros parámetros puede dar otro resultado en la siguiente lectura.",
-      "how_to_fix": "Revisa el detalle del control y confirma que el cambio es el esperado.",
-      "who": "Ejecuta: {executor} · Dueño: {owner}",
-      "time_needed": "Se aplica desde la siguiente lectura automática.",
-      "evidence": "El resultado de la siguiente lectura: no hay que subir nada.",
-      "impact": "Si el cambio es el esperado, el control sigue su curso."
+      "title": "Cambió un parámetro de evaluación: {parameter_name}",
+      "what_happened": "Monkey cambió el parámetro {parameter_name}: el valor anterior era {previous_value} y el nuevo es {new_value}.",
+      "why_it_matters": "{parameter_effect}",
+      "how_to_fix": "No tienes que hacer nada: revisa los controles de tus servicios si notas un cambio en su estado.",
+      "who": "Lo cambió Monkey; lo recibes por ser administrador de la empresa.",
+      "time_needed": "Se aplica desde la siguiente evaluación de cada servicio.",
+      "evidence": "No hay que subir nada: el cambio se aplica a lo que ya está medido.",
+      "impact": "Los controles de tus servicios se evalúan con el valor nuevo; su estado puede cambiar sin que cambie tu evidencia."
     },
     "automatic_evidence_stale": {
       "title": "{control_code} · La evidencia automática del control está desactualizada",
-      "what_happened": "La evidencia automática del control {control_label} del servicio {service_name} es más antigua de lo permitido.",
+      "what_happened": "La última lectura automática de {stale_count} activos del control {control_label} del servicio {service_name} es más antigua de lo permitido: {stale_list}.",
       "why_it_matters": "Una evidencia desactualizada deja la prueba pendiente hasta que haya una lectura nueva.",
-      "how_to_fix": "Revisa que la conexión del servicio siga activa para que llegue una lectura nueva.",
+      "how_to_fix": "Una lectura nueva del activo lo resuelve: revisa que su conexión siga activa y pide una evaluación.",
       "who": "Ejecuta: {executor} · Dueño: {owner}",
-      "time_needed": "Se corrige con la siguiente lectura automática.",
+      "time_needed": "Se corrige con la siguiente lectura automática del activo.",
       "evidence": "Una lectura automática reciente.",
       "impact": "Con la lectura nueva, la prueba vuelve a medirse."
     },
@@ -245,5 +245,15 @@
       "evidence": "No hace falta evidencia.",
       "impact": "Pasado el plazo, la empresa y sus datos se eliminan."
     }
+  },
+  "check_untitled": "una verificación del control",
+  "last_reading": "última lectura: {date}",
+  "parameter_bool": {
+    "true": "activado",
+    "false": "desactivado"
+  },
+  "window_mode": {
+    "calendar": "por calendario",
+    "rolling": "móvil"
   }
 }

@@ -1,13 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { runIsolated } from '../../../../common/async/run-isolated';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { activeAdminIds } from '../../../../infrastructure/notifications/control-chain.loader';
 import { NotificationEmitter } from '../../../../common/notifications/notification-emitter';
 import { EvaluationParametersPort } from '../../../../common/evaluation-parameters/parameters';
+import { changesSince, parameterChangeNotifications } from '../../domain/notifications/parameter-change-notifications';
+import { staleEvidenceEvents } from '../../domain/notifications/stale-evidence-notifications';
 import { windowNotifications } from '../../domain/notifications/window-notifications';
 import { hasEnded, nextPeriod, utcDay } from '../../domain/periods/evaluation-period';
 import { EvaluationPeriodRecord, PeriodResolver, EvaluationPeriodRepository, EvaluationPeriodRollover, EvaluationPeriodRow, OpenedPeriod, RolloverSummary } from '../../domain/periods/evaluation-period.repository';
+import { loadAutomaticReadings } from './automatic-readings.loader';
 import { captureControlStates, recordControlStateChanges, recordTimeDrivenStateChanges } from '../shared/control-state-events';
 
 const FRAMEWORK_SELECT = { id: true, serviceId: true, framework: { select: { code: true } }, catalogVersion: { select: { number: true } } } as const;
@@ -143,7 +147,40 @@ export class EvaluationPeriodRolloverPrismaRepository extends EvaluationPeriodRo
         return written;
       }, { timeoutMs: 120_000 });
     }
+    await this.notifyEvaluationAlerts(tenantId, parameters.freshnessHours, now);
     return { opened, stateEvents };
+  }
+
+  // D153 · Cada aviso va aislado: si uno falla (se registra, sin datos de personas) el otro corre igual y el resumen de la pasada de la empresa no se pierde. Lo que falte lo repite la siguiente pasada (idempotente).
+  private async notifyEvaluationAlerts(tenantId: string, freshnessHours: number, now: Date): Promise<void> {
+    await runIsolated(
+      [
+        ['evidencia automática desactualizada', () => this.notifyStaleEvidence(tenantId, freshnessHours, now)],
+        ['cambios de parámetros', () => this.notifyParameterChanges(tenantId, now)],
+      ],
+      (label, error) => this.logger.error(`Falló el aviso de ${label} de la empresa ${tenantId}: ${error.message}`),
+    );
+  }
+
+  // D153 · Los cambios de parámetros (D149) que Monkey hizo y esta empresa aún no recibió: se leen del historial del catálogo (lectura abierta a todos) con el permiso de la propia empresa, sin
+  // ningún privilegio entre empresas. Un aviso por administrador activo y cambio; idempotente por el id del cambio, así que releer la ventana no duplica.
+  private notifyParameterChanges(tenantId: string, now: Date): Promise<void> {
+    return this.prisma.withScope({ companyId: tenantId }, async (tx) => {
+      const company = await tx.company.findFirst({ where: { id: tenantId }, select: { createdAt: true } });
+      if (!company) return;
+      const rows = await tx.evaluationParameterChange.findMany({ where: { changedAt: { gte: changesSince(company.createdAt, now) } }, orderBy: [{ changedAt: 'asc' }, { id: 'asc' }] });
+      if (rows.length === 0) return;
+      const changes = rows.map((r) => ({ id: r.id, key: r.parameterKey, code: r.code, previousValue: r.previousValue, newValue: r.newValue, changedAt: r.changedAt }));
+      await this.notifications.emit(tx, parameterChangeNotifications({ companyId: tenantId, companyCreatedAt: company.createdAt, changes, adminIds: await activeAdminIds(tx), now }));
+    }, { timeoutMs: 60_000 });
+  }
+
+  // D153 · La evidencia automática desactualizada (PR-05): un aviso por control, idempotente por la última recolección de cada activo, así que repetir la pasada o tener dos réplicas no duplica.
+  private notifyStaleEvidence(tenantId: string, freshnessHours: number, now: Date): Promise<void> {
+    return this.prisma.withScope({ companyId: tenantId }, async (tx) => {
+      const events = staleEvidenceEvents(await loadAutomaticReadings(tx), now, freshnessHours);
+      await this.notifications.emitForControls(tx, tenantId, events);
+    }, { timeoutMs: 60_000 });
   }
 
   // Cierra los períodos abiertos ya terminados y abre el siguiente; con un candado por empresa y en una transacción corta.
