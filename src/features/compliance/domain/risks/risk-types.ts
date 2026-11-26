@@ -38,18 +38,26 @@ export const RISK_SCALE = { min: 1, max: 5 } as const;
 /** El valor de un riesgo es probabilidad × impacto; lo calcula el servidor, el cliente nunca. */
 export const riskValueOf = (likelihood: number, impact: number): number => likelihood * impact;
 
-/** El nivel de un riesgo según su valor (probabilidad × impacto): Bajo 1–4 · Moderado 5–9 · Alto 10–16 · Crítico 17–25. */
-export function riskLevelOf(value: number): (typeof RISK_LEVELS)[number] {
-  if (value <= 4) return 'low';
-  if (value <= 9) return 'moderate';
-  if (value <= 16) return 'high';
-  return 'critical';
-}
+/**
+ * El nivel sale de la casilla de la matriz (probabilidad, impacto), no de rangos del valor (D134). Filas: probabilidad 1..5; columnas: impacto 1..5.
+ * Si cambia, cambia también el CHECK `client_risks_evaluation_shape` (migración MD-496).
+ */
+const L = 'low', M = 'moderate', H = 'high', C = 'critical';
+const LEVEL_BY_CELL: ReadonlyArray<ReadonlyArray<(typeof RISK_LEVELS)[number]>> = [
+  [L, L, M, H, H],
+  [L, L, M, H, C],
+  [L, M, H, C, C],
+  [M, H, H, C, C],
+  [H, H, C, C, C],
+];
+
+/** El nivel de un riesgo según su casilla (D134). */
+export const riskLevelAt = (likelihood: number, impact: number): (typeof RISK_LEVELS)[number] => LEVEL_BY_CELL[likelihood - RISK_SCALE.min][impact - RISK_SCALE.min];
 
 export type RiskMatrixCell = { likelihood: number; impact: number; value: number; level: (typeof RISK_LEVELS)[number] };
 
 /**
- * La matriz completa: cada casilla (probabilidad × impacto) con su valor y el nivel que le corresponde. Es la misma función que usa la evaluación de un riesgo, así que lo
+ * La matriz completa: cada casilla (probabilidad × impacto) con su valor y el nivel de la tabla (D134). Es la misma función que usa la evaluación de un riesgo, así que lo
  * que la pantalla pinta en una casilla vacía es exactamente el nivel que tendría un riesgo evaluado ahí. De mayor a menor probabilidad no importa: la ordena el cliente.
  */
 export function riskMatrix(): { min: number; max: number; cells: RiskMatrixCell[] } {
@@ -57,7 +65,7 @@ export function riskMatrix(): { min: number; max: number; cells: RiskMatrixCell[
   for (let likelihood = RISK_SCALE.min; likelihood <= RISK_SCALE.max; likelihood++) {
     for (let impact = RISK_SCALE.min; impact <= RISK_SCALE.max; impact++) {
       const value = riskValueOf(likelihood, impact);
-      cells.push({ likelihood, impact, value, level: riskLevelOf(value) });
+      cells.push({ likelihood, impact, value, level: riskLevelAt(likelihood, impact) });
     }
   }
   return { min: RISK_SCALE.min, max: RISK_SCALE.max, cells };

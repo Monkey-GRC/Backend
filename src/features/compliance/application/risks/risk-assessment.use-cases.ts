@@ -5,7 +5,7 @@ import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { Page } from '../../../../common/pagination/page';
 import { EvaluationEntry, RiskEvaluation, RiskRepository, RiskTreatmentRecord } from '../../domain/risks/risk.repository';
-import { riskLevelOf, riskValueOf } from '../../domain/risks/risk-types';
+import { riskLevelAt, riskValueOf } from '../../domain/risks/risk-types';
 import { CreateTreatmentDto, EvaluateRiskDto } from './risk-assessment.dto';
 import { parseDueDate, validateEvaluation } from './risk-assessment.validation';
 import { GetRiskUseCase } from './risk.use-cases';
@@ -28,7 +28,7 @@ export class EvaluateRiskUseCase {
   async execute(p: Principal, riskId: string, dto: EvaluateRiskDto, meta: RequestMeta): Promise<EvaluationEntry> {
     validateEvaluation(dto.likelihood, dto.impact);
     const value = riskValueOf(dto.likelihood, dto.impact);
-    const next = { likelihood: dto.likelihood, impact: dto.impact, inherentRiskValue: value, inherentRiskLevel: riskLevelOf(value), evaluatedBy: p.userId };
+    const next = { likelihood: dto.likelihood, impact: dto.impact, inherentRiskValue: value, inherentRiskLevel: riskLevelAt(dto.likelihood, dto.impact), evaluatedBy: p.userId };
 
     const done = await this.repo.evaluateRisk(scopeOf(p), riskId, next, (change) =>
       entry(p, meta, 'client_risk.evaluate', 'client_risk', snapshot(riskId, change.before), snapshot(riskId, change.after)),
