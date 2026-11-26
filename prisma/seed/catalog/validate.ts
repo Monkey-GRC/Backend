@@ -1,7 +1,7 @@
 // Validador del catálogo v2: puro, sobre el JSON. Comprueba los totales exactos de la tabla 10 de 01_DESARROLLO, las reglas de integridad IN-01…IN-10 de MAP CALOR
 // (IN-02, IN-03 e IN-08 necesitan las filas de origen y las comprueba `build.ts`) y la marca blanca (SEG-39). Informa TODOS los errores, no solo el primero.
 import { countsOf } from './build';
-import { namesProvider } from './display-names';
+import { clientVisibleTexts, namesProvider, whiteLabel } from './display-names';
 import { KNOWN_LOSS_TYPE_VARIANTS, LOSS_TYPES } from './labels';
 import { parseRequirementRef } from './parse';
 import { CatalogV2, CheckRole, EXPECTED_COUNTS, EXPECTED_DETAIL, ItemType } from './types';
@@ -214,6 +214,10 @@ export function validateCatalog(c: CatalogV2): Validation {
     if (namesProvider(t.displayDescription)) err(`[confidencialidad] ${t.code}: la descripción que ve el cliente nombra al proveedor.`);
     if (!t.displayName) err(`${t.code}: sin nombre para el cliente.`);
     if (t.displayNameReviewed) err(`${t.code}: el nombre no puede nacer revisado.`);
+  }
+
+  for (const { where, text } of clientVisibleTexts(c)) {
+    if (namesProvider(whiteLabel(text))) err(`[confidencialidad] ${where}: sigue nombrando al proveedor tras la tabla 9.`);
   }
 
   return { errors, warnings };

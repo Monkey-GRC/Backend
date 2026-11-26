@@ -26050,7 +26050,7 @@
       "automation": "automated",
       "displayName": "Evidencia de la existencia y cobertura de las herramientas utilizadas para el monitoreo de integridad y detección de cambios, tales como la sonda/OSSEC, Tripwire, Qualys FIM, Tenable Integrity Monitor, Microsoft Defender for Endpoint, CrowdStrike, SentinelOne, AWS Config y CloudTrail, Azure Policy y Activity Log, Google Cloud Audit Logs u otras herramientas equivalentes.",
       "displayNameReviewed": false,
-      "displayDescription": "Que los servidores en alcance tienen activo el monitoreo de integridad de archivos (la sonda FIM u otro equivalente) sobre los directorios y configuraciones críticos definidos.",
+      "displayDescription": "Que los servidores en alcance tienen activo el monitoreo de integridad de archivos (FIM de la sonda u otro equivalente) sobre los directorios y configuraciones críticos definidos.",
       "displayNameEn": null
     },
     {
@@ -26648,7 +26648,7 @@
       "automation": "semi_automated",
       "displayName": "Inventario de activos del servicio con elementos de configuración (CIs) y sus relaciones",
       "displayNameReviewed": false,
-      "displayDescription": "Que el inventario de activos incluye todos los activos de producción en alcance que descubren la sonda (inventario de la sonda), el motor de nube y las integraciones del cliente, con propietario, criticidad y relaciones.",
+      "displayDescription": "Que el inventario de activos incluye todos los activos de producción en alcance que descubren la sonda (inventario), el motor de nube y las integraciones del cliente, con propietario, criticidad y relaciones.",
       "displayNameEn": null
     },
     {
@@ -26692,9 +26692,9 @@
       "frequencySample": "1 extracción a la fecha de corte del periodo",
       "integrationCategoryName": "Nube",
       "automation": "automated",
-      "displayName": "Que los servidores en alcance reportan su inventario de hardware, software y red a través de la sonda (inventario de la sonda) o del servicio de inventario de la nube.",
+      "displayName": "Que los servidores en alcance reportan su inventario de hardware, software y red a través de la sonda (inventario) o del servicio de inventario de la nube.",
       "displayNameReviewed": false,
-      "displayDescription": "Que los servidores en alcance reportan su inventario de hardware, software y red a través de la sonda (inventario de la sonda) o del servicio de inventario de la nube.",
+      "displayDescription": "Que los servidores en alcance reportan su inventario de hardware, software y red a través de la sonda (inventario) o del servicio de inventario de la nube.",
       "displayNameEn": null
     },
     {
@@ -26738,9 +26738,9 @@
       "frequencySample": "1 extracción a la fecha de corte del periodo",
       "integrationCategoryName": "MDM",
       "automation": "semi_automated",
-      "displayName": "Que los endpoints que acceden al servicio en alcance están registrados en el inventario mediante la sonda (inventario de la sonda) o el MDM.",
+      "displayName": "Que los endpoints que acceden al servicio en alcance están registrados en el inventario mediante la sonda (inventario) o el MDM.",
       "displayNameReviewed": false,
-      "displayDescription": "Que los endpoints que acceden al servicio en alcance están registrados en el inventario mediante la sonda (inventario de la sonda) o el MDM.",
+      "displayDescription": "Que los endpoints que acceden al servicio en alcance están registrados en el inventario mediante la sonda (inventario) o el MDM.",
       "displayNameEn": null
     },
     {
@@ -27589,7 +27589,7 @@
       "frequencySample": "1 revisión de configuración + evidencia de que no cambió en el periodo",
       "integrationCategoryName": "Logs, SIEM y monitoreo",
       "automation": "semi_automated",
-      "displayName": "Posibles check del motor de nube",
+      "displayName": "Que las aplicaciones y servicios SaaS en alcance tienen activos sus registros de auditoría.",
       "displayNameReviewed": false,
       "displayDescription": "Que las aplicaciones y servicios SaaS en alcance tienen activos sus registros de auditoría.",
       "displayNameEn": null
@@ -27612,7 +27612,7 @@
       "frequencySample": "1 revisión de configuración por BD en alcance + evidencia de que no cambió en el periodo",
       "integrationCategoryName": "Logs, SIEM y monitoreo",
       "automation": "semi_automated",
-      "displayName": "Posibles check del motor de nube",
+      "displayName": "Que las BD en alcance tienen activa la auditoría de conexiones, accesos privilegiados, operaciones sensibles y cambios de estructura.",
       "displayNameReviewed": false,
       "displayDescription": "Que las BD en alcance tienen activa la auditoría de conexiones, accesos privilegiados, operaciones sensibles y cambios de estructura.",
       "displayNameEn": null
@@ -27635,7 +27635,7 @@
       "frequencySample": "1 revisión de configuración + evidencia de que no cambió en el periodo",
       "integrationCategoryName": "Nube",
       "automation": "automated",
-      "displayName": "Posibles check del motor de nube",
+      "displayName": "Que las cuentas de nube en alcance registran la actividad de administración, el acceso a datos, el tráfico de red y los accesos a balanceadores, DNS, VPN y almacenes de claves.",
       "displayNameReviewed": false,
       "displayDescription": "Que las cuentas de nube en alcance registran la actividad de administración, el acceso a datos, el tráfico de red y los accesos a balanceadores, DNS, VPN y almacenes de claves.",
       "displayNameEn": null
@@ -28095,7 +28095,7 @@
       "frequencySample": "1 revisión de configuración por servidor en alcance + evidencia de que no cambió en el periodo",
       "integrationCategoryName": "Logs, SIEM y monitoreo",
       "automation": "semi_automated",
-      "displayName": "Posibles check del motor de nube",
+      "displayName": "Que los servidores en alcance tienen activa la auditoría del sistema operativo y registran los inicios de sesión, el uso de privilegios, los cambios de cuentas y los cambios de configuración.",
       "displayNameReviewed": false,
       "displayDescription": "Que los servidores en alcance tienen activa la auditoría del sistema operativo y registran los inicios de sesión, el uso de privilegios, los cambios de cuentas y los cambios de configuración.",
       "displayNameEn": null
@@ -28118,7 +28118,7 @@
       "frequencySample": "1 revisión de configuración por dispositivo en alcance + evidencia de que no cambió en el periodo",
       "integrationCategoryName": "Logs, SIEM y monitoreo",
       "automation": "manual",
-      "displayName": "Posibles check del motor de nube",
+      "displayName": "Que los dispositivos de red y firewalls físicos en alcance generan registros de los accesos administrativos, los cambios de configuración y el tráfico bloqueado, y los envían al repositorio central.",
       "displayNameReviewed": false,
       "displayDescription": "Que los dispositivos de red y firewalls físicos en alcance generan registros de los accesos administrativos, los cambios de configuración y el tráfico bloqueado, y los envían al repositorio central.",
       "displayNameEn": null

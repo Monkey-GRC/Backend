@@ -8,7 +8,7 @@
 import { createHash } from 'node:crypto';
 import { Client } from 'pg';
 import { CloudDataset } from './cloud/build';
-import { namesProvider } from './catalog/display-names';
+import { clientVisibleTexts, namesProvider, whiteLabel } from './catalog/display-names';
 import { readCloudDatasets, readSondaDataset } from './catalog/checks-index';
 import { dimensionTypeOf } from './catalog/dimension-type';
 import { CatalogV2, ControlType, EXPECTED_COUNTS, EXPECTED_DETAIL } from './catalog/types';
@@ -321,6 +321,9 @@ async function main() {
     console.log('\n6. Marca blanca');
     const named = testDb.filter((t) => namesProvider(t.displayName ?? '') || namesProvider(t.displayDescription ?? '') || namesProvider(t.displayNameEn ?? '')).map((t) => t.code);
     check(named.length === 0, 'ningún nombre ni descripción que ve el cliente nombra al proveedor', `nombran al proveedor: ${named.slice(0, 8).join(', ')}`);
+    // El libro queda intacto en la base (es interno); lo que llega al cliente pasa por la tabla 9 al salir (D128). Los textos de `cat` son los de la base (sección 2).
+    const leaking = clientVisibleTexts(cat).filter((x) => namesProvider(whiteLabel(x.text))).map((x) => x.where);
+    check(leaking.length === 0, 'ningún texto visible al cliente nombra al proveedor tras la tabla 9', `siguen nombrando al proveedor: ${leaking.slice(0, 8).join(', ')}`);
     check(testDb.every((t) => !!t.displayName?.trim() && !!t.displayDescription?.trim() && t.displayNameReviewed === false && t.displayNameEn === null), 'toda prueba tiene nombre y descripción, sin revisar y sin inglés (P50)', 'hay pruebas sin nombre o con nombre revisado/inglés');
 
     // ---- 7. RLS con el rol de la app (D31) ----
