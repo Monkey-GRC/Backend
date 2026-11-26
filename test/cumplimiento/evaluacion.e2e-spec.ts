@@ -57,9 +57,9 @@ describe('Evaluar un riesgo: el servidor calcula el valor y el nivel', () => {
   it.each([
     [1, 1, 1, 'low'],
     [2, 2, 4, 'low'],
-    [3, 3, 9, 'moderate'],
-    [2, 5, 10, 'high'],
-    [4, 4, 16, 'high'],
+    [3, 3, 9, 'high'],
+    [2, 5, 10, 'critical'],
+    [4, 4, 16, 'critical'],
     [5, 4, 20, 'critical'],
     [5, 5, 25, 'critical'],
   ])('probabilidad %i e impacto %i → valor %i, nivel %s', async (likelihood, impact, value, level) => {
@@ -75,8 +75,8 @@ describe('Evaluar un riesgo: el servidor calcula el valor y el nivel', () => {
     const first = await evaluate(a.agent, fresh, { likelihood: 2, impact: 4 }).expect(201);
     expect(first.body.data.previous).toBeNull();
     const second = await evaluate(a.agent, fresh, { likelihood: 3, impact: 4 }).expect(201);
-    expect(second.body.data.previous).toEqual({ likelihood: 2, impact: 4, inherent_risk_value: 8, inherent_risk_level: 'moderate' });
-    expect(second.body.data).toMatchObject({ inherent_risk_value: 12, inherent_risk_level: 'high' });
+    expect(second.body.data.previous).toEqual({ likelihood: 2, impact: 4, inherent_risk_value: 8, inherent_risk_level: 'high' });
+    expect(second.body.data).toMatchObject({ inherent_risk_value: 12, inherent_risk_level: 'critical' });
   });
 
   it('el valor y el nivel que mande el cliente se ignoran', async () => {
@@ -106,6 +106,7 @@ describe('Evaluar un riesgo: el servidor calcula el valor y el nivel', () => {
 
   it('la base no acepta una evaluación incoherente', async () => {
     await expect(owner(`update tenant.client_risks set likelihood = 3, impact = 3, inherent_risk_value = 8, inherent_risk_level = 'moderate' where id = $1`, [riskId])).rejects.toThrow(/client_risks_evaluation_shape/);
+    await expect(owner(`update tenant.client_risks set likelihood = 3, impact = 3, inherent_risk_value = 9, inherent_risk_level = 'moderate' where id = $1`, [riskId])).rejects.toThrow(/client_risks_evaluation_shape/);
     await expect(owner(`update tenant.client_risks set likelihood = 6, impact = 1, inherent_risk_value = 6, inherent_risk_level = 'moderate' where id = $1`, [riskId])).rejects.toThrow(/client_risks_evaluation_shape/);
   });
 });
@@ -249,7 +250,7 @@ describe('Rastro y atomicidad', () => {
     expect(rows).toHaveLength(2);
     expect(rows[0].before_state).toMatchObject({ likelihood: null, impact: null, inherent_risk_value: null });
     expect(rows[1].before_state).toMatchObject({ likelihood: 2, impact: 3, inherent_risk_value: 6, inherent_risk_level: 'moderate' });
-    expect(rows[1].after_state).toMatchObject({ likelihood: 3, impact: 3, inherent_risk_value: 9, inherent_risk_level: 'moderate' });
+    expect(rows[1].after_state).toMatchObject({ likelihood: 3, impact: 3, inherent_risk_value: 9, inherent_risk_level: 'high' });
     expect(rows[1].user_id).toBe(adminId);
     expect(await auditRows(a.companyId, 'risk_treatment.create')).toBeGreaterThan(0);
   });
