@@ -1,4 +1,4 @@
-import { LOSS_TYPES, lossTypesOf, nextCode, riskLevelOf, riskMatrix, storedLossTypes } from './risk-types';
+import { LOSS_TYPES, lossTypesOf, nextCode, riskLevelAt, riskMatrix, storedLossTypes } from './risk-types';
 
 describe('tipos de pérdida (impacto potencial)', () => {
   it('lee el texto del catálogo como valores de la API', () => {
@@ -21,9 +21,18 @@ describe('tipos de pérdida (impacto potencial)', () => {
   });
 });
 
-describe('riskLevelOf — la matriz 5×5 (MD-123)', () => {
-  it.each([[1, 'low'], [4, 'low'], [5, 'moderate'], [9, 'moderate'], [10, 'high'], [16, 'high'], [17, 'critical'], [25, 'critical']])('%i → %s', (value, level) => {
-    expect(riskLevelOf(value)).toBe(level);
+const D134: Record<number, string[]> = {
+  5: ['high', 'high', 'critical', 'critical', 'critical'],
+  4: ['moderate', 'high', 'high', 'critical', 'critical'],
+  3: ['low', 'moderate', 'high', 'critical', 'critical'],
+  2: ['low', 'low', 'moderate', 'high', 'critical'],
+  1: ['low', 'low', 'moderate', 'high', 'high'],
+};
+const ALL_CELLS = Object.entries(D134).flatMap(([l, row]) => row.map((level, i) => [Number(l), i + 1, level] as const));
+
+describe('riskLevelAt: la matriz 5×5 por casilla (D134)', () => {
+  it.each(ALL_CELLS)('probabilidad %i × impacto %i → %s', (likelihood, impact, level) => {
+    expect(riskLevelAt(likelihood, impact)).toBe(level);
   });
 });
 
@@ -48,19 +57,7 @@ describe('riskMatrix', () => {
     for (const c of cells) expect(c.value).toBe(c.likelihood * c.impact);
   });
 
-  it('el nivel de cada casilla es el mismo que calcula la evaluación de un riesgo', () => {
-    for (const c of cells) expect(c.level).toBe(riskLevelOf(c.value));
-  });
-
-  it('reparte los cuatro niveles del comité: Bajo 1–4, Moderado 5–9, Alto 10–16, Crítico 17–25', () => {
-    const levelsOf = (level: string) => cells.filter((c) => c.level === level).map((c) => c.value);
-    expect(Math.max(...levelsOf('low'))).toBeLessThanOrEqual(4);
-    expect(Math.min(...levelsOf('moderate'))).toBeGreaterThanOrEqual(5);
-    expect(Math.max(...levelsOf('moderate'))).toBeLessThanOrEqual(9);
-    expect(Math.min(...levelsOf('high'))).toBeGreaterThanOrEqual(10);
-    expect(Math.max(...levelsOf('high'))).toBeLessThanOrEqual(16);
-    expect(Math.min(...levelsOf('critical'))).toBeGreaterThanOrEqual(17);
-    expect(cells.find((c) => c.likelihood === 5 && c.impact === 5)!.level).toBe('critical');
-    expect(cells.find((c) => c.likelihood === 1 && c.impact === 1)!.level).toBe('low');
+  it('el nivel de cada una de las 25 casillas es el de la tabla D134', () => {
+    for (const c of cells) expect(c.level).toBe(riskLevelAt(c.likelihood, c.impact));
   });
 });

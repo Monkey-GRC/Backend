@@ -4,9 +4,9 @@ import { PersonResponse } from '../../../../common/swagger/shared.responses';
 import { CAUSE_CONTROL_EFFECTS, FAILURE_CATEGORIES, LOSS_TYPES, RISK_CRITERIA, RISK_LEVELS, TREATMENT_DECISIONS } from '../../domain/risks/risk-types';
 import { ResponsibleRefResponse } from '../responsibles/responsible.responses';
 
-// Formas del `data` de contracts/modules/compliance-risks.md, solo para la documentación (las arma risk-response.mapper.ts y riskMatrix()).
+// Formas del `data` de contracts/cumplimiento/riesgos.md, solo para la documentación (las arma risk-response.mapper.ts y riskMatrix()).
 
-export const RISK_LEVEL_DOC = 'Nivel del valor (probabilidad × impacto): `low` 1–4 · `moderate` 5–9 · `high` 10–16 · `critical` 17–25.';
+export const RISK_LEVEL_DOC = 'Nivel de la casilla de la matriz de riesgo (probabilidad, impacto), D134: `low`, `moderate`, `high` o `critical`.';
 
 export class RiskMatrixCellResponse {
   @ApiProperty({ example: 3, minimum: 1, maximum: 5, description: 'Probabilidad de la casilla (1 a 5).' }) likelihood!: number;

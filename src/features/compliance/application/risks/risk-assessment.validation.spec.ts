@@ -1,24 +1,19 @@
 import { ValidationException } from '../../../../common/errors/validation.exception';
-import { riskLevelOf, riskValueOf } from '../../domain/risks/risk-types';
+import { riskLevelAt, riskValueOf } from '../../domain/risks/risk-types';
 import { parseDueDate, validateEvaluation } from './risk-assessment.validation';
 
-describe('el nivel de un riesgo (MD-123, D33)', () => {
-  it.each([
-    [2, 2, 4, 'low'],
-    [3, 3, 9, 'moderate'],
-    [2, 5, 10, 'high'],
-    [4, 4, 16, 'high'],
-    [5, 4, 20, 'critical'],
-    [1, 1, 1, 'low'],
-    [1, 5, 5, 'moderate'],
-    [5, 5, 25, 'critical'],
-  ])('probabilidad %i × impacto %i = %i → %s', (likelihood, impact, value, level) => {
-    expect(riskValueOf(likelihood, impact)).toBe(value);
-    expect(riskLevelOf(value)).toBe(level);
-  });
-
-  it('los cortes están en 4/5, 9/10 y 16/17', () => {
-    expect([4, 5, 9, 10, 16, 17].map(riskLevelOf)).toEqual(['low', 'moderate', 'moderate', 'high', 'high', 'critical']);
+describe('el nivel de un riesgo sale de su casilla (D134)', () => {
+  const TABLE: Record<number, string[]> = {
+    5: ['high', 'high', 'critical', 'critical', 'critical'],
+    4: ['moderate', 'high', 'high', 'critical', 'critical'],
+    3: ['low', 'moderate', 'high', 'critical', 'critical'],
+    2: ['low', 'low', 'moderate', 'high', 'critical'],
+    1: ['low', 'low', 'moderate', 'high', 'high'],
+  };
+  const cells = Object.entries(TABLE).flatMap(([l, row]) => row.map((level, i) => [Number(l), i + 1, level] as const));
+  it.each(cells)('probabilidad %i × impacto %i → %s', (likelihood, impact, level) => {
+    expect(riskValueOf(likelihood, impact)).toBe(likelihood * impact);
+    expect(riskLevelAt(likelihood, impact)).toBe(level);
   });
 });
 
