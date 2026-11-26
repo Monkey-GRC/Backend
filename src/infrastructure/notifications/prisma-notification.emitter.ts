@@ -18,12 +18,20 @@ export class PrismaNotificationEmitter extends NotificationEmitter {
     if (events.length === 0) return;
     const facts = await loadControlFacts(tx, events.map((e) => e.controlId));
     const parties = new Map<string, Awaited<ReturnType<typeof loadParty>>>();
-    for (const actorId of new Set(events.map((e) => e.actorId))) parties.set(actorId, await loadParty(tx, actorId));
+    for (const actorId of new Set(events.flatMap((e) => ('actorId' in e ? [e.actorId] : [])))) parties.set(actorId, await loadParty(tx, actorId));
     const drafts: NotificationDraft[] = [];
     for (const event of events) {
       const control = facts.get(event.controlId);
       if (!control) continue;
       const base = { companyId, type: event.type, targetKind: 'control' as const, targetId: control.controlId, dueAt: null };
+      if (event.type === 'direct_check_failed' || event.type === 'automatic_evidence_stale') {
+        // D153 · Los avisos de la evaluación automática no tienen actor: los causa la lectura, no una persona.
+        const extra = event.type === 'direct_check_failed' ? { failures: event.failures, failure_count: event.failureCount } : { stale_assets: event.staleAssets, stale_count: event.staleCount };
+        for (const userId of resolveRecipients(AUDIENCES[event.type], { chain: control.chain })) {
+          drafts.push({ ...base, userId, params: { ...control.params, ...extra }, dedupeKey: `${event.type}:${control.controlId}:${event.dedupeSuffix}` });
+        }
+        continue;
+      }
       const actor = parties.get(event.actorId) ?? null;
       if (event.type === 'control_assigned') {
         for (const userId of resolveRecipients(AUDIENCES.control_assigned, { chain: control.chain, assigneeId: event.assigneeId, actorId: event.actorId })) {

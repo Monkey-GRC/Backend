@@ -1,6 +1,6 @@
 import { I18nService } from 'nestjs-i18n';
 import { Injectable } from '@nestjs/common';
-import { isServiceNotice } from '../../../common/notifications/notification-draft';
+import { isParameterNotice, isServiceNotice } from '../../../common/notifications/notification-draft';
 import type { Language, NotificationRecord } from '../domain/notification';
 import { buildNotificationText, type DetailField } from '../domain/notification-text';
 
@@ -30,6 +30,10 @@ export class NotificationViewer {
     const t = (key: string, args?: Record<string, string | number>): string => this.i18n.t(key, { lang, ...(args ? { args } : {}) }) as string;
     const { title, detail } = buildNotificationText({ type: record.type, params, dueAt: record.dueAt, today: now.toISOString().slice(0, 10), lang }, t);
     const isControl = record.targetKind === 'control';
+    // `check_parameters_changed` es de la empresa: sin servicio ni control.
+    if (isParameterNotice(params)) {
+      return { id: record.id, type: record.type, isRead: record.readAt !== null, readAt: record.readAt, createdAt: record.createdAt, dueAt: record.dueAt, title, detail, service: null, control: null, controls: [], target: { kind: record.targetKind, id: record.targetId, serviceId: null } };
+    }
     return {
       id: record.id,
       type: record.type,

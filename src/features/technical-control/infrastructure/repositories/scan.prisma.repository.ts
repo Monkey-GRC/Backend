@@ -8,8 +8,10 @@ import { Page, PageRequest } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.insert';
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
+import { NotificationEmitter } from '../../../../common/notifications/notification-emitter';
 import { EvaluationParametersPort } from '../../../../common/evaluation-parameters/parameters';
 import { captureControlStates, recordControlStateChanges } from '../../../compliance/infrastructure/shared/control-state-events';
+import { collectDirectCheckFailures } from '../notifications/direct-check-failures.loader';
 import { RUNNER_POOL } from '../../application/runner-pool';
 import { FailedRow } from '../../domain/scan/findings';
 import { interpretTestResult } from '../../domain/scan/interpret-evaluations';
@@ -72,6 +74,7 @@ export class ScanPrismaRepository extends ScanRepository {
     private readonly prisma: PrismaService,
     private readonly evaluationParameters: EvaluationParametersPort,
     private readonly config: ConfigService,
+    private readonly notifications: NotificationEmitter,
     @Inject(RUNNER_POOL) private readonly runnerPool: string,
   ) {
     super();
@@ -456,7 +459,15 @@ export class ScanPrismaRepository extends ScanRepository {
       });
     }
     await this.writeEvaluations(tx, scope, executionId, assetId, run.finishedAt);
+    await this.notifyDirectFailures(tx, scope, executionId, assetId, 'cloud');
     return { executionId, resultCount: persisted.length, resourceCount: uids.length };
+  }
+
+  // D153 · Los checks Directos que pasaron a FAIL respecto de la recolección anterior del mismo activo avisan en la MISMA transacción que cierra la recolección (si se revierte, el aviso también).
+  private async notifyDirectFailures(tx: TransactionClient, scope: TenantScope, executionId: string, assetId: string, source: 'cloud' | 'sca'): Promise<void> {
+    const includeProposed = this.config.get<string>('READINESS_INCLUDE_PROPOSED')?.trim().toLowerCase() === 'true';
+    const events = await collectDirectCheckFailures(tx, { executionId, assetId, source, includeProposed, parameters: await this.evaluationParameters.load(tx), now: new Date() });
+    await this.notifications.emitForControls(tx, scope.companyId, events);
   }
 
   // Lo que una corrida devolvió, ya interpretado. Con un servicio, un recurso con activo propio que NO es de ese servicio no se mide para él.
@@ -681,6 +692,7 @@ export class ScanPrismaRepository extends ScanRepository {
         // La fecha de la medición es la que dijo la sonda (la más reciente de sus políticas), no la de leerla.
         const measuredAt = persisted.reduce<Date>((latest, r) => (r.evaluatedAt > latest ? r.evaluatedAt : latest), persisted[0]?.evaluatedAt ?? outcome.finishedAt);
         await this.writeEvaluations(tx, scope, executionId, assetId, measuredAt, 'sca');
+        await this.notifyDirectFailures(tx, scope, executionId, assetId, 'sca');
 
         const recorded = { executionId, resultCount: persisted.length };
         await insertAuditLog(tx, audit(recorded));

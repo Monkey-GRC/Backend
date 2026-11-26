@@ -136,9 +136,3 @@ export function moduleLinkResult(kind: ModuleKind, facts: ModuleFacts, params: E
   if (kind === 'other_module' || facts.openCriticalHigh === null) return 'no_data';
   return facts.openCriticalHigh === 0 ? 'pass' : 'fail';
 }
-
-/** D135 · Una excepción vigente dura como máximo PR-04 días desde su inicio. */
-export function exceptionEndsOn(validFrom: Date, validUntil: Date, params: EvaluationParameters): Date {
-  const cap = new Date(validFrom.getTime() + params.checkExceptionMaxDays * 86_400_000);
-  return cap.getTime() < validUntil.getTime() ? cap : validUntil;
-}

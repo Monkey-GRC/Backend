@@ -38,12 +38,15 @@ describe('resolveRecipients', () => {
 });
 
 describe('AUDIENCES · el catálogo del contrato', () => {
-  it('cada tipo tiene audiencias y los emitidos hoy son los cinco de MD-515', () => {
+  it('cada tipo tiene audiencias y los emitidos hoy son los de MD-515 y MD-508', () => {
     for (const type of NOTIFICATION_TYPES) expect(AUDIENCES[type].length).toBeGreaterThan(0);
-    expect([...EMITTED_TYPES].sort()).toEqual(['control_assigned', 'evidence_approved', 'evidence_rejected', 'window_due_soon', 'window_expired']);
+    expect([...EMITTED_TYPES].sort()).toEqual(['automatic_evidence_stale', 'check_parameters_changed', 'control_assigned', 'direct_check_failed', 'evidence_approved', 'evidence_rejected', 'window_due_soon', 'window_expired']);
   });
 
   it('los destinatarios de los cinco son los de D138 y D151', () => {
+    expect(AUDIENCES.direct_check_failed).toEqual(['executor', 'owner', 'company_admin']);
+    expect(AUDIENCES.check_parameters_changed).toEqual(['company_admin']);
+    expect(AUDIENCES.automatic_evidence_stale).toEqual(['executor', 'owner']);
     expect(AUDIENCES.window_due_soon).toEqual(['executor', 'owner']);
     expect(AUDIENCES.window_expired).toEqual(['executor', 'owner', 'company_admin']);
     expect(AUDIENCES.control_assigned).toEqual(['assignee']);

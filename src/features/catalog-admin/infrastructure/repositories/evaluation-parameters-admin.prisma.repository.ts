@@ -40,6 +40,8 @@ export class EvaluationParametersAdminPrismaRepository extends EvaluationParamet
       if (isDeepStrictEqual(value, current.value)) return current;
       await tx.evaluationParameter.update({ where: { key }, data: { value: value as Prisma.InputJsonValue, updatedAt: new Date(), updatedById: userId } });
       const after = toRecord(await tx.evaluationParameter.findUniqueOrThrow({ where: { key }, select: SELECT }));
+      // MD-508, D153 · El historial que leen las pasadas por empresa para avisar el cambio (el rastro de auditoría no tiene empresa y una sesión de empresa no lo lee). En la MISMA transacción.
+      await tx.evaluationParameterChange.create({ data: { parameterKey: key, code: current.code, previousValue: current.value as Prisma.InputJsonValue, newValue: after.value as Prisma.InputJsonValue, changedById: userId }, select: { id: true } });
       await insertAuditLog(tx, audit({ before: current, after }));
       return after;
     });

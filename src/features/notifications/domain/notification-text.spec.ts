@@ -25,10 +25,16 @@ const PARAMS: ControlNoticeParams & Record<string, unknown> = {
   assignee_role: 'executor',
   document_name: 'Política de accesos',
   company_name: 'Acme',
+  failures: [{ asset_name: 'Cuenta de producción', check_title_en: 'Ensure MFA is enabled for the root account', check_title_es: 'Verifica que la cuenta raíz tenga MFA' }],
+  failure_count: 1,
+  stale_assets: [{ name: 'Servidor web 01', last_collected_at: '2026-12-10T08:30:00.000Z' }],
+  stale_count: 1,
 };
 
+const PARAMETER_PARAMS = { parameter_key: 'freshness_hours', parameter_code: 'PR-05', previous_value: 24, new_value: 48 };
+
 const build = (type: (typeof NOTIFICATION_TYPES)[number], lang: Language, over: Partial<{ dueAt: string | null; today: string; params: typeof PARAMS }> = {}) =>
-  buildNotificationText({ type, params: over.params ?? PARAMS, dueAt: over.dueAt === undefined ? '2026-12-31' : over.dueAt, today: over.today ?? '2026-12-16', lang }, translator(lang));
+  buildNotificationText({ type, params: over.params ?? (type === 'check_parameters_changed' ? (PARAMETER_PARAMS as unknown as typeof PARAMS) : PARAMS), dueAt: over.dueAt === undefined ? '2026-12-31' : over.dueAt, today: over.today ?? '2026-12-16', lang }, translator(lang));
 
 describe.each(['es', 'en'] as const)('texto de los avisos (%s)', (lang) => {
   it.each([...NOTIFICATION_TYPES])('%s: título y los 7 campos, completos, sin llaves sin sustituir y sin proveedor', (type) => {
@@ -50,16 +56,61 @@ describe.each(['es', 'en'] as const)('texto de los avisos (%s)', (lang) => {
       const { title } = build(type, lang);
       if (type.startsWith('document_')) expect(title).toContain('Política de accesos');
       else if (type === 'company_purge_upcoming') expect(title).toContain('Acme');
+      else if (type === 'check_parameters_changed') expect(title).toContain('PR-05');
       else expect(title).toContain('IAC-12');
     }
   });
 
   it('los emitidos hoy mencionan los requisitos del marco y nunca un código de prueba', () => {
-    for (const type of EMITTED_TYPES) {
+    for (const type of EMITTED_TYPES.filter((x) => x !== 'check_parameters_changed')) {
       const { detail } = build(type, lang);
       expect(detail.what_happened).toContain('IAC-12 (CC6.1, CC6.2)');
       expect(JSON.stringify(detail)).not.toMatch(/T-\d|test_code/i);
     }
+  });
+});
+
+describe('check_parameters_changed (D153)', () => {
+  const textOf = (over: Record<string, unknown>, lang: Language) => build('check_parameters_changed', lang, { params: { ...PARAMETER_PARAMS, ...over } as unknown as typeof PARAMS });
+
+  it('lleva PR-n y su nombre, el valor anterior, el nuevo y el efecto, sin proveedor', () => {
+    const { title, detail } = textOf({}, 'es');
+    expect(title).toBe('Cambió un parámetro de evaluación: Frescura de un resultado automático (PR-05)');
+    expect(detail.what_happened).toContain('el valor anterior era 24 y el nuevo es 48');
+    expect(detail.why_it_matters).not.toBe('');
+    expect(JSON.stringify([title, detail])).not.toMatch(PROVIDER_PATTERN);
+    expect(textOf({}, 'en').detail.what_happened).toContain('the previous value was 24 and the new one is 48');
+  });
+
+  it('formatea booleanos, ventanas y días por periodicidad', () => {
+    expect(textOf({ parameter_key: 'impact_reduction_enabled', previous_value: false, new_value: true }, 'es').detail.what_happened).toContain('era desactivado y el nuevo es activado');
+    expect(textOf({ parameter_key: 'validity_windows', previous_value: 'calendar', new_value: 'rolling' }, 'es').detail.what_happened).toContain('era por calendario y el nuevo es móvil');
+    expect(textOf({ parameter_key: 'alert_days_before', previous_value: { weekly: 2 }, new_value: { weekly: 3, monthly: 5 } }, 'es').detail.what_happened).toContain('semanal: 3, mensual: 5');
+  });
+});
+
+describe('evaluación automática (D153)', () => {
+  const failures = Array.from({ length: 5 }, (_, i) => ({ asset_name: 'Servidor', check_title_en: `Check ${i}`, check_title_es: i === 0 ? null : `Verificación ${i}` }));
+
+  it('direct_check_failed lista activo y verificación en el idioma de quien lee, con «y N más»', () => {
+    const params = { ...PARAMS, failures, failure_count: 8 };
+    const es = build('direct_check_failed', 'es', { params }).detail.what_happened;
+    expect(es).toContain('8 verificaciones');
+    expect(es).toContain('Servidor: Check 0; Servidor: Verificación 1');
+    expect(es).toContain('y 3 más');
+    expect(build('direct_check_failed', 'en', { params }).detail.what_happened).toContain('Servidor: Check 1');
+  });
+
+  it('un título nulo (nombraba al proveedor) sale genérico, nunca vacío', () => {
+    const params = { ...PARAMS, failures: [{ asset_name: 'Servidor', check_title_en: null, check_title_es: null }], failure_count: 1 };
+    expect(build('direct_check_failed', 'es', { params }).detail.what_happened).toContain('Servidor: una verificación del control');
+  });
+
+  it('automatic_evidence_stale dice cuándo fue la última lectura de cada activo', () => {
+    const { detail } = build('automatic_evidence_stale', 'es', { params: { ...PARAMS, stale_count: 3 } });
+    expect(detail.what_happened).toContain('Servidor web 01 (última lectura: 10/12/2026)');
+    expect(detail.what_happened).toContain('y 2 más');
+    expect(build('automatic_evidence_stale', 'en').detail.what_happened).toContain('Servidor web 01 (last reading: Dec 10, 2026)');
   });
 });
 

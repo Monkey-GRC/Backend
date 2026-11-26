@@ -136,32 +136,32 @@
       "impact": "The auditor closes it when the answer is enough."
     },
     "direct_check_failed": {
-      "title": "{control_code} · An automated check of the control is failing",
-      "what_happened": "An automated check of control {control_label} in the service {service_name} is not met.",
+      "title": "{control_code} · An automated check of the control started failing",
+      "what_happened": "In control {control_label} of the service {service_name}, {failure_count} automated checks started failing: {failure_list}.",
       "why_it_matters": "While the check keeps failing, the control goes back to Non-compliant.",
-      "how_to_fix": "Fix what the control detail points out; the next automatic reading measures it again.",
+      "how_to_fix": "Open the control and fix what each check points out; the next automatic reading measures it again.",
       "who": "Executes: {executor} · Owner: {owner}",
       "time_needed": "The next automatic reading confirms the fix.",
       "evidence": "The new result of the check: nothing needs to be uploaded.",
       "impact": "Once the check passes, the control recovers its level."
     },
     "check_parameters_changed": {
-      "title": "{control_code} · The parameters of a check changed",
-      "what_happened": "The parameters of an automated check of control {control_label} in the service {service_name} changed.",
-      "why_it_matters": "A check with other parameters may give another result on the next reading.",
-      "how_to_fix": "Review the control detail and confirm the change is the expected one.",
-      "who": "Executes: {executor} · Owner: {owner}",
-      "time_needed": "It applies from the next automatic reading.",
-      "evidence": "The result of the next reading: nothing needs to be uploaded.",
-      "impact": "If the change is the expected one, the control carries on."
+      "title": "An evaluation parameter changed: {parameter_name}",
+      "what_happened": "Monkey changed the parameter {parameter_name}: the previous value was {previous_value} and the new one is {new_value}.",
+      "why_it_matters": "{parameter_effect}",
+      "how_to_fix": "You do not need to do anything: review the controls of your services if you notice a change in their status.",
+      "who": "Changed by Monkey; you receive it as an administrator of the company.",
+      "time_needed": "It applies from the next evaluation of each service.",
+      "evidence": "Nothing needs to be uploaded: the change applies to what is already measured.",
+      "impact": "The controls of your services are evaluated with the new value; their status may change without your evidence changing."
     },
     "automatic_evidence_stale": {
       "title": "{control_code} · The automated evidence of the control is out of date",
-      "what_happened": "The automated evidence of control {control_label} in the service {service_name} is older than allowed.",
+      "what_happened": "The latest automatic reading of {stale_count} assets of control {control_label} in the service {service_name} is older than allowed: {stale_list}.",
       "why_it_matters": "Out-of-date evidence leaves the test pending until there is a new reading.",
-      "how_to_fix": "Check that the service connection is still active so a new reading arrives.",
+      "how_to_fix": "A new reading of the asset fixes it: check that its connection is still active and request an evaluation.",
       "who": "Executes: {executor} · Owner: {owner}",
-      "time_needed": "It is fixed by the next automatic reading.",
+      "time_needed": "It is fixed by the next automatic reading of the asset.",
       "evidence": "A recent automatic reading.",
       "impact": "With the new reading, the test is measured again."
     },
@@ -245,5 +245,15 @@
       "evidence": "No evidence is needed.",
       "impact": "After the deadline, the company and its data are removed."
     }
+  },
+  "check_untitled": "a check of the control",
+  "last_reading": "last reading: {date}",
+  "parameter_bool": {
+    "true": "on",
+    "false": "off"
+  },
+  "window_mode": {
+    "calendar": "calendar",
+    "rolling": "rolling"
   }
 }

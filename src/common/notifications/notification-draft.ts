@@ -20,7 +20,19 @@ export type ControlNoticeParams = {
   periodicity?: string;
   /** `control_assigned`: con qué papel le asignaron el control. */
   assignee_role?: 'owner' | 'executor';
+  /** `direct_check_failed` (D153): hasta 5 pares activo-verificación que pasaron a FAIL; el título ya pasó por el filtro de proveedor (SEG-39). */
+  failures?: FailureParam[];
+  /** `direct_check_failed`: cuántos pares pasaron a FAIL en total (el resto va como «y N más»). */
+  failure_count?: number;
+  /** `automatic_evidence_stale` (D153): hasta 5 activos y cuándo fue su última lectura (ISO). */
+  stale_assets?: StaleAssetParam[];
+  /** `automatic_evidence_stale`: cuántos activos del control están desactualizados en total. */
+  stale_count?: number;
 };
+
+/** Una verificación que pasó a FAIL en un activo. Los títulos son nulos si el texto del catálogo nombra al proveedor; el texto pone uno genérico. */
+export type FailureParam = { asset_name: string; check_title_en: string | null; check_title_es: string | null };
+export type StaleAssetParam = { name: string; last_collected_at: string };
 
 /** Los controles «Sin asignar» de un servicio con ventanas por vencer o vencidas, agrupados en UN aviso por administrador, servicio, tipo y día (Rod, 2026-11-25). */
 export type ServiceNoticeParams = {
@@ -34,7 +46,16 @@ export type ServiceNoticeParams = {
   controls?: { id: string; code: string }[];
 };
 
-export type NotificationParams = ControlNoticeParams | ServiceNoticeParams;
+/** `check_parameters_changed` (D153): un parámetro PR-n que Monkey cambió. Del tipo `company`: sin control ni servicio. Los valores van tal como los guarda el catálogo; el texto los formatea al leer. */
+export type ParameterNoticeParams = {
+  parameter_key: string;
+  parameter_code: string | null;
+  previous_value: unknown;
+  new_value: unknown;
+};
+
+export type NotificationParams = ControlNoticeParams | ServiceNoticeParams | ParameterNoticeParams;
+export const isParameterNotice = (p: NotificationParams): p is ParameterNoticeParams => 'parameter_key' in p;
 export const isServiceNotice = (p: NotificationParams): p is ServiceNoticeParams => 'control_count' in p;
 
 export type NotificationDraft = {

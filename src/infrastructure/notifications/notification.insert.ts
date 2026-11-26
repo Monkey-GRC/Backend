@@ -1,15 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '../../../generated/prisma/client';
 import type { NotificationDraft } from '../../common/notifications/notification-draft';
-import { NOTIFICATION_CHANNEL } from '../../common/notifications/notification-type';
 import type { TransactionClient } from '../database/prisma.service';
 
 // D151, SEG-87 · Guarda los avisos DENTRO de la transacción del hecho que los causa (si se revierte, el aviso también). SIN `RETURNING`: la política de lectura es por persona y quien
 // causa el hecho no es el destinatario (mismo motivo que `insertAuditLog`). Un aviso repetido `(user_id, dedupe_key)` se descarta en silencio con `ON CONFLICT DO NOTHING` SIN objetivo: con el índice nombrado, Postgres exige además que la fila nueva pase la política de lectura
 // (por persona) y quien causa el hecho no es el destinatario.
 //
-// En vivo: `pg_notify` dentro de la misma transacción. Postgres entrega la notificación SOLO si la transacción se confirma y a TODAS las réplicas que escuchan el canal, así que ni un
-// aviso revertido llega a una campana ni dos réplicas se estorban. El id se genera aquí: si el aviso era un duplicado, quien escucha no lo encuentra y no publica nada.
+// En vivo: lo publica el disparador `notifications_publish` (migración 20261125130000) SOLO por las filas realmente insertadas: un duplicado descartado por `ON CONFLICT` no publica nada (sin
+// `RETURNING` no se puede saber desde aquí cuáles entraron). Postgres entrega la notificación SOLO si la transacción se confirma y a TODAS las réplicas que escuchan el canal, así que ni un
+// aviso revertido llega a una campana ni dos réplicas se estorban.
 export async function insertNotifications(tx: TransactionClient, drafts: readonly NotificationDraft[]): Promise<void> {
   if (drafts.length === 0) return;
   const ids = drafts.map(() => randomUUID());
@@ -21,6 +21,4 @@ export async function insertNotifications(tx: TransactionClient, drafts: readonl
         ${drafts.map((d) => d.targetId)}::uuid[], ${drafts.map((d) => JSON.stringify(d.params))}::text[], ${drafts.map((d) => d.dueAt)}::date[], ${drafts.map((d) => d.dedupeKey)}::text[]
       ) AS v(id, company_id, user_id, type, target_kind, target_id, params, due_at, dedupe_key)
     ON CONFLICT DO NOTHING`);
-  const payloads = drafts.map((d, i) => JSON.stringify({ i: ids[i], u: d.userId, c: d.companyId }));
-  await tx.$executeRaw(Prisma.sql`SELECT pg_notify(${NOTIFICATION_CHANNEL}, p) FROM unnest(${payloads}::text[]) AS p`);
 }
