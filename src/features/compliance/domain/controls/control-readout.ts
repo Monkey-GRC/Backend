@@ -1,5 +1,6 @@
 import { DimensionName } from '../../../../common/catalogs/dimensions';
 import type { ControlAccess } from './control-access';
+import { compliesAt, finalLevelOf, isLivePlan, LevelOverrideRecord, levelValue, liveOverrideOf, ManagementExtras, RemediationPlanRecord, sameWindowStart, periodLevelOf, NO_EXTRAS, OccurrenceRecord, DeclarationRecord, quarterCoverage } from './management-extras';
 import { ApprovalRecord, controlWindowStart, countsAsCompliant, deriveManagement, ManagementReadout, ManagementState } from './management-state';
 import type { EvidenceState } from '../evidence/evidence';
 import { AssetResult, ControlState, TestState } from '../engine/states';
@@ -64,6 +65,12 @@ export type LinkItem = {
   key: string;
 };
 export const NO_LINKS: TestLinks = { directCheckCount: 0, complementaryCheckIds: [], modules: [], dependencies: [], directKeys: [], items: [] };
+
+/**
+ * MD-529 (DT-115) · Un requisito «cuando sea requerido» con alguna prueba que no es documental se mide POR EVENTO (ocurrencias y declaración trimestral, D131 punto 3). Una prueba documental se decide con su
+ * documento (T-01) aunque su requisito sea «cuando sea requerido»: pedirle al responsable que declare «sin ocurrencias» de una política no tiene sentido.
+ */
+export const isEventRequirement = (r: { periodicity: Periodicity | null; tests: ReadonlyArray<{ testType?: string | null }> }): boolean => r.periodicity === 'on_demand' && r.tests.some((t) => t.testType !== 'documentary');
 
 export type ReadoutTest = {
   testId: string;
@@ -143,6 +150,10 @@ export type ReadoutControl = {
   manualResults?: ReadonlyMap<string, ManualResult>;
   /** MD-504 · Las aprobaciones y devoluciones del control (`control_approvals`) y cuándo se registró cada resultado manual: de ahí sale el estado de gestión (D132). */
   management?: { approvals: readonly ApprovalRecord[]; resultDates: readonly Date[] };
+  /** MD-504/MD-529 (DT-116) · Todos los resultados manuales de cada prueba EN ESTE control, del más viejo al más nuevo: la vista del período lee cada ventana. */
+  manualResultHistory?: ReadonlyMap<string, readonly ManualResult[]>;
+  /** MD-529 · La corrección del nivel, los planes de remediación, las ocurrencias y las declaraciones del control. */
+  extras?: ManagementExtras;
 };
 
 /** Último resultado de cada activo en cada test de cada control: `${controlId}|${testId}|${assetId}`. */
@@ -218,9 +229,17 @@ export type ControlReadout = {
   management: ManagementReadout;
   /** El estado del control para la categoría y el marco (D130 puntos 4 y 5): solo `approved` cuenta como cumplido; un control que cumple pero no está aprobado sigue «en evaluación». */
   rollupState: ControlState;
+  /** MD-529 (R5) · El nivel FINAL: el sugerido o, con una corrección aprobada y vigente, el corregido. Lo usan `complies`, el rollup y el riesgo. */
   level: ControlLevel;
   levelValue: number;
   complies: boolean;
+  /** MD-529 · El nivel que dio el motor, sin la corrección. */
+  suggestedLevel: ControlLevel;
+  suggestedLevelValue: number;
+  /** MD-529 · La corrección aprobada y vigente; `null` si el control usa el nivel sugerido. */
+  levelOverride: LevelOverrideRecord | null;
+  /** MD-529 · El inicio de la ventana vigente del control (la de las aprobaciones, las correcciones y los planes). */
+  windowStart: Date | null;
   cPercent: number | null;
   /** Decidido para el marco y la categoría: nivel distinto de «No evaluado» y ningún requisito pendiente. */
   decided: boolean;
@@ -230,6 +249,14 @@ export type ControlReadout = {
   /** MD-500 (R6) · `null` si el período no está definido. */
   period: PeriodReadout | null;
 };
+
+/** Las pruebas en Excepción de los requisitos aplicables del control: a lo que un plan de remediación puede responder. */
+export const exceptionTestIdsOf = (readout: ControlReadout): Set<string> =>
+  new Set(readout.requirements.filter((r) => r.requirement.isApplicable).flatMap((r) => r.tests.filter((t) => t.status === 'exception').map((t) => t.test.testId)));
+
+/** Un plan pendiente sigue valiendo (el administrador puede decidirlo) si nadie lo invalidó, es de la ventana vigente y su prueba sigue en Excepción de un requisito aplicable. */
+export const isPendingPlanLive = (p: RemediationPlanRecord, readout: ControlReadout, exceptions: ReadonlySet<string> = exceptionTestIdsOf(readout)): boolean =>
+  p.status === 'pending' && p.invalidatedAt === null && sameWindowStart(p.windowStart, readout.windowStart) && exceptions.has(p.testId);
 
 /** `test_status` → `test_state` (contracts/cumplimiento/controles.md «Motor v2»). */
 export function legacyTestState(status: TestStatus): TestState {
@@ -268,6 +295,14 @@ const dayOf = (d: Date) => d.toISOString().slice(0, 10);
 /** G-11 · Lo fechado fuera del período auditado no cuenta. Sin período, todo cuenta. */
 const withinPeriod = (at: Date | null, period: AuditedPeriod | null | undefined): boolean =>
   !period || !at || (at.getTime() >= period.start.getTime() && at.getTime() < period.end.getTime() + DAY_MS);
+
+/** DT-116 (MD-529) · Todos los resultados manuales de la prueba en el control (el historial), no solo el último; si el historial no vino, el último. */
+function manualHistoryOf(control: ReadoutControl, testId: string): ReadonlyArray<ManualResult> {
+  const history = control.manualResultHistory?.get(testId);
+  if (history) return history;
+  const last = control.manualResults?.get(testId);
+  return last ? [last] : [];
+}
 
 /** El resultado manual vigente de la prueba en el control, dentro del período auditado (G-11). */
 function manualResultOf(control: ReadoutControl, testId: string, period?: AuditedPeriod | null): ManualResult | null {
@@ -340,6 +375,36 @@ function outcomesOf(control: ReadoutControl, test: ReadoutTest, periodicity: Per
     });
 }
 
+// --- «Cuando sea requerido» (DT-115, MD-529) --------------------------------------------------------------------------------------------------------
+
+const occurrencesIn = (all: readonly OccurrenceRecord[], w: EvaluationWindow) => all.filter((o) => o.occurredOn.getTime() >= w.start.getTime() && o.occurredOn.getTime() < w.end.getTime());
+const declaredIn = (all: readonly DeclarationRecord[], w: EvaluationWindow) => all.some((d) => d.windowStart.getTime() === w.start.getTime());
+
+/** El trimestre de cada requisito `on_demand`: los ya cerrados dentro del período auditado y el abierto. */
+function quarterStates(control: ReadoutControl, requirementId: string, data: ReadoutData): { closed: Array<{ window: EvaluationWindow; coverage: ReturnType<typeof quarterCoverage> }>; open: ReturnType<typeof quarterCoverage>; openWindow: EvaluationWindow | null; openOccurrences: number } {
+  const { now, period } = data.signals;
+  const occ = control.extras?.occurrences.get(requirementId) ?? [];
+  const decl = control.extras?.declarations.get(requirementId) ?? [];
+  const closed = (period ? closedWindowsWithin('quarterly', period, now) : []).map((window) => ({ window, coverage: quarterCoverage(occurrencesIn(occ, window), declaredIn(decl, window), true) }));
+  const openWindow = currentWindow({ periodicity: 'quarterly', now });
+  const inOpen = openWindow ? occurrencesIn(occ, openWindow) : [];
+  return { closed, open: quarterCoverage(inOpen, openWindow ? declaredIn(decl, openWindow) : false, false), openWindow, openOccurrences: inOpen.length };
+}
+
+function evaluateOnDemand(control: ReadoutControl, entry: Entry, data: ReadoutData): { status: TestStatus; windowEnd: string | null } {
+  const q = quarterStates(control, entry.requirement.id, data);
+  const windowEnd = windowEndDate(q.openWindow);
+  if (q.closed.some((c) => c.coverage === 'exception')) return { status: 'exception', windowEnd };
+  if (q.closed.some((c) => c.coverage === 'expired')) return { status: 'expired', windowEnd };
+  if (q.open === 'exception') return { status: 'exception', windowEnd };
+  if (q.open === 'pending') return { status: 'pending', windowEnd };
+  if (q.open === 'declared') return { status: 'correct', windowEnd };
+  // Todas las ocurrencias del trimestre con evidencia: en una prueba no documental decide el resultado del responsable, registrado dentro del trimestre.
+  const result = manualResultOf(control, entry.test.testId, data.signals.period);
+  if (!result || !q.openWindow || result.at.getTime() < q.openWindow.start.getTime()) return { status: 'pending', windowEnd };
+  return { status: result.result, windowEnd };
+}
+
 function evaluateTest(control: ReadoutControl, entry: Entry, data: ReadoutData, visiting: ReadonlySet<string> = new Set()): TestEvaluationDetail {
   const periodicity = entry.requirement.periodicity ?? control.periodicity ?? null;
   const key = `${control.id}|${entry.test.testId}|${periodicity}`;
@@ -393,6 +458,14 @@ function evaluateTest(control: ReadoutControl, entry: Entry, data: ReadoutData, 
     // MD-499/MD-497 · Una prueba de fuente `integration` sin la integración conectada (hoy, todas) se mide con su evidencia subida, igual que una manual. Cuando MD-497 conecte
     // integraciones, aquí elige la fuente: con la categoría conectada (`IntegrationConnections`) decide la integración y la evidencia subida queda de histórico en las ventanas cerradas.
     const documentary = test.testType === 'documentary';
+    if (periodicity === 'on_demand' && !documentary && control.origin !== 'own') {
+      // DT-115 (MD-529, D131 punto 3) · «Cuando sea requerido»: se mide por trimestre con las ocurrencias y la declaración de «sin ocurrencias».
+      const onDemand = evaluateOnDemand(control, entry, data);
+      const withAlert = { status: onDemand.status, windowEnd: onDemand.windowEnd, checks: null, assetCoverage: null, failingAssetIds: [] as string[], alertAt: null, manual: true };
+      const done = { ...withAlert, alertAt: alertDate(withAlert.windowEnd, periodicity, signals.parameters, signals.now) };
+      memo.set(key, done);
+      return done;
+    }
     const manual = evaluateManualTest({
       evidence: manualEvidenceOf(control, test.testId, signals.period), result: documentary ? null : manualResultOf(control, test.testId, signals.period), requiresResult: !documentary, periodicity, now: signals.now,
       windowMode: signals.parameters.validityWindows, periodStart: signals.period?.start,
@@ -468,8 +541,8 @@ type RequirementWindows = { total: number; missing: MissingWindow[] };
 const inWindow = (at: Date, w: EvaluationWindow) => at.getTime() >= w.start.getTime() && at.getTime() < w.end.getTime();
 
 /** ¿La evidencia manual de la prueba cubre la ventana? Una entrega que cuenta fechada dentro de ella, o un resultado registrado (no una excepción) de la prueba. */
-function manualCovers(items: ReadonlyArray<ControlEvidenceItem>, result: { result: string; at: Date } | null, w: EvaluationWindow): boolean {
-  if (result && result.result !== 'exception' && inWindow(result.at, w)) return true;
+function manualCovers(items: ReadonlyArray<ControlEvidenceItem>, results: ReadonlyArray<{ result: string; at: Date }>, w: EvaluationWindow): boolean {
+  if (results.some((r) => r.result !== 'exception' && inWindow(r.at, w))) return true;
   return items.some((e) => (e.history ?? [{ state: e.state, submittedAt: e.submittedAt }]).some((h) => h.state === 'compliant' && h.submittedAt !== null && inWindow(h.submittedAt, w)));
 }
 
@@ -504,9 +577,9 @@ function hasDayIn(days: ReadonlySet<number>, w: EvaluationWindow): boolean {
 }
 
 /** Las fechas (ms) en que la evidencia manual de la prueba fue válida: entregas que cuentan y el resultado registrado. */
-function manualDates(items: ReadonlyArray<ControlEvidenceItem>, result: { result: string; at: Date } | null): number[] {
+function manualDates(items: ReadonlyArray<ControlEvidenceItem>, results: ReadonlyArray<{ result: string; at: Date }>): number[] {
   const dates = items.flatMap((e) => (e.history ?? [{ state: e.state, submittedAt: e.submittedAt }]).flatMap((h) => (h.state === 'compliant' && h.submittedAt ? [h.submittedAt.getTime()] : [])));
-  if (result && result.result !== 'exception') dates.push(result.at.getTime());
+  for (const r of results) if (r.result !== 'exception') dates.push(r.at.getTime());
   return dates;
 }
 
@@ -526,10 +599,10 @@ function rollingWindowsOf(control: ReadoutControl, r: RequirementReadout, data: 
   const own = control.origin === 'own';
   if (!own && r.tests.length === 0) return { total: 0, missing: [] };
   const chains = own
-    ? [{ dates: manualDates(control.evidence, null), technical: false }]
+    ? [{ dates: manualDates(control.evidence, []), technical: false }]
     : r.tests.flatMap((t) => {
         const links = t.test.links ?? NO_LINKS;
-        const result = t.test.testType === 'documentary' ? null : (control.manualResults?.get(t.test.testId) ?? null);
+        const result = t.test.testType === 'documentary' ? [] : manualHistoryOf(control, t.test.testId);
         const byHand = { dates: manualDates(control.evidence.filter((e) => e.testId === t.test.testId), result), technical: false };
         // D160 · Con parte manual, la prueba lleva dos cadenas: la de sus checks y la del resultado del responsable.
         if (t.assetCoverage !== null) return [{ dates: technicalDates(control, t.test, data), technical: true }, ...(t.manualPart ? [byHand] : [])];
@@ -550,6 +623,11 @@ function windowsOf(control: ReadoutControl, r: RequirementReadout, data: Readout
   const { period } = data.signals;
   const periodicity = r.requirement.periodicity;
   if (!period || r.status === 'not_applicable') return { total: 0, missing: [] };
+  if (isEventRequirement(r.requirement) && control.origin !== 'own') {
+    // MD-529 (DT-116) · Cada trimestre ya cerrado del período está cubierto si todas sus ocurrencias tienen evidencia o hay declaración de «sin ocurrencias».
+    const closed = quarterStates(control, r.requirement.id, data).closed;
+    return { total: closed.length, missing: closed.filter((c) => c.coverage === 'exception' || c.coverage === 'expired').map((c) => ({ requirementCode: r.requirement.code, window: c.window, technical: false })) };
+  }
   if (data.signals.parameters.validityWindows === 'rolling') return hasPeriodWindows(periodicity, 'rolling') ? rollingWindowsOf(control, r, data, period) : { total: 0, missing: [] };
   const windows = closedWindowsWithin(periodicity, period, data.signals.now);
   const own = control.origin === 'own';
@@ -557,10 +635,10 @@ function windowsOf(control: ReadoutControl, r: RequirementReadout, data: Readout
   const missing: MissingWindow[] = [];
   for (const w of windows) {
     const uncovered = own
-      ? !manualCovers(control.evidence, null, w)
+      ? !manualCovers(control.evidence, [], w)
       : r.tests.some((t) => {
           const links = t.test.links ?? NO_LINKS;
-          const result = t.test.testType === 'documentary' ? null : (control.manualResults?.get(t.test.testId) ?? null);
+          const result = t.test.testType === 'documentary' ? [] : manualHistoryOf(control, t.test.testId);
           const byHand = () => manualCovers(control.evidence.filter((e) => e.testId === t.test.testId), result, w);
           // D160 · Con parte manual, la ventana necesita las dos cosas: los checks y el resultado del responsable.
           if (t.assetCoverage !== null) return !technicalCovers(control, t.test, periodicity, w, data) || (!!t.manualPart && !byHand());
@@ -590,16 +668,42 @@ export function readControl(control: ReadoutControl, data: ReadoutData): Control
     periodComplete: missing.length === 0,
     coverageFull: requirements.every((r) => r.tests.every((t) => t.assetCoverage === null || t.assetCoverage.inScope === 0 || (t.assetCoverage.withResult / t.assetCoverage.inScope) * 100 >= data.signals.parameters.solidAssetCoverage)),
   };
-  const level = evaluateControlLevel(levelInput(requirements), data.signals.parameters, solid);
+  // MD-529 · La ventana vigente del control: la de las aprobaciones, las correcciones de nivel y los planes de remediación.
+  const applicableNow = requirements.filter((r) => r.status !== 'not_applicable');
+  const windowStart = controlWindowStart(applicableNow.map((r) => r.requirement.periodicity), data.signals.now, data.signals.parameters.validityWindows);
+  const extras = control.extras ?? NO_EXTRAS;
+  // D140 punto 4 · Parcial exige un plan aprobado y vigente por cada excepción (una prueba en Excepción de un requisito aplicable).
+  const exceptionTests = new Set<string>();
+  for (const r of applicableNow) for (const t of r.tests) if (t.status === 'exception') exceptionTests.add(t.test.testId);
+  const missingPlan = [...exceptionTests].some((testId) => !extras.plans.some((p) => p.testId === testId && isLivePlan(p, windowStart)));
+  const suggested = evaluateControlLevel(levelInput(requirements), data.signals.parameters, solid, { missingPlan });
+  // R5 · El nivel final reemplaza al sugerido en todas partes (`complies`, el estado de gestión, el rollup y el riesgo).
+  const levelOverride = liveOverrideOf(extras.overrides, suggested.levelValue, windowStart);
+  const finalLevel = finalLevelOf(suggested.levelValue, levelOverride);
+  const level = levelOverride
+    ? {
+        ...suggested,
+        level: finalLevel,
+        levelValue: levelValue(finalLevel),
+        complies: compliesAt(finalLevel),
+        state: ((): ControlState => {
+          if (suggested.applicable === 0) return 'no_tests';
+          if (compliesAt(finalLevel)) return 'effective';
+          if (applicableNow.some((r) => r.status === 'non_compliant')) return 'ineffective';
+          return applicableNow.some((r) => r.status === 'expired') ? 'expired' : 'evaluating';
+        })(),
+      }
+    : suggested;
 
   let period: PeriodReadout | null = null;
   if (data.signals.period) {
     const adjusted = requirements.map((r, i) => ({ ...r, status: requirementStatusInPeriod(r.status, windows[i].missing) }));
-    const view = evaluateControlLevel(levelInput(adjusted), data.signals.parameters, solid);
+    const view = evaluateControlLevel(levelInput(adjusted), data.signals.parameters, solid, { missingPlan });
     const total = windows.reduce((n, w) => n + w.total, 0);
+    const periodLevel = periodLevelOf(view.levelValue, levelOverride);
     period = {
-      level: view.level,
-      complies: view.complies,
+      level: periodLevel,
+      complies: view.complies && compliesAt(periodLevel),
       windows: { total, withEvidence: total - missing.length },
       missing: missing.map((m) => ({ requirementCode: m.requirementCode, windowStart: dayOf(m.window.start), windowEnd: windowEndDate(m.window) as string })),
     };
@@ -621,7 +725,6 @@ export function readControl(control: ReadoutControl, data: ReadoutData): Control
   }
 
   // MD-504 · D132: el estado de gestión sale del nivel del motor y de lo que las personas hicieron. El inicio de la ventana es el del control (la más reciente de sus requisitos).
-  const periodicities = requirements.filter((r) => r.status !== 'not_applicable').map((r) => r.requirement.periodicity);
   const loads = [
     ...control.evidence.flatMap((e) => (e.history ?? [{ submittedAt: e.submittedAt }]).flatMap((h) => (h.submittedAt ? [h.submittedAt] : []))),
     ...(control.management?.resultDates ?? []),
@@ -629,7 +732,7 @@ export function readControl(control: ReadoutControl, data: ReadoutData): Control
   const management = deriveManagement({
     complies: level.complies,
     directFail: requirements.some((r) => r.tests.some((t) => t.failingAssetIds.length > 0)),
-    windowStart: controlWindowStart(periodicities, data.signals.now, data.signals.parameters.validityWindows),
+    windowStart,
     approvals: control.management?.approvals ?? [],
     loads,
   });
@@ -655,6 +758,10 @@ export function readControl(control: ReadoutControl, data: ReadoutData): Control
     level: level.level,
     levelValue: level.levelValue,
     complies: level.complies,
+    suggestedLevel: suggested.level,
+    suggestedLevelValue: suggested.levelValue,
+    levelOverride,
+    windowStart,
     cPercent: level.cPercent,
     decided: level.decided,
     requirements,

@@ -6,6 +6,7 @@ import { ControlAccess } from '../../domain/controls/control-access';
 import { CheckLinkReadout, ControlReadout, Dimension } from '../../domain/controls/control-readout';
 import { ConnectedIntegrationCategories, evidenceAcceptanceOf, EvidenceSourceTest } from '../../domain/evidence/test-evidence-source';
 import { codeOfControl } from '../../domain/overview/compliance-overview';
+import { detailManagement, requirementOfTest } from '../management/management-acts.mapper';
 
 const evidenceFlags = (test: EvidenceSourceTest, connected: ConnectedIntegrationCategories, applies: boolean) => {
   const { accepts, fallback } = evidenceAcceptanceOf(test, connected, applies);
@@ -72,6 +73,7 @@ const technicalBlock = (r: ControlReadout) => ({
   points_of_focus: r.control.pointsOfFocus,
   level: r.level,
   level_value: r.levelValue,
+  suggested_level: r.suggestedLevel,
   complies: r.complies,
   c_percent: r.cPercent,
   periodicity_change: r.control.periodicityChange
@@ -119,6 +121,7 @@ const requirementsBlock = (r: ControlReadout, t: Translate, links: ReadonlyMap<s
     suggested_periodicity: x.requirement.suggestedPeriodicity ?? null,
     periodicity_source: r.control.periodicityChange ? 'client' : 'catalog',
     status: x.status,
+    applicability: !x.requirement.isApplicable ? 'not_applicable' : (r.control.extras?.applicability.get(x.requirement.id) ?? []).some((a) => a.status === 'pending') ? 'not_applicable_pending' : 'applicable',
     tests: x.tests.map((y) => ({
       test_id: y.test.testId,
       test_code: y.test.code,
@@ -140,6 +143,8 @@ export function toControlDetail(d: ControlDetail, t: Translate) {
   const applying = applyingOf(r);
   return {
     ...base(r),
+    // MD-529 · Lo que la pantalla necesita para pintar las acciones sin recalcular (aprobacion.md): acciones permitidas, niveles, excepciones con su plan, requisitos y pruebas manuales.
+    management: { ...managementBlock(r), ...detailManagement(r, d.actor, d.now, (x) => neutralName(x, x.dimension, t), (x) => evidenceAcceptanceOf(x, d.connectedIntegrations, applying.has(x.dimension)).accepts) },
     service_id: r.control.serviceId,
     interpretation: { text: r.control.interpretation, is_customized: r.control.catalogDescription === null || r.control.interpretation !== r.control.catalogDescription },
     dimensions: r.control.dimensions.map((x) => ({
@@ -154,7 +159,7 @@ export function toControlDetail(d: ControlDetail, t: Translate) {
       responsible: e.responsible ? { id: e.responsible.id, type: e.responsible.type, person_name: e.responsible.personName } : null,
       latest_submission: e.latestSubmission ? { id: e.latestSubmission.id, version: e.latestSubmission.version, evidence_state: e.latestSubmission.evidenceState } : null,
     })),
-    evidence_tests: evidenceTestsOf(r.tests, d.evidence, d.connectedIntegrations, applying, (x) => neutralName(x, x.dimension, t)),
+    evidence_tests: evidenceTestsOf(r.tests, d.evidence, d.connectedIntegrations, applying, (x) => neutralName(x, x.dimension, t)).map((e) => ({ ...e, control_requirement_id: requirementOfTest(r, e.test_id) })),
     causes: d.causes,
     failing: r.failing.map((f) => ({
       dimension: f.dimension,

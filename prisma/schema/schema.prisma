@@ -3,6 +3,8 @@ generator client {
   output   = "../../generated/prisma"
   // El build de Nest es CommonJS: sin esto el cliente usa import.meta y no carga en runtime.
   moduleFormat = "cjs"
+  // MD-529: `relationLoadStrategy: 'join'` trae las relaciones anidadas en una consulta (un viaje a la base) en vez de una por nivel.
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {

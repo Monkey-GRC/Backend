@@ -8,6 +8,7 @@ import { STATE_TRANSACTION } from '../../../../common/tenancy/state-transaction'
 import { TransactionRunner } from '../../../../common/tenancy/transaction-runner';
 import { approvalStepFor, approverStepOf, canRegisterManualResult, controlWindowStart } from '../../domain/controls/management-state';
 import type { ApprovalStep } from '../../domain/controls/management-state';
+import { pendingOverrideOf } from '../../domain/controls/management-extras';
 import { ControlManagementRepository } from '../../domain/management/control-management.repository';
 import { ControlDetail, GetControlUseCase } from '../controls/get-control.use-case';
 import { ControlApprovalDto, ManualTestResultDto } from './management.dto';
@@ -44,6 +45,8 @@ export class ApproveControlUseCase {
         const action = approvalStepFor(p, access, state);
         if ('error' in action) throw new DomainError(action.error);
         step = action.step;
+        // MD-529 · Con una corrección de nivel pendiente no se aprueba: se decide primero (el nivel final decide si el control cumple).
+        if (pendingOverrideOf(readout.control.extras?.overrides ?? [], readout.suggestedLevelValue, readout.windowStart)) throw new DomainError('LEVEL_OVERRIDE_PENDING');
       } else {
         reason = text(dto.reason);
         if (!reason) throw new ValidationException([{ field: 'reason', code: 'reason.required' }]);

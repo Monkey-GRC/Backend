@@ -3,7 +3,7 @@ import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { ConnectedIntegrationCategories, NO_INTEGRATIONS } from '../../domain/evidence/test-evidence-source';
 import { outcomeOfEvidence } from '../../domain/work/work-bucket';
-import { workPieceOf } from '../../domain/work/work-piece';
+import { workPiecesOf } from '../../domain/work/work-piece';
 import { ControlDeliveries, WorkPerson, WorkRepository } from '../../domain/work/work.repository';
 import { submissionState, SUBMISSION_STATE_SELECT, versionOf } from '../evidence/evidence-state.mapper';
 
@@ -22,13 +22,15 @@ export class WorkPrismaRepository extends WorkRepository {
 
       const controls = await tx.clientControl.findMany({
         where: { id: { in: controlIds } },
-        select: { id: true, serviceId: true, dimensions: { select: { dimension: true, type: true, reasonNotApplicable: true } }, tests: { select: { testId: true, test: { select: { dimension: true, primarySource: true, integrationCategory: { select: { name: true } } } } } } },
+        select: { id: true, serviceId: true, controlId: true, dimensions: { select: { dimension: true, type: true, reasonNotApplicable: true } }, tests: { select: { testId: true, test: { select: { dimension: true, type: true, primarySource: true, integrationCategory: { select: { name: true } } } } } } },
       });
       // Qué cuenta cada prueba (evidencia o veredicto) lo decide `workPieceOf`; las categorías conectadas son del servicio y llegan resueltas.
       const pieces = new Map(controls.map((c) => [c.id, c.tests.map((t) => {
           const dimension = c.dimensions.find((d) => d.dimension === t.test.dimension);
-          const test = { dimension: t.test.dimension, primarySource: t.test.primarySource, integrationCategory: t.test.integrationCategory?.name ?? null };
-          return { testId: t.testId, piece: workPieceOf(test, dimension && { applies: dimension.reasonNotApplicable === null, type: dimension.type }, connected.get(c.serviceId) ?? NO_INTEGRATIONS) };
+          const test = { dimension: t.test.dimension, type: t.test.type, primarySource: t.test.primarySource, integrationCategory: t.test.integrationCategory?.name ?? null };
+          // Un control propio se mide con su evidencia como un requisito documental único: no tiene resultado que registrar.
+          const all = workPiecesOf(test, dimension && { applies: dimension.reasonNotApplicable === null, type: dimension.type }, connected.get(c.serviceId) ?? NO_INTEGRATIONS);
+          return { testId: t.testId, pieces: c.controlId === null ? all.filter((x) => x !== 'result') : all };
         })] as const));
 
       // Evidencias: una pieza por cada evidencia requerida de cada prueba del control que acepta subida (D88); la prueba que aún no tiene ninguna (el lugar nace con la primera entrega) es una pieza
@@ -39,7 +41,7 @@ export class WorkPrismaRepository extends WorkRepository {
       });
       for (const c of controls) {
         const items = (byControl.get(c.id) as ControlDeliveries).items;
-        for (const t of (pieces.get(c.id) ?? []).filter((x) => x.piece === 'evidence')) {
+        for (const t of (pieces.get(c.id) ?? []).filter((x) => x.pieces.includes('evidence'))) {
           const own = requirements.filter((r) => r.clientControlId === c.id && r.testId === t.testId);
           if (!own.length) items.push({ delivery: null });
           for (const r of own) {
@@ -61,9 +63,11 @@ export class WorkPrismaRepository extends WorkRepository {
       const latestResult = new Map<string, string>();
       for (const r of results) if (!latestResult.has(`${r.clientControlId}|${r.testId}`)) latestResult.set(`${r.clientControlId}|${r.testId}`, r.registeredBy);
       for (const c of controls) {
-        for (const t of (pieces.get(c.id) ?? []).filter((x) => x.piece === 'verdict')) {
+        for (const t of (pieces.get(c.id) ?? []).filter((x) => x.pieces.includes('result'))) {
           const by = latestResult.get(`${c.id}|${t.testId}`);
-          byControl.get(c.id)?.items.push({ delivery: by ? { by, outcome: 'accepted', ownerCanReview: false } : null });
+          // DT-120 · Si la prueba también acepta subida y ya tiene una entrega que cuenta, al dueño le toca registrar el resultado (`to_review`).
+          const evidenceReady = t.pieces.includes('evidence') && requirements.some((r) => r.clientControlId === c.id && r.testId === t.testId && r.submissions.some((s) => outcomeOfEvidence(submissionState(s)) === 'accepted'));
+          byControl.get(c.id)?.items.push({ kind: 'result', evidenceReady, delivery: by ? { by, outcome: 'accepted', ownerCanReview: false } : null });
         }
       }
 

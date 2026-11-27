@@ -498,7 +498,13 @@
     "document_acceptance_reminder": "Documento por aceptar",
     "document_approval_requested": "Documento por aprobar",
     "document_renewal_due": "Documento por renovar",
-    "company_purge_upcoming": "Empresa por borrarse"
+    "company_purge_upcoming": "Empresa por borrarse",
+    "level_override_proposed": "El responsable propone corregir el nivel",
+    "level_override_decided": "Se decidió tu propuesta de nivel",
+    "remediation_plan_proposed": "Un plan de remediación espera tu decisión",
+    "remediation_plan_decided": "Se decidió un plan de remediación",
+    "not_applicable_requested": "Un «No aplica» espera tu decisión",
+    "not_applicable_decided": "Se decidió tu «No aplica»"
   },
   "document_version_status": {
     "draft": "Borrador",
@@ -535,5 +541,66 @@
     "correct": "Correcto",
     "observation": "Observación",
     "exception": "Excepción"
+  },
+  "control_level": {
+    "not_evaluated": "No evaluado",
+    "ineffective": "Ineficaz",
+    "weak": "Débil",
+    "partial": "Parcial",
+    "adequate": "Adecuado",
+    "solid": "Sólido"
+  },
+  "requirement_status": {
+    "compliant": "Cumple",
+    "non_compliant": "No cumple",
+    "pending": "Pendiente",
+    "expired": "Vencido",
+    "not_applicable": "No aplica"
+  },
+  "change_request_status": {
+    "pending": "Por aprobar",
+    "approved": "Aprobada",
+    "rejected": "Rechazada"
+  },
+  "requirement_applicability": {
+    "applicable": "Aplica",
+    "not_applicable_pending": "No aplica, por aprobar",
+    "not_applicable": "No aplica"
+  },
+  "management_action": {
+    "approve": "Aprobar el cumplimiento",
+    "return": "Devolver el control",
+    "register_result": "Registrar el resultado",
+    "propose_level": "Corregir el nivel",
+    "decide_level": "Decidir la corrección del nivel",
+    "register_plan": "Registrar el plan de remediación",
+    "decide_plan": "Decidir el plan de remediación",
+    "request_not_applicable": "Pedir «No aplica»",
+    "decide_not_applicable": "Decidir «No aplica»",
+    "revert_not_applicable": "Volver a aplicar el requisito",
+    "declare_no_occurrences": "Declarar «sin casos»",
+    "register_occurrence": "Registrar un caso"
+  },
+  "management_history_type": {
+    "approval": "Aprobación",
+    "return": "Devolución",
+    "approval_invalidated": "Aprobación sin efecto",
+    "manual_result": "Resultado de una prueba",
+    "level_proposed": "Corrección de nivel propuesta",
+    "level_decided": "Corrección de nivel decidida",
+    "plan_registered": "Plan de remediación registrado",
+    "plan_decided": "Plan de remediación decidido",
+    "not_applicable_requested": "«No aplica» pedido",
+    "not_applicable_decided": "«No aplica» decidido",
+    "not_applicable_reverted": "«No aplica» revertido",
+    "occurrence_registered": "Caso registrado",
+    "no_occurrences_declared": "«Sin casos» declarado"
+  },
+  "work_decision_kind": {
+    "control_approval": "Aprobar el control",
+    "manual_result": "Registrar el resultado de una prueba",
+    "level_override": "Decidir una corrección de nivel",
+    "remediation_plan": "Decidir un plan de remediación",
+    "not_applicable": "Decidir un «No aplica»"
   }
 }

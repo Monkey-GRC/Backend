@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../../generated/prisma/client';
+import { ASSIGNABLE_ROLES } from '../../../../common/enums/user-role.enum';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { assertRoomIn, assertUserRoom, lockUserQuota } from '../../../../common/quota/user-quota';
 import { Page } from '../../../../common/pagination/page';
@@ -116,6 +117,12 @@ export class TeamUserPrismaRepository extends TeamUserRepository {
         return created.id;
       }
     }
+  }
+
+  directory(scope: TenantScope): Promise<Array<{ id: string; name: string | null; lastName: string | null; role: string }>> {
+    return this.prisma.withScope(scope, (tx) =>
+      tx.user.findMany({ where: { companyId: scope.companyId, status: 'active', role: { in: [...ASSIGNABLE_ROLES] } }, select: { id: true, name: true, lastName: true, role: true }, orderBy: [{ name: 'asc' }, { lastName: 'asc' }, { id: 'asc' }], take: 500 }),
+    );
   }
 
   list(scope: TenantScope, f: MemberFilters): Promise<Page<TeamMember>> {

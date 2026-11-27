@@ -60,5 +60,16 @@
   "approved_at_future": "La fecha de aprobación no puede ser futura.",
   "disposition_not_inline": "Ese tipo de archivo no se puede mostrar en pantalla: solo PDF, PNG y JPG. Descárgalo para verlo.",
   "result_invalid": "Elige correcto, observación o excepción.",
-  "returned_submission_ids_invalid": "Alguna de esas entregas no es de este control."
+  "returned_submission_ids_invalid": "Alguna de esas entregas no es de este control.",
+  "proposed_level_invalid": "Elige un nivel distinto del que rige hoy y que no sea «No evaluado».",
+  "justification_required": "Escribe la justificación.",
+  "what_required": "Escribe qué se hará.",
+  "due_date_past": "La fecha no puede ser anterior a hoy.",
+  "occurred_on_future": "La fecha del caso no puede ser futura.",
+  "description_required": "Escribe qué pasó.",
+  "occurrence_id_required": "Indica el caso al que pertenece este archivo.",
+  "occurrence_id_invalid": "Ese caso no es de este requisito.",
+  "owner_id_invalid": "Elige a una persona activa de la empresa.",
+  "bucket_invalid": "Ese filtro no está disponible para tu rol: solo tienes «Por aprobar».",
+  "to_before_from": "La fecha final no puede ser anterior a la inicial."
 }

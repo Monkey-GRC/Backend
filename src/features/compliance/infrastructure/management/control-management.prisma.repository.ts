@@ -7,7 +7,7 @@ import { EvaluationParametersPort } from '../../../../common/evaluation-paramete
 import { readControl } from '../../domain/controls/control-readout';
 import { snapshotOf } from '../../domain/controls/control-state-events';
 import { ApprovalSaved, ApprovalWrite, ControlManagementRepository, ManagementContext, ResultSaved, ResultWrite } from '../../domain/management/control-management.repository';
-import { captureControlStates, recordChangesBetween } from '../shared/control-state-events';
+import { captureControlReadouts, invalidateStaleRequests, recordChangesBetween } from '../shared/control-state-events';
 import { loadServiceSnapshot } from '../shared/service-snapshot.loader';
 import { STATE_TRANSACTION } from '../../../../common/tenancy/state-transaction';
 
@@ -52,7 +52,7 @@ export class ControlManagementPrismaRepository extends ControlManagementReposito
           await tx.evidenceSubmission.updateMany({ where: { id: { in: [...input.returnedSubmissionIds] } }, data: { returnedApprovalId: row.id } });
         }
       }
-      const after = await captureControlStates(tx, control.serviceId, parameters);
+      const { snapshots: after, readouts } = await captureControlReadouts(tx, control.serviceId, parameters);
       const code = control.control?.code ?? control.ownCode;
       const saved: ApprovalSaved = { id: row.id, controlId, controlCode: code, at: now, write: input, stateAfter: after.get(controlId)?.managementState ?? input.stateBefore };
       await insertAuditLog(tx, audit(saved));
@@ -63,6 +63,8 @@ export class ControlManagementPrismaRepository extends ControlManagementReposito
         tx, { tenantId: scope.companyId, serviceId: control.serviceId, cause: 'control_approval', actor: { userId: input.actorId, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent }, notifications: this.notifications },
         before, after,
       );
+      const readout = readouts.get(controlId);
+      if (readout) await invalidateStaleRequests(tx, scope.companyId, [readout], { userId: input.actorId, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent });
       return saved;
     }, STATE_TRANSACTION);
   }
@@ -75,7 +77,7 @@ export class ControlManagementPrismaRepository extends ControlManagementReposito
         data: { tenantId: scope.companyId, clientControlId: controlId, testId, result: input.result, note: input.note, registeredBy: input.registeredBy },
         select: { id: true, registeredAt: true, registeredByUser: { select: { id: true, name: true, lastName: true } } },
       });
-      const after = await captureControlStates(tx, control.serviceId, parameters);
+      const { snapshots: after, readouts } = await captureControlReadouts(tx, control.serviceId, parameters);
       const saved: ResultSaved = {
         id: row.id, controlId, testId, result: input.result, note: input.note, registeredBy: row.registeredByUser, registeredAt: row.registeredAt,
         stateBefore: before.get(controlId)?.managementState ?? 'non_compliant', stateAfter: after.get(controlId)?.managementState ?? 'non_compliant',
@@ -85,6 +87,8 @@ export class ControlManagementPrismaRepository extends ControlManagementReposito
         tx, { tenantId: scope.companyId, serviceId: control.serviceId, cause: 'manual_test_result', actor: { userId: input.registeredBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent }, notifications: this.notifications },
         before, after,
       );
+      const readout = readouts.get(controlId);
+      if (readout) await invalidateStaleRequests(tx, scope.companyId, [readout], { userId: input.registeredBy, ipAddress: input.meta.ipAddress, userAgent: input.meta.userAgent });
       return saved;
     }, STATE_TRANSACTION);
   }

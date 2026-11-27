@@ -45,7 +45,7 @@ export class PrismaNotificationEmitter extends NotificationEmitter {
           drafts.push({ ...base, userId, params: { ...control.params, actor, assignee_role: event.assigneeRole }, dedupeKey: `control_assigned:${control.controlId}:${event.assigneeRole}:${event.dedupeSuffix}` });
         }
       } else {
-        for (const userId of resolveRecipients(AUDIENCES[event.type], { chain: control.chain, actorId: event.actorId })) {
+        for (const userId of resolveRecipients(AUDIENCES[event.type], { chain: control.chain, actorId: event.actorId, assigneeId: event.type === 'remediation_plan_decided' ? event.assigneeId : null })) {
           drafts.push({ ...base, userId, params: { ...control.params, actor }, dedupeKey: `${event.type}:${event.dedupeSuffix}` });
         }
       }

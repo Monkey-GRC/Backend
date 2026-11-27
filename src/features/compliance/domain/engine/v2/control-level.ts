@@ -35,9 +35,12 @@ export type ControlLevelEvaluation = {
  * R2: si el documento base falta, está vencido o no está aprobado, el nivel máximo es Débil. Mientras el módulo Documentos no exista (DT-114) el documento base son las pruebas
  * documentales del control.
  *
- * Parcial exige además un plan de remediación por cada excepción (D140); ese plan todavía no existe (MD-529, DT-114): hoy Parcial se asigna por C%.
+ * Parcial exige además un plan de remediación aprobado por cada excepción (D140, MD-529): `remediation.missingPlan` lo dice; sin él queda Débil.
  */
-export function evaluateControlLevel(requirements: readonly RequirementForLevel[], params: EvaluationParameters, solid: SolidConditions = { periodComplete: true, coverageFull: true }): ControlLevelEvaluation {
+/** D140 punto 4 (MD-529) · Parcial exige un plan de remediación aprobado por cada excepción: con una excepción sin plan vigente, el nivel queda Débil. */
+export type RemediationCondition = { missingPlan: boolean };
+
+export function evaluateControlLevel(requirements: readonly RequirementForLevel[], params: EvaluationParameters, solid: SolidConditions = { periodComplete: true, coverageFull: true }, remediation: RemediationCondition = { missingPlan: false }): ControlLevelEvaluation {
   const indexed = requirements.map((r, index) => ({ ...r, index })).filter((r) => r.status !== 'not_applicable');
   const compliant = indexed.filter((r) => r.status === 'compliant').length;
   const measured = indexed.filter((r) => r.status === 'compliant' || r.status === 'non_compliant' || r.status === 'expired').length;
@@ -53,7 +56,7 @@ export function evaluateControlLevel(requirements: readonly RequirementForLevel[
   else {
     const c = cPercent as number;
     if (c >= 100) level = observations || !solid.periodComplete || !solid.coverageFull ? 'adequate' : 'solid';
-    else if (c >= params.partialThreshold) level = 'partial';
+    else if (c >= params.partialThreshold) level = remediation.missingPlan ? 'weak' : 'partial';
     else if (c >= params.weakThreshold) level = 'weak';
     else level = 'ineffective';
     if (!baseDocumentOk && LEVEL_VALUE[level] > LEVEL_VALUE.weak) level = 'weak';

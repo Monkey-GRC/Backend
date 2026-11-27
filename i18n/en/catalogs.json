@@ -498,7 +498,13 @@
     "document_acceptance_reminder": "Document awaiting acceptance",
     "document_approval_requested": "Document awaiting approval",
     "document_renewal_due": "Document due for renewal",
-    "company_purge_upcoming": "Company about to be deleted"
+    "company_purge_upcoming": "Company about to be deleted",
+    "level_override_proposed": "The owner proposes a level correction",
+    "level_override_decided": "Your level proposal was decided",
+    "remediation_plan_proposed": "A remediation plan awaits your decision",
+    "remediation_plan_decided": "A remediation plan was decided",
+    "not_applicable_requested": "A “Not applicable” awaits your decision",
+    "not_applicable_decided": "Your “Not applicable” was decided"
   },
   "document_version_status": {
     "draft": "Draft",
@@ -535,5 +541,66 @@
     "correct": "Correct",
     "observation": "Observation",
     "exception": "Exception"
+  },
+  "control_level": {
+    "not_evaluated": "Not evaluated",
+    "ineffective": "Ineffective",
+    "weak": "Weak",
+    "partial": "Partial",
+    "adequate": "Adequate",
+    "solid": "Solid"
+  },
+  "requirement_status": {
+    "compliant": "Compliant",
+    "non_compliant": "Non-compliant",
+    "pending": "Pending",
+    "expired": "Expired",
+    "not_applicable": "Not applicable"
+  },
+  "change_request_status": {
+    "pending": "Pending approval",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "requirement_applicability": {
+    "applicable": "Applicable",
+    "not_applicable_pending": "Not applicable, pending approval",
+    "not_applicable": "Not applicable"
+  },
+  "management_action": {
+    "approve": "Approve compliance",
+    "return": "Return the control",
+    "register_result": "Record the result",
+    "propose_level": "Correct the level",
+    "decide_level": "Decide the level correction",
+    "register_plan": "Record the remediation plan",
+    "decide_plan": "Decide the remediation plan",
+    "request_not_applicable": "Request a “Not applicable”",
+    "decide_not_applicable": "Decide a “Not applicable”",
+    "revert_not_applicable": "Re-apply the requirement",
+    "declare_no_occurrences": "Declare \"no cases\"",
+    "register_occurrence": "Record a case"
+  },
+  "management_history_type": {
+    "approval": "Approval",
+    "return": "Return",
+    "approval_invalidated": "Approval voided",
+    "manual_result": "Test result",
+    "level_proposed": "Level correction proposed",
+    "level_decided": "Level correction decided",
+    "plan_registered": "Remediation plan recorded",
+    "plan_decided": "Remediation plan decided",
+    "not_applicable_requested": "\"Not applicable\" requested",
+    "not_applicable_decided": "\"Not applicable\" decided",
+    "not_applicable_reverted": "\"Not applicable\" reverted",
+    "occurrence_registered": "Case recorded",
+    "no_occurrences_declared": "\"No cases\" declared"
+  },
+  "work_decision_kind": {
+    "control_approval": "Approve the control",
+    "manual_result": "Record a test result",
+    "level_override": "Decide a level correction",
+    "remediation_plan": "Decide a remediation plan",
+    "not_applicable": "Decide a “Not applicable”"
   }
 }

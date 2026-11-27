@@ -170,7 +170,7 @@ export class EvidencePrismaRepository extends EvidenceRepository {
         const row = await tx.evidenceSubmission.create({
           data: {
             tenantId: scope.companyId, evidenceRequirementId: requirementId, submittedBy: input.submittedBy, filePath: input.fileKey, fileType: input.fileType,
-            fileSize: input.fileSize, storageLocation: 's3', integrityHash: input.integrityHash, version: String(next),
+            fileSize: input.fileSize, storageLocation: 's3', integrityHash: input.integrityHash, version: String(next), requirementOccurrenceId: input.occurrenceId ?? null,
           },
           select: submissionSelect(),
         });
@@ -195,6 +195,21 @@ export class EvidencePrismaRepository extends EvidenceRepository {
       if (!row) return null;
       const access = await this.accessOf(tx, row.evidenceRequirementId);
       return access ? { submission: toSubmission(row), access } : null;
+    });
+  }
+
+  occurrenceFacts(scope: TenantScope, controlId: string, testId: string, occurrenceId: string | null): Promise<{ onDemand: boolean; occurrenceOk: boolean }> {
+    return this.prisma.withScope(scope, async (tx) => {
+      // Una prueba documental se decide con su documento, no por evento: nunca pide ocurrencia.
+      const kind = await tx.test.findUnique({ where: { id: testId }, select: { type: true } });
+      if (kind?.type === 'documentary') return { onDemand: false, occurrenceOk: false };
+      const rows = await tx.clientControlRequirement.findMany({
+        where: { clientControlId: controlId, controlRequirement: { tests: { some: { testId } } } },
+        select: { id: true, periodicity: true, controlRequirement: { select: { periodicity: true } } },
+      });
+      const onDemandIds = rows.filter((r) => (r.periodicity ?? r.controlRequirement.periodicity) === 'on_demand').map((r) => r.id);
+      const occurrenceOk = occurrenceId !== null && onDemandIds.length > 0 && (await tx.requirementOccurrence.count({ where: { id: occurrenceId, clientControlRequirementId: { in: onDemandIds } } })) > 0;
+      return { onDemand: onDemandIds.length > 0, occurrenceOk };
     });
   }
 

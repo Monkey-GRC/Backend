@@ -10,5 +10,6 @@
   "limit_reached": "Tu empresa llegó al número de usuarios contratado. Desactiva una cuenta o pide ampliar el cupo.",
   "has_assignments": "Tiene controles asignados: los que ejecuta quedarán sin ejecutor y los suyos sin dueño. Confirma para seguir.",
   "responsible_has_delegates": "Este responsable aún tiene delegados activos o pendientes en su equipo. Muévelos a otro equipo o desactívalos primero.",
-  "team_leader_inactive": "El responsable de este delegado ya no está vigente. Mueve al delegado a otro equipo antes de reactivarlo."
+  "team_leader_inactive": "El responsable de este delegado ya no está vigente. Mueve al delegado a otro equipo antes de reactivarlo.",
+  "directory": "Personas de tu empresa."
 }

@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, Req } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import { mailLanguageOf } from '../../../common/mail/mail-language';
@@ -10,9 +10,9 @@ import { ResponseDto } from '../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../common/http/request-meta';
 import { toPageResponse } from '../../../common/pagination/page';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
-import { ApiData, ApiDomainErrors, ApiPaged } from '../../../common/swagger/api-envelope';
+import { ApiData, ApiDomainErrors, ApiItems, ApiPaged } from '../../../common/swagger/api-envelope';
 import { CreateTeamMemberDto, ListTeamQuery, UpdateTeamMemberDto } from '../application/dtos/team.dto';
-import { CreateTeamMemberUseCase, ListTeamUseCase, ReissueActivationCodeUseCase, UpdateTeamMemberUseCase } from '../application/use-cases/team-users.use-cases';
+import { CreateTeamMemberUseCase, ListTeamUseCase, UserDirectoryUseCase, ReissueActivationCodeUseCase, UpdateTeamMemberUseCase } from '../application/use-cases/team-users.use-cases';
 import { toInvitation, toInvitedMember, toMember } from './team.mapper';
 import { ReissuedInvitationResponse, TeamMemberInvitedResponse, TeamMemberResponse } from './team.responses';
 import { clientIp } from '../../../common/http/client-ip';
@@ -20,6 +20,30 @@ import { clientIp } from '../../../common/http/client-ip';
 const t = (key: string): string => (I18nContext.current()?.t(key) as string | undefined) ?? key;
 const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userAgent: req.get('user-agent') ?? '', language: mailLanguageOf(I18nContext.current()?.lang) });
+
+export class DirectoryPersonResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ nullable: true, example: 'Ana' }) name!: string | null;
+  @ApiProperty({ nullable: true, example: 'Pérez' }) last_name!: string | null;
+  @ApiProperty({ enum: ['admin_empresa', 'responsable', 'delegado'], enumName: 'DirectoryRole', description: 'El rol de la persona.' }) role!: string;
+}
+
+// MD-529 · Para elegir quién hace un plan de remediación: sin correo ni otros datos, y fuera del `@Can('users.manage')` del resto del módulo.
+@ApiTags(API_TAGS.team)
+@Controller('users')
+export class UserDirectoryController {
+  constructor(private readonly directory: UserDirectoryUseCase) {}
+
+  @ApiOperation({ summary: 'Directorio de personas de la empresa', description: 'Solo quien puede registrar un plan de remediación (`admin_empresa` y `responsable`). Las personas ACTIVAS de la empresa con rol `admin_empresa`, `responsable` o `delegado`, solo con `id`, `name`, `last_name` y `role` (sin correo). Sin paginación; orden por nombre.' })
+  @ApiItems(DirectoryPersonResponse, 'Las personas activas de la empresa.')
+  @ApiDomainErrors('FORBIDDEN')
+  @Can('users.directory')
+  @Get('directory')
+  async people(@CurrentUser() p: Principal) {
+    const rows = await this.directory.execute(p);
+    return new ResponseDto(HttpStatus.OK, t('user.directory'), { items: rows.map((r) => ({ id: r.id, name: r.name, last_name: r.lastName, role: r.role })) });
+  }
+}
 
 // El equipo de la empresa (contracts/gestion-usuarios.md, D102, D136, D150). `admin_empresa` invita, lista, edita, desactiva y reemite códigos; el `responsable` solo lista el suyo. `admin_monkey` no crea ni desactiva cuentas de una empresa. El restablecimiento del segundo factor (`DELETE /users/{id}/mfa`) vive en el módulo de autenticación.
 @ApiTags(API_TAGS.team)

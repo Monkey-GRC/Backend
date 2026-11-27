@@ -8,6 +8,7 @@ import { invitarYActivar, sembrarEquipo } from '../support/equipo';
 // MD-137 · El resumen de cumplimiento de un servicio por marco, categoría y acción que falla (contracts/modules/compliance-overview.md). Cada prueba sale por
 // HTTP, con la sesión real de cada rol, contra el Postgres desechable.
 type Agent = Awaited<ReturnType<typeof login>>;
+const TRIMESTRE = ((n = new Date()) => new Date(Date.UTC(n.getUTCFullYear(), Math.floor(n.getUTCMonth() / 3) * 3, 1)).toISOString().slice(0, 10))();
 let app: INestApplication;
 let a: Tenant;
 let b: Tenant;
@@ -68,7 +69,8 @@ describe('Resumen del servicio — la evaluación aún sin definir (P26)', () =>
 describe('Resumen del servicio — con la evaluación definida y resultados', () => {
   let failingId: string;
   beforeAll(async () => {
-    await definirPeriodo(a.serviceId, '2026-01-01', '2026-12-31', '2026-10-14');
+    // El período arranca en el trimestre actual: un trimestre cerrado sin ocurrencias ni declaración deja Vencido un requisito «cuando sea requerido» (MD-529, DT-115) y ensuciaría lo que mira esta prueba.
+    await definirPeriodo(a.serviceId, TRIMESTRE, '2026-12-31', '2026-10-14');
     // Una acción de seguridad con un test de nube: el activo de la prueba es una cuenta de AWS.
     const rows = await owner<{ id: string; test_id: string; catalog_version_id: string }>(
       `select c.id, t.id as test_id, sf.catalog_version_id
@@ -94,7 +96,7 @@ describe('Resumen del servicio — con la evaluación definida y resultados', ()
   it('la evaluación sale con la versión del catálogo, el período y la fecha de corte', async () => {
     const fw = soc2(await read(a.agent));
     // La fecha de corte está guardada (congelada): sale tal cual, sin importar qué día sea hoy (D87).
-    expect(fw.evaluation).toEqual({ catalog_version: expect.stringMatching(/^\d+$/), period_start: '2026-01-01', period_end: '2026-12-31', cutoff_date: '2026-10-14', cutoff_frozen: true, min_period_months: 6 });
+    expect(fw.evaluation).toEqual({ catalog_version: expect.stringMatching(/^\d+$/), period_start: TRIMESTRE, period_end: '2026-12-31', cutoff_date: '2026-10-14', cutoff_frozen: true, min_period_months: 6 });
   });
 
   it('un control que no cumple aparece donde falla, con su código, sus requisitos y el activo afectado', async () => {

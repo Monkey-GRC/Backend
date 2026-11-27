@@ -46,3 +46,21 @@ describe('outcomes', () => {
     expect(['non_compliant', 'expired', 'pending', 'in_review', 'compliant', 'not_applicable'].map((s) => outcomeOfEvidence(s as never))).toEqual(['rejected', 'rejected', 'waiting', 'waiting', 'accepted', 'accepted']);
   });
 });
+
+describe('el resultado de una prueba manual (MD-529, DT-120)', () => {
+  const result = (evidenceReady: boolean, delivered = false): WorkItem => ({ kind: 'result', evidenceReady, delivery: delivered ? { by: 'r1', outcome: 'accepted', ownerCanReview: false } : null });
+
+  it('al dueño le toca registrarlo cuando la evidencia del delegado ya está: por revisar, no por subir', () => {
+    expect(classifyControlWork(owner, [item('d1', 'accepted'), result(true)])).toMatchObject({ bucket: 'to_review', toReview: 1, resultsToRegister: 1, missing: 0 });
+  });
+  it('sin la evidencia del delegado todavía falta la pieza: por subir', () => {
+    expect(classifyControlWork(owner, [none, result(false)])).toMatchObject({ bucket: 'to_upload', missing: 2, resultsToRegister: 0 });
+  });
+  it('registrado, está entregado', () => {
+    expect(classifyControlWork(owner, [item('d1', 'accepted'), result(true, true)]).bucket).toBe('done');
+  });
+  it('para el delegado no es una pieza suya: no la ve ni le falta', () => {
+    expect(classifyControlWork(executor, [item('d1', 'accepted'), result(true)])).toMatchObject({ bucket: 'done', missing: 0, toReview: 0 });
+    expect(classifyControlWork(executor, [result(false)]).bucket).toBe('done');
+  });
+});

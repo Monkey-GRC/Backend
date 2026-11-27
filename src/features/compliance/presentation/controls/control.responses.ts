@@ -2,6 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { PersonResponse } from '../../../../common/swagger/shared.responses';
 import { DIMENSIONS } from '../../../../common/catalogs/dimensions';
 import { ResponsibleRefResponse } from '../responsibles/responsible.responses';
+import { MANAGEMENT_ACTIONS } from '../../domain/management/allowed-actions';
+import { LevelOverrideResponse, ManagementExceptionResponse, ManagementLevelResponse, ManagementManualTestResponse, ManagementRequirementResponse } from '../management/management-acts.responses';
 
 // Formas del `data` de contracts/modules/compliance-controls.md y compliance-overview.md, solo para la documentación (las arman control-response.mapper.ts y
 // overview-response.mapper.ts). El avance informa, nunca decide el cumplimiento: siempre viaja junto al estado y a la cobertura.
@@ -119,6 +121,7 @@ export class ControlRequirementResponse {
   @ApiProperty({ enum: PERIODICITIES, enumName: 'Periodicity', nullable: true, description: 'MD-500 · La periodicidad que sugiere el catálogo para el requisito.' }) suggested_periodicity!: string | null;
   @ApiProperty({ enum: ['catalog', 'client'], enumName: 'PeriodicitySource', description: 'MD-500 · De dónde sale `periodicity`: `catalog` (la sugerida) o `client` (la cambió el `admin_empresa`, D147).' }) periodicity_source!: string;
   @ApiProperty({ enum: REQUIREMENT_STATUSES, enumName: 'RequirementStatus', description: 'Estado del requisito (§9), derivado de sus pruebas.' }) status!: string;
+  @ApiProperty({ enum: ['applicable', 'not_applicable_pending', 'not_applicable'], enumName: 'RequirementApplicability', description: 'MD-529 · Si el requisito aplica: `not_applicable_pending` tiene un «No aplica» por aprobar y `not_applicable` ya salió del C%.' }) applicability!: string;
   @ApiProperty({ type: RequirementTestResponse, isArray: true, description: 'Las pruebas que lo prueban.' }) tests!: RequirementTestResponse[];
 }
 
@@ -148,7 +151,8 @@ export class ControlPeriodResponse {
 
 export class ControlTechnicalResponse {
   @ApiProperty({ isArray: true, type: String, description: 'Puntos de enfoque a los que sirve.' }) points_of_focus!: string[];
-  @ApiProperty({ enum: CONTROL_LEVELS, enumName: 'ControlLevel', description: 'Nivel sugerido por el motor v2 (R1 a R6, §9).' }) level!: string;
+  @ApiProperty({ enum: CONTROL_LEVELS, enumName: 'ControlLevel', description: 'El nivel FINAL (MD-529, R5): el sugerido por el motor v2 (R1 a R6, §9) o, con una corrección del responsable aprobada y vigente, el corregido.' }) level!: string;
+  @ApiProperty({ enum: CONTROL_LEVELS, enumName: 'ControlLevel', description: 'MD-529 · El nivel que dio el motor, sin la corrección. Igual a `level` si no hay corrección.' }) suggested_level!: string;
   @ApiProperty({ example: 3, description: 'Valor de la escala del nivel, de 0 (No evaluado) a 5 (Sólido).' }) level_value!: number;
   @ApiProperty({ example: false, description: '`true` solo en los niveles Adecuado y Sólido (R4).' }) complies!: boolean;
   @ApiProperty({ nullable: true, example: 80, description: 'C%: requisitos que cumplen ÷ requisitos aplicables, con dos decimales; `null` si no hay requisitos aplicables.' }) c_percent!: number | null;
@@ -166,6 +170,16 @@ export class ControlManagementResponse {
   @ApiProperty({ nullable: true, description: 'El motivo de la última devolución, si el estado es `returned`; `null` si no.' }) returned_reason!: string | null;
   @ApiProperty({ type: PersonResponse, nullable: true, description: 'Quién devolvió el control, si el estado es `returned`.' }) returned_by!: PersonResponse | null;
   @ApiProperty({ format: 'date-time', nullable: true, description: 'Cuándo se devolvió, si el estado es `returned`.' }) returned_at!: string | null;
+}
+
+/** MD-529 · El `management` del DETALLE: lo de la lista más lo que la pantalla necesita para pintar las acciones. */
+export class ControlManagementDetailResponse extends ControlManagementResponse {
+  @ApiProperty({ enum: MANAGEMENT_ACTIONS, enumName: 'ManagementAction', isArray: true, description: 'Lo que quien llama puede hacer AHORA sobre el control; la pantalla pinta los botones con esto. El servidor vuelve a comprobar cada escritura.' }) allowed_actions!: string[];
+  @ApiProperty({ type: ManagementLevelResponse, nullable: true, description: 'Los niveles sugerido y final; `null` si quien llama no ve niveles (solo `auditor`, `admin_empresa` y el responsable dueño).' }) level!: ManagementLevelResponse | null;
+  @ApiProperty({ type: LevelOverrideResponse, nullable: true, description: 'La propuesta de nivel más reciente de la ventana vigente; `null` si no hay o si quien llama no ve niveles.' }) level_override!: LevelOverrideResponse | null;
+  @ApiProperty({ type: ManagementExceptionResponse, isArray: true, description: 'Las pruebas en excepción de requisitos aplicables, cada una con su plan de remediación.' }) exceptions!: ManagementExceptionResponse[];
+  @ApiProperty({ type: ManagementRequirementResponse, isArray: true, description: 'Los requisitos del control con su «No aplica» y, si son «cuando sea requerido», su trimestre; vacío si quien llama no los ve.' }) requirements!: ManagementRequirementResponse[];
+  @ApiProperty({ type: ManagementManualTestResponse, isArray: true, description: 'Las pruebas manuales no documentales con su último resultado.' }) manual_tests!: ManagementManualTestResponse[];
 }
 
 export class ControlListItemResponse {
@@ -226,10 +240,12 @@ export class ControlEvidenceTestResponse {
   @ApiProperty({ enum: DIMENSIONS, enumName: 'Dimension', description: 'Dimensión de la prueba.' }) dimension!: string;
   @ApiProperty({ enum: TEST_STATUSES, enumName: 'TestStatus', description: 'Estado de la prueba en este control (`test_status`).' }) status!: string;
   @ApiProperty({ description: 'MD-499 · `true` solo si la prueba es de fuente `integration` y acepta subida de respaldo (se calcula; no se guarda).' }) evidence_fallback!: boolean;
-  @ApiProperty({ format: 'uuid', nullable: true, description: 'El requerimiento que creó la primera entrega de esta prueba; `null` si aún no hay.' }) requirement_id!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, description: 'El requerimiento de evidencia que creó la primera entrega de esta prueba; `null` si aún no hay.' }) requirement_id!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, description: 'MD-529 · El requisito del control al que sirve la prueba (el «cuando sea requerido» si tiene alguno), SIEMPRE, aunque no haya entregas: de ahí la pantalla sabe si debe pedir la ocurrencia. `null` en un control propio.' }) control_requirement_id!: string | null;
 }
 
 export class ControlDetailResponse extends ControlListItemResponse {
+  @ApiProperty({ type: ControlManagementDetailResponse, description: 'MD-504 y MD-529 · Quién aprobó o devolvió el control y, en el detalle, las acciones permitidas, los niveles, las excepciones con su plan, los requisitos y las pruebas manuales.' }) declare management: ControlManagementDetailResponse;
   @ApiProperty({ format: 'uuid' }) service_id!: string;
   @ApiProperty({ type: ControlInterpretationResponse }) interpretation!: ControlInterpretationResponse;
   @ApiProperty({ type: ControlDimensionResponse, isArray: true, description: 'Dimensiones en que se evalúa el control y si aplican.' }) dimensions!: ControlDimensionResponse[];

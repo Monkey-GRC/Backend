@@ -146,7 +146,8 @@ describe('documentación de la API encendida (local)', () => {
     // - 3 y + 2 de MD-504: se retiran `PUT /v1/evidence-submissions/{id}/review`, `POST …/verdicts` y `PUT /v1/verdicts/{id}/review`; entran `POST /v1/controls/{id}/approval` y `POST …/tests/{test_id}/result`; también se retira `GET …/tests/{test_id}/verdicts` (el historial v1 se borra): −1.
     // + 1 de D154: `GET /v1/connection-templates/microsoft-365-app` (el script de alta de Microsoft 365).
     // + 2 de D157: `POST /v1/assets/{id}/connection/microsoft/start` y `…/complete` (las vueltas del navegador desde Microsoft no se documentan).
-    expect(ids.length).toBe(196);
+    // + 12 de MD-529: R5 (proponer y decidir), plan de remediación (registrar y decidir), «No aplica» (pedir, decidir y revertir), ocurrencias (registrar y listar), declaración «sin ocurrencias», historial de gestión y `GET /v1/users/directory`.
+    expect(ids.length).toBe(208);
     expect(ids.some((id) => id.includes('/internal/'))).toBe(false);
   });
 

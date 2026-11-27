@@ -3,11 +3,11 @@ import { Progress, WorkListItem, WorkloadItem } from '../../application/work/wor
 
 const progress = (p: Progress) => ({ readiness: p.readiness, progress: p.progress, coverage: p.coverage });
 
-export const toMyWork = (page: Page<WorkListItem>, p: Progress) => ({
+export const toMyWork = (page: Page<WorkListItem>, p: Progress | null) => ({
   ...toPageResponse(page, (i) => ({
-    client_control_id: i.clientControlId, code: i.code, title: i.title, service: i.service, role_in_control: i.roleInControl, bucket: i.bucket, pending_items: i.pendingItems, state: i.state,
+    client_control_id: i.clientControlId, code: i.code, title: i.title, service: i.service, role_in_control: i.roleInControl, bucket: i.bucket, pending_items: i.pendingItems, state: i.state, pending_decisions: i.pendingDecisions,
   })),
-  progress: progress(p),
+  progress: p ? progress(p) : null,
 });
 
 export const toWorkload = (r: { items: WorkloadItem[]; unassignedCount: number }) => ({

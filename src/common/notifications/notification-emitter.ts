@@ -12,6 +12,9 @@ export type ControlNotificationEvent =
   // D132 · La gestión del control. «Por aprobar» lo causa el cambio de estado (sin actor); la primera aprobación y la devolución, una persona.
   | { type: 'control_pending_approval'; controlId: string; dedupeSuffix: string }
   | { type: 'control_owner_approved' | 'control_returned'; controlId: string; actorId: string; dedupeSuffix: string }
+  // MD-529 · La corrección del nivel, el plan de remediación y el «No aplica»: los causa una persona. `assigneeId` solo en un plan aprobado: la persona que lo hará.
+  | { type: 'level_override_proposed' | 'level_override_decided' | 'remediation_plan_proposed' | 'not_applicable_requested' | 'not_applicable_decided'; controlId: string; actorId: string; dedupeSuffix: string }
+  | { type: 'remediation_plan_decided'; controlId: string; actorId: string; dedupeSuffix: string; assigneeId: string | null }
   // D153 · Los avisos de la evaluación automática los causa el sistema: no hay actor. `dedupeSuffix` es lo que sigue a `<tipo>:<control>:` en la clave.
   | { type: 'direct_check_failed'; controlId: string; dedupeSuffix: string; failures: FailureParam[]; failureCount: number }
   | { type: 'automatic_evidence_stale'; controlId: string; dedupeSuffix: string; staleAssets: StaleAssetParam[]; staleCount: number };

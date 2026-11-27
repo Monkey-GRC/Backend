@@ -244,6 +244,66 @@
       "time_needed": "A few days are left until the deadline.",
       "evidence": "No evidence is needed.",
       "impact": "After the deadline, the company and its data are removed."
+    },
+    "level_override_proposed": {
+      "title": "{control_code} · The owner proposes a level correction",
+      "what_happened": "The owner proposed a final level different from the suggested one for control {control_label} of service {service_name}.",
+      "why_it_matters": "Until you decide, the control keeps the level Monkey calculated.",
+      "how_to_fix": "Open the control, read the justification and approve or reject it.",
+      "who": "Decides: administrator · Proposed by: {owner}",
+      "time_needed": "Decide before approving the control.",
+      "evidence": "The owner’s written justification.",
+      "impact": "Once approved, the final level replaces the suggested one."
+    },
+    "level_override_decided": {
+      "title": "{control_code} · Your level proposal was decided",
+      "what_happened": "The administrator decided your level proposal for control {control_label} of service {service_name}.",
+      "why_it_matters": "The level in force decides whether the control complies.",
+      "how_to_fix": "Open the control and see the decision and its reason.",
+      "who": "Decided by: administrator",
+      "time_needed": "No deadline.",
+      "evidence": "The reason for the decision.",
+      "impact": "Once approved, the final level replaces the suggested one everywhere."
+    },
+    "remediation_plan_proposed": {
+      "title": "{control_code} · A remediation plan awaits your decision",
+      "what_happened": "The owner registered a remediation plan for control {control_label} of service {service_name}.",
+      "why_it_matters": "Without an approved plan for each exception, the control cannot reach Partial.",
+      "how_to_fix": "Open the control, read what will be done, by whom and by when, and approve or reject it.",
+      "who": "Decides: administrator · Registered by: {owner}",
+      "time_needed": "Decide soon: the control stays at Weak until it is approved.",
+      "evidence": "The plan: what, who and by when.",
+      "impact": "Once approved, the plan counts toward the Partial level."
+    },
+    "remediation_plan_decided": {
+      "title": "{control_code} · A remediation plan was decided",
+      "what_happened": "The administrator decided the remediation plan of control {control_label} of service {service_name}.",
+      "why_it_matters": "An approved plan allows the Partial level; a rejected one is registered again.",
+      "how_to_fix": "Open the control and see the decision. If the plan was assigned to you, do it by the agreed date.",
+      "who": "Decided by: administrator · Does it: the person in the plan",
+      "time_needed": "By the plan’s date.",
+      "evidence": "Whatever fixes the exception.",
+      "impact": "Once approved, the plan counts toward the Partial level."
+    },
+    "not_applicable_requested": {
+      "title": "{control_code} · A “Not applicable” awaits your decision",
+      "what_happened": "The owner asked to mark a requirement as “Not applicable” in control {control_label} of service {service_name}.",
+      "why_it_matters": "A requirement that does not apply leaves the control’s calculation.",
+      "how_to_fix": "Open the control, read the justification and approve or reject it.",
+      "who": "Decides: administrator · Asked by: {owner}",
+      "time_needed": "Decide soon: it changes the control’s progress.",
+      "evidence": "The owner’s written justification.",
+      "impact": "Once approved, the requirement leaves the control’s percentage."
+    },
+    "not_applicable_decided": {
+      "title": "{control_code} · Your “Not applicable” was decided",
+      "what_happened": "The administrator decided the “Not applicable” you asked for in control {control_label} of service {service_name}.",
+      "why_it_matters": "A requirement that does not apply leaves the control’s calculation.",
+      "how_to_fix": "Open the control and see the decision and its reason.",
+      "who": "Decided by: administrator",
+      "time_needed": "No deadline.",
+      "evidence": "The reason for the decision.",
+      "impact": "Once approved, the requirement leaves the control’s percentage."
     }
   },
   "check_untitled": "a check of the control",

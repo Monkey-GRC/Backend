@@ -54,3 +54,12 @@ export const clientText = (text: string | null | undefined): string | null => {
   if (!text) return null;
   return publicText(whiteLabel(text));
 };
+
+// El libro marca con «Posible Checks …» los requisitos que solo describen qué verifica la sonda o el motor de nube: no son texto para el cliente (D128).
+export const POSSIBLE_CHECKS = /^Posibles? checks?\b/i;
+
+/** Texto de un requisito del libro tal como lo ve el cliente: tabla 9 y, si es «Posible Checks …», el texto de respaldo (el objetivo de su prueba). Nunca nombra al proveedor. */
+export const requirementClientText = (text: string, fallback: string | null | undefined, last: string): string => {
+  const own = POSSIBLE_CHECKS.test(text.trim()) ? null : clientText(text);
+  return own ?? clientText(fallback) ?? last;
+};

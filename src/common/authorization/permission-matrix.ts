@@ -89,13 +89,21 @@ export const PERMISSIONS = {
   'risks.history': [N, A, N, N, A, N], // El historial de evaluaciones de un riesgo
   'evidence.requirements': [N, A, N, N, N, N], // Agregar un requisito de evidencia a un control
   'exclusions.view': [N, A, N, N, A, N], // Ver las exclusiones de un servicio
+  'users.directory': [N, A, A, N, N, N], // MD-529 · Las personas activas de la empresa para elegir quién hace un plan de remediación (quien puede registrarlo)
+  'controls.propose_level': [N, A, S, N, N, N], // MD-529 · D140 punto 3 (R5) · Proponer un nivel final distinto del sugerido (quien lleva el control)
+  'controls.decide_level': [N, A, N, N, N, N], // MD-529 · Aprobar o rechazar la corrección del nivel
+  'controls.plan_register': [N, A, S, N, N, N], // MD-529 · D140 punto 4 · Registrar el plan de remediación de una excepción
+  'controls.plan_decide': [N, A, N, N, N, N], // MD-529 · Aprobar o rechazar el plan de remediación
+  'controls.na_request': [N, A, S, N, N, N], // MD-529 · D135 · Pedir o revertir el «No aplica» de un requisito
+  'controls.na_decide': [N, A, N, N, N, N], // MD-529 · Aprobar o rechazar el «No aplica» de un requisito
+  'controls.declare_no_occurrences': [N, A, S, N, N, N], // MD-529 · D131 punto 3 · Declarar «sin ocurrencias» del trimestre
   'verdicts.register': [N, A, S, N, N, N], // MD-504 · D140 punto 2 · Registrar el resultado de una prueba manual (el responsable; el delegado solo carga la evidencia)
   'observations.view': [N, A, S, S, A, N], // Ver las observaciones del auditor
   'periods.manage': [N, A, N, N, N, N], // D87 · Fijar el período auditado de un servicio y marco
   'periods.view': [N, A, N, N, A, N], // Ver los períodos auditados
   'responsibles.view': [N, A, A, N, A, N], // Los cargos responsables de la organización
   'responsibles.manage': [N, A, N, N, N, N], // Crear, editar y quitar cargos responsables
-  'work.mine': [N, N, S, S, N, N], // D122 · «Mi trabajo»
+  'work.mine': [N, A, S, S, N, N], // D122 · «Mi trabajo». MD-529: el `admin_empresa` solo ve su bandeja «Por aprobar» (`to_review`)
   'documents.mine': [N, S, S, S, N, S], // D152 · «Mis documentos»: lo que le asignaron a quien pregunta
 } as const satisfies Record<string, Row>;
 

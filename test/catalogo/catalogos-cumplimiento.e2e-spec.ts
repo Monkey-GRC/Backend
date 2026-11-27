@@ -34,6 +34,12 @@ describe('Catálogos de Cumplimiento', () => {
     }
   });
 
+  it('MD-529: control_level y los catálogos de gestión se sirven con sus etiquetas', async () => {
+    expect((await items(a.agent, 'control_level')).map((i) => i.value)).toEqual(['not_evaluated', 'ineffective', 'weak', 'partial', 'adequate', 'solid']);
+    expect(await items(a.agent, 'control_level', 'en')).toContainEqual({ value: 'solid', label: 'Solid' });
+    for (const name of ['requirement_status', 'management_history_type', 'requirement_applicability', 'change_request_status', 'work_decision_kind', 'management_action']) expect((await items(a.agent, name)).length).toBeGreaterThan(0);
+  });
+
   it('cada opción trae el valor y su etiqueta en el idioma de la petición', async () => {
     const es = await items(a.agent, 'risk_treatment_decision');
     expect(es).toEqual([
