@@ -56,6 +56,8 @@ async function insertCheck(checkId: string, over: { titleEn: string; remediation
 }
 
 beforeAll(async () => {
+  // Una corrida anterior que murió sin su `afterAll` deja sus vínculos Directo en el catálogo: se retiran antes de sembrar.
+  await owner(`delete from catalog.test_checks where check_id in (select id from catalog.checks where platform = 'aws' and policy_id = 'cloud_configuration' and check_id like 'd90\\_%')`);
   app = await bootApp();
   ({ a, b } = await dosEmpresas(app));
   await cuenta(a.companyId, `auditor-d90-${RUN}@cumplimiento.test`, 'auditor');
@@ -110,6 +112,8 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   await app?.close();
+  // El vínculo Directo que se sembró cambia qué mide la prueba en las demás suites del worker (el catálogo es global): se retira; los checks quedan porque los resultados importados los referencian.
+  await owner(`delete from catalog.test_checks where check_id in (select id from catalog.checks where platform = 'aws' and policy_id = 'cloud_configuration' and check_id = any($1::text[]))`, [[CHECK_A, CHECK_B, CHECK_C]]);
 });
 
 describe('Qué falló y cómo corregirlo (D90)', () => {

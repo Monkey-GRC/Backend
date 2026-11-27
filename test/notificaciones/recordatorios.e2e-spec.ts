@@ -20,7 +20,7 @@ let sinDueno: string; // uno «Sin asignar» con periodicidad mensual
 let n = 0;
 const email = (k: string) => `${k}-${RUN}-${n++}@recordatorios.test`;
 const at = (dia: string, hora = '12:00') => new Date(`${dia}T${hora}:00Z`);
-const pasada = (now: Date) => app.get(RollEvaluationPeriodsUseCase).execute(now);
+const pasada = (now: Date) => app.get(RollEvaluationPeriodsUseCase).execute(now, [a.companyId, b.companyId]);
 
 const avisos = (companyId: string, type: string) =>
   owner<{ user_id: string; target_id: string; target_kind: string; due_at: string; dedupe_key: string; params: any }>(

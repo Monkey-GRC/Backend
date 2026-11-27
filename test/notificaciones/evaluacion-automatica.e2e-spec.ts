@@ -195,7 +195,7 @@ describe('direct_check_failed · un check Directo pasa a FAIL (D153)', () => {
 });
 
 describe('automatic_evidence_stale · la última recolección supera PR-05 (D153)', () => {
-  const pasada = (now: Date) => app.get(RollEvaluationPeriodsUseCase).execute(now);
+  const pasada = (now: Date) => app.get(RollEvaluationPeriodsUseCase).execute(now, [a.companyId, b.companyId]);
   const AHORA = new Date('2026-11-25T12:00:00Z');
 
   it('una recolección de hace 5 días avisa al ejecutor y al dueño del control, no al administrador', async () => {

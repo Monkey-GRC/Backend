@@ -122,7 +122,7 @@ describe('POST /v1/controls/{id}/approval · la primera aprobación y la final (
       control_id: c.control, control_code: 'X', service_id: a.serviceId, cause: 'control_approval', state: 'effective', level: 'solid', level_value: 5, readiness: 'ready', progress: { done: 1, total: 1 }, management_state: 'approved' })]);
     await owner('update tenant.evidence_submissions set returned_approval_id = $2 where evidence_requirement_id in (select id from tenant.evidence_requirements where client_control_id = $1)', [c.control, approvalRow.id]);
     expect(await detail(c.control)).toMatchObject({ management_state: 'in_progress' });
-    await app.get(RollEvaluationPeriodsUseCase).execute();
+    await app.get(RollEvaluationPeriodsUseCase).execute(new Date(), [a.companyId, b.companyId]);
     expect((await rows(c.control)).every((r) => r.invalidated_at !== null)).toBe(true);
     // Vuelve a cumplir con una entrega nueva: ya no está aprobado, está por aprobar.
     await subir(roles.delegado.agent, c.control, c.tests[0], 'v3');
@@ -356,7 +356,7 @@ describe('MD-504 · invalidación por la vía normal, carrera y rutas retiradas'
     const proximoMes = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth() + 1, 1, 12));
     const eventos = () => owner<{ n: number }>(`select count(*)::int n from audit.compliance_events where tenant_id = $1 and new_value->>'cause' = 'window_closed'`, [a.companyId]).then((r) => r[0].n);
     const antes = await eventos();
-    await app.get(RollEvaluationPeriodsUseCase).execute(proximoMes);
+    await app.get(RollEvaluationPeriodsUseCase).execute(proximoMes, [a.companyId, b.companyId]);
     expect((await rows(c.control)).every((r) => r.invalidated_at !== null)).toBe(true);
     expect(await eventos()).toBe(antes);
     await definirPeriodo(a.serviceId, '2026-01-01', '2027-12-31');

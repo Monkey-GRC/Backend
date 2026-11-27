@@ -20,7 +20,7 @@ let delegado: { id: string; session: Agent };
 let n = 0;
 const email = (k: string) => `${k}-${RUN}-${n++}@parametros-cambiados.test`;
 const KEY = 'approval_max_steps'; // PR-11: no mueve el motor técnico ni las pruebas que corren en paralelo
-const pasada = (now: Date = new Date()) => app.get(RollEvaluationPeriodsUseCase).execute(now);
+const pasada = (now: Date = new Date()) => app.get(RollEvaluationPeriodsUseCase).execute(now, [a.companyId, b.companyId]);
 const cambiar = (value: number) => monkey.patch(`/v1/catalog/evaluation-parameters/${KEY}`).send({ value }).expect(200);
 const avisos = (companyId: string) =>
   owner<{ user_id: string; target_id: string; target_kind: string; dedupe_key: string; params: any }>(

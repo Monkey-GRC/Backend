@@ -638,14 +638,13 @@ describe('La pasada diaria invalida lo que dejó de valer (MD-529)', () => {
     const stale = () => owner<{ a: Date | null; b: Date | null }>('select (select invalidated_at from tenant.control_level_overrides where id = $1) a, (select invalidated_at from tenant.remediation_plans where id = $2) b', [lvl.id, plan.id]);
     expect(await stale()).toEqual([{ a: null, b: null }]);
     const before = [await auditCount('control_level_override.invalidate'), await auditCount('remediation_plan.invalidate')];
-    await app.get(RollEvaluationPeriodsUseCase).execute();
+    await app.get(RollEvaluationPeriodsUseCase).execute(new Date(), [a.companyId, b.companyId]);
     const after = (await stale())[0];
     expect(after.a).not.toBeNull();
     expect(after.b).not.toBeNull();
     const written = [await auditCount('control_level_override.invalidate'), await auditCount('remediation_plan.invalidate')];
-    expect(written[0]).toBeGreaterThanOrEqual(before[0] + 1); // también las propuestas viejas de otras pruebas de este archivo
-    expect(written[1]).toBeGreaterThanOrEqual(before[1] + 1);
-    await app.get(RollEvaluationPeriodsUseCase).execute(); // una segunda pasada no vuelve a escribir
+    expect(written).toEqual([before[0] + 1, before[1] + 1]);
+    await app.get(RollEvaluationPeriodsUseCase).execute(new Date(), [a.companyId, b.companyId]); // una segunda pasada no vuelve a escribir
     expect([await auditCount('control_level_override.invalidate'), await auditCount('remediation_plan.invalidate')]).toEqual(written);
   });
 });
