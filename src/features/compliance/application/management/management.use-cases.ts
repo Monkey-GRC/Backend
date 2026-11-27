@@ -88,8 +88,8 @@ export class RegisterManualResultUseCase {
       if (!canRegisterManualResult(p, readout.control.access)) throw new DomainError('FORBIDDEN');
       const test = readout.tests.find((t) => t.test.testId === testId);
       if (!test) throw new DomainError('NOT_FOUND');
-      // Una prueba automática la resuelve el motor y una documental, su evidencia.
-      if (!test.manual || test.test.testType === 'documentary') throw new DomainError('TEST_NOT_MANUAL');
+      // Una prueba automática la resuelve el motor y una documental, su evidencia. La que además de sus checks tiene una parte manual sí admite el resultado (D160).
+      if (!(test.manual || test.manualPart) || test.test.testType === 'documentary') throw new DomainError('TEST_NOT_MANUAL');
       const note = text(dto.note);
       if (dto.result !== 'correct' && !note) throw new ValidationException([{ field: 'note', code: 'note.required' }]);
 

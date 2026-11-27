@@ -78,11 +78,14 @@ export type ReadoutTest = {
   primarySource?: string | null;
   /** Nombre de la categoría de integración de la prueba (`tests.integration_category`); con `primarySource: integration` decide si hay una conectada. */
   integrationCategory?: string | null;
+  /** `tests.automation` (columna «Automatización» del libro). `semi_automated`: además de los checks, la prueba tiene una parte que se comprueba a mano (D160). */
+  automation?: string | null;
   mandatory: boolean;
   active: boolean;
   links?: TestLinks;
 };
-export type ReadoutAsset = { id: string; name: string; type: string };
+/** `discovered`: el activo lo halló una conexión de nube dentro de la cuenta (D61). No tiene conexión propia: solo lo mide la evaluación de esa cuenta. */
+export type ReadoutAsset = { id: string; name: string; type: string; discovered?: boolean };
 export type ReadoutDimension = { dimension: Dimension; applies: boolean; type: ControlType; reasonNotApplicable: string | null };
 
 /** El requisito del control del cliente (`client_control_requirements`) con las pruebas del catálogo que lo prueban. */
@@ -182,6 +185,8 @@ export type TestEvaluationDetail = {
   alertAt: string | null;
   /** MD-504 · La prueba se resuelve a mano (evidencia y, si no es documental, el resultado del responsable); `false` si la mide el motor de checks o una Dependencia. */
   manual: boolean;
+  /** D160 · La miden los checks y, además, tiene una parte manual: admite el resultado del responsable y no es «Correcto» sin él. */
+  manualPart?: boolean;
 };
 
 /** La vista del período auditado (R6): cada ventana cerrada del período cuenta. */
@@ -206,7 +211,7 @@ export type ControlReadout = {
   coverage: { measured: number; applicable: number };
   failing: FailingItem[];
   /** Las pruebas del control con su estado derivado de `test_status` (`compliant` y `observation` → `compliant`, `exception` → `non_compliant`). */
-  tests: Array<{ test: ReadoutTest; state: TestState; status: TestStatus; manual: boolean }>;
+  tests: Array<{ test: ReadoutTest; state: TestState; status: TestStatus; manual: boolean; manualPart?: boolean }>;
   approval: 'approved' | 'pending' | 'rejected';
   /** MD-504 (D132) · El estado de gestión: lo que el motor dice más lo que las personas aprobaron, devolvieron o cargaron. */
   managementState: ManagementState;
@@ -274,11 +279,28 @@ function manualEvidenceOf(control: ReadoutControl, testId: string | null, period
   return control.evidence.filter((e) => (testId === null || e.testId === testId) && withinPeriod(e.submittedAt, period)).map((e) => ({ state: e.state, submittedAt: e.submittedAt }));
 }
 
+const isOfTestType = (asset: ReadoutAsset, test: ReadoutTest): boolean => dimensionOfAssetType(asset.type) === test.dimension;
+
+/**
+ * D160 · Los activos del servicio sobre los que se mide una prueba en un control (T-04 a y b):
+ *  · Los de su mismo tipo con conexión propia (un servidor con agente, una cuenta de nube): se esperan aunque todavía no tengan resultado («Sin datos»).
+ *  · Cualquier otro sobre el que una evaluación automática SÍ midió esta prueba: la cuenta de nube o la organización conectada en una prueba de aplicación, de base de datos
+ *    o de servidores; el servidor con agente en una de base de datos; el recurso descubierto dentro de la cuenta (D61). El libro decide por la plataforma conectada
+ *    (`TEST_CHECKS`, «Aplica cuando»), no por la dimensión.
+ * Un recurso descubierto no tiene conexión propia: sin un resultado suyo no se espera nada de él (antes dejaba la prueba pendiente para siempre).
+ */
+function assetsInScope(control: ReadoutControl, test: ReadoutTest, data: ReadoutData): ReadoutAsset[] {
+  return data.assets.filter((asset) => {
+    if (isOfTestType(asset, test) && !asset.discovered) return true;
+    const measured = data.results.get(resultKey(control.id, test.testId, asset.id));
+    return measured !== undefined && measured !== 'not_applicable';
+  });
+}
+
 /** El último resultado automático decidido del test (dentro del período) en cualquiera de sus activos; `null` si no hay. */
 function lastResultAt(control: ReadoutControl, test: ReadoutTest, data: ReadoutData): Date | null {
   let last: Date | null = null;
-  for (const asset of data.assets) {
-    if (dimensionOfAssetType(asset.type) !== test.dimension) continue;
+  for (const asset of assetsInScope(control, test, data)) {
     const at = data.signals.resultDates.get(resultKey(control.id, test.testId, asset.id));
     if (at && withinPeriod(at, data.signals.period) && (!last || at > last)) last = at;
   }
@@ -303,13 +325,16 @@ const moduleFactsOf = (data: ReadoutData, asset: ReadoutAsset): ModuleFacts => d
 function outcomesOf(control: ReadoutControl, test: ReadoutTest, periodicity: Periodicity | null, data: ReadoutData): AssetOutcomes[] {
   const links = test.links ?? NO_LINKS;
   const { signals } = data;
-  return data.assets
-    .filter((a) => dimensionOfAssetType(a.type) === test.dimension)
+  return assetsInScope(control, test, data)
     .map((asset) => {
       const outcomes: CheckOutcome[] = [];
       if (links.directCheckCount > 0) outcomes.push(directResultOf(control, test, asset, periodicity, data));
-      const facts = moduleFactsOf(data, asset);
-      for (const m of links.modules) outcomes.push({ role: m.role, result: moduleLinkResult(classifyModuleRef(m.ref), facts, signals.parameters) });
+      // Los módulos y puntajes son del activo con conexión propia de ese tipo («Agente activo con el módulo habilitado»): no de la cuenta de nube ni del recurso descubierto
+      // que entran a la prueba solo por sus checks (D160).
+      if (isOfTestType(asset, test) && !asset.discovered) {
+        const facts = moduleFactsOf(data, asset);
+        for (const m of links.modules) outcomes.push({ role: m.role, result: moduleLinkResult(classifyModuleRef(m.ref), facts, signals.parameters) });
+      }
       if (signals.complementaryFails.has(testAssetKey(test.testId, asset.id))) outcomes.push({ role: 'complementary', result: 'fail' });
       return { assetId: asset.id, name: asset.name, outcomes };
     });
@@ -340,7 +365,16 @@ function evaluateTest(control: ReadoutControl, entry: Entry, data: ReadoutData, 
       const ownerKey = `${owner.id}|${found.test.testId}|${found.requirement.periodicity ?? owner.periodicity ?? null}`;
       return next.has(ownerKey) ? 'pending' : evaluateTest(owner, found, data, next).status;
     });
-    const status = worstStatus([...(technical?.applicable ? [technical.status] : []), ...owners]) ?? 'pending';
+    // D160 · Una prueba «semiautomática» tiene, además de sus checks, una parte que se comprueba a mano («Correcto si» del libro: la aplicación propia, lo que está fuera de la
+    // nube). Los checks pueden dejarla en Excepción o Pendiente; para Correcto hace falta también el resultado que registra el responsable (D140 punto 2). Nunca cumple sola.
+    const manualPart = !!technical?.applicable && test.automation === 'semi_automated';
+    const byHand = manualPart
+      ? evaluateManualTest({
+          evidence: manualEvidenceOf(control, test.testId, signals.period), result: manualResultOf(control, test.testId, signals.period), requiresResult: true, periodicity, now: signals.now,
+          windowMode: signals.parameters.validityWindows, periodStart: signals.period?.start,
+        }).status
+      : null;
+    const status = worstStatus([...(technical?.applicable ? [technical.status] : []), ...owners, ...(byHand ? [byHand] : [])]) ?? 'pending';
     // PR-07 `rolling`: la ventana arranca en el último resultado válido del test (o en el inicio del período) y dura una periodicidad.
     const lastResult = signals.parameters.validityWindows === 'rolling' ? lastResultAt(control, test, data) : null;
     const window = currentWindow({ periodicity, now: signals.now, lastValidAt: lastResult, mode: signals.parameters.validityWindows, periodStart: signals.period?.start });
@@ -352,6 +386,7 @@ function evaluateTest(control: ReadoutControl, entry: Entry, data: ReadoutData, 
       failingAssetIds: technical?.failingAssetIds ?? [],
       alertAt: null,
       manual: false,
+      manualPart,
     };
   } else {
     // T-05: una prueba técnica sin ningún Directo aplicable no es «No aplica»: se prueba a mano, igual que las demás pruebas manuales.
@@ -385,11 +420,11 @@ const ROLE_ORDER = { direct: 0, complementary: 1, dependency: 2 } as const;
 const MODULE_NAME = { vulnerabilities: 'vulnerabilities', score: 'score', other_module: 'other' } as const;
 
 /** Los vínculos ratificados de una prueba técnica con su rol, el resultado de cada uno por activo y, en una Dependencia, el control dueño y el estado de su prueba. */
-function checkLinksOf(entry: Entry, data: ReadoutData, ownerById: ReadonlyMap<string, ReadoutControl>): CheckLinkReadout[] {
+function checkLinksOf(control: ReadoutControl, entry: Entry, data: ReadoutData, ownerById: ReadonlyMap<string, ReadoutControl>): CheckLinkReadout[] {
   const { test } = entry;
   const items = (test.links ?? NO_LINKS).items;
   if (test.testType !== 'technical' || items.length === 0) return [];
-  const assets = data.assets.filter((a) => dimensionOfAssetType(a.type) === test.dimension);
+  const assets = assetsInScope(control, test, data);
   const titleOf = (i: LinkItem) => i.check?.titleEs ?? i.check?.titleEn ?? i.moduleRef ?? '';
   return [...items]
     .sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || titleOf(a).localeCompare(titleOf(b)) || a.key.localeCompare(b.key))
@@ -414,7 +449,7 @@ function checkLinksOf(entry: Entry, data: ReadoutData, ownerById: ReadonlyMap<st
 export function checkLinksByTest(control: ReadoutControl, data: ReadoutData): Map<string, CheckLinkReadout[]> {
   const out = new Map<string, CheckLinkReadout[]>();
   const ownerById = new Map((data.pool ?? data.controls).flatMap((c) => (c.catalogControlId ? [[c.catalogControlId, c] as const] : [])));
-  for (const entry of entriesOf(control)) if (!out.has(entry.test.testId)) out.set(entry.test.testId, checkLinksOf(entry, data, ownerById));
+  for (const entry of entriesOf(control)) if (!out.has(entry.test.testId)) out.set(entry.test.testId, checkLinksOf(control, entry, data, ownerById));
   return out;
 }
 
@@ -441,8 +476,7 @@ function manualCovers(items: ReadonlyArray<ControlEvidenceItem>, result: { resul
 /** ¿Cada activo en alcance tuvo un resultado dentro de la ventana, al menos PR-03 %? Se evalúa con la misma regla de la prueba técnica, con la ventana cerrada (D140). */
 function technicalCovers(control: ReadoutControl, test: ReadoutTest, periodicity: Periodicity | null, w: EvaluationWindow, data: ReadoutData): boolean {
   const days = data.signals.resultDays;
-  const assets = data.assets
-    .filter((a) => dimensionOfAssetType(a.type) === test.dimension)
+  const assets = assetsInScope(control, test, data)
     .map((asset) => {
       const seen = days?.get(resultKey(control.id, test.testId, asset.id));
       const decided = !!seen && hasDayIn(seen, w);
@@ -478,7 +512,7 @@ function manualDates(items: ReadonlyArray<ControlEvidenceItem>, result: { result
 
 /** Los días en que al menos PR-03 % de los activos en alcance tuvieron un resultado del test (la misma cobertura que pide la prueba técnica). */
 function technicalDates(control: ReadoutControl, test: ReadoutTest, data: ReadoutData): number[] {
-  const assets = data.assets.filter((a) => dimensionOfAssetType(a.type) === test.dimension);
+  const assets = assetsInScope(control, test, data);
   if (assets.length === 0) return [];
   const tally = new Map<number, number>();
   for (const asset of assets) for (const day of data.signals.resultDays?.get(resultKey(control.id, test.testId, asset.id)) ?? []) tally.set(day, (tally.get(day) ?? 0) + 1);
@@ -495,10 +529,12 @@ function rollingWindowsOf(control: ReadoutControl, r: RequirementReadout, data: 
     ? [{ dates: manualDates(control.evidence, null), technical: false }]
     : r.tests.flatMap((t) => {
         const links = t.test.links ?? NO_LINKS;
-        if (t.assetCoverage !== null) return [{ dates: technicalDates(control, t.test, data), technical: true }];
-        if (t.test.testType === 'technical' && links.dependencies.length > 0) return [];
         const result = t.test.testType === 'documentary' ? null : (control.manualResults?.get(t.test.testId) ?? null);
-        return [{ dates: manualDates(control.evidence.filter((e) => e.testId === t.test.testId), result), technical: false }];
+        const byHand = { dates: manualDates(control.evidence.filter((e) => e.testId === t.test.testId), result), technical: false };
+        // D160 · Con parte manual, la prueba lleva dos cadenas: la de sus checks y la del resultado del responsable.
+        if (t.assetCoverage !== null) return [{ dates: technicalDates(control, t.test, data), technical: true }, ...(t.manualPart ? [byHand] : [])];
+        if (t.test.testType === 'technical' && links.dependencies.length > 0) return [];
+        return [byHand];
       });
   let total = 0;
   const missing = new Map<number, MissingWindow>();
@@ -524,10 +560,12 @@ function windowsOf(control: ReadoutControl, r: RequirementReadout, data: Readout
       ? !manualCovers(control.evidence, null, w)
       : r.tests.some((t) => {
           const links = t.test.links ?? NO_LINKS;
-          if (t.assetCoverage !== null) return !technicalCovers(control, t.test, periodicity, w, data);
-          if (t.test.testType === 'technical' && links.dependencies.length > 0) return false;
           const result = t.test.testType === 'documentary' ? null : (control.manualResults?.get(t.test.testId) ?? null);
-          return !manualCovers(control.evidence.filter((e) => e.testId === t.test.testId), result, w);
+          const byHand = () => manualCovers(control.evidence.filter((e) => e.testId === t.test.testId), result, w);
+          // D160 · Con parte manual, la ventana necesita las dos cosas: los checks y el resultado del responsable.
+          if (t.assetCoverage !== null) return !technicalCovers(control, t.test, periodicity, w, data) || (!!t.manualPart && !byHand());
+          if (t.test.testType === 'technical' && links.dependencies.length > 0) return false;
+          return !byHand();
         });
     if (uncovered) missing.push({ requirementCode: r.requirement.code, window: w, technical: !own && r.tests.some((t) => t.assetCoverage !== null) });
   }
@@ -612,7 +650,7 @@ export function readControl(control: ReadoutControl, data: ReadoutData): Control
     progress: { done: level.compliant, total: level.applicable },
     coverage: { measured: level.measured, applicable: level.applicable },
     failing: [...byDimension.entries()].map(([dimension, affected]) => ({ dimension, affected })),
-    tests: [...unique.values()].map((u) => ({ test: u.test, state: legacyTestState(u.status), status: u.status, manual: u.detail.manual })),
+    tests: [...unique.values()].map((u) => ({ test: u.test, state: legacyTestState(u.status), status: u.status, manual: u.detail.manual, manualPart: u.detail.manualPart ?? false })),
     approval: control.approval,
     level: level.level,
     levelValue: level.levelValue,

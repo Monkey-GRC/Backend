@@ -326,7 +326,8 @@ describe('direct_check_failed · dos servicios y un recurso con activo propio', 
     await limpiar();
     // Primero los vínculos del activo hijo (a CUALQUIER servicio: el caso inverso lo vincula también al primero) y los del segundo servicio; después el activo.
     await owner('delete from tenant.service_assets where service_id = $1 or asset_id in (select id from tenant.assets where parent_asset_id = $2)', [segundo, a.assetId]);
-    await owner('delete from tenant.assets where parent_asset_id = $1', [a.assetId]);
+    // D160 · El recurso con activo propio ya lleva su propia evaluación, que es inmutable: el activo se da de baja y se suelta de su recurso (como en producción, D61 punto 4), no se borra.
+    await owner(`update tenant.assets set status = 'inactive', resource_id = null where parent_asset_id = $1`, [a.assetId]);
   });
 
   it('un FAIL de un recurso cuyo activo es solo del segundo servicio avisa al control del segundo y NO al del primero', async () => {
@@ -343,6 +344,16 @@ describe('direct_check_failed · dos servicios y un recurso con activo propio', 
     // El segundo control no tiene dueño ni ejecutor: avisa a los administradores (aquí, uno).
     expect(rows.filter((r) => r.target_id === controlSegundo).map((r) => r.user_id)).toEqual([adminId]);
     expect(rows.filter((r) => r.target_id === control)).toEqual([]);
+    // D160 · El recurso elegido lleva su PROPIA evaluación en el servicio que lo eligió (no cumple), y ninguna en el otro; la de la cuenta ya no carga con ese fallo.
+    const evaluations = await owner<{ service_id: string; own: boolean; result: string }>(
+      `select distinct on (e.service_id, e.asset_id) e.service_id, (e.asset_id <> $1) as own, e.result::text as result
+         from tenant.evaluations e join tenant.assets x on x.id = e.asset_id
+        where (x.id = $1 or x.parent_asset_id = $1) and e.client_control_id = any($2::uuid[]) and e.test_id in (select tc.test_id from catalog.test_checks tc join catalog.checks ck on ck.id = tc.check_id where ck.check_id = $3 and tc.role = 'direct')
+        order by e.service_id, e.asset_id, e.evaluated_at desc, e.id desc`,
+      [a.assetId, [control, controlSegundo], CHECK],
+    );
+    expect(evaluations.filter((e) => e.own)).toEqual([{ service_id: segundo, own: true, result: 'non_compliant' }]);
+    expect(evaluations.filter((e) => !e.own && e.result === 'non_compliant')).toEqual([]);
   });
 
   it('el caso inverso: un activo hijo vinculado a los dos servicios avisa a los controles de ambos', async () => {
