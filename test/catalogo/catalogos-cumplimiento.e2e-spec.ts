@@ -40,6 +40,16 @@ describe('Catálogos de Cumplimiento', () => {
     for (const name of ['requirement_status', 'management_history_type', 'requirement_applicability', 'change_request_status', 'work_decision_kind', 'management_action']) expect((await items(a.agent, name)).length).toBeGreaterThan(0);
   });
 
+  it('MD-502: gap_priority va de la más alta a la más baja, con etiquetas en es y en', async () => {
+    expect(await items(a.agent, 'gap_priority')).toEqual([
+      { value: 'critical', label: 'Crítica' },
+      { value: 'high', label: 'Alta' },
+      { value: 'medium', label: 'Media' },
+      { value: 'low', label: 'Baja' },
+    ]);
+    expect((await items(a.agent, 'gap_priority', 'en')).map((i) => i.label)).toEqual(['Critical', 'High', 'Medium', 'Low']);
+  });
+
   it('cada opción trae el valor y su etiqueta en el idioma de la petición', async () => {
     const es = await items(a.agent, 'risk_treatment_decision');
     expect(es).toEqual([

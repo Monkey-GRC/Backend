@@ -1,5 +1,8 @@
 import { ExecutionSummary } from '../domain/repositories/scan.repository';
-import { Finding } from '../domain/scan/findings';
+import type { FindingsPage } from '../application/use-cases/findings.use-cases';
+import type { Finding, Person } from '../domain/scan/findings';
+import type { MessageText } from '../domain/scan/gap-message';
+import type { toPageResponse } from '../../../common/pagination/page';
 import { AssetReadiness, READINESS_AREAS } from '../domain/scan/readiness';
 
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
@@ -50,11 +53,30 @@ export const toReadinessResponse = (assetId: string, r: ReadinessView | null) =>
         needs_manual_review: 0,
       };
 
+const textOf = (t: MessageText | null) => (t ? { text: t.text, language: t.language, is_ai_generated: t.isAiGenerated } : null);
+const personOf = (p: Person | null) => (p ? { id: p.id, name: p.name, last_name: p.lastName } : null);
+
 export const toFindingResponse = (f: Finding) => ({
   id: f.id,
+  kind: f.kind,
+  asset: f.asset,
   title: f.title,
-  severity: f.severity,
+  evaluated: textOf(f.evaluated),
+  remediation: textOf(f.remediation),
+  priority: f.priority,
+  priority_basis: f.priorityBasis ? { severity: f.priorityBasis.severity, asset_criticality: f.priorityBasis.assetCriticality } : null,
   resources: f.resources,
   resources_total: f.resourcesTotal,
-  remediation: f.remediation ? { text: f.remediation.text, language: f.remediation.language, is_ai_generated: f.remediation.isAiGenerated } : null,
+  exception: f.exception ? { id: f.exception.id, effective_until: f.exception.effectiveUntil } : null,
+  owner: personOf(f.owner),
+  due_date: f.dueDate,
+  failing_since: f.failingSince.toISOString(),
+});
+
+export const toFindingsResponse = (out: FindingsPage, paged: ReturnType<typeof toPageResponse<Finding, ReturnType<typeof toFindingResponse>>>) => ({
+  control: out.control,
+  test: { id: out.test.id, code: out.test.code, display_name: out.test.displayName },
+  measured_at: out.measuredAt ? out.measuredAt.toISOString() : null,
+  summary: { open_gaps: out.summary.openGaps, excepted: out.summary.excepted, observations: out.summary.observations },
+  ...paged,
 });

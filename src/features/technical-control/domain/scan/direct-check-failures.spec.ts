@@ -43,17 +43,25 @@ describe('newDirectFailures (D153)', () => {
 });
 
 describe('failureParams', () => {
+  const failed = (ids: string[], priority: 'critical' | 'high' | 'medium' | 'low' = 'medium') => ids.map((id) => ({ id, priority }));
+
   it('agrupa hasta 5 y cuenta el total', () => {
     const ids = Array.from({ length: 8 }, (_, i) => `k${i}`);
     const titles = new Map(ids.map((id, i) => [id, { en: `Check ${i}`, es: `Verificación ${i}` }]));
-    const out = failureParams('Cuenta AWS', ids, titles);
+    const out = failureParams('Cuenta AWS', failed(ids), titles);
     expect(out.failures).toHaveLength(GROUPED_FAILURES);
     expect(out.failureCount).toBe(8);
     expect(out.failures[0]).toEqual({ asset_name: 'Cuenta AWS', check_title_en: 'Check 0', check_title_es: 'Verificación 0' });
   });
 
   it('un título ausente (nombraba al proveedor) llega nulo', () => {
-    const out = failureParams('Servidor', ['k1'], new Map());
+    const out = failureParams('Servidor', failed(['k1']), new Map());
     expect(out.failures[0]).toMatchObject({ check_title_en: null, check_title_es: null });
+  });
+
+  it('los de mayor prioridad van primero (D162) y, a igual prioridad, por título', () => {
+    const titles = new Map([['a', { en: 'A', es: null }], ['b', { en: 'B', es: null }], ['c', { en: 'C', es: null }]]);
+    const out = failureParams('X', [{ id: 'a', priority: 'low' }, { id: 'c', priority: 'critical' }, { id: 'b', priority: 'critical' }], titles);
+    expect(out.failures.map((f) => f.check_title_en)).toEqual(['B', 'C', 'A']);
   });
 });

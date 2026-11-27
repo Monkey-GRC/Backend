@@ -281,6 +281,12 @@
     "approved": "Aprobada",
     "rejected": "Rechazada"
   },
+  "gap_priority": {
+    "critical": "Crítica",
+    "high": "Alta",
+    "medium": "Media",
+    "low": "Baja"
+  },
   "audit_observation_type": {
     "observation": "Observación",
     "recommendation": "Recomendación",

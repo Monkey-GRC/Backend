@@ -10,10 +10,11 @@ import { insertAuditLog } from '../../../../infrastructure/audit/audit-log.inser
 import { PrismaService, TransactionClient } from '../../../../infrastructure/database/prisma.service';
 import { NotificationEmitter } from '../../../../common/notifications/notification-emitter';
 import { EvaluationParametersPort } from '../../../../common/evaluation-parameters/parameters';
-import { captureControlStates, recordControlStateChanges } from '../../../compliance/infrastructure/shared/control-state-events';
+import { ComplianceReadings } from '../../../../common/compliance/compliance-readings.port';
 import { collectDirectCheckFailures } from '../notifications/direct-check-failures.loader';
 import { RUNNER_POOL } from '../../application/runner-pool';
-import { FailedRow } from '../../domain/scan/findings';
+import { FindingSource } from '../../domain/scan/findings';
+import { loadFindingSource } from './finding-source.loader';
 import { interpretTestResult } from '../../domain/scan/interpret-evaluations';
 import { ORGANIZATION_WIDE_PLATFORMS, withUnmeasured } from '../../domain/scan/unmeasured';
 import { TestCheckLink } from '../../domain/scan/readiness';
@@ -77,6 +78,7 @@ export class ScanPrismaRepository extends ScanRepository {
     private readonly evaluationParameters: EvaluationParametersPort,
     private readonly config: ConfigService,
     private readonly notifications: NotificationEmitter,
+    private readonly compliance: ComplianceReadings,
     @Inject(RUNNER_POOL) private readonly runnerPool: string,
   ) {
     super();
@@ -600,7 +602,7 @@ export class ScanPrismaRepository extends ScanRepository {
       });
       if (links.length === 0) continue;
       // D91 · Si lo que la sonda midió mueve el estado de un control, queda su evento: sin persona detrás (usuario nulo).
-      const before = await captureControlStates(tx, serviceId, parameters);
+      const before = await this.compliance.captureControlStates(tx, serviceId, parameters);
       const read = await this.executionResults(tx, executionId, serviceId);
       const results = source === 'cloud' ? read : read.map((r) => ({ ...r, checkId: r.checkUuid }));
       // D160 · Cada recurso que el servicio eligió es un activo (D61) y lleva su propio resultado; lo que es de toda la cuenta (usuarios, políticas, lo que no tiene activo
@@ -638,7 +640,7 @@ export class ScanPrismaRepository extends ScanRepository {
       });
       for (const part of chunks(rows)) await tx.evaluation.createMany({ data: part });
       written += rows.length;
-      await recordControlStateChanges(tx, { parameters, tenantId: scope.companyId, serviceId, before, cause: 'probe_result', notifications: this.notifications, actor: { userId: null, ipAddress: null, userAgent: null } });
+      await this.compliance.recordProbeStateChanges(tx, { parameters, tenantId: scope.companyId, serviceId, before, notifications: this.notifications });
     }
     return written;
   }
@@ -816,59 +818,8 @@ export class ScanPrismaRepository extends ScanRepository {
     });
   }
 
-  // D90 · Misma regla de alcance que las evaluaciones: un recurso con activo propio solo cuenta si es de este servicio; lo demás (la cuenta entera) es de todos.
-  loadFailedRows(scope: TenantScope, input: { serviceId: string; testId: string; includeProposed: boolean }): Promise<{ measuredAt: Date | null; rows: FailedRow[] }> {
-    return this.prisma.withScope(scope, async (tx) => {
-      const connections = await tx.serviceAsset.findMany({
-        where: { serviceId: input.serviceId, asset: { parentAssetId: null, status: 'active' } },
-        select: { assetId: true, asset: { select: { name: true, agent: { select: { id: true } } } } },
-      });
-      const links = await tx.testCheck.findMany({
-        where: { testId: input.testId, role: 'direct' as const, checkId: { not: null }, ...(input.includeProposed ? {} : { provenance: 'committee_ratified' as const }) },
-        select: { checkId: true },
-      });
-      const checkIds = links.flatMap((l) => (l.checkId ? [l.checkId] : []));
-      let measuredAt: Date | null = null;
-      const rows: FailedRow[] = [];
-      if (checkIds.length === 0) return { measuredAt, rows };
-      for (const { assetId, asset } of connections) {
-        // Un servidor con agente no tiene recursos hallados: el recurso afectado ES el servidor, y el cliente lo reconoce por el nombre que él le dio.
-        const serverName = asset.agent ? asset.name : null;
-        const execution = await tx.execution.findFirst({ where: { assetId, status: 'completed', kind: 'assessment' }, orderBy: { finishedAt: 'desc' }, select: { id: true, finishedAt: true } });
-        if (!execution) continue;
-        if (execution.finishedAt && (!measuredAt || execution.finishedAt > measuredAt)) measuredAt = execution.finishedAt;
-        const failed = await tx.checkResult.findMany({
-          where: { executionId: execution.id, result: 'failed', checkId: { in: checkIds } },
-          select: {
-            region: true,
-            engineSeverity: true,
-            check: { select: { id: true, titleEn: true, titleEs: true, remediation: true, remediationEs: true, translationOrigin: true } },
-            assetResource: {
-              select: {
-                resourceUid: true,
-                name: true,
-                region: true,
-                childAsset: { select: { serviceAssets: { where: { serviceId: input.serviceId }, select: { id: true } } } },
-              },
-            },
-          },
-        });
-        for (const r of failed) {
-          if (r.assetResource?.childAsset && r.assetResource.childAsset.serviceAssets.length === 0) continue;
-          rows.push({
-            checkUuid: r.check.id,
-            severity: r.engineSeverity,
-            titleEn: r.check.titleEn,
-            titleEs: r.check.titleEs,
-            remediation: r.check.remediation,
-            remediationEs: r.check.remediationEs,
-            translationOrigin: r.check.translationOrigin,
-            resourceName: r.assetResource?.name ?? serverName,
-            resourceUid: r.assetResource?.resourceUid ?? null,
-            region: r.region ?? r.assetResource?.region ?? null,
-          });
-        }
-      }
-      return { measuredAt, rows };
-    });
-  }}
+  // D90, MD-502 · Ver `ScanRepository.loadFindingSource`: el alcance y la lectura Directa son las del motor v2.
+  loadFindingSource(scope: TenantScope, input: { serviceId: string; controlId: string; testId: string }): Promise<FindingSource | null> {
+    return this.prisma.withScope(scope, async (tx) => loadFindingSource(tx, this.compliance, input, await this.evaluationParameters.load(tx)));
+  }
+}

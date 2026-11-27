@@ -16,6 +16,7 @@ import { NotificationsModule } from './features/notifications/notifications.modu
 import { OnboardingModule } from './features/onboarding/onboarding.module';
 import { ServicesModule } from './features/services/services.module';
 import { TeamModule } from './features/team/team.module';
+import { ComplianceReadingsModule } from './features/compliance/compliance-readings.module';
 import { TechnicalControlModule } from './features/technical-control/technical-control.module';
 import { AuditModule } from './infrastructure/audit/audit.module';
 import { DatabaseModule } from './infrastructure/database/database.module';
@@ -52,6 +53,7 @@ import { StorageModule } from './infrastructure/storage/storage.module';
     TeamModule,
     AdminUsersModule,
     ComplianceModule,
+    ComplianceReadingsModule,
     TechnicalControlModule,
     IntegrationsModule,
     DocumentsModule,

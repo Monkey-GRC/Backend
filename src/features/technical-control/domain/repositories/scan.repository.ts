@@ -2,7 +2,7 @@ import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { Page, PageRequest } from '../../../../common/pagination/page';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { Inventory } from '../entities/technical-control.entities';
-import { FailedRow } from '../scan/findings';
+import { FindingSource } from '../scan/findings';
 import { TestCheckLink } from '../scan/readiness';
 import { InterpretedResult } from '../scan/scan.types';
 import { AgentReadingFacts } from '../agent-reading/reading-plan';
@@ -153,10 +153,9 @@ export abstract class ScanRepository {
   // prueba no existen para esta empresa (o la prueba no es automática: una documental no tiene nada técnico que explicar).
   // `responsibleUserIds` son el dueño y el ejecutor activos del control (D102).
   abstract findAutomatedTestOfControl(scope: TenantScope, controlId: string, testId: string): Promise<{ serviceId: string; responsibleUserIds: string[] } | null>;
-  // D90 · Lo que falló en la última evaluación completada de cada conexión del servicio (una cuenta de nube o un servidor con agente), solo en los checks de esa prueba. En un servidor, el
-  // recurso afectado es el propio servidor (su nombre). Con `includeProposed`, también cuentan
-  // los vínculos que el comité aún no ratificó (igual que `writeEvaluations`). `measuredAt` es la fecha de la evaluación más reciente; null si ninguna conexión se evaluó.
-  abstract loadFailedRows(scope: TenantScope, input: { serviceId: string; testId: string; includeProposed: boolean }): Promise<{ measuredAt: Date | null; rows: FailedRow[] }>;
+  // D90, MD-502 · Los FAIL de la última corrida completada de cada activo en alcance de la prueba (una cuenta de nube, un servidor con agente), solo de los checks vinculados a la prueba en el
+  // catálogo v2 (ratificados), con la lectura del motor v2 de cada activo (brecha abierta o exceptuada), las excepciones y el plan vigentes, el responsable del control y desde cuándo falla cada uno.
+  abstract loadFindingSource(scope: TenantScope, input: { serviceId: string; controlId: string; testId: string }): Promise<FindingSource | null>;
 
   // ---- servidores con agente de la sonda (D113) ----
 
