@@ -18,7 +18,7 @@ const connections = (...categories: string[]): IntegrationConnections => ({ conn
 
 describe('UploadTestEvidenceUseCase', () => {
   const build = (f: ControlEvidenceFacts, integrations: IntegrationConnections) => {
-    const repo = { controlEvidenceFacts: jest.fn().mockResolvedValue(f), findOrCreateTestRequirement: jest.fn().mockResolvedValue({ requirementId: 'r1', created: true }) };
+    const repo = { occurrenceFacts: jest.fn().mockResolvedValue({ onDemand: false, occurrenceOk: false }), controlEvidenceFacts: jest.fn().mockResolvedValue(f), findOrCreateTestRequirement: jest.fn().mockResolvedValue({ requirementId: 'r1', created: true }) };
     const upload = { execute: jest.fn().mockResolvedValue({ id: 'sub1' }) };
     return { repo, upload, uc: new UploadTestEvidenceUseCase(repo as unknown as EvidenceRepository, upload as unknown as UploadEvidenceUseCase, integrations) };
   };

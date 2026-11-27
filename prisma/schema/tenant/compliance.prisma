@@ -117,6 +117,8 @@ model ClientControl {
   tests                 ClientControlTest[]
   requirements          ClientControlRequirement[]
   changes               ClientControlChange[]
+  levelOverrides       ControlLevelOverride[]
+  remediationPlans     RemediationPlan[]
 
   // Un control del catálogo se clona una sola vez por servicio (idempotencia del clonado, MD-80).
   // Los propios (control_id nulo) no chocan entre sí: en Postgres los nulos son distintos.
@@ -293,6 +295,9 @@ model EvidenceSubmission {
   aiVerdict              String?  @map("ai_verdict") @db.Text // siempre etiquetado como generado por IA
   // MD-504 (D132) · La devolución del control que dejó esta entrega sin contar: nulo = no fue devuelta. Es la única marca; el motivo y quién la devolvió salen de `control_approvals`.
   returnedApprovalId     String?  @map("returned_approval_id") @db.Uuid
+  // MD-529 (DT-115) · La ocurrencia de un requisito «cuando sea requerido» que prueba esta entrega.
+  requirementOccurrenceId String?                @map("requirement_occurrence_id") @db.Uuid
+  requirementOccurrence   RequirementOccurrence? @relation(fields: [requirementOccurrenceId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   returnedApproval       ControlApproval? @relation("ApprovalReturnedSubmissions", fields: [returnedApprovalId], references: [id])
 
   evidenceRequirement EvidenceRequirement @relation(fields: [evidenceRequirementId], references: [id])
@@ -303,9 +308,11 @@ model EvidenceSubmission {
   observations       AuditObservation[] @relation("ObservationEvidence")
   observationAnswers AuditObservation[] @relation("ObservationAnswerEvidence")
 
-  @@index([tenantId])
   @@unique([evidenceRequirementId, version])
+  @@index([tenantId])
   @@index([evidenceRequirementId])
+  @@index([returnedApprovalId])
+  @@index([requirementOccurrenceId])
   @@map("evidence_submissions")
   @@schema("tenant")
 }
@@ -662,6 +669,11 @@ model ClientControlRequirement {
   controlRequirement ControlRequirement @relation(fields: [controlRequirementId], references: [id], onDelete: Restrict)
   tenant             Company            @relation(fields: [tenantId], references: [id])
 
+  remediationPlans         RemediationPlan[]
+  applicabilityRequests    RequirementApplicabilityRequest[]
+  occurrences              RequirementOccurrence[]
+  noOccurrenceDeclarations NoOccurrenceDeclaration[]
+
   @@unique([clientControlId, controlRequirementId])
   @@index([tenantId])
   @@index([controlRequirementId])
@@ -800,5 +812,156 @@ model ManualTestResult {
   @@index([testId])
   @@index([registeredBy])
   @@map("manual_test_results")
+  @@schema("tenant")
+}
+
+// MD-529 (D135, D140 puntos 3 y 4, D131 punto 3; contracts/cumplimiento/aprobacion.md) · Corrección del nivel (R5), plan de remediación por excepción, solicitud de «No aplica» de un requisito,
+// ocurrencias de los requisitos «cuando sea requerido» y su declaración trimestral. Las relaciones espejan las claves foráneas de la migración (mismos nombres y acciones).
+enum ChangeRequestStatus {
+  pending
+  approved
+  rejected
+
+  @@map("change_request_status")
+  @@schema("tenant")
+}
+
+model ControlLevelOverride {
+  id              String              @id @default(uuid()) @db.Uuid
+  tenantId        String              @map("tenant_id") @db.Uuid
+  clientControlId String              @map("client_control_id") @db.Uuid
+  suggestedLevel  Int                 @map("suggested_level") @db.SmallInt
+  proposedLevel   Int                 @map("proposed_level") @db.SmallInt
+  justification   String              @db.Text
+  status          ChangeRequestStatus @default(pending)
+  proposedBy      String              @map("proposed_by") @db.Uuid
+  proposedAt      DateTime            @default(now()) @map("proposed_at")
+  decidedBy       String?             @map("decided_by") @db.Uuid
+  decidedAt       DateTime?           @map("decided_at")
+  decisionReason  String?             @map("decision_reason") @db.Text
+  windowStart     DateTime?           @map("window_start")
+  invalidatedAt   DateTime?           @map("invalidated_at")
+  decidedDirectly Boolean             @default(false) @map("decided_directly")
+
+  clientControl  ClientControl @relation(fields: [clientControlId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  tenant         Company       @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  proposedByUser User          @relation("LevelOverrideProposedBy", fields: [proposedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  decidedByUser  User?         @relation("LevelOverrideDecidedBy", fields: [decidedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([tenantId])
+  @@index([clientControlId, proposedAt(sort: Desc)], map: "control_level_overrides_control_idx")
+  @@index([proposedBy])
+  @@index([decidedBy])
+  @@map("control_level_overrides")
+  @@schema("tenant")
+}
+
+model RemediationPlan {
+  id                         String              @id @default(uuid()) @db.Uuid
+  tenantId                   String              @map("tenant_id") @db.Uuid
+  clientControlId            String              @map("client_control_id") @db.Uuid
+  testId                     String              @map("test_id") @db.Uuid
+  clientControlRequirementId String?             @map("client_control_requirement_id") @db.Uuid
+  what                       String              @db.Text
+  assigneeId                 String              @map("assignee_id") @db.Uuid
+  dueDate                    DateTime            @map("due_date") @db.Date
+  status                     ChangeRequestStatus @default(pending)
+  proposedBy                 String              @map("proposed_by") @db.Uuid
+  proposedAt                 DateTime            @default(now()) @map("proposed_at")
+  decidedBy                  String?             @map("decided_by") @db.Uuid
+  decidedAt                  DateTime?           @map("decided_at")
+  decisionReason             String?             @map("decision_reason") @db.Text
+  windowStart                DateTime?           @map("window_start")
+  invalidatedAt              DateTime?           @map("invalidated_at")
+  decidedDirectly            Boolean             @default(false) @map("decided_directly")
+
+  clientControl  ClientControl             @relation(fields: [clientControlId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  tenant         Company                   @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  test           Test                      @relation(fields: [testId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  requirement    ClientControlRequirement? @relation(fields: [clientControlRequirementId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "remediation_plans_requirement_fkey")
+  assignee       User                      @relation("RemediationPlanAssignee", fields: [assigneeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  proposedByUser User                      @relation("RemediationPlanProposedBy", fields: [proposedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  decidedByUser  User?                     @relation("RemediationPlanDecidedBy", fields: [decidedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([tenantId])
+  @@index([clientControlId, proposedAt(sort: Desc)], map: "remediation_plans_control_idx")
+  @@index([assigneeId])
+  @@index([proposedBy])
+  @@index([decidedBy])
+  @@index([testId])
+  @@map("remediation_plans")
+  @@schema("tenant")
+}
+
+model RequirementApplicabilityRequest {
+  id                         String              @id @default(uuid()) @db.Uuid
+  tenantId                   String              @map("tenant_id") @db.Uuid
+  clientControlRequirementId String              @map("client_control_requirement_id") @db.Uuid
+  reason                     String              @db.Text
+  status                     ChangeRequestStatus @default(pending)
+  requestedBy                String              @map("requested_by") @db.Uuid
+  requestedAt                DateTime            @default(now()) @map("requested_at")
+  decidedBy                  String?             @map("decided_by") @db.Uuid
+  decidedAt                  DateTime?           @map("decided_at")
+  decisionReason             String?             @map("decision_reason") @db.Text
+  revertedBy                 String?             @map("reverted_by") @db.Uuid
+  revertedAt                 DateTime?           @map("reverted_at")
+  revertReason               String?             @map("revert_reason") @db.Text
+  decidedDirectly            Boolean             @default(false) @map("decided_directly")
+
+  requirement     ClientControlRequirement @relation(fields: [clientControlRequirementId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "requirement_applicability_requests_req_fkey")
+  tenant          Company                  @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  requestedByUser User                     @relation("ApplicabilityRequestedBy", fields: [requestedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  decidedByUser   User?                    @relation("ApplicabilityDecidedBy", fields: [decidedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  revertedByUser  User?                    @relation("ApplicabilityRevertedBy", fields: [revertedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([tenantId])
+  @@index([clientControlRequirementId, requestedAt(sort: Desc)], map: "requirement_applicability_requests_req_idx")
+  @@index([requestedBy])
+  @@index([decidedBy])
+  @@map("requirement_applicability_requests")
+  @@schema("tenant")
+}
+
+model RequirementOccurrence {
+  id                         String   @id @default(uuid()) @db.Uuid
+  tenantId                   String   @map("tenant_id") @db.Uuid
+  clientControlRequirementId String   @map("client_control_requirement_id") @db.Uuid
+  occurredOn                 DateTime @map("occurred_on") @db.Date
+  description                String   @db.Text
+  registeredBy               String   @map("registered_by") @db.Uuid
+  registeredAt               DateTime @default(now()) @map("registered_at")
+
+  requirement      ClientControlRequirement @relation(fields: [clientControlRequirementId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "requirement_occurrences_req_fkey")
+  tenant           Company                  @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  registeredByUser User                     @relation("OccurrenceRegisteredBy", fields: [registeredBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  submissions      EvidenceSubmission[]
+
+  @@index([tenantId])
+  @@index([clientControlRequirementId, occurredOn(sort: Desc)], map: "requirement_occurrences_req_idx")
+  @@index([registeredBy])
+  @@map("requirement_occurrences")
+  @@schema("tenant")
+}
+
+model NoOccurrenceDeclaration {
+  id                         String    @id @default(uuid()) @db.Uuid
+  tenantId                   String    @map("tenant_id") @db.Uuid
+  clientControlRequirementId String    @map("client_control_requirement_id") @db.Uuid
+  windowStart                DateTime  @map("window_start") @db.Date
+  windowEnd                  DateTime  @map("window_end") @db.Date
+  note                       String?   @db.Text
+  declaredBy                 String    @map("declared_by") @db.Uuid
+  declaredAt                 DateTime  @default(now()) @map("declared_at")
+  invalidatedAt              DateTime? @map("invalidated_at")
+
+  requirement    ClientControlRequirement @relation(fields: [clientControlRequirementId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "no_occurrence_declarations_req_fkey")
+  tenant         Company                  @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  declaredByUser User                     @relation("NoOccurrenceDeclaredBy", fields: [declaredBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([tenantId])
+  @@index([clientControlRequirementId, windowStart(sort: Desc)], map: "no_occurrence_declarations_req_idx")
+  @@index([declaredBy])
+  @@map("no_occurrence_declarations")
   @@schema("tenant")
 }

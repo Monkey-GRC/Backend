@@ -16,7 +16,10 @@ import { Periodicity, TestType } from '../../domain/engine/v2/types';
 import { NO_ACCESS } from '../../domain/controls/control-access';
 import { loadControlAccess } from './control-access.loader';
 import { latestEvaluations, latestManualResults } from './latest-results.query';
+import { loadManagementExtras, ScopeWindow } from './management-extras.loader';
+import { NO_EXTRAS } from '../../domain/controls/management-extras';
 import { requirementState, submissionState, SUBMISSION_STATE_SELECT } from '../evidence/evidence-state.mapper';
+import { requirementClientText } from '../../../../common/text/provider-names';
 
 // Orden canónico de las categorías (enums.md `trust_criterion`).
 const CRITERIA_ORDER = ['security', 'availability', 'confidentiality', 'integrity', 'privacy'];
@@ -66,10 +69,11 @@ const toReadoutTest = (t: TestRow, withLinkItems: boolean): ReadoutTest => ({
 /** Los marcos y las categorías contratados del servicio: solo los requisitos de ellos cuentan para un control (D80). */
 export type Contracted = { criteria: Set<string>; frameworks: Set<string> };
 export async function loadContracted(tx: TransactionClient, serviceId: string): Promise<Contracted> {
-  return {
-    criteria: new Set((await tx.serviceTrustCriterion.findMany({ where: { serviceId }, select: { trustCriterion: { select: { criterion: true } } } })).map((r) => r.trustCriterion.criterion)),
-    frameworks: new Set((await tx.serviceFramework.findMany({ where: { serviceId }, select: { frameworkId: true } })).map((r) => r.frameworkId)),
-  };
+  const service = await tx.service.findUnique({
+    where: { id: serviceId },
+    select: { trustCriteria: { select: { trustCriterion: { select: { criterion: true } } } }, frameworks: { select: { frameworkId: true } } },
+  });
+  return { criteria: new Set((service?.trustCriteria ?? []).map((r) => r.trustCriterion.criterion)), frameworks: new Set((service?.frameworks ?? []).map((r) => r.frameworkId)) };
 }
 
 /** Los requisitos y puntos de enfoque de un control de catálogo que cuentan en el servicio (`POINT_OF_FOCUS_LINKS`, filtrados por lo contratado). */
@@ -96,8 +100,10 @@ async function loadControls(
   only: string | readonly string[] | undefined,
   contracted: Contracted,
   withLinkItems: boolean,
+  scopeWindow: ScopeWindow,
   catalogControlIds?: readonly string[],
 ): Promise<ReadoutControl[]> {
+  // Con `relationJoins` (schema.prisma) las relaciones anidadas (control, requisitos, pruebas, checks) llegan en UNA consulta, no una por nivel: cada consulta cuesta un viaje a la base.
   const rows = await tx.clientControl.findMany({
     where: {
       serviceId, isActive: true,
@@ -166,10 +172,17 @@ async function loadControls(
     approvalsOf.set(a.clientControlId, [...(approvalsOf.get(a.clientControlId) ?? []), { id: a.id, step: a.step, decision: a.decision, reason: a.reason, actor: a.actor, at: a.at, windowStart: a.windowStart, invalidatedAt: a.invalidatedAt }]);
   }
   const resultRows = await latestManualResults(tx, ids);
+  // MD-529 · La corrección del nivel, los planes, las ocurrencias, las declaraciones y el historial de resultados manuales. Una sola consulta de personas para todo: también quién registró cada último resultado.
+  const mgmt = await loadManagementExtras(
+    tx, ids,
+    rows.flatMap((c) => c.requirements.map((r) => ({ controlId: c.id, requirementId: r.id, onDemand: (r.periodicity ?? r.controlRequirement.periodicity) === 'on_demand' }))),
+    scopeWindow,
+    resultRows.map((r) => r.registeredBy),
+  );
   const resultsOf = new Map<string, Map<string, ManualResult>>();
   for (const r of resultRows) {
     const byTest = resultsOf.get(r.clientControlId) ?? new Map<string, ManualResult>();
-    byTest.set(r.testId, { result: r.result, at: r.registeredAt });
+    byTest.set(r.testId, { result: r.result, at: r.registeredAt, note: r.note, by: mgmt.people.get(r.registeredBy) ?? null });
     resultsOf.set(r.clientControlId, byTest);
   }
 
@@ -179,7 +192,7 @@ async function loadControls(
       .map((r) => ({
         id: r.id,
         code: r.controlRequirement.code,
-        text: r.controlRequirement.text,
+        text: requirementClientText(r.controlRequirement.text, r.controlRequirement.tests.map((t) => t.test.displayDescription ?? t.test.displayName).find((x) => !!x), r.controlRequirement.code),
         type: r.controlRequirement.type as TestType,
         periodicity: (r.periodicity ?? r.controlRequirement.periodicity ?? null) as Periodicity | null,
         suggestedPeriodicity: (r.controlRequirement.periodicity ?? null) as Periodicity | null,
@@ -214,6 +227,9 @@ async function loadControls(
       periodicity: (c.control?.periodicity ?? null) as Periodicity | null,
       requirements,
       manualResults: resultsOf.get(c.id) ?? new Map<string, ManualResult>(),
+      // Sin período no se leyó el historial: la vista del período no existe y el último resultado basta.
+      ...(scopeWindow.periodStart ? { manualResultHistory: mgmt.history.get(c.id) ?? new Map<string, readonly ManualResult[]>() } : {}),
+      extras: mgmt.extras.get(c.id) ?? NO_EXTRAS,
       management: { approvals: approvalsOf.get(c.id) ?? [], resultDates: [...(resultsOf.get(c.id)?.values() ?? [])].map((r) => r.at) },
       periodicityChange: c.periodicityChangedAt
         ? { periodicity: requirements[0]?.periodicity ?? null, justification: c.periodicityJustification ?? '', changedAt: c.periodicityChangedAt }
@@ -235,9 +251,13 @@ export async function loadServiceSnapshot(
   const withLinkItems = options.withLinkItems ?? false;
   const contracted = await loadContracted(tx, serviceId);
 
-  const controls = await loadControls(tx, serviceId, onlyControlId, contracted, withLinkItems);
+  // MD-500 · El período auditado abierto (G-11): con varios marcos en el servicio, el que termina más tarde. De su inicio se lee el historial de resultados manuales (DT-116).
+  const period = await loadOpenPeriod(tx, serviceId);
+  const now = options.now ?? new Date();
+  const scopeWindow: ScopeWindow = { periodStart: period?.start ?? null, now };
+  const controls = await loadControls(tx, serviceId, onlyControlId, contracted, withLinkItems, scopeWindow);
   // T-06 · Una Dependencia lee la prueba del control dueño: si se leen solo algunos controles que dependen de otros, se cargan también esos dueños (y los de ellos, si a su vez dependen), no todo el servicio.
-  const pool = onlyControlId === undefined ? undefined : await withDependencyOwners(tx, serviceId, controls, contracted, withLinkItems);
+  const pool = onlyControlId === undefined ? undefined : await withDependencyOwners(tx, serviceId, controls, contracted, withLinkItems, scopeWindow);
   const everyControl = pool ?? controls;
 
   const assets = (await tx.serviceAsset.findMany({ where: { serviceId, asset: { status: 'active' } }, select: { asset: { select: { id: true, name: true, type: true } } } })).map((r) => r.asset);
@@ -249,12 +269,9 @@ export async function loadServiceSnapshot(
   const results = new Map<string, AssetResult>(latest.map((e) => [resultKey(e.clientControlId, e.testId, e.assetId), e.result as AssetResult]));
   const resultDates = new Map<string, Date>(latest.map((e) => [resultKey(e.clientControlId, e.testId, e.assetId), e.evaluatedAt]));
 
-  const now = options.now ?? new Date();
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
-  // MD-500 · El período auditado abierto (G-11): con varios marcos en el servicio, el que termina más tarde. Y, solo si hay ventanas de calendario por medir en una prueba técnica,
-  // los días con un resultado decidido de cada (control, test, activo) dentro del período: de ahí sale la cobertura de las ventanas ya cerradas.
-  const period = await loadOpenPeriod(tx, serviceId);
+  // Y, solo si hay ventanas de calendario por medir en una prueba técnica, los días con un resultado decidido de cada (control, test, activo) dentro del período: de ahí sale la cobertura de las ventanas ya cerradas.
   const resultDays = period ? await loadResultDays(tx, serviceId, period, everyControl, now, parameters.validityWindows) : undefined;
 
   // D135 · Una excepción APROBADA y vigente (de 90 días como máximo, PR-04) deja pasar un FAIL de un activo en una prueba, marcado. La pendiente, la rechazada y la vencida no cambian nada.
@@ -293,15 +310,19 @@ export async function loadServiceSnapshot(
   const needsModules = everyControl.some((c) => c.tests.some((t) => (t.links?.modules.length ?? 0) > 0));
   if (needsModules && technicalAssets.length > 0) {
     const ids = technicalAssets.map((a) => a.id);
-    const high = ['critical', 'high'] as const;
-    const [scanned, vulnerabilities, findings] = await Promise.all([
-      tx.execution.groupBy({ by: ['assetId'], where: { assetId: { in: ids }, kind: 'assessment', status: 'completed' }, _count: { _all: true } }),
-      tx.vulnerability.groupBy({ by: ['assetId'], where: { assetId: { in: ids }, status: 'active', severity: { in: [...high] } }, _count: { _all: true } }),
-      tx.finding.groupBy({ by: ['assetId'], where: { assetId: { in: ids }, status: 'open', severity: { in: [...high] } }, _count: { _all: true } }),
-    ]);
+    // Un solo viaje para los tres conteos por activo.
+    const counts = await tx.$queryRaw<{ assetId: string; kind: 'scanned' | 'open'; n: number }[]>(Prisma.sql`
+      SELECT asset_id AS "assetId", 'scanned' AS kind, COUNT(*)::int AS n FROM tenant.executions
+       WHERE asset_id = ANY(${ids}::uuid[]) AND kind = 'assessment' AND status = 'completed' GROUP BY asset_id
+      UNION ALL
+      SELECT asset_id, 'open', COUNT(*)::int FROM tenant.vulnerabilities
+       WHERE asset_id = ANY(${ids}::uuid[]) AND status = 'active' AND severity IN ('critical', 'high') GROUP BY asset_id
+      UNION ALL
+      SELECT asset_id, 'open', COUNT(*)::int FROM tenant.findings
+       WHERE asset_id = ANY(${ids}::uuid[]) AND status = 'open' AND severity IN ('critical', 'high') GROUP BY asset_id`);
     const open = new Map<string, number>();
-    for (const r of [...vulnerabilities, ...findings]) open.set(r.assetId, (open.get(r.assetId) ?? 0) + r._count._all);
-    for (const s of scanned) moduleFacts.set(s.assetId, { openCriticalHigh: open.get(s.assetId) ?? 0, scorePercent: null });
+    for (const r of counts) if (r.kind === 'open') open.set(r.assetId, (open.get(r.assetId) ?? 0) + r.n);
+    for (const r of counts) if (r.kind === 'scanned') moduleFacts.set(r.assetId, { openCriticalHigh: open.get(r.assetId) ?? 0, scorePercent: null });
   }
 
   return {
@@ -315,7 +336,7 @@ export async function loadServiceSnapshot(
 }
 
 /** Los controles leídos más los dueños de sus Dependencias, a cualquier profundidad (solo los que faltan). `undefined` si ninguno depende de un control que no se leyó. */
-async function withDependencyOwners(tx: TransactionClient, serviceId: string, controls: ReadoutControl[], contracted: Contracted, withLinkItems: boolean): Promise<ReadoutControl[] | undefined> {
+async function withDependencyOwners(tx: TransactionClient, serviceId: string, controls: ReadoutControl[], contracted: Contracted, withLinkItems: boolean, scopeWindow: ScopeWindow): Promise<ReadoutControl[] | undefined> {
   const known = new Set(controls.map((c) => c.catalogControlId));
   const extra: ReadoutControl[] = [];
   let frontier: readonly ReadoutControl[] = controls;
@@ -324,7 +345,7 @@ async function withDependencyOwners(tx: TransactionClient, serviceId: string, co
     if (missing.size === 0) break;
     // Un dueño que no existe en el servicio (fuera del alcance) se da por buscado: no se vuelve a pedir.
     for (const id of missing) known.add(id);
-    frontier = await loadControls(tx, serviceId, undefined, contracted, withLinkItems, [...missing]);
+    frontier = await loadControls(tx, serviceId, undefined, contracted, withLinkItems, scopeWindow, [...missing]);
     extra.push(...frontier);
   }
   return extra.length > 0 ? [...controls, ...extra] : undefined;

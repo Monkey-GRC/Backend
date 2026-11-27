@@ -20,6 +20,16 @@ import { ApproveControlUseCase, RegisterManualResultUseCase } from './applicatio
 import { ControlManagementRepository } from './domain/management/control-management.repository';
 import { ControlManagementPrismaRepository } from './infrastructure/management/control-management.prisma.repository';
 import { ManagementController } from './presentation/management/management.controller';
+import { ManagementActsController } from './presentation/management/management-acts.controller';
+import { ListManagementHistoryUseCase, ListOccurrencesUseCase } from './application/management/management-history.use-cases';
+import { ManagementHistoryRepository } from './domain/management/management-history.repository';
+import { ManagementHistoryPrismaRepository } from './infrastructure/management/management-history.prisma.repository';
+import { ManagementActsRepository } from './domain/management/management-acts.repository';
+import { ManagementActsPrismaRepository } from './infrastructure/management/management-acts.prisma.repository';
+import {
+  DecideLevelOverrideUseCase, DecideNotApplicableUseCase, DecideRemediationPlanUseCase, DeclareNoOccurrencesUseCase, ProposeLevelOverrideUseCase, RegisterOccurrenceUseCase, RegisterRemediationPlanUseCase,
+  RequestNotApplicableUseCase, RevertNotApplicableUseCase,
+} from './application/management/management-acts.use-cases';
 import { CreateResponsibleUseCase, DeleteResponsibleUseCase, ListResponsiblesUseCase, UpdateResponsibleUseCase } from './application/responsibles/responsible.use-cases';
 import {
   CreateCauseUseCase, CreateRiskUseCase, DeactivateCauseUseCase, DeactivateRiskUseCase, GetCauseUseCase, GetRiskUseCase, LinkUseCases, ListCausesUseCase, ListRisksUseCase, ReactivateRiskUseCase,
@@ -64,7 +74,7 @@ import { EvaluationParametersModule } from '../../infrastructure/evaluation-para
 // Cumplimiento (modelo-datos.md §7 y §9). El motor de evaluación vive en `domain/engine/` (funciones puras).
 @Module({
   imports: [EvaluationParametersModule],
-  controllers: [AssignmentsListController, WorkController, ControlsController, ResponsiblesController, RisksController, RiskAssessmentController, ExclusionsController, ObservationsController, EvidenceController, OverviewController, ManagementController, EvaluationPeriodController],
+  controllers: [AssignmentsListController, WorkController, ControlsController, ResponsiblesController, RisksController, RiskAssessmentController, ExclusionsController, ObservationsController, EvidenceController, OverviewController, ManagementController, ManagementActsController, EvaluationPeriodController],
   providers: [
     { provide: ControlRepository, useClass: ControlPrismaRepository },
     { provide: ControlEditRepository, useClass: ControlEditPrismaRepository },
@@ -100,6 +110,11 @@ import { EvaluationParametersModule } from '../../infrastructure/evaluation-para
     RollEvaluationPeriodsUseCase,
     EvaluationPeriodScheduler,
     { provide: ControlManagementRepository, useClass: ControlManagementPrismaRepository },
+    { provide: ManagementActsRepository, useClass: ManagementActsPrismaRepository },
+    { provide: ManagementHistoryRepository, useClass: ManagementHistoryPrismaRepository },
+    ListManagementHistoryUseCase, ListOccurrencesUseCase,
+    ProposeLevelOverrideUseCase, DecideLevelOverrideUseCase, RegisterRemediationPlanUseCase, DecideRemediationPlanUseCase, RequestNotApplicableUseCase, DecideNotApplicableUseCase, RevertNotApplicableUseCase,
+    RegisterOccurrenceUseCase, DeclareNoOccurrencesUseCase,
     ApproveControlUseCase, RegisterManualResultUseCase,
     { provide: EvidenceRepository, useClass: EvidencePrismaRepository },
     { provide: IntegrationConnections, useClass: NoIntegrationConnections },

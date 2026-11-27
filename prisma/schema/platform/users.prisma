@@ -127,6 +127,16 @@ model User {
   observationsClosed        AuditObservation[]   @relation("ObservationClosedBy")
   controlChangesRequested   ClientControlChange[] @relation("ControlChangeRequestedBy")
   controlChangesDecided     ClientControlChange[] @relation("ControlChangeDecidedBy")
+  levelOverridesProposed    ControlLevelOverride[] @relation("LevelOverrideProposedBy")
+  levelOverridesDecided     ControlLevelOverride[] @relation("LevelOverrideDecidedBy")
+  remediationPlansAssigned  RemediationPlan[]    @relation("RemediationPlanAssignee")
+  remediationPlansProposed  RemediationPlan[]    @relation("RemediationPlanProposedBy")
+  remediationPlansDecided   RemediationPlan[]    @relation("RemediationPlanDecidedBy")
+  applicabilityRequested    RequirementApplicabilityRequest[] @relation("ApplicabilityRequestedBy")
+  applicabilityDecided      RequirementApplicabilityRequest[] @relation("ApplicabilityDecidedBy")
+  applicabilityReverted     RequirementApplicabilityRequest[] @relation("ApplicabilityRevertedBy")
+  occurrencesRegistered     RequirementOccurrence[] @relation("OccurrenceRegisteredBy")
+  noOccurrencesDeclared     NoOccurrenceDeclaration[] @relation("NoOccurrenceDeclaredBy")
   evaluationsConfirmed      Evaluation[]
   findingsReported          Finding[]
   evaluationParametersUpdated EvaluationParameter[] @relation("EvaluationParameterUpdatedBy")

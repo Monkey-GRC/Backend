@@ -60,5 +60,16 @@
   "approved_at_future": "The approval date cannot be in the future.",
   "disposition_not_inline": "That file type cannot be shown on screen: only PDF, PNG and JPG. Download it to view it.",
   "result_invalid": "Choose correct, observation or exception.",
-  "returned_submission_ids_invalid": "One of those submissions does not belong to this control."
+  "returned_submission_ids_invalid": "One of those submissions does not belong to this control.",
+  "proposed_level_invalid": "Choose a level different from the current one, and not “Not evaluated”.",
+  "justification_required": "Write the justification.",
+  "what_required": "Write what will be done.",
+  "due_date_past": "The date cannot be in the past.",
+  "occurred_on_future": "The case date cannot be in the future.",
+  "description_required": "Write what happened.",
+  "occurrence_id_required": "Indicate the case this file belongs to.",
+  "occurrence_id_invalid": "That case does not belong to this requirement.",
+  "owner_id_invalid": "Choose an active person of the company.",
+  "bucket_invalid": "That filter is not available for your role: you only have “To approve”.",
+  "to_before_from": "The end date cannot be before the start date."
 }

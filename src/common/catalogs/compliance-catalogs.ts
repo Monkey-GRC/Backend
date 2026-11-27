@@ -78,6 +78,14 @@ export const COMPLIANCE_ENUM_CATALOGS = {
   control_approval_step: values(ControlApprovalStep),
   control_approval_decision: values(ControlApprovalDecision),
   manual_test_result_value: values(ManualTestResultValue),
+  // MD-529 · Enums de la gestión del control que no son de Postgres (contracts/enums/cumplimiento.md): se derivan al leer.
+  control_level: ['not_evaluated', 'ineffective', 'weak', 'partial', 'adequate', 'solid'],
+  requirement_status: ['compliant', 'non_compliant', 'pending', 'expired', 'not_applicable'],
+  change_request_status: ['pending', 'approved', 'rejected'],
+  requirement_applicability: ['applicable', 'not_applicable_pending', 'not_applicable'],
+  management_action: ['approve', 'return', 'register_result', 'propose_level', 'decide_level', 'register_plan', 'decide_plan', 'request_not_applicable', 'decide_not_applicable', 'revert_not_applicable', 'declare_no_occurrences', 'register_occurrence'],
+  management_history_type: ['approval', 'return', 'approval_invalidated', 'manual_result', 'level_proposed', 'level_decided', 'plan_registered', 'plan_decided', 'not_applicable_requested', 'not_applicable_decided', 'not_applicable_reverted', 'occurrence_registered', 'no_occurrences_declared'],
+  work_decision_kind: ['control_approval', 'manual_result', 'level_override', 'remediation_plan', 'not_applicable'],
   // MD-500 · No es un enum de Postgres: se deriva (de si el `admin_empresa` cambió la periodicidad del control, D147).
   periodicity_source: ['catalog', 'client'],
   // No es un enum de Postgres: el impacto potencial se guarda como texto del comité y la API lo traduce a estos valores (`risk-types.ts`, P9).

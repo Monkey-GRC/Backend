@@ -40,7 +40,7 @@ describe('resolveRecipients', () => {
 describe('AUDIENCES · el catálogo del contrato', () => {
   it('cada tipo tiene audiencias y los emitidos hoy son los de MD-515 y MD-508', () => {
     for (const type of NOTIFICATION_TYPES) expect(AUDIENCES[type].length).toBeGreaterThan(0);
-    expect([...EMITTED_TYPES].sort()).toEqual(['automatic_evidence_stale', 'check_parameters_changed', 'control_assigned', 'control_owner_approved', 'control_pending_approval', 'control_returned', 'direct_check_failed', 'window_due_soon', 'window_expired']);
+    expect([...EMITTED_TYPES].sort()).toEqual(['automatic_evidence_stale', 'check_parameters_changed', 'control_assigned', 'control_owner_approved', 'control_pending_approval', 'control_returned', 'direct_check_failed', 'level_override_decided', 'level_override_proposed', 'not_applicable_decided', 'not_applicable_requested', 'remediation_plan_decided', 'remediation_plan_proposed', 'window_due_soon', 'window_expired']);
   });
 
   it('los destinatarios de los cinco son los de D138 y D151', () => {

@@ -13,7 +13,8 @@ export type ManualEvidence = {
   submittedAt: Date | null;
 };
 /** El último resultado registrado de la prueba en el control (`manual_test_results`). */
-export type ManualResult = { result: 'correct' | 'observation' | 'exception'; at: Date };
+/** `note` y `by` solo los llena el historial que lee el detalle (quién lo registró y lo que vio); el motor no los usa. */
+export type ManualResult = { result: 'correct' | 'observation' | 'exception'; at: Date; note?: string | null; by?: { id: string; name: string | null; lastName: string | null } | null };
 
 export type ManualTestInput = {
   evidence: readonly ManualEvidence[];

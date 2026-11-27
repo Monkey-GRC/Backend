@@ -177,6 +177,7 @@ model Test {
   evaluations Evaluation[]
   manualTestResults ManualTestResult[]
   clientControlTests ClientControlTest[]
+  remediationPlans RemediationPlan[]
   // D88: los documentos que sirven a esta prueba (plantillas del catálogo y evidencias de cada control del cliente).
   controlEvidenceTemplates ControlEvidenceTemplate[]
   evidenceRequirements     EvidenceRequirement[]

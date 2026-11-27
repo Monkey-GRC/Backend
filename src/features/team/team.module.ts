@@ -4,7 +4,7 @@ import { ACTIVATION_CODE_TTL_HOURS } from './application/activation-policy.token
 import { InvitationDelivery } from './application/invitation/invitation-delivery.service';
 import { SetControlExecutorUseCase, SetControlOwnerUseCase } from './application/use-cases/team-assignments.use-cases';
 import { CreateGroupUseCase, ListGroupsUseCase, RenameGroupUseCase } from './application/use-cases/team-groups.use-cases';
-import { CreateTeamMemberUseCase, IssueActivationCode, ListTeamUseCase, ReissueActivationCodeUseCase, UpdateTeamMemberUseCase } from './application/use-cases/team-users.use-cases';
+import { CreateTeamMemberUseCase, IssueActivationCode, ListTeamUseCase, UserDirectoryUseCase, ReissueActivationCodeUseCase, UpdateTeamMemberUseCase } from './application/use-cases/team-users.use-cases';
 import { TeamAssignmentRepository } from './domain/repositories/team-assignment.repository';
 import { TeamGroupRepository } from './domain/repositories/team-group.repository';
 import { TeamUserRepository } from './domain/repositories/team-user.repository';
@@ -13,11 +13,11 @@ import { TeamUserPrismaRepository } from './infrastructure/repositories/team-use
 import { TeamGroupPrismaRepository } from './infrastructure/repositories/team-group.prisma.repository';
 import { AssignmentsController } from './presentation/assignments.controller';
 import { GroupsController } from './presentation/groups.controller';
-import { UsersController } from './presentation/users.controller';
+import { UserDirectoryController, UsersController } from './presentation/users.controller';
 
 // El equipo de la empresa (contracts/gestion-usuarios.md, D102).
 @Module({
-  controllers: [UsersController, GroupsController, AssignmentsController],
+  controllers: [UserDirectoryController, UsersController, GroupsController, AssignmentsController],
   providers: [
     {
       provide: ACTIVATION_CODE_TTL_HOURS,
@@ -37,6 +37,7 @@ import { UsersController } from './presentation/users.controller';
     InvitationDelivery,
     CreateTeamMemberUseCase,
     ListTeamUseCase,
+    UserDirectoryUseCase,
     UpdateTeamMemberUseCase,
     ReissueActivationCodeUseCase,
     ListGroupsUseCase,

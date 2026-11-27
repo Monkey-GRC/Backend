@@ -5,12 +5,10 @@
 //  - `display_description` es el objetivo con la tabla 9.
 
 // La regla de qué es «nombrar al proveedor» vive en un solo sitio (SEG-39): la misma que usa Monkey Admin al dar de alta una prueba.
-import { whiteLabel } from '../../../src/common/text/provider-names';
+import { POSSIBLE_CHECKS, whiteLabel } from '../../../src/common/text/provider-names';
 import { CatalogV2 } from './types';
 
 export { namesProvider, PROVIDER_PATTERN, whiteLabel } from '../../../src/common/text/provider-names';
-
-const POSSIBLE_CHECKS = /^Posibles? checks?\b/i;
 
 export type DisplayInput = {
   code: string;

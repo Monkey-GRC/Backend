@@ -75,6 +75,16 @@ export class ListTeamUseCase {
   }
 }
 
+// MD-529 · El directorio para elegir el «Quién» de un plan. El permiso (`users.directory`) lo fija el controller.
+@Injectable()
+export class UserDirectoryUseCase {
+  constructor(private readonly repo: TeamUserRepository) {}
+
+  execute(p: Principal) {
+    return this.repo.directory(scopeOf(p));
+  }
+}
+
 @Injectable()
 export class UpdateTeamMemberUseCase {
   constructor(private readonly repo: TeamUserRepository) {}

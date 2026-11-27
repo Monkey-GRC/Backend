@@ -8,7 +8,7 @@ import { ConnectedIntegrationCategories } from '../../domain/evidence/test-evide
 import { ViewMode, viewModeOf } from '../shared/view-access';
 import { canSeeControl } from '../../domain/controls/control-access';
 
-export type ControlDetail = { view: ViewMode; readout: ControlReadout; evidence: ControlDetailData['evidence']; causes: ControlDetailData['causes']; checkLinks: Map<string, CheckLinkReadout[]>; connectedIntegrations: ConnectedIntegrationCategories };
+export type ControlDetail = { view: ViewMode; readout: ControlReadout; evidence: ControlDetailData['evidence']; causes: ControlDetailData['causes']; checkLinks: Map<string, CheckLinkReadout[]>; connectedIntegrations: ConnectedIntegrationCategories; actor: { role: string; userId: string }; now: Date };
 
 @Injectable()
 export class GetControlUseCase {
@@ -24,6 +24,6 @@ export class GetControlUseCase {
     const checkLinks = mode === 'technical' ? checkLinksByTest(readout.control, data) : new Map<string, CheckLinkReadout[]>();
     // MD-499 · Qué pruebas aceptan subida (y cuáles solo de respaldo) depende de las integraciones que el servicio tenga conectadas.
     const connectedIntegrations = await this.integrations.connectedCategories({ companyId: principal.companyId, userId: principal.userId, role: principal.role }, readout.control.serviceId);
-    return { view: mode, readout, evidence: data.evidence, causes: data.causes, checkLinks, connectedIntegrations };
+    return { view: mode, readout, evidence: data.evidence, causes: data.causes, checkLinks, connectedIntegrations, actor: { role: principal.role, userId: principal.userId }, now: data.signals.now };
   }
 }

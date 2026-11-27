@@ -14,15 +14,16 @@ export class WorkItemResponse {
   @ApiProperty({ example: 'IAC-12', description: 'El código del control (D80): el del catálogo o la numeración propia.' }) code!: string;
   @ApiProperty({ description: 'El nombre del control.' }) title!: string;
   @ApiProperty({ type: AssignmentServiceResponse }) service!: AssignmentServiceResponse;
-  @ApiProperty({ enum: ['owner', 'executor'], enumName: 'RoleInControl' }) role_in_control!: string;
+  @ApiProperty({ enum: ['owner', 'executor', 'approver'], enumName: 'RoleInControl', description: '`owner` dueño · `executor` ejecutor · `approver` (MD-529) el `admin_empresa` que decide sobre un control de otro responsable.' }) role_in_control!: string;
   @ApiProperty({ enum: WORK_BUCKETS, enumName: 'WorkBucket', description: 'El primero que aplique (D122): rejected, to_review, to_upload, in_review, done.' }) bucket!: string;
   @ApiProperty({ description: 'Lo que falta subir, lo rechazado, lo que hay que revisar y las observaciones abiertas del auditor.' }) pending_items!: number;
   @ApiProperty({ enum: ['effective', 'ineffective', 'expired', 'error', 'incomplete', 'evaluating', 'no_tests'], enumName: 'ControlState' }) state!: string;
+  @ApiProperty({ enum: ['control_approval', 'manual_result', 'level_override', 'remediation_plan', 'not_applicable'], enumName: 'WorkDecisionKind', isArray: true, description: 'MD-529 · Las decisiones que le tocan en este control (`[]` fuera de `to_review`).' }) pending_decisions!: string[];
 }
 
 export class MyWorkResponse {
   @ApiProperty({ type: WorkItemResponse, isArray: true, description: 'Los controles de la página.' }) items!: WorkItemResponse[];
-  @ApiProperty({ type: WorkProgressResponse, description: 'Avance de SUS controles (los del servicio, si se filtró por él).' }) progress!: WorkProgressResponse;
+  @ApiProperty({ type: WorkProgressResponse, nullable: true, description: 'Avance de SUS controles (los del servicio, si se filtró por él). `null` para el `admin_empresa`: no hay un avance de «toda la empresa».' }) progress!: WorkProgressResponse | null;
   @ApiProperty({ description: 'Página actual, desde 1.' }) page!: number;
   @ApiProperty({ description: 'Elementos por página.' }) page_size!: number;
   @ApiProperty({ description: 'Controles que cumplen los filtros.' }) total!: number;

@@ -10,5 +10,6 @@
   "limit_reached": "Your company has reached the number of users it contracted. Deactivate an account or ask to raise the limit.",
   "has_assignments": "They have assigned controls: the ones they run will have no executor and the ones they own no owner. Confirm to continue.",
   "responsible_has_delegates": "This manager still has active or pending delegates on their team. Move them to another team or deactivate them first.",
-  "team_leader_inactive": "This delegate's manager is no longer active. Move the delegate to another team before reactivating them."
+  "team_leader_inactive": "This delegate's manager is no longer active. Move the delegate to another team before reactivating them.",
+  "directory": "People in your company."
 }

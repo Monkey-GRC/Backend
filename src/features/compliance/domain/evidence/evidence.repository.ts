@@ -50,7 +50,7 @@ export type EvidenceAccess = {
   access: ControlAccess;
 };
 
-export type NewSubmission = { fileKey: string; fileType: string; fileSize: number; integrityHash: string; submittedBy: string; meta: { ipAddress: string; userAgent: string } };
+export type NewSubmission = { /** MD-529 (DT-115) · La ocurrencia que prueba la entrega, en un requisito «cuando sea requerido». */ occurrenceId?: string | null; fileKey: string; fileType: string; fileSize: number; integrityHash: string; submittedBy: string; meta: { ipAddress: string; userAgent: string } };
 
 /** Qué hace falta saber de un control para agregarle una evidencia propia (D88). */
 export type ControlEvidenceFacts = {
@@ -107,6 +107,8 @@ export abstract class EvidenceRepository {
   abstract createSubmission(scope: TenantScope, requirementId: string, input: NewSubmission, audit: AuditIntent<SubmissionRecord>): Promise<SubmissionRecord | null>;
   abstract findSubmission(scope: TenantScope, submissionId: string): Promise<{ submission: SubmissionRecord; access: EvidenceAccess } | null>;
   /** `null` si el control no existe para esta empresa. */
+  /** MD-529 (DT-115) · ¿La prueba sirve a un requisito «cuando sea requerido» del control? y ¿la ocurrencia pedida es de uno de los requisitos de la prueba? */
+  abstract occurrenceFacts(scope: TenantScope, controlId: string, testId: string, occurrenceId: string | null): Promise<{ onDemand: boolean; occurrenceOk: boolean }>;
   abstract controlEvidenceFacts(scope: TenantScope, controlId: string): Promise<ControlEvidenceFacts | null>;
   /** Agrega una evidencia propia al control, con su rastro en la misma transacción. */
   abstract createRequirement(scope: TenantScope, controlId: string, input: NewRequirement, audit: AuditIntent<RequirementRecord>): Promise<RequirementRecord | null>;
