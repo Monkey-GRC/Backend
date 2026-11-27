@@ -3,10 +3,11 @@ import bcrypt from 'bcrypt';
 import * as auditInsert from '../../src/infrastructure/audit/audit-log.insert';
 import { controlStateOf, resultadoDeStatus } from '../support/controles';
 import { bootApp, login, owner, PASSWORD, RUN } from '../support/app';
+import { ExpireExclusionsUseCase } from '../../src/features/compliance/application/exclusions/exclusion.use-cases';
 import { definirPeriodo, dosEmpresas, Tenant } from '../support/escenario';
 
-// MD-144, D96 · Excluir un activo de un test: el admin_empresa la crea y la decide en un solo acto (nace aprobada) y vence con el período del servicio
-// (contracts/modules/compliance-audit.md).
+// MD-144, MD-501, D96, D135 · La excepción del FAIL de una prueba en un activo: el admin_empresa la propone y la decide en un solo acto (nace aprobada), dura hasta `valid_until`
+// (como mucho PR-04) y la tarea diaria registra su vencimiento (contracts/cumplimiento/exclusiones.md).
 type Agent = Awaited<ReturnType<typeof login>>;
 let app: INestApplication;
 let a: Tenant;
@@ -28,10 +29,19 @@ const auditFailsAfterInsert = () =>
 const day = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
 const list = (t: Tenant, q = '') => `/v1/services/${t.serviceId}/exclusions${q}`;
 const create = (agent: Agent, over: object = {}) =>
-  agent.post(list(a)).send({ test_id: testId, asset_id: a.assetId, justification: 'La cuenta se cierra en diciembre.', technical_justification: 'Aislada de producción desde septiembre.', ...over });
+  agent.post(list(a)).send({ test_id: testId, asset_id: a.assetId, justification: 'La cuenta se cierra en diciembre.', technical_justification: 'Aislada de producción desde septiembre.', valid_until: day(60), ...over });
 const fields = (res: { body: any }) => (res.body.error.fields as Array<{ field: string; code: string }>).map(({ field, code }) => ({ field, code }));
 const auditRows = (tenantId: string, action: string) => owner<{ n: number }>('select count(*)::int n from audit.audit_logs where tenant_id = $1 and action = $2', [tenantId, action]).then((r) => r[0].n);
 const approvalEvents = (tenantId: string) => owner<{ n: number }>(`select count(*)::int n from audit.compliance_events where tenant_id = $1 and changed_field = 'exclusion.approve'`, [tenantId]).then((r) => r[0].n);
+const expireEvents = (tenantId: string, id: string) => owner<{ n: number }>(`select count(*)::int n from audit.compliance_events where tenant_id = $1 and changed_field = 'exclusion.expire' and new_value->>'exclusion_id' = $2`, [tenantId, id]).then((r) => r[0].n);
+// `tenant.evaluations` es inmutable: el último resultado manda, así que se escribe uno más reciente.
+const writeResult = (result: 'compliant' | 'non_compliant' | 'not_applicable') =>
+  owner(
+    `insert into tenant.evaluations (id, tenant_id, service_id, client_control_id, test_id, asset_id, catalog_version_id, dimension, result, origin)
+     values (gen_random_uuid(), $1, $2, $3, $4, $5, $6, 'cloud', $7::tenant.evaluation_result, 'automated')`,
+    [a.companyId, a.serviceId, failRow!.client_control_id, testId, a.assetId, failRow!.catalog_version_id, result],
+  );
+let failRow: { client_control_id: string; catalog_version_id: string } | null = null;
 const reset = () => owner(`delete from tenant.exclusions where tenant_id = $1`, [a.companyId]).catch(() => undefined);
 
 async function cuenta(companyId: string, email: string, role: 'auditor' | 'responsable'): Promise<string> {
@@ -88,6 +98,7 @@ beforeAll(async () => {
       order by t.code, cc.own_code limit 1`,
     [a.serviceId],
   ))[0];
+  failRow = cloud;
   testId = cloud.id;
   testCode = cloud.code;
   controlId = cloud.client_control_id;
@@ -106,13 +117,13 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-describe('Crear una exclusión (el admin_empresa la crea y la decide en un solo acto)', () => {
+describe('Aprobar una excepción (el admin_empresa la propone y la decide en un solo acto)', () => {
   beforeEach(async () => {
     await reset();
     await definePeriod(day(120));
   });
 
-  it('nace aprobada, con la vigencia de hoy al fin del período, y el FAIL del activo pasa a contar como PASS marcado (D135)', async () => {
+  it('nace aprobada, con la fecha de fin que pidió, y el FAIL del activo pasa a contar como PASS marcado (D135)', async () => {
     expect(await stateOfTest()).toBe('non_compliant');
     const res = await create(a.agent).expect(201);
     expect(res.body.data).toEqual({
@@ -123,9 +134,11 @@ describe('Crear una exclusión (el admin_empresa la crea y la decide en un solo 
       justification: 'La cuenta se cierra en diciembre.',
       technical_justification: 'Aislada de producción desde septiembre.',
       status: 'approved',
-      is_expired: false,
       valid_from: day(0),
-      valid_until: day(120),
+      valid_until: day(60),
+      effective_until: day(60),
+      is_expired: false,
+      expired_at: null,
       proposed_by: { id: adminId, name: null, last_name: null },
       requested_at: expect.any(String),
       decided_by: { id: adminId, name: null, last_name: null },
@@ -164,7 +177,7 @@ describe('Crear una exclusión (el admin_empresa la crea y la decide en un solo 
     expect(audit[0].after_state).toMatchObject({ id, status: 'approved' });
     expect(await approvalEvents(a.companyId)).toBe(eventsBefore + 1);
     const event = (await owner<{ new_value: any; user_id: string }>(`select new_value, user_id from audit.compliance_events where tenant_id = $1 and changed_field = 'exclusion.approve' and new_value->>'exclusion_id' = $2`, [a.companyId, id]))[0];
-    expect(event.new_value).toMatchObject({ exclusion_id: id, test_id: testId, asset_id: a.assetId, valid_until: day(120) });
+    expect(event.new_value).toMatchObject({ exclusion_id: id, test_id: testId, asset_id: a.assetId, valid_until: day(60) });
     expect(event.user_id).toBe(adminId);
   });
 
@@ -173,16 +186,62 @@ describe('Crear una exclusión (el admin_empresa la crea y la decide en un solo 
     expect(body).not.toMatch(/wazuh|prowler/i);
   });
 
-  it('sin período definido en el servicio no hay hasta cuándo excluir: 409 EVALUATION_NOT_DEFINED', async () => {
-    await definePeriod(null);
-    expect((await create(a.agent).expect(409)).body.error.code).toBe('EVALUATION_NOT_DEFINED');
-    await definePeriod(day(-1)); // un período que ya terminó tampoco sirve
-    expect((await create(a.agent).expect(409)).body.error.code).toBe('EVALUATION_NOT_DEFINED');
+  it('la fecha de fin es posterior a hoy y como mucho hoy + PR-04 (90 días por defecto)', async () => {
+    for (const bad of [day(0), day(-3)]) expect(fields(await create(a.agent, { valid_until: bad }).expect(422))).toEqual([{ field: 'valid_until', code: 'date.min' }]);
+    const tooLong = await create(a.agent, { valid_until: day(91) }).expect(422);
+    expect(fields(tooLong)).toEqual([{ field: 'valid_until', code: 'exception.max_days' }]);
+    expect(tooLong.body.error.fields[0].message).toContain('90');
+    expect(fields(await create(a.agent, { valid_until: '2027-02-31' }).expect(422))).toEqual([{ field: 'valid_until', code: 'date.invalid' }]);
+    expect(fields(await create(a.agent, { valid_until: undefined }).expect(422))).toEqual([{ field: 'valid_until', code: 'date.invalid' }]);
+    // El tope es el PR-04 vigente de la empresa, no una constante.
+    const res = await create(a.agent, { valid_until: day(90) }).expect(201);
+    expect(res.body.data).toMatchObject({ valid_until: day(90), effective_until: day(90) });
+  });
+
+  it('con PR-04 distinto de 90 el tope sigue al parámetro: 30 días sí, 31 no', async () => {
+    await owner(`update catalog.evaluation_parameters set value = '30'::jsonb where key = 'check_exception_max_days'`);
+    try {
+      const tooLong = await create(a.agent, { valid_until: day(31) }).expect(422);
+      expect(fields(tooLong)).toEqual([{ field: 'valid_until', code: 'exception.max_days' }]);
+      expect(tooLong.body.error.fields[0].message).toContain('30');
+      expect((await create(a.agent, { valid_until: day(30) }).expect(201)).body.data).toMatchObject({ valid_until: day(30), effective_until: day(30) });
+    } finally {
+      await owner(`update catalog.evaluation_parameters set value = default_value, updated_at = null, updated_by = null where key = 'check_exception_max_days'`);
+    }
+  });
+
+  it('sin dato en el período (no_data) tampoco hay FAIL que exceptuar: 409 CHECK_NOT_FAILING', async () => {
+    await definirPeriodo(a.serviceId, day(1), day(120), day(1)); // el resultado de hoy queda fuera del período auditado
+    try {
+      expect((await create(a.agent).expect(409)).body.error.code).toBe('CHECK_NOT_FAILING');
+    } finally {
+      await definePeriod(day(120));
+    }
+  });
+
+  it('un activo de la empresa que no es de este servicio: 404', async () => {
+    const other = (await owner<{ id: string }>(
+      `insert into tenant.assets select (jsonb_populate_record(null::tenant.assets, to_jsonb(src) || jsonb_build_object('id', gen_random_uuid(), 'name', 'suelto-' || gen_random_uuid(), 'code', 'SUELTO-' || gen_random_uuid()))).* from tenant.assets src where id = $1 returning id`,
+      [a.assetId],
+    ))[0].id;
+    await create(a.agent, { asset_id: other }).expect(404);
+  });
+
+  it('sin un FAIL hoy en ese activo (pasa o no aplica) no hay qué exceptuar: 409 CHECK_NOT_FAILING', async () => {
+    try {
+      for (const result of ['compliant', 'not_applicable'] as const) {
+        await writeResult(result);
+        expect((await create(a.agent).expect(409)).body.error.code).toBe('CHECK_NOT_FAILING');
+      }
+      expect((await a.agent.get(list(a)).expect(200)).body.data.total).toBe(0);
+    } finally {
+      await writeResult('non_compliant');
+    }
   });
 
   it('la justificación es obligatoria, y la sustentación técnica también en un test automático', async () => {
     expect(fields(await create(a.agent, { justification: '   ' }).expect(422))).toEqual([{ field: 'justification', code: 'required' }]);
-    expect(fields(await create(a.agent, { technical_justification: undefined }).expect(422))).toEqual([{ field: 'technical_justification', code: 'required' }]);
+    expect(fields(await create(a.agent, { technical_justification: '   ' }).expect(422))).toEqual([{ field: 'technical_justification', code: 'required' }]);
     expect(fields(await create(a.agent, { test_id: 'x', asset_id: 'y' }).expect(422))).toEqual(
       expect.arrayContaining([{ field: 'test_id', code: 'uuid.invalid' }, { field: 'asset_id', code: 'uuid.invalid' }]),
     );
@@ -194,7 +253,7 @@ describe('Crear una exclusión (el admin_empresa la crea y la decide en un solo 
     await create(a.agent, { asset_id: b.assetId }).expect(404); // un activo de otra empresa
     await create(a.agent, { asset_id: '00000000-0000-0000-0000-000000000000' }).expect(404);
     await create(a.agent, { test_id: '00000000-0000-0000-0000-000000000000' }).expect(404);
-    await b.agent.post(list(a)).send({ test_id: testId, asset_id: a.assetId, justification: 'x', technical_justification: 'y' }).expect(404); // el servicio de otra empresa
+    await b.agent.post(list(a)).send({ test_id: testId, asset_id: a.assetId, justification: 'x', technical_justification: 'y', valid_until: day(30) }).expect(404); // el servicio de otra empresa
   });
 
   it('repetir lo mismo mientras está vigente es un conflicto', async () => {
@@ -222,6 +281,12 @@ describe('Vencer y renovar', () => {
     await reset();
     await definePeriod(day(120));
   });
+  const expire = () => app.get(ExpireExclusionsUseCase).execute(new Date(), [a.companyId]);
+  const stateEventsOf = (cause: string) =>
+    owner<{ user_id: string | null; previous_value: any; new_value: any }>(
+      `select user_id, previous_value, new_value from audit.compliance_events where tenant_id = $1 and changed_field = 'control.state' and new_value->>'cause' = $2 and new_value->>'control_id' = $3`,
+      [a.companyId, cause, controlId],
+    );
 
   it('una aprobada cuya vigencia pasó deja de excluir: el activo vuelve a contar, y se puede renovar con una nueva', async () => {
     const id = (await create(a.agent).expect(201)).body.data.id;
@@ -229,8 +294,62 @@ describe('Vencer y renovar', () => {
     await owner(`update tenant.exclusions set valid_from = $2, valid_until = $3 where id = $1`, [id, day(-30), day(-1)]);
     expect(await stateOfTest()).toBe('non_compliant');
     const listed = (await a.agent.get(list(a)).expect(200)).body.data.items.find((e: any) => e.id === id);
-    expect(listed).toMatchObject({ status: 'approved', is_expired: true });
+    expect(listed).toMatchObject({ status: 'approved', is_expired: true, effective_until: day(-1), expired_at: null });
     await create(a.agent).expect(201); // se revalida, no se hereda
+  });
+
+  it('si PR-04 baja, las ya aprobadas se acortan: effective_until es la menor entre su fin y su inicio + PR-04', async () => {
+    const id = (await create(a.agent).expect(201)).body.data.id;
+    await owner(`update tenant.exclusions set valid_from = $2, valid_until = $3 where id = $1`, [id, day(-100), day(30)]);
+    const listed = (await a.agent.get(list(a)).expect(200)).body.data.items.find((e: any) => e.id === id);
+    expect(listed).toMatchObject({ valid_until: day(30), effective_until: day(-10), is_expired: true });
+    expect(await stateOfTest()).toBe('non_compliant');
+  });
+
+  it('la tarea diaria registra el vencimiento una sola vez: expired_at, evento exclusion.expire y el evento de estado con exclusion_expired', async () => {
+    const id = (await create(a.agent).expect(201)).body.data.id;
+    const movedBefore = (await stateEventsOf('exclusion_expired')).length;
+    await owner(`update tenant.exclusions set valid_from = $2, valid_until = $3 where id = $1`, [id, day(-30), day(-1)]);
+    const first = await expire();
+    expect(first.failed).toBe(0);
+    expect(first.expired).toBeGreaterThanOrEqual(1);
+    const row = (await owner<{ expired_at: Date | null }>(`select expired_at from tenant.exclusions where id = $1`, [id]))[0];
+    expect(row.expired_at).not.toBeNull();
+    expect(await expireEvents(a.companyId, id)).toBe(1);
+    const events = (await stateEventsOf('exclusion_expired')).slice(movedBefore);
+    expect(events).toHaveLength(1);
+    expect(events[0].user_id).toBeNull();
+    expect(events[0].previous_value.state).not.toBe(events[0].new_value.state);
+    expect((await a.agent.get(list(a)).expect(200)).body.data.items.find((e: any) => e.id === id)).toMatchObject({ is_expired: true, expired_at: row.expired_at!.toISOString() });
+    // Una segunda pasada no repite nada.
+    expect((await expire()).expired).toBe(0);
+    expect((await owner<{ expired_at: Date }>(`select expired_at from tenant.exclusions where id = $1`, [id]))[0].expired_at).toEqual(row.expired_at);
+    expect(await expireEvents(a.companyId, id)).toBe(1);
+    expect((await stateEventsOf('exclusion_expired')).slice(movedBefore)).toHaveLength(1);
+  });
+
+  it('si el vencimiento no mueve el estado de ningún control, queda expired_at y exclusion.expire pero ningún evento de estado', async () => {
+    const id = (await create(a.agent).expect(201)).body.data.id;
+    await writeResult('compliant'); // el check ya pasa: la excepción no sostenía nada
+    try {
+      const movedBefore = (await stateEventsOf('exclusion_expired')).length;
+      await owner(`update tenant.exclusions set valid_from = $2, valid_until = $3 where id = $1`, [id, day(-30), day(-1)]);
+      expect((await expire()).expired).toBe(1);
+      expect(await expireEvents(a.companyId, id)).toBe(1);
+      expect((await stateEventsOf('exclusion_expired')).length).toBe(movedBefore);
+    } finally {
+      await writeResult('non_compliant');
+    }
+  });
+
+  it('dos pasadas a la vez dejan un solo vencimiento, y una vigente no se toca', async () => {
+    const id = (await create(a.agent).expect(201)).body.data.id;
+    await owner(`update tenant.exclusions set valid_from = $2, valid_until = $3 where id = $1`, [id, day(-30), day(-1)]);
+    const current = (await create(a.agent).expect(201)).body.data.id;
+    const passes = await Promise.all([expire(), expire()]);
+    expect(passes.reduce((n, r) => n + r.expired, 0)).toBe(1);
+    expect(await expireEvents(a.companyId, id)).toBe(1);
+    expect((await owner<{ expired_at: Date | null }>(`select expired_at from tenant.exclusions where id = $1`, [current]))[0].expired_at).toBeNull();
   });
 });
 
@@ -245,19 +364,17 @@ describe('Listar', () => {
     current = (await create(a.agent).expect(201)).body.data.id;
   });
 
-  it('pagina, de la más reciente a la más antigua, y filtra por estado, prueba, activo y vencida', async () => {
+  it('pagina, de la más reciente a la más antigua, y filtra por prueba, activo y vencida', async () => {
     const all = (await a.agent.get(list(a)).expect(200)).body.data;
     expect(all).toMatchObject({ page: 1, page_size: 25, total: 2, total_pages: 1 });
     expect(all.items.map((e: any) => e.id)).toEqual([current, expired]);
     const ids = async (q: string) => (await a.agent.get(list(a, q)).expect(200)).body.data.items.map((e: any) => e.id);
-    expect(await ids('?status=pending')).toEqual([]);
-    expect(await ids('?status=approved')).toEqual([current, expired]);
     expect(await ids('?expired=true')).toEqual([expired]);
     expect(await ids('?expired=false')).toEqual([current]);
     expect(await ids(`?test_id=${testId}&asset_id=${a.assetId}`)).toHaveLength(2);
     expect(await ids(`?asset_id=${b.assetId}`)).toEqual([]);
     expect((await a.agent.get(list(a, '?page=2&page_size=1')).expect(200)).body.data.items.map((e: any) => e.id)).toEqual([expired]);
-    expect(fields(await a.agent.get(list(a, '?status=otra')).expect(422))).toEqual([{ field: 'status', code: 'enum.invalid' }]);
+    expect(fields(await a.agent.get(list(a, '?status=approved')).expect(422))).toEqual([{ field: 'status', code: 'field.not_allowed' }]);
   });
 
   it('las leen el administrador y el auditor; el responsable y admin_monkey, no; otra empresa no ve nada', async () => {

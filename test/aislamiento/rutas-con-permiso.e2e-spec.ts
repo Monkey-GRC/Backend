@@ -66,7 +66,7 @@ describe('Ninguna ruta sin permiso (SEG-86)', () => {
   });
 
   it('las rutas públicas son las de entrar (auth), los instaladores, la API interna del trabajador y las dos vueltas desde Microsoft', () => {
-    // D157 · A donde Microsoft devuelve el navegador, que llega sin la sesión: exigen un recibo firmado por Monkey y con vencimiento, no cambian nada y solo redirigen (SEG-89).
+    // D157 · A donde Microsoft devuelve el navegador, que llega sin la sesión: exigen un recibo firmado por Monkey y con vencimiento, no cambian nada y solo redirigen (SEG-90).
     // Van una por una, no por prefijo: otra ruta pública bajo `/integrations` tiene que romper aquí.
     const vueltasDeMicrosoft = ['POST /integrations/microsoft/signin', 'GET /integrations/microsoft/consent'];
     const publicas = routes().filter((r) => r.isPublic).map((r) => r.id);
