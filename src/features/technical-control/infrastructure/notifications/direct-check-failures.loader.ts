@@ -34,7 +34,7 @@ export async function collectDirectCheckFailures(tx: TransactionClient, scan: Di
       clientControlId: true,
       testId: true,
       clientControl: { select: { serviceId: true } },
-      test: { select: { testChecks: { where: { role: 'direct' as const, checkId: { not: null }, ...(scan.includeProposed ? {} : { provenance: 'committee_ratified' as const }) }, select: { check: { select: { id: true, titleEn: true, titleEs: true } } } } } },
+      test: { select: { testChecks: { where: { role: 'direct' as const, ...(scan.source === 'cloud' ? { check: { policyId: 'cloud_configuration' } } : { checkId: { not: null } }), ...(scan.includeProposed ? {} : { provenance: 'committee_ratified' as const }) }, select: { check: { select: { id: true, titleEn: true, titleEs: true } } } } } },
     },
   });
   const titles = new Map<string, CheckTitle>();

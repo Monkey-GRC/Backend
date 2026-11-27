@@ -574,9 +574,29 @@ export class ScanPrismaRepository extends ScanRepository {
       const framework = await tx.serviceFramework.findFirst({ where: { serviceId, status: 'active' }, orderBy: { contractedAt: 'asc' }, select: { catalogVersionId: true } });
       if (!framework) continue;
       const links = await tx.clientControlTest.findMany({
-        where: { clientControl: { serviceId, isActive: true }, test: { dimension: { in: [...(source === 'cloud' ? CLOUD_MEASURED_DIMENSIONS : PROBE_MEASURED_DIMENSIONS)] } } },
+        // D160 · De una prueba que NO es de nube, a una conexión de nube solo le sirven los Directos de su plataforma: se piden solo las pruebas que los tienen y solo los checks del
+        // motor de nube (una prueba de servidores o de base de datos trae además miles de la sonda). Las de nube van todas, como siempre: ahí la conexión deja «no aplica» si no la miden.
+        where: {
+          clientControl: { serviceId, isActive: true },
+          test:
+            source === 'cloud'
+              ? { OR: [{ dimension: 'cloud' as const }, { dimension: { in: CLOUD_MEASURED_DIMENSIONS.filter((d) => d !== 'cloud') }, testChecks: { some: { role: 'direct' as const, check: { platform: platform ?? '', policyId: POLICY_ID } } } }] }
+              : { dimension: { in: [...PROBE_MEASURED_DIMENSIONS] } },
+        },
         // v2 (RC-04): solo los vínculos `direct` deciden la prueba; los de módulo («N/A», `check_id` nulo) los ignora el motor.
-        select: { clientControlId: true, testId: true, test: { select: { dimension: true, testChecks: { where: { role: 'direct' as const, checkId: { not: null } }, select: { provenance: true, check: { select: { id: true, checkId: true, platform: true } } } } } } },
+        select: {
+          clientControlId: true,
+          testId: true,
+          test: {
+            select: {
+              dimension: true,
+              testChecks: {
+                where: source === 'cloud' ? { role: 'direct' as const, check: { policyId: POLICY_ID } } : { role: 'direct' as const, checkId: { not: null } },
+                select: { provenance: true, check: { select: { id: true, checkId: true, platform: true } } },
+              },
+            },
+          },
+        },
       });
       if (links.length === 0) continue;
       // D91 · Si lo que la sonda midió mueve el estado de un control, queda su evento: sin persona detrás (usuario nulo).
