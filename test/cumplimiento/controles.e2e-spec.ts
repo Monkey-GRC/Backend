@@ -29,6 +29,8 @@ async function cuenta(companyId: string, email: string, role: 'auditor' | 'respo
 
 beforeAll(async () => {
   app = await bootApp();
+  // Escucha en un puerto fijo: sin esto supertest abre y cierra el servidor en cada petición, y con peticiones en paralelo unas cortan el socket de otras (ECONNRESET).
+  await app.listen(0, '127.0.0.1');
   ({ a, b, monkey } = await dosEmpresas(app));
   await cuenta(a.companyId, `auditor-ctl-${RUN}@cumplimiento.test`, 'auditor');
   responsableId = await cuenta(a.companyId, `responsable-ctl-${RUN}@cumplimiento.test`, 'responsable');
@@ -131,6 +133,7 @@ describe('Quién puede pedir qué', () => {
       points_of_focus: expect.any(Array),
       level: expect.stringMatching(/^(not_evaluated|ineffective|weak|partial|adequate|solid)$/),
       level_value: expect.any(Number),
+      suggested_level: expect.stringMatching(/^(not_evaluated|ineffective|weak|partial|adequate|solid)$/),
       complies: expect.any(Boolean),
       c_percent: nullOr(expect.any(Number)),
       periodicity_change: null,
@@ -148,7 +151,7 @@ describe('Quién puede pedir qué', () => {
     const plain = (await a.agent.get(`/v1/controls/${withTests.id}`).expect(200)).body.data;
     expect(plain.technical).toBeUndefined();
     expect(plain.evidence_tests.map((t: any) => t.test_id).sort()).toEqual(adminDetail.technical.tests.filter((t: any) => t.accepts_evidence).map((t: any) => t.test_id).sort());
-    for (const t of plain.evidence_tests) expect(t).toEqual({ test_id: expect.any(String), test_code: expect.any(String), display_name: expect.any(String), dimension: expect.any(String), status: expect.any(String), evidence_fallback: expect.any(Boolean), requirement_id: nullOr(expect.any(String)) });
+    for (const t of plain.evidence_tests) expect(t).toEqual({ test_id: expect.any(String), test_code: expect.any(String), display_name: expect.any(String), dimension: expect.any(String), status: expect.any(String), evidence_fallback: expect.any(Boolean), requirement_id: nullOr(expect.any(String)), control_requirement_id: nullOr(expect.any(String)) });
     // `display_description` es la descripción corta del cliente (D82): texto, o nulo en una prueba que aún no la tiene.
     const { display_description: description, ...firstTest } = adminDetail.technical.tests[0];
     // `test_id` enlaza cada prueba con las evidencias que la respaldan en este control (D88) y lo piden las exclusiones.
@@ -161,7 +164,7 @@ describe('Quién puede pedir qué', () => {
     const requirement = adminDetail.technical.requirements[0];
     expect(requirement).toEqual({
       id: expect.any(String), code: expect.stringMatching(/-L\d+$/), text: expect.any(String), type: expect.any(String), periodicity: nullOr(expect.any(String)),
-      suggested_periodicity: nullOr(expect.any(String)), periodicity_source: 'catalog',
+      suggested_periodicity: nullOr(expect.any(String)), periodicity_source: 'catalog', applicability: 'applicable',
       status: expect.stringMatching(/^(compliant|non_compliant|pending|expired|not_applicable)$/),
       tests: expect.any(Array),
     });
@@ -176,7 +179,8 @@ describe('Quién puede pedir qué', () => {
     const id = (await items(a.agent))[0].id;
     const plain = (await a.agent.get(`/v1/controls/${id}`).expect(200)).body.data;
     expect(plain.technical).toBeUndefined();
-    expect(JSON.stringify(plain)).not.toMatch(/"requirements"|"level"|"c_percent"|"blocking_requirements"/);
+    // MD-529 (duda 2): `management.level` y `management.requirements[]` son para el auditor, el admin_empresa y el responsable dueño; el resto de la vista técnica sigue cerrada.
+    expect(JSON.stringify({ ...plain, management: undefined })).not.toMatch(/"requirements"|"level"|"c_percent"|"blocking_requirements"/);
     const listed = (await items(a.agent))[0];
     expect(listed.technical).toBeUndefined();
     const technical = (await a.agent.get(`/v1/controls/${id}?view=technical`).expect(200)).body.data.technical;
@@ -192,6 +196,7 @@ describe('Quién puede pedir qué', () => {
       points_of_focus: expect.any(Array),
       level: expect.stringMatching(/^(not_evaluated|ineffective|weak|partial|adequate|solid)$/),
       level_value: expect.any(Number),
+      suggested_level: expect.stringMatching(/^(not_evaluated|ineffective|weak|partial|adequate|solid)$/),
       complies: expect.any(Boolean),
       c_percent: nullOr(expect.any(Number)),
       periodicity_change: null,

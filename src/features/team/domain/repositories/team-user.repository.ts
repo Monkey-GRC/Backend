@@ -58,6 +58,9 @@ export abstract class TeamUserRepository {
 
   abstract list(scope: TenantScope, filters: MemberFilters): Promise<Page<TeamMember>>;
 
+  // MD-529 · Las personas activas de la empresa que pueden llevar un plan de remediación (`admin_empresa`, `responsable`, `delegado`): solo id, nombre, apellido y rol.
+  abstract directory(scope: TenantScope): Promise<Array<{ id: string; name: string | null; lastName: string | null; role: string }>>;
+
   // null si no existe, es de otra empresa o es `admin_monkey` (404). Todo en UNA transacción, con la fila de la persona bloqueada (FOR UPDATE) antes de leerla.
   // Orden de bloqueos (sin deadlock): la fila del sujeto, luego la del responsable líder (FOR SHARE), luego la fila de la empresa (cupo). Nunca al revés.
   // Orden de comprobaciones: 404 · LAST_ADMIN (uno mismo) · 422 (group_id / is_internal no admitidos) · USER_NOT_ACTIVATED · RESPONSIBLE_HAS_DELEGATES · USER_HAS_ASSIGNMENTS · aplicar.

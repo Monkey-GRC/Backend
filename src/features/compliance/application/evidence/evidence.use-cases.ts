@@ -103,7 +103,7 @@ export class ListSubmissionsUseCase {
 export class UploadEvidenceUseCase {
   constructor(private readonly repo: EvidenceRepository, private readonly storage: FileStorage) {}
 
-  async execute(p: Principal, requirementId: string, file: UploadedFile | undefined, meta: RequestMeta): Promise<SubmissionRecord> {
+  async execute(p: Principal, requirementId: string, file: UploadedFile | undefined, meta: RequestMeta, occurrenceId: string | null = null): Promise<SubmissionRecord> {
     if (!file) throw new DomainError('FILE_REQUIRED');
     // Primero quién es el requerimiento y si a esta persona le toca: uno ajeno o inexistente es 404 y no gasta ni almacenamiento.
     const access: EvidenceAccess | null = await this.repo.findRequirement(scopeOf(p), requirementId);
@@ -119,12 +119,12 @@ export class UploadEvidenceUseCase {
     try {
       created = await this.repo.createSubmission(
         scopeOf(p), requirementId,
-        { fileKey: key, fileType: contentType, fileSize: file.buffer.length, integrityHash: createHash('sha256').update(file.buffer).digest('hex'), submittedBy: p.userId, meta },
+        { occurrenceId, fileKey: key, fileType: contentType, fileSize: file.buffer.length, integrityHash: createHash('sha256').update(file.buffer).digest('hex'), submittedBy: p.userId, meta },
         // Se audita la huella y el nombre, nunca el contenido ni la llave del objeto.
         (done): AuditEntry => ({
           tenantId: p.companyId, userId: p.userId, action: 'evidence.submit', resource: 'evidence_submission', result: 'success', ipAddress: meta.ipAddress, userAgent: meta.userAgent,
           beforeState: null,
-          afterState: { id: done.id, requirement_id: done.requirementId, version: done.version, file_name: fileNameOfKey(done.fileKey), file_type: done.fileType, file_size: done.fileSize, integrity_hash: done.integrityHash },
+          afterState: { id: done.id, requirement_id: done.requirementId, occurrence_id: occurrenceId, version: done.version, file_name: fileNameOfKey(done.fileKey), file_type: done.fileType, file_size: done.fileSize, integrity_hash: done.integrityHash },
         }),
       );
     } catch (error) {
@@ -146,7 +146,7 @@ export class UploadEvidenceUseCase {
 export class UploadTestEvidenceUseCase {
   constructor(private readonly repo: EvidenceRepository, private readonly upload: UploadEvidenceUseCase, private readonly integrations: IntegrationConnections) {}
 
-  async execute(p: Principal, controlId: string, testId: string, file: UploadedFile | undefined, meta: RequestMeta): Promise<SubmissionRecord> {
+  async execute(p: Principal, controlId: string, testId: string, file: UploadedFile | undefined, meta: RequestMeta, occurrenceId: string | null = null): Promise<SubmissionRecord> {
     if (!file) throw new DomainError('FILE_REQUIRED');
     const facts = await this.repo.controlEvidenceFacts(scopeOf(p), controlId);
     if (!facts) throw new DomainError('NOT_FOUND');
@@ -157,6 +157,10 @@ export class UploadTestEvidenceUseCase {
     // La dimensión de la prueba debe aplicar en el control (una marcada «no aplica» no se evalúa ahí) y su fuente debe aceptar subida.
     const block = evidenceBlockOf(test, await this.integrations.connectedCategories(scopeOf(p), facts.serviceId), facts.dimensions.includes(test.dimension));
     if (block) throw new ValidationException([{ field: 'test_id', code: block }]);
+    // MD-529 (DT-115) · En un requisito «cuando sea requerido» cada entrega prueba una ocurrencia; en cualquier otro no se admite.
+    const occurrence = await this.repo.occurrenceFacts(scopeOf(p), controlId, testId, occurrenceId);
+    if (occurrence.onDemand && !occurrenceId) throw new ValidationException([{ field: 'occurrence_id', code: 'occurrence_id.required' }]);
+    if (occurrenceId && !occurrence.occurrenceOk) throw new ValidationException([{ field: 'occurrence_id', code: 'occurrence_id.invalid' }]);
     // El archivo se comprueba ANTES de crear el lugar donde quedará: uno rechazado no deja un requerimiento vacío.
     assertEvidenceFile(file);
 
@@ -170,7 +174,7 @@ export class UploadTestEvidenceUseCase {
       }),
     );
     if (!slot) throw new DomainError('NOT_FOUND');
-    return this.upload.execute(p, slot.requirementId, file, meta);
+    return this.upload.execute(p, slot.requirementId, file, meta, occurrenceId);
   }
 }
 

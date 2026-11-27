@@ -99,15 +99,10 @@ export class SessionPrismaRepository extends SessionRepository {
   }
 
   async findWithOwner(scope: TenantScope, sessionId: string): Promise<{ session: Session; owner: SessionOwner | null } | null> {
-    const rows = await this.prisma.withScope(scope, (tx) =>
-      tx.$queryRaw<SessionWithOwnerRow[]>`
-        SELECT s.id, s.company_id, s.user_id, s.created_at, s.last_activity_at, s.expires_at, s.revoked_at,
-               u.id AS owner_id, u.company_id AS owner_company_id, u.role::text AS owner_role, u.status::text AS owner_status
-        FROM platform.sessions s
-        LEFT JOIN platform.users u ON u.id = s.user_id
-        WHERE s.id = ${sessionId}::uuid
-      `,
-    );
+    // Una sola consulta, sin transacción: la función SECURITY DEFINER exige que empresa, persona y sesión coincidan (los tres salen del token firmado).
+    const rows = await this.prisma.$queryRaw<SessionWithOwnerRow[]>`
+      SELECT * FROM platform.find_session_with_owner(${scope.companyId}::uuid, ${scope.userId as string}::uuid, ${sessionId}::uuid)
+    `;
     const row = rows[0];
     if (!row) return null;
     const session = new Session(row.id, row.company_id, row.user_id, row.created_at, row.last_activity_at, row.expires_at, row.revoked_at);

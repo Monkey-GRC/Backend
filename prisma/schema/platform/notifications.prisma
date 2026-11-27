@@ -13,6 +13,12 @@ enum NotificationType {
   control_pending_approval
   control_owner_approved
   control_returned
+  level_override_proposed
+  level_override_decided
+  remediation_plan_proposed
+  remediation_plan_decided
+  not_applicable_requested
+  not_applicable_decided
   document_assigned
   document_acceptance_reminder
   document_approval_requested

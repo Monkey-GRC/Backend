@@ -23,7 +23,7 @@ export class WorkController {
   @ApiOperation({
     summary: 'Mi trabajo',
     description:
-      'Solo `responsable` y `delegado` (el resto, `403`). Los controles que la persona posee o ejecuta, de todos los servicios, cada uno en un solo `bucket` (D122) y con lo que le falta (`pending_items`). Paginada; `progress` es el avance de SUS controles.',
+      '`responsable` y `delegado` (el `admin_empresa` solo recibe su bandeja «Por aprobar»: el bucket `to_review`, y otro bucket es `422 bucket.invalid`; el resto, `403`). Los controles que la persona posee o ejecuta, de todos los servicios, cada uno en un solo `bucket` (D122) y con lo que le falta (`pending_items`). Paginada; `progress` es el avance de SUS controles.',
   })
   @ApiData(MyWorkResponse, 'Sus controles con su bucket y el avance de lo suyo.')
   @ApiDomainErrors('FORBIDDEN')

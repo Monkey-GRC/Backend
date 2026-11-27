@@ -3,6 +3,9 @@
 export const USER_ROLES = ['admin_monkey', 'admin_empresa', 'responsable', 'delegado', 'auditor', 'colaborador'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
+// MD-529 · Quién puede hacer lo que dice un plan de remediación (y aparece en el directorio de personas): las que trabajan controles.
+export const ASSIGNABLE_ROLES = ['admin_empresa', 'responsable', 'delegado'] as const satisfies readonly UserRole[];
+
 // pending (D95): la cuenta existe pero la persona aún no activó su código, así que no puede iniciar sesión.
 export const USER_STATUSES = ['active', 'inactive', 'suspended', 'pending'] as const;
 export type UserStatus = (typeof USER_STATUSES)[number];

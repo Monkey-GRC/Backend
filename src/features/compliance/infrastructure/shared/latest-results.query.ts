@@ -28,14 +28,14 @@ export function latestEvaluations(tx: TransactionClient, serviceId: string, cont
   return tx.$queryRaw<LatestEvaluationRow[]>(latestEvaluationsSql(serviceId, controlIds));
 }
 
-export type LatestManualResultRow = { clientControlId: string; testId: string; result: 'correct' | 'observation' | 'exception'; registeredAt: Date };
+export type LatestManualResultRow = { clientControlId: string; testId: string; result: 'correct' | 'observation' | 'exception'; registeredAt: Date; note: string | null; registeredBy: string };
 
 // MD-504 · El último resultado manual de cada (control, test) con un `LIMIT 1` por clave sobre el índice (control, test, fecha desc): el costo crece con las claves, no con el histórico.
 export function latestManualResultsSql(controlIds: string[]): Prisma.Sql {
   return Prisma.sql`
-    SELECT k.client_control_id AS "clientControlId", k.test_id AS "testId", r.result::text AS "result", r.registered_at AS "registeredAt"
+    SELECT k.client_control_id AS "clientControlId", k.test_id AS "testId", r.result::text AS "result", r.registered_at AS "registeredAt", r.note AS "note", r.registered_by AS "registeredBy"
       FROM (SELECT DISTINCT client_control_id, test_id FROM tenant.manual_test_results WHERE client_control_id = ANY(${controlIds}::uuid[])) k
-     CROSS JOIN LATERAL (SELECT x.result, x.registered_at FROM tenant.manual_test_results x
+     CROSS JOIN LATERAL (SELECT x.result, x.registered_at, x.note, x.registered_by FROM tenant.manual_test_results x
                           WHERE x.client_control_id = k.client_control_id AND x.test_id = k.test_id
                           ORDER BY x.registered_at DESC, x.id DESC LIMIT 1) r`;
 }

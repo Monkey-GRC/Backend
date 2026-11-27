@@ -244,6 +244,66 @@
       "time_needed": "Quedan pocos días para el plazo.",
       "evidence": "No hace falta evidencia.",
       "impact": "Pasado el plazo, la empresa y sus datos se eliminan."
+    },
+    "level_override_proposed": {
+      "title": "{control_code} · El responsable propone corregir el nivel",
+      "what_happened": "El responsable propuso un nivel final distinto del sugerido para el control {control_label} del servicio {service_name}.",
+      "why_it_matters": "Hasta que lo decidas, el control sigue con el nivel que calculó Monkey.",
+      "how_to_fix": "Abre el control, lee la justificación y apruébala o recházala.",
+      "who": "Decide: administrador · Propuso: {owner}",
+      "time_needed": "Decídela antes de aprobar el control.",
+      "evidence": "La justificación escrita del responsable.",
+      "impact": "Aprobada, el nivel final reemplaza al sugerido."
+    },
+    "level_override_decided": {
+      "title": "{control_code} · Se decidió tu propuesta de nivel",
+      "what_happened": "El administrador decidió tu propuesta de nivel para el control {control_label} del servicio {service_name}.",
+      "why_it_matters": "El nivel que rige decide si el control cumple.",
+      "how_to_fix": "Abre el control y mira la decisión y su motivo.",
+      "who": "Decidió: administrador",
+      "time_needed": "Sin plazo.",
+      "evidence": "El motivo de la decisión.",
+      "impact": "Aprobada, el nivel final reemplaza al sugerido en todas partes."
+    },
+    "remediation_plan_proposed": {
+      "title": "{control_code} · Un plan de remediación espera tu decisión",
+      "what_happened": "El responsable registró un plan de remediación para el control {control_label} del servicio {service_name}.",
+      "why_it_matters": "Sin un plan aprobado por cada excepción, el control no llega a Parcial.",
+      "how_to_fix": "Abre el control, lee qué se hará, quién y para cuándo, y apruébalo o recházalo.",
+      "who": "Decide: administrador · Registró: {owner}",
+      "time_needed": "Decídelo pronto: el control queda en Débil mientras no esté aprobado.",
+      "evidence": "El plan: qué, quién y para cuándo.",
+      "impact": "Aprobado, el plan cuenta para el nivel Parcial."
+    },
+    "remediation_plan_decided": {
+      "title": "{control_code} · Se decidió un plan de remediación",
+      "what_happened": "El administrador decidió el plan de remediación del control {control_label} del servicio {service_name}.",
+      "why_it_matters": "Un plan aprobado permite el nivel Parcial; uno rechazado se registra de nuevo.",
+      "how_to_fix": "Abre el control y mira la decisión. Si te asignaron el plan, hazlo para la fecha acordada.",
+      "who": "Decidió: administrador · Hace: la persona del plan",
+      "time_needed": "Para la fecha del plan.",
+      "evidence": "Lo que corrija la excepción.",
+      "impact": "Aprobado, el plan cuenta para el nivel Parcial."
+    },
+    "not_applicable_requested": {
+      "title": "{control_code} · Un «No aplica» espera tu decisión",
+      "what_happened": "El responsable pidió marcar un requisito como «No aplica» en el control {control_label} del servicio {service_name}.",
+      "why_it_matters": "Un requisito que no aplica sale del cálculo del control.",
+      "how_to_fix": "Abre el control, lee la justificación y apruébalo o recházalo.",
+      "who": "Decide: administrador · Pidió: {owner}",
+      "time_needed": "Decídelo pronto: cambia el avance del control.",
+      "evidence": "La justificación escrita del responsable.",
+      "impact": "Aprobado, el requisito sale del porcentaje del control."
+    },
+    "not_applicable_decided": {
+      "title": "{control_code} · Se decidió tu «No aplica»",
+      "what_happened": "El administrador decidió el «No aplica» que pediste en el control {control_label} del servicio {service_name}.",
+      "why_it_matters": "Un requisito que no aplica sale del cálculo del control.",
+      "how_to_fix": "Abre el control y mira la decisión y su motivo.",
+      "who": "Decidió: administrador",
+      "time_needed": "Sin plazo.",
+      "evidence": "El motivo de la decisión.",
+      "impact": "Aprobado, el requisito sale del porcentaje del control."
     }
   },
   "check_untitled": "una verificación del control",

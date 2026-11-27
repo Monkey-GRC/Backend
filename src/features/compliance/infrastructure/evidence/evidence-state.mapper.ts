@@ -17,3 +17,9 @@ export function requirementState(submissions: ReadonlyArray<SubmissionStateRow>)
   const latest = [...submissions].sort((a, b) => versionOf(b.version) - versionOf(a.version))[0];
   return latest ? submissionState(latest) : 'pending';
 }
+
+/**
+ * MD-529 · Una entrega «tiene evidencia» (la de una ocurrencia, DT-115) con el mismo criterio con que cuenta para el motor: está cargada, vigente y no fue devuelta con el control (D132). Una sola función para
+ * `requirement_occurrences.has_evidence` en el motor y en la lista de ocurrencias.
+ */
+export const submissionCounts = (s: SubmissionStateRow): boolean => submissionState(s) === 'compliant';

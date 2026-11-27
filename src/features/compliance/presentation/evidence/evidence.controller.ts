@@ -9,7 +9,7 @@ import { Can } from '../../../../common/authorization/can.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { toPageResponse } from '../../../../common/pagination/page';
-import { CreateEvidenceRequirementDto, DownloadEvidenceQuery, ListSubmissionsQuery } from '../../application/evidence/evidence.dto';
+import { CreateEvidenceRequirementDto, DownloadEvidenceQuery, ListSubmissionsQuery, UploadTestEvidenceDto } from '../../application/evidence/evidence.dto';
 import { EVIDENCE_UPLOAD_LIMIT_BYTES } from '../../application/evidence/evidence-file';
 import {
   CreateEvidenceRequirementUseCase, GetEvidenceDownloadUseCase, ListEvidenceUseCase, ListServiceEvidenceUseCase, ListSubmissionsUseCase, ListTestEvidenceUseCase, UploadEvidenceUseCase, UploadTestEvidenceUseCase,
@@ -95,7 +95,7 @@ export class EvidenceController {
 
   // D88 · La persona lee lo que pide la prueba y sube su documento, en un solo paso. El admin_empresa la valida después.
   @ApiOperation({ summary: 'Subir la evidencia de una prueba de fuente manual', description: 'Multipart, campo `file` (PDF, DOCX, XLSX, PNG o JPG, hasta 25 MB). La evidencia es **de esa prueba en este control** (D88): en la primera entrega se crea el lugar donde queda y las siguientes son versiones nuevas. Suben `admin_empresa` y el `responsable` dueño del control. La prueba debe ser del control (si no, 404) y aceptar subida según su fuente principal: `document` y `manual` sí; `probe`, `cloud_engine` y `probe_and_cloud_engine` no (`422 test.not_manual`); `integration` sí, de respaldo, mientras el servicio no tenga conectada una integración de su categoría. Además, su dimensión debe aplicar en el control (`422 dimension.not_in_control`). Subir **no cumple** la prueba: la deja en revisión hasta que el `admin_empresa` valide la evidencia (D96). Queda registro de auditoría.' })
-  @ApiBody({ schema: { type: 'object', required: ['file'], properties: { file: { type: 'string', format: 'binary', description: 'PDF, DOCX, XLSX, PNG o JPG; máx. 25 MB.' } } } })
+  @ApiBody({ schema: { type: 'object', required: ['file'], properties: { file: { type: 'string', format: 'binary', description: 'PDF, DOCX, XLSX, PNG o JPG; máx. 25 MB.' }, occurrence_id: { type: 'string', format: 'uuid', description: 'MD-529 · Obligatorio si la prueba sirve a un requisito «cuando sea requerido» (`422 occurrence_id.required`); la ocurrencia que prueba esta entrega (`422 occurrence_id.invalid` si no es de ese requisito). No se admite en otro.' } } } })
   @ApiConsumes('multipart/form-data')
   @ApiData(EvidenceSubmissionResponse, 'Entrega registrada para esa prueba.', { status: 201 })
   @ApiDomainErrors('FILE_REQUIRED', 'FILE_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE', 'CONTROL_RETIRED', 'STORAGE_UNAVAILABLE')
@@ -108,9 +108,10 @@ export class EvidenceController {
     @Param('controlId', idPipe) controlId: string,
     @Param('testId', idPipe) testId: string,
     @UploadedFile() file: Express.Multer.File | undefined,
+    @Body() body: UploadTestEvidenceDto,
     @Req() req: Request,
   ) {
-    const created = await this.uploadForTest.execute(p, controlId, testId, file && { buffer: file.buffer, originalName: file.originalname, mimeType: file.mimetype }, metaOf(req));
+    const created = await this.uploadForTest.execute(p, controlId, testId, file && { buffer: file.buffer, originalName: file.originalname, mimeType: file.mimetype }, metaOf(req), body.occurrence_id ?? null);
     return new ResponseDto(HttpStatus.CREATED, t('evidence.submitted'), toSubmission(created, true));
   }
 

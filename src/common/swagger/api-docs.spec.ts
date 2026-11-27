@@ -144,7 +144,8 @@ describe('documentación de la API encendida (local)', () => {
     // + 8 de MD-503: Documentos (listar, detalle, publicar versión, archivo, asignar, quitar, aceptar y `GET /v1/me/documents`).
     // + 7 de MD-515: Notificaciones.
     // - 3 y + 2 de MD-504: se retiran `PUT /v1/evidence-submissions/{id}/review`, `POST …/verdicts` y `PUT /v1/verdicts/{id}/review`; entran `POST /v1/controls/{id}/approval` y `POST …/tests/{test_id}/result`; también se retira `GET …/tests/{test_id}/verdicts` (el historial v1 se borra): −1.
-    expect(ids.length).toBe(193);
+    // + 12 de MD-529: R5 (proponer y decidir), plan de remediación (registrar y decidir), «No aplica» (pedir, decidir y revertir), ocurrencias (registrar y listar), declaración «sin ocurrencias», historial de gestión y `GET /v1/users/directory`.
+    expect(ids.length).toBe(205);
     expect(ids.some((id) => id.includes('/internal/'))).toBe(false);
   });
 

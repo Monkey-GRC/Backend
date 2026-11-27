@@ -6,7 +6,7 @@ import { invitarYActivar } from '../support/equipo';
 import { AccessTokenService } from '../../src/features/auth/domain/ports/access-token.service';
 import { PrismaService } from '../../src/infrastructure/database/prisma.service';
 
-// MD-219 · Transacciones por petición: validar la sesión cuesta una (sesión + persona con un JOIN) y GET /auth/me suma una más (perfil + onboarding).
+// MD-219 · Transacciones por petición: GET /auth/me abre un withScope (perfil + onboarding). MD-529: validar la sesión ya no abre ninguno (función SECURITY DEFINER, una consulta).
 let app: INestApplication;
 let a: Tenant;
 let monkey: Agent;
@@ -31,20 +31,20 @@ const conteo = async (llamada: () => PromiseLike<unknown>): Promise<number> => {
 };
 
 describe('transacciones por petición (MD-219)', () => {
-  it('validar la sesión de una ruta autenticada es un solo withScope', async () => {
+  it('validar la sesión de una ruta autenticada no abre withScope', async () => {
     // Idioma inválido: el guard valida la sesión y la validación del cuerpo corta antes del caso de uso.
     const n = await conteo(() => a.agent.patch('/v1/auth/me/language').send({ language: 'fr' }).expect(422));
-    expect(n).toBe(1);
+    expect(n).toBe(0);
   });
 
-  it('GET /auth/me de admin_empresa: 2 (guard + perfil con onboarding)', async () => {
+  it('GET /auth/me de admin_empresa: 1 (perfil con onboarding)', async () => {
     const res = await a.agent.get('/v1/auth/me').expect(200);
     expect(res.body.data.onboarding).toBeDefined();
-    expect(await conteo(() => a.agent.get('/v1/auth/me').expect(200))).toBe(2);
+    expect(await conteo(() => a.agent.get('/v1/auth/me').expect(200))).toBe(1);
   });
 
-  it('GET /auth/me de otro rol: 2 (guard + perfil)', async () => {
-    expect(await conteo(() => monkey.get('/v1/auth/me').expect(200))).toBe(2);
+  it('GET /auth/me de otro rol: 1 (perfil)', async () => {
+    expect(await conteo(() => monkey.get('/v1/auth/me').expect(200))).toBe(1);
   });
 });
 

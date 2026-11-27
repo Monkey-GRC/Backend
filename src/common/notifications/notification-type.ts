@@ -12,6 +12,12 @@ export const NOTIFICATION_TYPES = [
   'control_pending_approval',
   'control_owner_approved',
   'control_returned',
+  'level_override_proposed',
+  'level_override_decided',
+  'remediation_plan_proposed',
+  'remediation_plan_decided',
+  'not_applicable_requested',
+  'not_applicable_decided',
   'document_assigned',
   'document_acceptance_reminder',
   'document_approval_requested',
@@ -52,6 +58,13 @@ export const AUDIENCES: Record<NotificationType, readonly NotificationAudience[]
   control_pending_approval: ['owner'],
   control_owner_approved: ['company_admin'],
   control_returned: ['executor', 'owner'],
+  // MD-529 · Lo que propone el responsable espera al administrador; la decisión vuelve al responsable (y, en un plan aprobado, a la persona del plan).
+  level_override_proposed: ['company_admin'],
+  level_override_decided: ['owner'],
+  remediation_plan_proposed: ['company_admin'],
+  remediation_plan_decided: ['owner', 'assignee'],
+  not_applicable_requested: ['company_admin'],
+  not_applicable_decided: ['owner'],
   document_assigned: ['assignee'],
   document_acceptance_reminder: ['document_pending_acceptor'],
   document_approval_requested: ['document_approver'],
@@ -60,7 +73,7 @@ export const AUDIENCES: Record<NotificationType, readonly NotificationAudience[]
 };
 
 /** Los tipos que se emiten hoy; el resto está reservado (los emiten MD-506 y DT-83). `evidence_approved` y `evidence_rejected` ya no se emiten: la aprobación es del control (D132, MD-504). */
-export const EMITTED_TYPES: readonly NotificationType[] = ['window_due_soon', 'window_expired', 'control_assigned', 'direct_check_failed', 'check_parameters_changed', 'automatic_evidence_stale', 'control_pending_approval', 'control_owner_approved', 'control_returned'];
+export const EMITTED_TYPES: readonly NotificationType[] = ['window_due_soon', 'window_expired', 'control_assigned', 'direct_check_failed', 'check_parameters_changed', 'automatic_evidence_stale', 'control_pending_approval', 'control_owner_approved', 'control_returned', 'level_override_proposed', 'level_override_decided', 'remediation_plan_proposed', 'remediation_plan_decided', 'not_applicable_requested', 'not_applicable_decided'];
 
 /** El historial de la campana: la API nunca devuelve más viejo y una pasada diaria lo borra. */
 export const NOTIFICATION_RETENTION_DAYS = 90;

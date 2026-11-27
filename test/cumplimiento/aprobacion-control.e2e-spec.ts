@@ -231,6 +231,7 @@ describe('POST /v1/controls/{id}/tests/{test}/result · el resultado de una prue
          join catalog.control_requirement_tests crt on crt.control_requirement_id = ccr.control_requirement_id
          join catalog.tests t on t.id = crt.test_id and t.type in ('operational', 'population')
         where cc.service_id = $1 and cc.is_active and cc.control_id is not null
+          and coalesce(ccr.periodicity, (select cr.periodicity from catalog.control_requirements cr where cr.id = ccr.control_requirement_id)) is distinct from 'on_demand' -- «cuando sea requerido» se mide por evento (MD-529)
         order by cc.own_code, t.code limit 400`,
       [a.serviceId],
     );

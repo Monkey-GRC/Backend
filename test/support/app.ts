@@ -65,7 +65,7 @@ export async function bootApp(env: Record<string, string> = {}, configure?: (bui
   const moduleRef = await (configure ? configure(builder) : builder).compile();
   const app = moduleRef.createNestApplication();
   // Los errores que las pruebas provocan a propósito (p. ej. un rastro que falla) no deben llenar la salida.
-  app.useLogger(false);
+  app.useLogger(process.env.E2E_LOG ? ['error', 'warn'] : false);
   configureApp(app);
   await app.init();
   return app;

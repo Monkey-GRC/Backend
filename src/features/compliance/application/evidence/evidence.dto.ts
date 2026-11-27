@@ -27,3 +27,8 @@ export class DownloadEvidenceQuery {
   @ApiPropertyOptional({ enum: ['attachment', 'inline'], default: 'attachment', description: '`attachment`: el navegador descarga el archivo. `inline`: la pantalla lo muestra sin descargarlo; solo PDF, PNG y JPG (con DOCX o XLSX responde 422).' })
   @IsOptional() @IsIn(['attachment', 'inline']) disposition?: 'attachment' | 'inline';
 }
+
+// POST /v1/controls/{id}/tests/{test_id}/evidence (multipart): además del archivo, MD-529 (DT-115) agrega la ocurrencia que prueba la entrega.
+export class UploadTestEvidenceDto {
+  @ApiPropertyOptional({ format: 'uuid', description: 'La ocurrencia que prueba la entrega: obligatoria si la prueba sirve a un requisito «cuando sea requerido».' }) @IsOptional() @IsUUID('all') occurrence_id?: string;
+}

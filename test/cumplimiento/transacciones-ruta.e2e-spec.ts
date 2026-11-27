@@ -6,7 +6,7 @@ import { dosEmpresas, Tenant } from '../support/escenario';
 import { invitarYActivar } from '../support/equipo';
 import { StorageEnMemoria } from '../support/storage-en-memoria';
 
-// MD-230 · Transacciones por petición: cada ruta abre 2 transacciones (1 del guard + 1 del caso de uso).
+// MD-230 · Transacciones por petición: cada ruta abre 1 transacción (el caso de uso: la validación de sesión del guard ya no abre ninguna, MD-529).
 let app: INestApplication;
 let a: Tenant;
 let b: Tenant;
@@ -48,19 +48,19 @@ const conteo = async (llamada: () => PromiseLike<unknown>): Promise<number> => {
 
 describe('withScope por ruta (MD-230)', () => {
   it('PATCH /controls/:id', async () => {
-    expect(await conteo(() => a.agent.patch(`/v1/controls/${controlId}`).send({ interpretation: { text: 'Nuestra forma de cumplirlo.' } }).expect(200))).toBe(2);
+    expect(await conteo(() => a.agent.patch(`/v1/controls/${controlId}`).send({ interpretation: { text: 'Nuestra forma de cumplirlo.' } }).expect(200))).toBe(1);
   });
   it('GET /controls/:id/tests', async () => {
-    expect(await conteo(() => a.agent.get(`/v1/controls/${controlId}/tests`).expect(200))).toBe(2);
+    expect(await conteo(() => a.agent.get(`/v1/controls/${controlId}/tests`).expect(200))).toBe(1);
   });
   it('GET /evidence-requirements/:id/submissions', async () => {
-    expect(await conteo(() => a.agent.get(`/v1/evidence-requirements/${requirementId}/submissions`).expect(200))).toBe(2);
+    expect(await conteo(() => a.agent.get(`/v1/evidence-requirements/${requirementId}/submissions`).expect(200))).toBe(1);
   });
   it('GET /services/:id de admin_empresa', async () => {
-    expect(await conteo(() => a.agent.get(`/v1/services/${a.serviceId}`).expect(200))).toBe(2);
+    expect(await conteo(() => a.agent.get(`/v1/services/${a.serviceId}`).expect(200))).toBe(1);
   });
   it('GET /services/:id de un responsable (comprueba si le toca)', async () => {
-    expect(await conteo(() => resp.session.get(`/v1/services/${a.serviceId}`).expect(403))).toBe(2);
+    expect(await conteo(() => resp.session.get(`/v1/services/${a.serviceId}`).expect(403))).toBe(1);
   });
 });
 
