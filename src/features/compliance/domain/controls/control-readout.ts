@@ -420,31 +420,45 @@ function evaluateOnDemand(control: ReadoutControl, entry: Entry, data: ReadoutDa
   return { status: result.result, windowEnd };
 }
 
-function evaluateTest(control: ReadoutControl, entry: Entry, data: ReadoutData, visiting: ReadonlySet<string> = new Set()): TestEvaluationDetail {
+type TestNode = { control: ReadoutControl; entry: Entry };
+const nodeKey = ({ control, entry }: TestNode) => `${control.id}|${entry.test.testId}|${entry.requirement.periodicity ?? control.periodicity ?? null}`;
+// Los controles del servicio por su control de catálogo, una vez por foto: la búsqueda de un dueño no recorre la lista cada vez.
+const ownerIndex = new WeakMap<object, Map<string, ReadoutControl>>();
+function ownerOf(data: ReadoutData, catalogControlId: string): ReadoutControl | undefined {
+  let index = ownerIndex.get(data);
+  if (!index) {
+    index = new Map();
+    for (const c of data.pool ?? data.controls) if (c.catalogControlId && !index.has(c.catalogControlId)) index.set(c.catalogControlId, c);
+    ownerIndex.set(data, index);
+  }
+  return index.get(catalogControlId);
+}
+/** Las pruebas del dueño que dan el check Directo `key` de una Dependencia: TODAS (no la primera), para que el resultado no dependa del orden. Vacío si el dueño o la prueba no están. */
+function dependencyTargets(data: ReadoutData, dep: { ownerControlId: string; key: string }): TestNode[] {
+  const owner = ownerOf(data, dep.ownerControlId);
+  return owner ? entriesOf(owner).filter((e) => (e.test.links ?? NO_LINKS).directKeys.includes(dep.key)).map((entry) => ({ control: owner, entry })) : [];
+}
+
+type OwnEvaluation = { detail: TestEvaluationDetail; statuses: TestStatus[]; dependencies: ReadonlyArray<{ ownerControlId: string; key: string }> };
+const ownCache = new WeakMap<object, Map<string, OwnEvaluation>>();
+
+/** Lo que la prueba da SIN mirar sus Dependencias («estado propio»): sus checks y su parte manual, o su evaluación manual. Sin contexto de visita, así que se memoiza sin riesgo. */
+function evaluateOwn(control: ReadoutControl, entry: Entry, data: ReadoutData): OwnEvaluation {
   const periodicity = entry.requirement.periodicity ?? control.periodicity ?? null;
-  const key = `${control.id}|${entry.test.testId}|${periodicity}`;
-  const memo = cache.get(data) ?? new Map<string, TestEvaluationDetail>();
-  cache.set(data, memo);
+  const key = nodeKey({ control, entry });
+  const memo = ownCache.get(data) ?? new Map<string, OwnEvaluation>();
+  ownCache.set(data, memo);
   const cached = memo.get(key);
   if (cached) return cached;
 
   const { test } = entry;
   const { signals } = data;
   const links = test.links ?? NO_LINKS;
-  let detail: TestEvaluationDetail;
+  let out: OwnEvaluation;
 
   const technical = test.testType === 'technical' ? evaluateTechnicalTest({ assets: outcomesOf(control, test, periodicity, data), periodicity }, signals.parameters) : null;
   const dependencies = test.testType === 'technical' ? links.dependencies : [];
   if (technical?.applicable || dependencies.length > 0) {
-    const pool = data.pool ?? data.controls;
-    const next = new Set(visiting).add(key);
-    const owners = dependencies.map((dep): TestStatus => {
-      const owner = pool.find((c) => c.catalogControlId === dep.ownerControlId);
-      const found = owner ? entriesOf(owner).find((e) => (e.test.links ?? NO_LINKS).directKeys.includes(dep.key)) : undefined;
-      if (!owner || !found) return 'pending';
-      const ownerKey = `${owner.id}|${found.test.testId}|${found.requirement.periodicity ?? owner.periodicity ?? null}`;
-      return next.has(ownerKey) ? 'pending' : evaluateTest(owner, found, data, next).status;
-    });
     // D160 · Una prueba «semiautomática» tiene, además de sus checks, una parte que se comprueba a mano («Correcto si» del libro: la aplicación propia, lo que está fuera de la
     // nube). Los checks pueden dejarla en Excepción o Pendiente; para Correcto hace falta también el resultado que registra el responsable (D140 punto 2). Nunca cumple sola.
     const manualPart = !!technical?.applicable && test.automation === 'semi_automated';
@@ -454,19 +468,23 @@ function evaluateTest(control: ReadoutControl, entry: Entry, data: ReadoutData, 
           windowMode: signals.parameters.validityWindows, periodStart: signals.period?.start,
         }).status
       : null;
-    const status = worstStatus([...(technical?.applicable ? [technical.status] : []), ...owners, ...(byHand ? [byHand] : [])]) ?? 'pending';
+    const statuses = [...(technical?.applicable ? [technical.status] : []), ...(byHand ? [byHand] : [])];
     // PR-07 `rolling`: la ventana arranca en el último resultado válido del test (o en el inicio del período) y dura una periodicidad.
     const lastResult = signals.parameters.validityWindows === 'rolling' ? lastResultAt(control, test, data) : null;
     const window = currentWindow({ periodicity, now: signals.now, lastValidAt: lastResult, mode: signals.parameters.validityWindows, periodStart: signals.period?.start });
-    detail = {
-      status,
-      windowEnd: windowEndDate(window),
-      checks: technical?.applicable ? technical.checks : null,
-      assetCoverage: technical?.applicable ? technical.assetCoverage : null,
-      failingAssetIds: technical?.failingAssetIds ?? [],
-      alertAt: null,
-      manual: false,
-      manualPart,
+    out = {
+      statuses,
+      dependencies: dependencies.map((d) => ({ ownerControlId: d.ownerControlId, key: d.key })),
+      detail: {
+        status: worstStatus(statuses) ?? 'pending',
+        windowEnd: windowEndDate(window),
+        checks: technical?.applicable ? technical.checks : null,
+        assetCoverage: technical?.applicable ? technical.assetCoverage : null,
+        failingAssetIds: technical?.failingAssetIds ?? [],
+        alertAt: null,
+        manual: false,
+        manualPart,
+      },
     };
   } else {
     // T-05: una prueba técnica sin ningún Directo aplicable no es «No aplica»: se prueba a mano, igual que las demás pruebas manuales.
@@ -477,17 +495,55 @@ function evaluateTest(control: ReadoutControl, entry: Entry, data: ReadoutData, 
       // DT-115 (MD-529, D131 punto 3) · «Cuando sea requerido»: se mide por trimestre con las ocurrencias y la declaración de «sin ocurrencias».
       const onDemand = evaluateOnDemand(control, entry, data);
       const withAlert = { status: onDemand.status, windowEnd: onDemand.windowEnd, checks: null, assetCoverage: null, failingAssetIds: [] as string[], alertAt: null, manual: true };
-      const done = { ...withAlert, alertAt: alertDate(withAlert.windowEnd, periodicity, signals.parameters, signals.now) };
-      memo.set(key, done);
-      return done;
+      out = { statuses: [onDemand.status], dependencies: [], detail: { ...withAlert, alertAt: alertDate(withAlert.windowEnd, periodicity, signals.parameters, signals.now) } };
+      memo.set(key, out);
+      return out;
     }
     const manual = evaluateManualTest({
       evidence: manualEvidenceOf(control, test.testId, signals.period), result: documentary ? null : manualResultOf(control, test.testId, signals.period), requiresResult: !documentary, periodicity, now: signals.now,
       windowMode: signals.parameters.validityWindows, periodStart: signals.period?.start,
     });
-    detail = { status: manual.status, windowEnd: manual.windowEnd, checks: null, assetCoverage: null, failingAssetIds: [], alertAt: null, manual: true };
+    out = { statuses: [manual.status], dependencies: [], detail: { status: manual.status, windowEnd: manual.windowEnd, checks: null, assetCoverage: null, failingAssetIds: [], alertAt: null, manual: true } };
   }
-  detail = { ...detail, alertAt: alertDate(detail.windowEnd, periodicity, signals.parameters, signals.now) };
+  out = { ...out, detail: { ...out.detail, alertAt: alertDate(out.detail.windowEnd, periodicity, signals.parameters, signals.now) } };
+  memo.set(key, out);
+  return out;
+}
+
+/**
+ * Estado de una prueba. Con Dependencias (T-06), en un ciclo las pruebas comparten estado: el peor entre los estados PROPIOS de todas las pruebas alcanzables por Dependencias (cada una una
+ * sola vez), más Pendiente por cada Dependencia cuyo dueño o prueba no está. La arista de vuelta no aporta nada. Así el resultado no depende del orden en que se evalúe ni de por dónde se entró,
+ * y sin ciclos es el mismo de siempre (el peor es asociativo).
+ */
+function evaluateTest(control: ReadoutControl, entry: Entry, data: ReadoutData): TestEvaluationDetail {
+  const key = nodeKey({ control, entry });
+  const memo = cache.get(data) ?? new Map<string, TestEvaluationDetail>();
+  cache.set(data, memo);
+  const cached = memo.get(key);
+  if (cached) return cached;
+
+  const start = evaluateOwn(control, entry, data);
+  let detail: TestEvaluationDetail = { ...start.detail }; // copia: lo memoizado en `ownCache` no se comparte con quien lo recibe
+  if (start.dependencies.length > 0) {
+    const seen = new Set<string>([key]);
+    const queue: TestNode[] = [{ control, entry }];
+    const statuses: TestStatus[] = [];
+    for (let node = queue.pop(); node; node = queue.pop()) {
+      const own = evaluateOwn(node.control, node.entry, data);
+      statuses.push(...own.statuses);
+      for (const dep of own.dependencies) {
+        const targets = dependencyTargets(data, dep);
+        if (targets.length === 0) statuses.push('pending');
+        for (const target of targets) {
+          const targetKey = nodeKey(target);
+          if (seen.has(targetKey)) continue;
+          seen.add(targetKey);
+          queue.push(target);
+        }
+      }
+    }
+    detail = { ...start.detail, status: worstStatus(statuses) ?? 'pending' };
+  }
   memo.set(key, detail);
   return detail;
 }
@@ -521,10 +577,10 @@ function checkLinksOf(control: ReadoutControl, entry: Entry, data: ReadoutData, 
       const module = item.moduleRef ? MODULE_NAME[classifyModuleRef(item.moduleRef)] : null;
       if (item.role === 'dependency') {
         const owner = item.owner ? ownerById.get(item.owner.controlId) : undefined;
-        const found = owner ? entriesOf(owner).find((e) => (e.test.links ?? NO_LINKS).directKeys.includes(item.key)) : undefined;
+        const found = owner ? entriesOf(owner).filter((e) => (e.test.links ?? NO_LINKS).directKeys.includes(item.key)) : [];
         return {
           role: item.role, kind, check: item.check, module, failingAssets: null,
-          owner: { controlId: owner?.id ?? null, controlCode: owner ? (owner.catalogCode ?? owner.ownCode) : (item.owner?.code ?? ''), testStatus: owner && found ? evaluateTest(owner, found, data).status : null },
+          owner: { controlId: owner?.id ?? null, controlCode: owner ? (owner.catalogCode ?? owner.ownCode) : (item.owner?.code ?? ''), testStatus: owner && found.length > 0 ? (worstStatus(found.map((e) => evaluateTest(owner, e, data).status)) ?? null) : null },
         };
       }
       const check = item.role === 'complementary' ? item.check : null;
