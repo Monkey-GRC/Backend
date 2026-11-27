@@ -1,6 +1,6 @@
 import { Prisma } from '../../../../../generated/prisma/client';
 import { TransactionClient } from '../../../../infrastructure/database/prisma.service';
-import { ControlReadout, exceptionTestIdsOf, isPendingPlanLive, readControl } from '../../domain/controls/control-readout';
+import { ControlReadout, ReadoutData, exceptionTestIdsOf, isPendingPlanLive, readControl } from '../../domain/controls/control-readout';
 import { ControlStateSnapshot, diffControlStates, ControlStateChange, droppedFromComplying, reachedPendingApproval, snapshotOf } from '../../domain/controls/control-state-events';
 import { NotificationEmitter } from '../../../../common/notifications/notification-emitter';
 import { EvaluationParameters } from '../../../../common/evaluation-parameters/parameters';
@@ -16,15 +16,23 @@ import { loadServiceSnapshot } from './service-snapshot.loader';
 export type StateChangeActor = { userId: string | null; ipAddress: string | null; userAgent: string | null };
 
 /** Qué escritura movió el estado; viaja en el evento. */
-export type StateChangeCause = 'manual_test_result' | 'control_approval' | 'evidence_submission' | 'exclusion_approved' | 'control_updated' | 'probe_result' | 'periodicity_changed' | 'evaluation_period_set' | 'window_closed' | 'level_override' | 'remediation_plan' | 'requirement_applicability' | 'requirement_occurrence';
+export type StateChangeCause = 'manual_test_result' | 'control_approval' | 'evidence_submission' | 'exclusion_approved' | 'exclusion_expired' | 'control_updated' | 'probe_result' | 'periodicity_changed' | 'evaluation_period_set' | 'window_closed' | 'level_override' | 'remediation_plan' | 'requirement_applicability' | 'requirement_occurrence';
 
-export async function captureControlStates(tx: TransactionClient, serviceId: string, parameters: EvaluationParameters): Promise<Map<string, ControlStateSnapshot>> {
-  return (await captureControlReadouts(tx, serviceId, parameters)).snapshots;
+export async function captureControlStates(tx: TransactionClient, serviceId: string, parameters: EvaluationParameters, options: { keepExceptionIds?: readonly string[] } = {}): Promise<Map<string, ControlStateSnapshot>> {
+  return (await captureControlReadouts(tx, serviceId, parameters, options)).snapshots;
 }
 
 /** La misma foto, con la lectura completa de cada control: quien la necesita para responder (MD-529) no vuelve a leer el servicio. */
-export async function captureControlReadouts(tx: TransactionClient, serviceId: string, parameters: EvaluationParameters): Promise<{ snapshots: Map<string, ControlStateSnapshot>; readouts: Map<string, ControlReadout> }> {
-  const data = await loadServiceSnapshot(tx, serviceId, parameters);
+export async function captureControlReadouts(tx: TransactionClient, serviceId: string, parameters: EvaluationParameters, options: { keepExceptionIds?: readonly string[] } = {}): Promise<{ snapshots: Map<string, ControlStateSnapshot>; readouts: Map<string, ControlReadout> }> {
+  return readoutsOfSnapshot(await loadServiceSnapshot(tx, serviceId, parameters, undefined, options));
+}
+
+/** La foto de los controles de una lectura ya cargada: quien ya tiene el snapshot (MD-501) no lo vuelve a leer. */
+export function statesOfSnapshot(data: ReadoutData): Map<string, ControlStateSnapshot> {
+  return readoutsOfSnapshot(data).snapshots;
+}
+
+function readoutsOfSnapshot(data: ReadoutData): { snapshots: Map<string, ControlStateSnapshot>; readouts: Map<string, ControlReadout> } {
   const readouts = new Map(data.controls.map((control) => [control.id, readControl(control, data)] as const));
   return { readouts, snapshots: new Map([...readouts].map(([id, r]) => [id, snapshotOf(r)] as const)) };
 }

@@ -51,10 +51,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       status = HttpStatus.UNPROCESSABLE_ENTITY;
       code = exception.override?.code ?? 'VALIDATION_FAILED';
       messageKey = exception.override?.messageKey ?? 'validation.failed';
-      error.fields = exception.fields.map((f) => ({
+      error.fields = exception.fields.map(({ params, ...f }) => ({
         ...f,
         // Las razones de conexión y de ejecución (`connection.role_not_found`…) tienen su texto propio: no se duplican en validation.json.
-        message: /^(connection|execution)\./.test(f.code) ? t(f.code) : t(`validation.${f.code.replace('.', '_')}`),
+        message: /^(connection|execution)\./.test(f.code) ? t(f.code) : this.i18n.translate(`validation.${f.code.replace('.', '_')}`, { lang, args: params }) as string,
       }));
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();

@@ -345,6 +345,7 @@ model Exclusion {
   justification          String          @db.Text
   validFrom              DateTime        @map("valid_from") @db.Date
   validUntil             DateTime        @map("valid_until") @db.Date
+  expiredAt              DateTime?       @map("expired_at") @db.Timestamptz(3) // MD-501 · timestamptz a propósito (el resto de la tabla es timestamp(3)); la migración ya está aplicada, no se edita · cuándo la tarea diaria registró el vencimiento
 
   service        Service @relation(fields: [serviceId], references: [id])
   test           Test    @relation(fields: [testId], references: [id])

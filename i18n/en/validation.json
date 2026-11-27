@@ -71,5 +71,7 @@
   "occurrence_id_invalid": "That case does not belong to this requirement.",
   "owner_id_invalid": "Choose an active person of the company.",
   "bucket_invalid": "That filter is not available for your role: you only have “To approve”.",
-  "to_before_from": "The end date cannot be before the start date."
+  "to_before_from": "The end date cannot be before the start date.",
+  "date_min": "The date must be after today.",
+  "exception_max_days": "An exception lasts at most {days} days."
 }

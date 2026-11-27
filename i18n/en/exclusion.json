@@ -1,6 +1,6 @@
 {
   "list": "Exclusions of the service.",
-  "created": "Done, the asset is excluded from that test. It stops being measured from now until the end of the period.",
-  "already_exists": "There is already a pending or active exclusion for this asset in this test.",
-  "evaluation_not_defined": "The service's evaluation period is not defined yet: without it there is no end date for the exclusion."
+  "created": "Done, the failure of that test on the asset is accepted until the date you chose. While it lasts it counts as met and is flagged.",
+  "already_exists": "There is already an active exception for this asset in this test.",
+  "check_not_failing": "There is no failure of this test on this asset today that can be excepted."
 }

@@ -28,17 +28,17 @@ const metaOf = (req: Request): RequestMeta => ({ ipAddress: clientIp(req), userA
 export class ExclusionsController {
   constructor(private readonly list: ListExclusionsUseCase, private readonly request: RequestExclusionUseCase) {}
 
-  @ApiOperation({ summary: 'Listar las exclusiones de un servicio', description: 'Las exclusiones (de una prueba sobre un activo) con filtros por estado, prueba, activo y vigencia. Las ven el administrador de la empresa y el auditor.' })
+  @ApiOperation({ summary: 'Listar las exclusiones de un servicio', description: 'Las exclusiones (de una prueba sobre un activo) con filtros por prueba, activo y vigencia. Las ven el administrador de la empresa y el auditor.' })
   @ApiPaged(ExclusionResponse, 'Página de exclusiones.')
   @Get('services/:serviceId/exclusions')
   async exclusions(@CurrentUser() p: Principal, @Param('serviceId', idPipe) serviceId: string, @Query() q: ListExclusionsQuery) {
-    const page = await this.list.execute(p, serviceId, { status: q.status, testId: q.test_id, assetId: q.asset_id, expired: q.expired, page: q.page, pageSize: q.page_size });
+    const page = await this.list.execute(p, serviceId, { testId: q.test_id, assetId: q.asset_id, expired: q.expired, page: q.page, pageSize: q.page_size });
     return new ResponseDto(HttpStatus.OK, t('exclusion.list'), toPageResponse(page, (v) => toExclusion(v, t)));
   }
 
-  @ApiOperation({ summary: 'Crear una exclusión', description: 'Solo `admin_empresa` (D96). Excluye una prueba para un activo con su justificación, y la decide en el mismo acto: nace `approved` y el activo deja de medirse en esa prueba; si la prueba es automática se exige además el sustento técnico (la evaluación automática no se sobrescribe sin él). La vigencia la fija el período del servicio. Deja evento de cumplimiento y registro de auditoría.' })
-  @ApiData(ExclusionResponse, 'Exclusión creada y aprobada.', { status: 201 })
-  @ApiDomainErrors('EXCLUSION_ALREADY_EXISTS', 'EVALUATION_NOT_DEFINED')
+  @ApiOperation({ summary: 'Aprobar una excepción', description: 'Solo `admin_empresa` (D96, D135). Acepta el FAIL de una prueba en un activo hasta `valid_until` (como mucho hoy + PR-04), con justificación y sustento técnico, y la decide en el mismo acto: nace `approved` y el resultado cuenta como PASS marcado. Solo si hoy hay un FAIL que exceptuar. Deja evento de cumplimiento y registro de auditoría.' })
+  @ApiData(ExclusionResponse, 'Excepción aprobada.', { status: 201 })
+  @ApiDomainErrors('EXCLUSION_ALREADY_EXISTS', 'CHECK_NOT_FAILING')
   @Post('services/:serviceId/exclusions')
   @Can('exclusions.decide')
   @HttpCode(HttpStatus.CREATED)

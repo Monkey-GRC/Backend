@@ -355,6 +355,21 @@ function directResultOf(control: ReadoutControl, test: ReadoutTest, asset: Reado
   return { role: 'direct', result: withException(base, signals.exceptions.has(testAssetKey(test.testId, asset.id))) };
 }
 
+/** MD-501 (D135) · ¿Hoy hay un FAIL, sin excepción, de un check Directo de la prueba en el activo, en algún control del servicio? La misma lectura que usa el motor (`directResultOf`). */
+export function hasDirectFailure(data: ReadoutData, testId: string, assetId: string): boolean {
+  const asset = data.assets.find((a) => a.id === assetId);
+  if (!asset) return false;
+  for (const control of data.controls) {
+    for (const { requirement, test } of entriesOf(control)) {
+      if (test.testId !== testId || (test.links ?? NO_LINKS).directCheckCount === 0) continue;
+      if (!assetsInScope(control, test, data).some((a) => a.id === assetId)) continue;
+      const periodicity = requirement.periodicity ?? control.periodicity ?? null;
+      if (directResultOf(control, test, asset, periodicity, data).result === 'fail') return true;
+    }
+  }
+  return false;
+}
+
 const moduleFactsOf = (data: ReadoutData, asset: ReadoutAsset): ModuleFacts => data.signals.moduleFacts.get(asset.id) ?? { openCriticalHigh: null, scorePercent: null };
 
 function outcomesOf(control: ReadoutControl, test: ReadoutTest, periodicity: Periodicity | null, data: ReadoutData): AssetOutcomes[] {

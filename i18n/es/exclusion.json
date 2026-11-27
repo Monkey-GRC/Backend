@@ -1,6 +1,6 @@
 {
   "list": "Exclusiones del servicio.",
-  "created": "Listo, excluimos el activo de esa prueba. Deja de medirse desde ahora y hasta el fin del período.",
-  "already_exists": "Ya hay una exclusión pendiente o vigente de este activo en esta prueba.",
-  "evaluation_not_defined": "Falta definir el período de evaluación del servicio: sin él no hay hasta cuándo excluir."
+  "created": "Listo, aceptamos el fallo de esa prueba en el activo hasta la fecha indicada. Mientras dure, cuenta como cumplido y queda marcado.",
+  "already_exists": "Ya hay una excepción vigente de este activo en esta prueba.",
+  "check_not_failing": "Hoy no hay un fallo de esta prueba en este activo que se pueda exceptuar."
 }

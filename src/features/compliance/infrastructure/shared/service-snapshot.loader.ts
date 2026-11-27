@@ -246,7 +246,8 @@ export async function loadServiceSnapshot(
   parameters: EvaluationParameters,
   onlyControlId?: string | readonly string[],
   // `now` solo lo fija quien evalúa el paso del tiempo con SU reloj (la pasada diaria de las ventanas, MD-515); las lecturas usan el instante actual.
-  options: { withLinkItems?: boolean; now?: Date } = {},
+  // `keepExceptionIds` (MD-501) deja vivas esas excepciones aunque ya hayan vencido: el «antes» del vencimiento, con la misma fecha que el «después».
+  options: { withLinkItems?: boolean; now?: Date; keepExceptionIds?: readonly string[] } = {},
 ): Promise<ServiceReadoutData> {
   const withLinkItems = options.withLinkItems ?? false;
   const contracted = await loadContracted(tx, serviceId);
@@ -276,13 +277,14 @@ export async function loadServiceSnapshot(
   // Y, solo si hay ventanas de calendario por medir en una prueba técnica, los días con un resultado decidido de cada (control, test, activo) dentro del período: de ahí sale la cobertura de las ventanas ya cerradas.
   const resultDays = period ? await loadResultDays(tx, serviceId, period, everyControl, now, parameters.validityWindows) : undefined;
 
+  const kept = new Set(options.keepExceptionIds ?? []);
   // D135 · Una excepción APROBADA y vigente (de 90 días como máximo, PR-04) deja pasar un FAIL de un activo en una prueba, marcado. La pendiente, la rechazada y la vencida no cambian nada.
   const exceptionRows = await tx.exclusion.findMany({
-    where: { serviceId, status: 'approved', assetId: { not: null }, validFrom: { lte: today }, validUntil: { gte: today } },
-    select: { testId: true, assetId: true, validFrom: true, validUntil: true },
+    where: { serviceId, status: 'approved', assetId: { not: null }, OR: [{ validFrom: { lte: today }, validUntil: { gte: today } }, ...(kept.size > 0 ? [{ id: { in: [...kept] } }] : [])] },
+    select: { id: true, testId: true, assetId: true, validFrom: true, validUntil: true },
   });
   const exceptions = new Set<string>();
-  for (const x of exceptionRows) if (exceptionEndsOn(x.validFrom, x.validUntil, parameters).getTime() >= today.getTime()) exceptions.add(testAssetKey(x.testId, x.assetId as string));
+  for (const x of exceptionRows) if (kept.has(x.id) || exceptionEndsOn(x.validFrom, x.validUntil, parameters).getTime() >= today.getTime()) exceptions.add(testAssetKey(x.testId, x.assetId as string));
 
   // S-04 · Los checks Complementarios en FAIL del último resultado de cada activo (de la última corrida completada).
   const complementaryByCheck = new Map<string, string[]>();

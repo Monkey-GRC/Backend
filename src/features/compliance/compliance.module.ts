@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ListEvaluationPeriodsUseCase, RollEvaluationPeriodsUseCase, SetEvaluationPeriodUseCase } from './application/periods/evaluation-period.use-cases';
-import { ListExclusionsUseCase, RequestExclusionUseCase } from './application/exclusions/exclusion.use-cases';
+import { ExpireExclusionsUseCase, ListExclusionsUseCase, RequestExclusionUseCase } from './application/exclusions/exclusion.use-cases';
 import {
   AnswerObservationUseCase, CreateObservationUseCase, GetObservationUseCase, ListObservationsUseCase, UpdateObservationUseCase,
 } from './application/observations/observation.use-cases';
@@ -43,7 +43,7 @@ import { IntegrationConnections } from './domain/evidence/integration-connection
 import { NoIntegrationConnections } from './infrastructure/evidence/no-integration-connections';
 import { EvaluationPeriodRepository, EvaluationPeriodRollover } from './domain/periods/evaluation-period.repository';
 import { WorkRepository } from './domain/work/work.repository';
-import { ExclusionRepository } from './domain/exclusions/exclusion.repository';
+import { ExclusionExpiry, ExclusionRepository } from './domain/exclusions/exclusion.repository';
 import { ObservationRepository } from './domain/observations/observation.repository';
 import { RiskRepository } from './domain/risks/risk.repository';
 import { ResponsibleRepository } from './domain/responsibles/responsible.repository';
@@ -53,6 +53,7 @@ import { EvidencePrismaRepository } from './infrastructure/evidence/evidence.pri
 import { EvaluationPeriodPrismaRepository, EvaluationPeriodRolloverPrismaRepository } from './infrastructure/periods/evaluation-period.prisma.repository';
 import { EvaluationPeriodScheduler } from './infrastructure/periods/evaluation-period.scheduler';
 import { ExclusionPrismaRepository } from './infrastructure/exclusions/exclusion.prisma.repository';
+import { ExclusionExpiryPrismaRepository } from './infrastructure/exclusions/exclusion-expiry.prisma.repository';
 import { ObservationPrismaRepository } from './infrastructure/observations/observation.prisma.repository';
 import { ControlPrismaRepository } from './infrastructure/controls/control.prisma.repository';
 import { RiskPrismaRepository } from './infrastructure/risks/risk.prisma.repository';
@@ -100,7 +101,8 @@ import { EvaluationParametersModule } from '../../infrastructure/evaluation-para
     ListCausesUseCase, GetCauseUseCase, CreateCauseUseCase, UpdateCauseUseCase, DeactivateCauseUseCase, LinkUseCases,
     EvaluateRiskUseCase, EvaluationHistoryUseCase, CreateTreatmentUseCase, ListTreatmentsUseCase,
     { provide: ExclusionRepository, useClass: ExclusionPrismaRepository },
-    ListExclusionsUseCase, RequestExclusionUseCase,
+    { provide: ExclusionExpiry, useClass: ExclusionExpiryPrismaRepository },
+    ListExclusionsUseCase, RequestExclusionUseCase, ExpireExclusionsUseCase,
     { provide: ObservationRepository, useClass: ObservationPrismaRepository },
     CreateObservationUseCase, ListObservationsUseCase, GetObservationUseCase, UpdateObservationUseCase, AnswerObservationUseCase,
     { provide: EvaluationPeriodRepository, useClass: EvaluationPeriodPrismaRepository },

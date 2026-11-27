@@ -18,6 +18,9 @@ export type ExclusionRecord = {
   status: ExclusionStatus;
   validFrom: Date;
   validUntil: Date;
+  /** D135 · Hasta cuándo cuenta de verdad: la menor entre `validUntil` y `validFrom` + PR-04 vigente. */
+  effectiveUntil: Date;
+  expiredAt: Date | null;
   proposedBy: Person;
   requestedAt: Date;
   decidedBy: Person | null;
@@ -25,19 +28,27 @@ export type ExclusionRecord = {
   decidedAt: Date | null;
 };
 
-export type ExclusionFilters = { status?: ExclusionStatus; testId?: string; assetId?: string; expired?: boolean; page: number; pageSize: number };
+export type ExclusionFilters = { testId?: string; assetId?: string; expired?: boolean; page: number; pageSize: number };
 
 export abstract class ExclusionRepository {
   // null si el servicio no existe (o es de otra empresa).
   abstract list(scope: TenantScope, serviceId: string, filters: ExclusionFilters): Promise<Page<ExclusionRecord> | null>;
 
-  // El activo debe ser del servicio y el test aplicarle; si no, NOT_FOUND. La vigencia es hoy hasta el `period_end` del servicio: sin período, EVALUATION_NOT_DEFINED.
-  // EXCLUSION_ALREADY_EXISTS si ya hay una aprobada vigente de lo mismo (o una pendiente heredada). Un test automático exige sustentación técnica (422). Nace aprobada y deja
-  // el evento de cumplimiento y, si mueve un control, el evento de su estado.
+  // El activo debe ser del servicio y el test aplicarle; si no, NOT_FOUND. `validUntil` debe ser posterior a hoy y como mucho hoy + PR-04 (422 `exception.max_days`).
+  // EXCLUSION_ALREADY_EXISTS si ya hay una vigente de lo mismo (o una pendiente heredada); CHECK_NOT_FAILING si hoy no hay un FAIL Directo de esa prueba en ese activo.
+  // Nace aprobada y deja el evento de cumplimiento y, si mueve un control, el evento de su estado.
   abstract create(
     scope: TenantScope,
     serviceId: string,
-    input: { testId: string; assetId: string; justification: string; technicalJustification: string | null; decidedBy: string; meta: { ipAddress: string; userAgent: string } },
+    input: { testId: string; assetId: string; justification: string; technicalJustification: string; validUntil: Date; decidedBy: string; meta: { ipAddress: string; userAgent: string } },
     audit: AuditIntent<ExclusionRecord>,
   ): Promise<ExclusionRecord | null>;
+}
+
+// D135 · El vencimiento (tarea diaria): cada empresa en su transacción, con el sistema como actor.
+export abstract class ExclusionExpiry {
+  // Las empresas que no están archivadas.
+  abstract listTenantIds(): Promise<string[]>;
+  // Registra el vencimiento (`expired_at`, una sola vez) de las aprobadas cuya vigencia efectiva ya pasó, con su evento y el de estado. Devuelve cuántas registró.
+  abstract expireTenant(tenantId: string, now: Date): Promise<number>;
 }
