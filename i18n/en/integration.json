@@ -5,7 +5,7 @@
     "aws": "Continuously assesses your account configuration: identity and access, encryption, logging and network.",
     "azure": "Will continuously assess your subscription configuration: identity and access, encryption, logging and network.",
     "gcp": "Will continuously assess your project configuration: identity and access, encryption, logging and network.",
-    "microsoft_365": "Will assess your organization's configuration: multi-factor sign-in, conditional access, email and collaboration.",
+    "microsoft_365": "Assesses your organization's configuration: multi-factor sign-in, conditional access, email and collaboration.",
     "google_workspace": "Will assess your domain's configuration: sign-in, multi-factor authentication and sharing.",
     "github": "Will show how changes to your code are reviewed and approved, and the vulnerabilities in its dependencies.",
     "jira": "Will turn each finding into an assigned ticket and follow its progress until it is closed."
@@ -85,17 +85,53 @@
       ]
     },
     "microsoft_365": {
-      "overview": "Monkey will assess your Microsoft 365 organization's configuration and turn every result into input for your controls' automated tests. It is not available yet.",
+      "overview": "Monkey assesses the security configuration of your Microsoft 365 organization with read-only access that you authorize with one button. Each result feeds the automated tests of your controls.",
       "features": [
-        "Assess multi-factor sign-in, conditional access, email and collaboration",
-        "See each finding with its control code, its impact and how to fix it"
+        "Assess identities and access: second factor, conditional access and privileged roles",
+        "Assess email and collaboration configuration",
+        "See the real progress while it is assessed",
+        "Repeat the assessment every 6 or 24 hours"
       ],
-      "capabilities": [
-        "Continuous configuration assessment"
+      "prerequisites": [
+        "A Global Administrator (or Privileged Role Administrator) of your organization to authorize access",
+        "To review email: assign the “Global Reader” role to the Monkey application after authorizing",
+        "The service risks already assessed",
+        "Some checks require Microsoft licenses: if your organization does not have them, they stay unmeasured"
       ],
-      "works_with": [
-        "Compliance"
-      ]
+      "permissions": {
+        "directory": {
+          "name": "Directory and roles",
+          "detail": "Read users, groups, who is an administrator and the synchronization with your servers. Includes data about people."
+        },
+        "policies": {
+          "name": "Security policies",
+          "detail": "Read access and sign-in policies."
+        },
+        "activity": {
+          "name": "Activity and reviews",
+          "detail": "Read audit and sign-in logs and access reviews."
+        },
+        "security_signals": {
+          "name": "Security data",
+          "detail": "Read identity alerts and query security events. Those events may include data about people, devices or email."
+        },
+        "devices_and_sites": {
+          "name": "SharePoint and managed devices",
+          "detail": "Read SharePoint settings and the configuration of managed devices."
+        },
+        "mail": {
+          "name": "Email",
+          "detail": "Lets Monkey read the email configuration according to the role you assign to the application. Assign “Global Reader”, which cannot change anything."
+        }
+      },
+      "security": {
+        "read_only": "Monkey asks for read permissions. The email one acts according to the role you assign: “Global Reader” cannot change anything.",
+        "temporary_credentials": "Each assessment uses temporary Microsoft access. Monkey stores no passwords or secrets from your organization.",
+        "isolated_execution": "Each assessment runs in an isolated environment that is removed when it finishes.",
+        "tenant_isolation": "Only your company sees your organization’s results."
+      },
+      "capabilities": ["Configuration assessment"],
+      "works_with": ["Compliance", "Your service connections"]
     },
     "google_workspace": {
       "overview": "Monkey will assess your Google Workspace domain's configuration and turn every result into input for your controls' automated tests. It is not available yet.",

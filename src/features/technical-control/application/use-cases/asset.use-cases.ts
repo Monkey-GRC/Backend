@@ -7,6 +7,7 @@ import {
   ConnectionMethodValue,
   DEFAULT_CRITICALITY,
   GCP_PROJECT_NUMBER,
+  M365_GUID,
   ResourceKindValue,
   ScheduleFrequencyValue,
 } from '../../../../common/catalogs/technical-catalogs';
@@ -17,13 +18,14 @@ import { Page, PageRequest } from '../../../../common/pagination/page';
 import { CredentialCipher } from '../../../../common/security/credential-cipher';
 import { TenantScope } from '../../../../common/tenancy/tenant-scope';
 import { Asset, AssetEdit, AssetFilters, NewAsset, ResourceListing } from '../../domain/entities/technical-control.entities';
+import { CertificateIssuer } from '../../domain/ports/certificate-issuer';
 import { ConnectionProbe } from '../../domain/ports/connection-probe';
 import { ConnectionCatalogRepository } from '../../domain/repositories/connection-catalog.repository';
 import { TechnicalControlRepository } from '../../domain/repositories/technical-control.repository';
-import { checkCloudTarget, checkGcpProject, newExternalId, planConnection } from '../cloud-connection';
+import { checkCloudTarget, checkGcpProject, checkM365Tenant, newExternalId, planConnection } from '../cloud-connection';
 import { checkOsVersion, needsOsVersion } from '../os-version';
 
-const scopeOf = (p: Principal): TenantScope => ({ companyId: p.companyId, userId: p.userId, role: p.role });
+export const scopeOf = (p: Principal): TenantScope => ({ companyId: p.companyId, userId: p.userId, role: p.role });
 
 // Forma para el audit trail (CC9.2). NUNCA lleva credenciales.
 const snapshot = (a: Asset): Record<string, unknown> => ({
@@ -44,13 +46,16 @@ const snapshot = (a: Asset): Record<string, unknown> => ({
   regions: a.provisioning.regions,
   role_arn: a.provisioning.roleArn,
   project_number: a.provisioning.projectNumber,
+  // Microsoft 365 (D154): el ID de la aplicación y la huella del certificado público. Ninguno es secreto.
+  app_client_id: a.provisioning.appClientId,
+  certificate_thumbprint: a.provisioning.certificate?.thumbprint ?? null,
 });
 
 type Audited = { principal: Principal; meta: RequestMeta; action: string; before: Asset | null; after: Asset | null; result?: 'success' | 'error' };
 
 // El rastro de un activo. Cada caso de uso lo entrega al repositorio como `AuditIntent` para que se escriba en la
 // misma transacción que el cambio (SEG-36).
-const assetEntry = ({ principal, meta, action, before, after, result = 'success' }: Audited): AuditEntry => ({
+export const assetEntry = ({ principal, meta, action, before, after, result = 'success' }: Audited): AuditEntry => ({
   tenantId: principal.companyId,
   userId: principal.userId,
   action,
@@ -88,6 +93,7 @@ export class CreateAssetUseCase {
     private readonly repo: TechnicalControlRepository,
     private readonly catalog: ConnectionCatalogRepository,
     private readonly cipher: CredentialCipher,
+    private readonly certificates: CertificateIssuer,
   ) {}
 
   async execute(principal: Principal, request: NewAssetRequest, meta: RequestMeta): Promise<Asset> {
@@ -106,6 +112,8 @@ export class CreateAssetUseCase {
         credentials: request.credentials,
       },
       platform,
+      // Microsoft 365 (D154): el certificado de la conexión lo genera Monkey, solo si lo declarado es válido.
+      { issueCertificate: (label) => this.certificates.issue(label) },
     );
     // La versión del sistema que declara el cliente (D113): solo un servidor o equipo con agente. Se busca en el catálogo SOLO si hace falta.
     const wanted = request.osVersion?.trim();
@@ -133,6 +141,7 @@ export class CreateAssetUseCase {
       externalId: plan.externalId,
       // Un servidor con agente nace con su fila de agente, con la versión declarada (D113).
       agentScaPolicyId: osVersion?.id ?? null,
+      certificate: plan.certificate ?? null,
     };
 
     return this.repo.createAsset(
@@ -248,14 +257,28 @@ export class ScheduleAssetUseCase {
 export class SetAssetConnectionUseCase {
   constructor(private readonly repo: TechnicalControlRepository) {}
 
-  async execute(principal: Principal, id: string, input: { roleArn?: string; projectNumber?: string }, meta: RequestMeta): Promise<Asset> {
+  async execute(principal: Principal, id: string, input: { roleArn?: string; projectNumber?: string; clientId?: string }, meta: RequestMeta): Promise<Asset> {
     const scope = scopeOf(principal);
     const asset = await this.repo.findAsset(scope, id);
     if (!asset) throw new DomainError('NOT_FOUND');
     const audit = (c: { before: Asset; after: Asset }) => assetEntry({ principal, meta, action: 'asset.connection_set', before: c.before, after: c.after });
 
+    // Con el botón (D157) no hay nada que entregar a mano: la organización solo la pone el recorrido de autorización.
+    if (asset.provisioning.connectionMethod === 'admin_consent') throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
+
+    if (asset.provisioning.connectionMethod === 'app_certificate') {
+      // Microsoft 365 (D154): el cliente entrega el ID de la aplicación que imprimió el script de alta. No es un secreto, pero se valida: un GUID.
+      if (input.roleArn !== undefined) throw new ValidationException([{ field: 'role_arn', code: 'field.not_allowed' }]);
+      if (input.projectNumber !== undefined) throw new ValidationException([{ field: 'project_number', code: 'field.not_allowed' }]);
+      const clientId = input.clientId?.trim();
+      if (!clientId) throw new ValidationException([{ field: 'client_id', code: 'required' }]);
+      if (!M365_GUID.test(clientId)) throw new ValidationException([{ field: 'client_id', code: 'invalid' }]);
+      return (await this.repo.setConnection(scope, id, { appClientId: clientId.toLowerCase() }, audit)).after;
+    }
+
     if (asset.provisioning.connectionMethod === 'identity_federation') {
       if (input.roleArn !== undefined) throw new ValidationException([{ field: 'role_arn', code: 'field.not_allowed' }]);
+      if (input.clientId !== undefined) throw new ValidationException([{ field: 'client_id', code: 'field.not_allowed' }]);
       const number = input.projectNumber?.trim();
       if (!number) throw new ValidationException([{ field: 'project_number', code: 'required' }]);
       if (!GCP_PROJECT_NUMBER.test(number)) throw new ValidationException([{ field: 'project_number', code: 'invalid' }]);
@@ -263,6 +286,7 @@ export class SetAssetConnectionUseCase {
     }
 
     if (input.projectNumber !== undefined) throw new ValidationException([{ field: 'project_number', code: 'field.not_allowed' }]);
+    if (input.clientId !== undefined) throw new ValidationException([{ field: 'client_id', code: 'field.not_allowed' }]);
     if (input.roleArn === undefined) throw new ValidationException([{ field: 'role_arn', code: 'required' }]);
     const arn = input.roleArn.trim();
     const match = AWS_ROLE_ARN.exec(arn);
@@ -309,6 +333,8 @@ export class UpdateAssetUseCase {
       if (asset.connectionCategory !== 'ac_01' || !method || method === 'agent') {
         throw new ValidationException([{ field: 'connection', code: 'field.not_allowed' }]);
       }
+      // La organización de una conexión con el botón (D157) nunca se edita a mano: para otra, se conecta otra.
+      if (method === 'admin_consent') throw new ValidationException([{ field: 'connection', code: 'field.not_allowed' }]);
       if (method === 'identity_federation') {
         // GCP (D112): solo se edita el proyecto. Sin regiones, rol ni llaves; un proyecto nuevo exige identificador externo nuevo y un número de proyecto nuevo.
         const errors = [
@@ -322,6 +348,25 @@ export class UpdateAssetUseCase {
           edit.externalAccountId = request.externalAccountId;
           edit.externalId = newExternalId();
           edit.projectNumber = null;
+          edit.resetsConnection = true;
+        }
+        const { after } = await this.repo.updateAsset(scope, id, edit, (c) => assetEntry({ principal, meta, action: 'asset.update', before: c.before, after: c.after }));
+        return after;
+      }
+      if (method === 'app_certificate') {
+        // Microsoft 365 (D154): solo se edita el tenant. Sin regiones, rol ni llaves. Un tenant nuevo exige una aplicación nueva en esa organización: el ID de la anterior se borra
+        // (el certificado de la conexión se conserva: el comando de alta lo vuelve a subir en el tenant nuevo).
+        const errors = [
+          ...(request.regions !== undefined ? [{ field: 'regions', code: 'field.not_allowed' }] : []),
+          ...(request.roleArn !== undefined ? [{ field: 'role_arn', code: 'field.not_allowed' }] : []),
+          ...(request.credentials !== undefined ? [{ field: 'credentials', code: 'field.not_allowed' }] : []),
+          ...(request.externalAccountId !== undefined ? checkM365Tenant(request.externalAccountId).errors : []),
+        ];
+        if (errors.length > 0) throw new ValidationException(errors);
+        const tenant = request.externalAccountId === undefined ? null : checkM365Tenant(request.externalAccountId).tenant;
+        if (tenant && tenant !== asset.externalAccountId) {
+          edit.externalAccountId = tenant;
+          edit.appClientId = null;
           edit.resetsConnection = true;
         }
         const { after } = await this.repo.updateAsset(scope, id, edit, (c) => assetEntry({ principal, meta, action: 'asset.update', before: c.before, after: c.after }));

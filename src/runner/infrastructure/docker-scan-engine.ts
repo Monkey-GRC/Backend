@@ -1,5 +1,5 @@
 import Docker from 'dockerode';
-import { extract } from 'tar-stream';
+import { extract, pack } from 'tar-stream';
 import type { Readable } from 'node:stream';
 import { ScanEngine } from '../domain/ports';
 import { EngineInput, EngineRun, FAILURE, RunnerFailure, TemporaryCredentials } from '../domain/runner.types';
@@ -13,7 +13,11 @@ export type EngineProfile = {
   env: (input: EngineInput) => string[];
   // Dónde deja su resultado dentro del contenedor.
   outputPath: string;
-  // Solo para pruebas con una imagen mínima; en producción se usa el entrypoint propio de la imagen del motor.
+  // Archivos que se copian al contenedor antes de arrancar (sin montajes del servidor). Nunca llevan credenciales: esas van por el entorno.
+  files?: { path: string; content: string }[];
+  // El motor informa su avance con líneas «MONKEY_PROGRESS hechas total».
+  reportsProgress?: boolean;
+  // El entrypoint propio de esa nube; sin él, el de la imagen del motor (las pruebas lo usan con una imagen mínima).
   entrypoint?: string[];
 };
 
@@ -21,6 +25,9 @@ export type EngineLimits = { timeoutMs: number; memoryBytes: number; cpus: numbe
 
 const MAX_OUTPUT_BYTES = 200 * 1024 * 1024;
 const LABEL = 'monkey.runner';
+const OWNER_LABEL = 'monkey.runner.id';
+// Ninguna corrida viva pasa de 25 min (MAX_ENGINE_TIMEOUT_SECONDS): un contenedor más viejo que esto está huérfano, sea de quien sea.
+export const ORPHAN_AGE_MS = 30 * 60_000;
 
 // Un contenedor efímero por corrida (D57):
 //  - sin montajes del host ni volúmenes (el resultado se lee del propio contenedor antes de eliminarlo);
@@ -35,6 +42,8 @@ export class DockerScanEngine extends ScanEngine {
     // Un perfil por nube (`providers/<nube>/`): se elige por las credenciales de la corrida. El aislamiento del contenedor es el mismo para todas (SEG-48).
     private readonly profileFor: (provider: TemporaryCredentials['provider']) => EngineProfile | undefined,
     private readonly limits: EngineLimits,
+    private readonly runnerId: string = 'default',
+    private readonly now: () => number = Date.now,
   ) {
     super();
   }
@@ -52,7 +61,7 @@ export class DockerScanEngine extends ScanEngine {
       ...(profile.entrypoint ? { Entrypoint: profile.entrypoint } : {}),
       Cmd: cmd,
       Env: env,
-      Labels: { [LABEL]: '1', 'monkey.execution': input.executionId },
+      Labels: { [LABEL]: '1', [OWNER_LABEL]: this.runnerId, 'monkey.execution': input.executionId },
       HostConfig: {
         Memory: this.limits.memoryBytes,
         MemorySwap: this.limits.memoryBytes, // sin swap
@@ -66,7 +75,9 @@ export class DockerScanEngine extends ScanEngine {
       },
     });
     try {
+      for (const file of profile.files ?? []) await copyInto(container, file);
       await container.start();
+      if (profile.reportsProgress && input.onProgress) await followProgress(container, input.onProgress);
       const status = await this.waitWithTimeout(container);
       if (status === 'timeout') throw new RunnerFailure(FAILURE.engineTimeout);
       if (status !== 0) throw new RunnerFailure(FAILURE.engineFailed, `el motor terminó con código ${status}`);
@@ -77,8 +88,22 @@ export class DockerScanEngine extends ScanEngine {
     }
   }
 
-  async cleanupOrphans(): Promise<number> {
-    const orphans = await this.docker.listContainers({ all: true, filters: { label: [`${LABEL}=1`] } });
+  // Solo al ARRANCAR (este trabajador aún no tiene corridas): retira lo suyo y lo vencido. Nunca la corrida en curso de otro trabajador del mismo servidor.
+  cleanupOrphans(): Promise<number> {
+    return this.removeContainers((c) => c.Labels?.[OWNER_LABEL] === this.runnerId || this.isExpired(c));
+  }
+
+  // Mientras trabaja: solo lo vencido (p. ej. lo que dejó un trabajador que ya no existe y que aún llevaría credenciales).
+  cleanupExpired(): Promise<number> {
+    return this.removeContainers((c) => this.isExpired(c));
+  }
+
+  private isExpired(c: Docker.ContainerInfo): boolean {
+    return this.now() - c.Created * 1000 > ORPHAN_AGE_MS;
+  }
+
+  private async removeContainers(which: (c: Docker.ContainerInfo) => boolean): Promise<number> {
+    const orphans = (await this.docker.listContainers({ all: true, filters: { label: [`${LABEL}=1`] } })).filter(which);
     await Promise.all(orphans.map((c) => this.docker.getContainer(c.Id).remove({ force: true, v: true }).catch(() => undefined)));
     return orphans.length;
   }
@@ -124,6 +149,38 @@ export class DockerScanEngine extends ScanEngine {
     }
     if (!Array.isArray(parsed)) throw new RunnerFailure(FAILURE.outputInvalid, 'el resultado no es una lista');
     return parsed;
+  }
+}
+
+// Copia un archivo de texto al contenedor (aún sin arrancar), dentro de un tar.
+async function copyInto(container: Docker.Container, file: { path: string; content: string }): Promise<void> {
+  const slash = file.path.lastIndexOf('/');
+  const archive = pack();
+  archive.entry({ name: file.path.slice(slash + 1), mode: 0o644 }, file.content);
+  archive.finalize();
+  await container.putArchive(archive as unknown as NodeJS.ReadableStream, { path: file.path.slice(0, slash) || '/' });
+}
+
+const PROGRESS_LINE = /MONKEY_PROGRESS (\d{1,6}) (\d{1,6})\r?\n/g;
+
+// Sigue la salida del contenedor solo para leer el avance. No se guarda ni se registra nada más. Si no se puede seguir, la corrida continúa sin avance.
+async function followProgress(container: Docker.Container, onProgress: (done: number, total: number) => void): Promise<void> {
+  try {
+    const stream = (await container.logs({ follow: true, stdout: true, stderr: false })) as unknown as Readable;
+    let pending = '';
+    stream.on('data', (chunk: Buffer) => {
+      pending += chunk.toString('utf8');
+      let consumed = 0;
+      for (const match of pending.matchAll(PROGRESS_LINE)) {
+        onProgress(Number(match[1]), Number(match[2]));
+        consumed = match.index + match[0].length;
+      }
+      // Se conserva solo el final: lo que puede ser el principio de la siguiente línea.
+      pending = pending.slice(consumed).slice(-200);
+    });
+    stream.on('error', () => undefined);
+  } catch {
+    /* sin avance */
   }
 }
 

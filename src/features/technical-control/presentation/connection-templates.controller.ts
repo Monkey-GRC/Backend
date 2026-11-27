@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { DomainError } from '../../../common/errors/domain-error';
 import { Can } from '../../../common/authorization/can.decorator';
-import { GCP_SETUP_FILE_NAME, TEMPLATE_FILE_NAME } from '../application/cloud-connection';
+import { GCP_SETUP_FILE_NAME, M365_SETUP_FILE_NAME, TEMPLATE_FILE_NAME } from '../application/cloud-connection';
 import { ConnectionTemplates } from '../application/connection-templates';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 
@@ -36,5 +36,14 @@ export class ConnectionTemplatesController {
     const role = this.config.get<string>('MONKEY_GCP_FEDERATION_ROLE_ARN')?.trim();
     if (!role) throw new DomainError('CONNECTION_UNAVAILABLE');
     return this.templates.gcpSetupScript(role);
+  }
+
+  @ApiOperation({ summary: 'Script de alta de Microsoft 365', description: 'Script (bash) que el cliente corre en Azure Cloud Shell, con un administrador global de su organización, para crear en su Microsoft Entra una aplicación de **solo lectura** para Monkey con el certificado público de la conexión (D154). El script no lleva nada de ningún cliente: el tenant y el certificado se le pasan como parámetros; el comando listo viene en `connection_setup.setup_command`. Va tras la sesión.' })
+  @ApiOkResponse({ description: 'El script como archivo.', content: { 'text/x-shellscript': { schema: { type: 'string', format: 'binary' } } } })
+  @Get('microsoft-365-app')
+  @Header('Content-Type', 'text/x-shellscript; charset=utf-8')
+  @Header('Content-Disposition', `attachment; filename="${M365_SETUP_FILE_NAME}"`)
+  microsoft365App(): string {
+    return this.templates.microsoft365SetupScript();
   }
 }

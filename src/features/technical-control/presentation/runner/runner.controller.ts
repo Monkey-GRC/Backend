@@ -4,10 +4,10 @@ import type { Response } from 'express';
 import { I18nContext } from 'nestjs-i18n';
 import { Public } from '../../../../common/decorators/public.decorator';
 import { ResponseDto } from '../../../../common/dtos/response.dto';
-import { RunnerClaimDto, RunnerEnrolledDto, RunnerFailDto, RunnerResultsDto, RunnerValidatedDto } from '../../application/dtos/runner.dtos';
+import { RunnerClaimDto, RunnerEnrolledDto, RunnerFailDto, RunnerProgressDto, RunnerResultsDto, RunnerValidatedDto } from '../../application/dtos/runner.dtos';
 import { CompleteAgentRemovalUseCase, CompleteEnrollmentUseCase } from '../../application/use-cases/agent-install.use-cases';
 import type { RunnerJob } from '../../application/use-cases/scan.use-cases';
-import { ClaimExecutionUseCase, CompleteExecutionUseCase, CompleteScaExecutionUseCase, CompleteValidationUseCase, FailExecutionUseCase } from '../../application/use-cases/scan.use-cases';
+import { ClaimExecutionUseCase, CompleteExecutionUseCase, CompleteScaExecutionUseCase, CompleteValidationUseCase, FailExecutionUseCase, ReportExecutionProgressUseCase } from '../../application/use-cases/scan.use-cases';
 import type { Inventory } from '../../domain/entities/technical-control.entities';
 import { RunnerTokenGuard } from './runner-token.guard';
 
@@ -16,9 +16,10 @@ const idPipe = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND });
 
 // El cuerpo del trabajador → el inventario del dominio. Los atributos se limpian: solo valores simples y cortos (lo demás no es un dato del cliente, es ruido).
 function toConnection(c: RunnerJob['connection']) {
-  if (c.method === 'agent') return { method: c.method };
+  if (c.method === 'agent' || c.method === 'admin_consent') return { method: c.method };
   if (c.method === 'readonly_role') return { method: c.method, role_arn: c.roleArn, external_id: c.externalId };
   if (c.method === 'identity_federation') return { method: c.method, external_id: c.externalId, project_number: c.projectNumber };
+  if (c.method === 'app_certificate') return { method: c.method, client_id: c.clientId, certificate_thumbprint: c.certificateThumbprint, private_key_pem: c.privateKeyPem };
   return { method: c.method, access_key_id: c.accessKeyId, secret_access_key: c.secretAccessKey };
 }
 
@@ -54,6 +55,7 @@ export class RunnerController {
     private readonly claimExecution: ClaimExecutionUseCase,
     private readonly completeExecution: CompleteExecutionUseCase,
     private readonly failExecution: FailExecutionUseCase,
+    private readonly reportProgress: ReportExecutionProgressUseCase,
     private readonly completeValidation: CompleteValidationUseCase,
     private readonly completeEnrollment: CompleteEnrollmentUseCase,
     private readonly completeRemoval: CompleteAgentRemovalUseCase,
@@ -129,6 +131,12 @@ export class RunnerController {
   async validated(@Param('id', idPipe) id: string, @Body() dto: RunnerValidatedDto) {
     const out = await this.completeValidation.execute(dto.tenant_id, id, toInventory(dto.inventory));
     return new ResponseDto(HttpStatus.OK, t('execution.completed'), { execution_id: out.executionId, status: 'completed' });
+  }
+
+  @Post('executions/:id/progress')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async progress(@Param('id', idPipe) id: string, @Body() dto: RunnerProgressDto) {
+    await this.reportProgress.execute(dto.tenant_id, id, dto.percent);
   }
 
   @Post('executions/:id/fail')

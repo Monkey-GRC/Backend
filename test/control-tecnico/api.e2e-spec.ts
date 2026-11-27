@@ -188,3 +188,22 @@ describe('El trabajador: API interna', () => {
     expect(JSON.stringify(hist.body)).not.toContain(claim.body.data.execution_id);
   });
 });
+
+describe('Avance de una evaluación en curso', () => {
+  it('el trabajador lo informa, el cliente lo ve, solo sube, y otra empresa no puede tocarlo', async () => {
+    const id: string = (await a.agent.post(`/v1/assets/${assetId}/executions`).expect(202)).body.data.id;
+    const report = (tenant: string, percent: number) => http().post(`/internal/runner/executions/${id}/progress`).set(runner()).send({ tenant_id: tenant, percent });
+    const seen = async () => (await a.agent.get(`/v1/assets/${assetId}/executions`).expect(200)).body.data.items.find((e: { id: string }) => e.id === id).progress_percent;
+
+    await report(a.companyId, 40).expect(204); // aún en cola: se ignora
+    await http().post('/internal/runner/claim').set(runner()).expect(200);
+    expect(await seen()).toBeNull();
+    await report(a.companyId, 42).expect(204);
+    expect(await seen()).toBe(42);
+    await report(a.companyId, 20).expect(204); // no retrocede
+    await report(b.companyId, 90).expect(204); // otra empresa: RLS no encuentra la ejecución
+    expect(await seen()).toBe(42);
+    await report(a.companyId, 100).expect(422);
+    await http().post(`/internal/runner/executions/${id}/progress`).send({ tenant_id: a.companyId, percent: 50 }).expect(401);
+  });
+});

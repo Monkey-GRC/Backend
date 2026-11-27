@@ -94,6 +94,12 @@ export class RunnerValidatedDto {
 }
 
 // POST /internal/runner/executions/{id}/fail
+export class RunnerProgressDto {
+  @ApiProperty() @IsUUID() tenant_id!: string;
+  // El 100 no lo manda el trabajador: lo pone el backend al guardar el resultado.
+  @ApiProperty({ example: 42, minimum: 1, maximum: 99 }) @IsInt() @Min(1) @Max(99) percent!: number;
+}
+
 export class RunnerFailDto {
   @ApiProperty() @IsUUID() tenant_id!: string;
   // Clave i18n (connection.role_not_found, connection.credentials_invalid…), no texto libre.

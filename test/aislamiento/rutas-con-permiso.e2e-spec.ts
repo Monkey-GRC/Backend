@@ -65,9 +65,12 @@ describe('Ninguna ruta sin permiso (SEG-86)', () => {
     expect(abiertas.every((id) => /\/catalogs\/:name$|\/notification/.test(id))).toBe(true);
   });
 
-  it('las rutas públicas son las de entrar (auth), los instaladores y la API interna del trabajador', () => {
+  it('las rutas públicas son las de entrar (auth), los instaladores, la API interna del trabajador y las dos vueltas desde Microsoft', () => {
+    // D157 · A donde Microsoft devuelve el navegador, que llega sin la sesión: exigen un recibo firmado por Monkey y con vencimiento, no cambian nada y solo redirigen (SEG-89).
+    // Van una por una, no por prefijo: otra ruta pública bajo `/integrations` tiene que romper aquí.
+    const vueltasDeMicrosoft = ['POST /integrations/microsoft/signin', 'GET /integrations/microsoft/consent'];
     const publicas = routes().filter((r) => r.isPublic).map((r) => r.id);
-    expect(publicas.every((id) => /^(GET|POST) \/(auth|install|internal\/runner)\//.test(id))).toBe(true);
+    expect(publicas.filter((id) => !/^(GET|POST) \/(auth|install|internal\/runner)\//.test(id)).sort()).toEqual([...vueltasDeMicrosoft].sort());
   });
 
   it('las rutas con permiso que la matriz da al colaborador son solo su cuenta y sus documentos (SEG-85)', () => {

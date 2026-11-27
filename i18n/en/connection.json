@@ -4,6 +4,8 @@
   "account_mismatch": "The access you configured belongs to a different account than the one you declared. Check the account identifier.",
   "credentials_invalid": "The credentials are not valid or have been disabled. Check them and try again.",
   "federation_rejected": "Google Cloud did not accept Monkey's access. Check that you ran the setup command in that project and that the project number is its own.",
+  "app_rejected": "Microsoft did not accept the Monkey application. Check that you ran the setup command in your tenant and that you pasted the application ID it printed.",
+  "permissions_missing": "The Monkey application does not have all the read-only permissions, or the administrator consent is missing. Run the setup command again with a global administrator.",
   "regions_missing": "You have not declared which regions to assess yet. Choose at least one.",
   "not_configured": "This system does not have its connection configured yet.",
   "provider_not_supported": "This platform isn't available to connect yet.",
@@ -32,11 +34,23 @@
     "step_2": "Copy the setup command and paste it into Cloud Shell. It creates read-only access for Monkey in that project; you do not hand over any key.",
     "step_3": "When it finishes, the command prints the project number. Copy it and paste it into this form."
   },
+  "m365_app": {
+    "step_1": "Open Azure Cloud Shell (portal.azure.com, the terminal icon) in Bash mode, signed in as a global administrator of your Microsoft 365 organization.",
+    "step_2": "Copy the setup command and paste it into Cloud Shell. It creates a read-only application for Monkey in your Microsoft Entra and uploads the public certificate to it; you hand over no secret.",
+    "step_3": "When it finishes, the command prints the application ID. Copy it and paste it into this form."
+  },
   "agent": {
     "step_1": "Sign in to the server with an administrator account (on Windows, open PowerShell as administrator; on Linux, use a terminal with sudo).",
     "step_2": "Copy the install command we show you and run it. It installs a lightweight Monkey program: we don't ask for passwords and no inbound ports are opened on your server.",
     "step_3": "If your network restricts outbound connections, allow the one we list next to the command.",
     "step_4": "Wait a few minutes. When the program connects, this server's status changes to “Connected”."
   },
-  "permission_denied": "The user or role lacks the read-only permissions. Check it has SecurityAudit and ViewOnlyAccess."
+  "permission_denied": "The user or role lacks the read-only permissions. Check it has SecurityAudit and ViewOnlyAccess.",
+  "m365_consent": {
+    "step_1": "Sign in with an administrator of your organization.",
+    "step_2": "Review the read-only permissions and select Accept.",
+    "step_3": "Come back to Monkey: we check the access for you."
+  },
+  "consent_invalid": "The authorization expired or belongs to another session. Select “Sign in with Microsoft” again.",
+  "consent_required": "Microsoft did not grant access: it may still be applying the authorization. Wait a couple of minutes and try again. If it keeps happening, check in Microsoft Entra that the Monkey application is still authorized."
 }

@@ -1,4 +1,6 @@
+import { X509Certificate } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { hostname } from 'node:os';
 
 // Configuración del trabajador. Falla en voz alta al arrancar: un trabajador a medio configurar que «parece vivo» pero no procesa nada es peor
 // que uno que no arranca. Solo lee lo suyo: NO recibe el `.env` del backend (sin JWT, sin clave de cifrado, sin base de datos).
@@ -8,9 +10,16 @@ export type RunnerConfig = {
   engineImage: string;
   // El rol de AWS de Monkey que GCP acepta como identidad de origen (D112). Sin él, este trabajador no evalúa GCP.
   gcpFederationRoleArn: string | null;
+  // La aplicación de Monkey para «Conectar Microsoft 365» (D157). Sin ella, este trabajador no evalúa esas conexiones.
+  microsoftApp: { clientId: string; certificateThumbprint: string; privateKeyPem: string } | null;
   engineTimeoutMs: number;
   engineMemoryBytes: number;
   engineCpus: number;
+  // Cuántas evaluaciones y validaciones corre A LA VEZ este trabajador. Cada evaluación es un contenedor con `engineMemoryBytes` y `engineCpus`: el servidor tiene que aguantar la suma.
+  engineConcurrency: number;
+  validationConcurrency: number;
+  // Marca los contenedores de ESTE trabajador: al arrancar solo retira los suyos. Dos trabajadores en el mismo servidor necesitan identificadores distintos.
+  runnerId: string;
   pollIntervalMs: number;
   // Las validaciones las espera un cliente en pantalla: se miran más seguido que las evaluaciones.
   validationPollIntervalMs: number;
@@ -62,13 +71,43 @@ export function loadRunnerConfig(env: Record<string, string | undefined>, readFi
     runnerToken,
     engineImage,
     gcpFederationRoleArn,
+    microsoftApp: loadMicrosoftApp(env, readFile),
     engineTimeoutMs: int(env, 'ENGINE_TIMEOUT_SECONDS', MAX_ENGINE_TIMEOUT_SECONDS, 60, MAX_ENGINE_TIMEOUT_SECONDS) * 1000,
     engineMemoryBytes: int(env, 'ENGINE_MEMORY_MB', 2048, 512, 16384) * 1024 * 1024,
     engineCpus: int(env, 'ENGINE_CPUS', 2, 1, 16),
+    engineConcurrency: int(env, 'ENGINE_CONCURRENCY', 1, 1, 20),
+    validationConcurrency: int(env, 'VALIDATION_CONCURRENCY', 2, 1, 20),
+    runnerId: readRunnerId(env),
     pollIntervalMs: int(env, 'POLL_INTERVAL_SECONDS', 5, 1, 300) * 1000,
     validationPollIntervalMs: int(env, 'VALIDATION_POLL_INTERVAL_SECONDS', 1, 1, 60) * 1000,
     sonda: loadSondaConfig(env, readFile),
   };
+}
+
+// Por defecto, el nombre de la máquina (en Docker, el del contenedor): distinto en cada réplica y estable si el contenedor se reinicia.
+function readRunnerId(env: Record<string, string | undefined>): string {
+  const value = env['RUNNER_ID']?.trim();
+  if (value && !/^[A-Za-z0-9_.-]{1,64}$/.test(value)) throw new Error('RUNNER_ID: usa letras, dígitos, punto, guion o guion bajo (máximo 64 caracteres).');
+  return value || hostname();
+}
+
+// Va completa o no va. La llave y el certificado se leen de archivos montados (nunca del entorno, que se ve al inspeccionar el contenedor). La huella sale del certificado.
+function loadMicrosoftApp(env: Record<string, string | undefined>, readFile: (path: string) => string): RunnerConfig['microsoftApp'] {
+  const clientId = env['M365_APP_CLIENT_ID']?.trim();
+  const keyFile = env['M365_APP_KEY_FILE']?.trim();
+  const certFile = env['M365_APP_CERT_FILE']?.trim();
+  if (!clientId && !keyFile && !certFile) return null;
+  if (!clientId || !keyFile || !certFile) throw new Error('Microsoft 365: configura M365_APP_CLIENT_ID, M365_APP_KEY_FILE y M365_APP_CERT_FILE, o ninguno.');
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId)) throw new Error('M365_APP_CLIENT_ID debe ser el ID de la aplicación (un GUID).');
+  const privateKeyPem = readFile(keyFile);
+  if (!privateKeyPem.includes('PRIVATE KEY')) throw new Error('M365_APP_KEY_FILE no contiene una llave privada en formato PEM.');
+  let certificateThumbprint: string;
+  try {
+    certificateThumbprint = new X509Certificate(readFile(certFile)).fingerprint.replace(/:/g, '');
+  } catch {
+    throw new Error('M365_APP_CERT_FILE no contiene un certificado en formato PEM.');
+  }
+  return { clientId: clientId.toLowerCase(), certificateThumbprint, privateKeyPem };
 }
 
 // La sonda es opcional: sin `SONDA_API_URL` el trabajador solo evalúa la nube. Si se configura, tiene que quedar COMPLETA o no arranca (misma regla de arriba).

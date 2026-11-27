@@ -47,6 +47,39 @@ if [ -f "$RUNNER" ] && [ -n "$(value "$RUNNER" SONDA_API_URL)" ]; then
   need "$ENV" SONDA_MANAGER_HOST SONDA_MANAGER_PORT SONDA_AGENT_VERSION
 fi
 
+# «Conectar Microsoft 365» con un botón (D157). OPCIONAL: sin nada configurado el despliegue sigue y el botón responde «no disponible». Pero si se configura en cualquiera de los dos
+# archivos, tiene que quedar COMPLETO: un trabajador a medias no arranca, y con él dejarían de evaluarse TODAS las nubes.
+m365_backend="$([ -f "$ENV" ] && value "$ENV" M365_APP_CLIENT_ID)$([ -f "$ENV" ] && value "$ENV" M365_CALLBACK_BASE_URL)"
+m365_runner="$([ -f "$RUNNER" ] && value "$RUNNER" M365_APP_CLIENT_ID)$([ -f "$RUNNER" ] && value "$RUNNER" M365_APP_KEY_FILE)$([ -f "$RUNNER" ] && value "$RUNNER" M365_APP_CERT_FILE)"
+if [ -n "$m365_backend$m365_runner" ]; then
+  need "$ENV" M365_APP_CLIENT_ID M365_CALLBACK_BASE_URL PLATFORM_APP_URL PROBE_MODE
+  need "$RUNNER" M365_APP_CLIENT_ID M365_APP_KEY_FILE M365_APP_CERT_FILE
+  if [ -f "$ENV" ] && [ -f "$RUNNER" ]; then
+    [ "$(value "$ENV" M365_APP_CLIENT_ID)" = "$(value "$RUNNER" M365_APP_CLIENT_ID)" ] || fail "M365_APP_CLIENT_ID distinto en .env y runner.env"
+    [ "$(value "$ENV" PROBE_MODE)" = "runner" ] || fail "$ENV: Microsoft 365 con el botón necesita PROBE_MODE=runner"
+    callback="$(value "$ENV" M365_CALLBACK_BASE_URL)"
+    [[ "$callback" =~ ^https://[^[:space:]]+/v1/?$ ]] || fail "$ENV: M365_CALLBACK_BASE_URL debe ser la dirección pública https de la API y terminar en /v1"
+    # La llave de la aplicación es del trabajador y de nadie más.
+    ! grep -qE '^M365_APP_(KEY|CERT)_FILE=' "$ENV" || fail "$ENV: la llave de Microsoft 365 no va en el backend: quita M365_APP_KEY_FILE y M365_APP_CERT_FILE"
+    for key in M365_APP_KEY_FILE M365_APP_CERT_FILE; do
+      path="$(value "$RUNNER" "$key")"
+      [ -n "$path" ] || continue
+      [[ "$path" == /run/secrets/* ]] || { fail "$RUNNER: $key debe empezar por /run/secrets/ (la carpeta $ROOT/runner-secrets montada en el trabajador)"; continue; }
+      file="$ROOT/runner-secrets/$(basename "$path")"
+      [ -f "$file" ] || { fail "Falta $file"; continue; }
+      # El trabajador corre como root SIN capacidades: solo lee el archivo si el dueño es root, o el grupo root o «otros» tienen permiso de lectura.
+      read -r uid gid mode < <(stat -c '%u %g %a' "$file")
+      mode=$((8#$mode))
+      if ! { { [ "$uid" = 0 ] && (( mode & 8#400 )); } || { [ "$gid" = 0 ] && (( mode & 8#040 )); } || (( mode & 8#004 )); }; then
+        fail "El trabajador no podría leer $file. Corre: sudo chown root:root '$file' && sudo chmod 400 '$file'"
+      fi
+      if [ "$key" = M365_APP_KEY_FILE ] && (( mode & 8#004 )); then fail "$file: la llave no puede ser legible por cualquiera. Corre: sudo chown root:root '$file' && sudo chmod 400 '$file'"; fi
+    done
+  fi
+else
+  warn "Microsoft 365 con el botón sin configurar: el botón responderá «no disponible» (ver deploy/microsoft-365.md)"
+fi
+
 # D112: el grupo de trabajadores es opcional (queda «default»), pero con un formato inválido el backend se niega a arrancar.
 if [ -f "$ENV" ]; then
   pool="$(value "$ENV" RUNNER_POOL)"

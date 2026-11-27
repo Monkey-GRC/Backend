@@ -1,7 +1,7 @@
 import { Inventory } from '../domain/inventory';
 import { CredentialBroker, InventoryScanner, RunnerApi, RunnerLogger, ScanEngine } from '../domain/ports';
 import { AwsCredentials, EngineInput, EngineRun, FAILURE, RunnerApiError, RunnerFailure, RunnerJob, TemporaryCredentials } from '../domain/runner.types';
-import { RunNextExecution } from './run-next-execution';
+import { RunNextExecution, progressReporter } from './run-next-execution';
 import { RunEnrollment } from './run-enrollment';
 import { RunSondaExecution } from './run-sonda-execution';
 
@@ -13,6 +13,10 @@ const creds: AwsCredentials = { provider: 'aws', accessKeyId: 'ASIATEMP', secret
 const run: EngineRun = { engineVersion: '5.44.0', startedAt: new Date(), finishedAt: new Date(), findings: [{ a: 1 }, { b: 2 }] };
 
 class FakeApi extends RunnerApi {
+  readonly percents: number[] = [];
+  async progress(_job: unknown, percent: number): Promise<void> {
+    this.percents.push(percent);
+  }
   submitted: { job: RunnerJob; run: EngineRun }[] = [];
   failed: { job: RunnerJob; reason: string }[] = [];
   validatedJobs: RunnerJob[] = [];
@@ -45,7 +49,9 @@ describe('RunNextExecution', () => {
     let seen: EngineInput | null = null;
     const out = await step(api, broker(() => Promise.resolve(creds)), engine((i) => { seen = i; return Promise.resolve(run); })).result;
     expect(out).toBe('completed');
-    expect(seen).toEqual({ executionId: 'e1', accountId: '123456789012', regions: ['us-east-1'], credentials: creds });
+    expect(seen).toEqual({ executionId: 'e1', accountId: '123456789012', regions: ['us-east-1'], credentials: creds, onProgress: expect.any(Function) });
+    // Antes de evaluar avisa que el acceso ya se comprobó, y antes de entregar, que está guardando.
+    expect(api.percents).toEqual([10, 95]);
     expect(api.submitted).toHaveLength(1);
     expect(api.failed).toHaveLength(0);
   });
@@ -195,5 +201,52 @@ describe('RunNextExecution', () => {
       expect(out).toBe('failed');
       expect(api.failed).toEqual([{ job: agentJob, reason: 'connection.method_not_supported_by_runner' }]);
     });
+  });
+});
+
+describe('progressReporter (el avance real que ve quien espera)', () => {
+  const setup = () => {
+    const sent: number[] = [];
+    let clock = 0;
+    const reporter = progressReporter(async (p) => void sent.push(p), () => clock);
+    return { sent, reporter, tick: (ms: number) => (clock += ms) };
+  };
+
+  it('va del acceso (10) a las verificaciones hechas, sin pasar de 94 antes de guardar (95) y sin llegar nunca a 100', async () => {
+    const { sent, reporter, tick } = setup();
+    reporter.stage(10);
+    tick(3000);
+    reporter.checks(72, 144);
+    tick(3000);
+    reporter.checks(144, 144);
+    reporter.stage(95);
+    reporter.stage(100);
+    await reporter.flush();
+    expect(sent).toEqual([10, 52, 94, 95, 99]);
+  });
+
+  it('no repite, no retrocede y no avisa más de una vez cada 2 s', async () => {
+    const { sent, reporter, tick } = setup();
+    reporter.stage(10);
+    reporter.checks(20, 144);
+    tick(3000);
+    reporter.checks(40, 144);
+    reporter.checks(80, 144);
+    tick(3000);
+    reporter.checks(10, 144);
+    await reporter.flush();
+    expect(sent).toEqual([10, 33]);
+  });
+
+  it('si el backend no recibe un aviso, la corrida sigue y los siguientes se mandan', async () => {
+    const sent: number[] = [];
+    const reporter = progressReporter(async (p) => {
+      if (p === 10) throw new Error('sin red');
+      sent.push(p);
+    });
+    reporter.stage(10);
+    reporter.stage(95);
+    await expect(reporter.flush()).resolves.toBeUndefined();
+    expect(sent).toEqual([95]);
   });
 });

@@ -227,7 +227,7 @@ describe('GET /v1/integrations/{code}', () => {
   });
 
   it('admin_empresa: una coming_soon (con o sin plataforma) llega con prerequisitos, permisos, seguridad y recursos vacíos; coverage null (solo las available tienen cobertura)', async () => {
-    for (const code of ['azure', 'microsoft_365', 'google_workspace', 'github', 'jira']) {
+    for (const code of ['azure', 'google_workspace', 'github', 'jira']) {
       const d = (await detail(a.agent, code).expect(200)).body.data;
       expect(d).toMatchObject({ availability: 'coming_soon', status: null, connections: [], prerequisites: [], permissions: [], resource_types: [], security: [] });
       expect(d.coverage).toBeNull();
@@ -236,6 +236,17 @@ describe('GET /v1/integrations/{code}', () => {
       expect(d.capabilities.length).toBeGreaterThan(0);
       expect(d.works_with.length).toBeGreaterThan(0);
     }
+  });
+
+  it('Microsoft 365 está disponible y su ficha trae requisitos, permisos de solo lectura, seguridad y las pruebas que alimenta, sin listar recursos', async () => {
+    const d = (await detail(a.agent, 'microsoft_365').expect(200)).body.data;
+    expect(d).toMatchObject({ availability: 'available', resource_types: [] });
+    expect(d.prerequisites).toHaveLength(4);
+    expect(d.permissions.map((p: { access: string }) => p.access)).toEqual(Array(6).fill('read'));
+    expect(d.security).toHaveLength(4);
+    expect(d.features).toContain('Repetir la evaluación cada 6 o 24 horas');
+    expect(d.coverage.tests.length).toBeGreaterThan(0);
+    expect(JSON.stringify(d)).not.toMatch(/prowler|wazuh|integration\.content|Todavía no está disponible/i);
   });
 
   it('coverage de AWS: las pruebas con un check de la plataforma, los controles sin repetir y el conteo por marco coinciden con el catálogo', async () => {

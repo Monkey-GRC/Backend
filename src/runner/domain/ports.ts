@@ -9,6 +9,8 @@ export abstract class RunnerApi {
   // Una validación salió bien: el rol se asumió y la cuenta es la declarada.
   abstract validated(job: RunnerJob, inventory?: Inventory | null): Promise<void>;
   abstract submitResults(job: RunnerJob, run: EngineRun, regions: string[]): Promise<void>;
+  // Cuánto va una evaluación (0 a 99); el 100 solo lo pone el backend al guardar el resultado.
+  abstract progress(job: RunnerJob, percent: number): Promise<void>;
   // Un servidor con agente (D113): entrega lo leído de la sonda. El backend lo valida (agente enlazado, grupo = empresa) y lo guarda.
   abstract submitSca(job: RunnerJob, snapshot: SondaSnapshot): Promise<void>;
   // Se creó el agente de un servidor (D113): entrega su id y su clave. La clave viaja SOLO aquí, por la red interna; el backend la guarda cifrada pocos minutos.

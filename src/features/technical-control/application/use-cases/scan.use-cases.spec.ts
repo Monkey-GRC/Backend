@@ -2,7 +2,7 @@ import { RunContext } from '../../domain/repositories/scan.repository';
 import { buildConnection } from './scan.use-cases';
 
 const ctx = (over: Partial<RunContext> = {}): RunContext => ({
-  executionId: 'e', assetId: 'a', origin: 'manual', kind: 'assessment', roleArn: null, externalId: null, projectNumber: null, platform: 'AWS', externalAccountId: '123456789012', regions: ['us-east-1'], connectionMethod: null, encryptedCredentials: 'x', ...over,
+  executionId: 'e', assetId: 'a', origin: 'manual', kind: 'assessment', roleArn: null, externalId: null, projectNumber: null, appClientId: null, certificateThumbprint: null, platform: 'AWS', externalAccountId: '123456789012', regions: ['us-east-1'], connectionMethod: null, encryptedCredentials: 'x', ...over,
 });
 
 describe('buildConnection', () => {
@@ -51,5 +51,42 @@ describe('buildConnection · GCP (D112)', () => {
   it('AWS sigue pidiendo regiones y GCP no', () => {
     expect(buildConnection(ctx({ regions: [] }), { read_only_role: 'x' })).toEqual({ ok: false, reason: 'connection.regions_missing' });
     expect(buildConnection(gcp({ kind: 'assessment' }), null)).toMatchObject({ ok: true });
+  });
+});
+
+describe('buildConnection · Microsoft 365 (D154)', () => {
+  const TENANT = '3f2a91c4-7b6d-4e0a-9c11-5d8e2f7a0b13';
+  const CLIENT = '0b8c3e1a-2d4f-4a6b-8c9d-1e2f3a4b5c6d';
+  const secrets = { private_key_pem: '-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----' };
+  const m365 = (over: Partial<RunContext> = {}) => ctx({ platform: 'microsoft_365', externalAccountId: TENANT, connectionMethod: 'app_certificate', regions: [], appClientId: CLIENT, certificateThumbprint: 'AB12CD34', ...over });
+
+  it('entrega al trabajador la aplicación, la huella y el certificado descifrado, sin regiones', () => {
+    expect(buildConnection(m365(), secrets)).toEqual({
+      ok: true,
+      job: {
+        platform: 'microsoft_365',
+        externalAccountId: TENANT,
+        connection: { method: 'app_certificate', clientId: CLIENT, certificateThumbprint: 'AB12CD34', privateKeyPem: secrets.private_key_pem },
+      },
+    });
+  });
+
+  it('una validación y una evaluación se arman igual: ninguna pide regiones', () => {
+    expect(buildConnection(m365({ kind: 'validation' }), secrets).ok).toBe(true);
+    expect(buildConnection(m365({ kind: 'assessment' }), secrets).ok).toBe(true);
+  });
+
+  it.each([
+    ['todavía no entregó el ID de la aplicación', { appClientId: null }, secrets],
+    ['no hay huella del certificado', { certificateThumbprint: null }, secrets],
+    ['no hay tenant declarado', { externalAccountId: null }, secrets],
+    ['no se pudo descifrar lo guardado', {}, null],
+    ['falta la clave privada', {}, {}],
+  ])('si %s → connection.not_configured (problema de conexión, no incumplimiento)', (_name, over, creds) => {
+    expect(buildConnection(m365(over as Partial<RunContext>), creds)).toEqual({ ok: false, reason: 'connection.not_configured' });
+  });
+
+  it('otro canal en esta plataforma no lo ejecuta el trabajador de la nube', () => {
+    expect(buildConnection(m365({ connectionMethod: 'readonly_role' }), secrets)).toEqual({ ok: false, reason: 'connection.method_not_supported_by_runner' });
   });
 });

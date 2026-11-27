@@ -13,6 +13,10 @@ const job = {
 } as RunnerJob & { enrollment: { name: string; group: string } };
 
 class FakeApi extends RunnerApi {
+  readonly percents: number[] = [];
+  async progress(_job: unknown, percent: number): Promise<void> {
+    this.percents.push(percent);
+  }
   enrolledWith: { agentId: string; key: string }[] = [];
   failed: string[] = [];
   removedCount = 0;

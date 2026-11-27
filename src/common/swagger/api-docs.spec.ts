@@ -144,7 +144,9 @@ describe('documentación de la API encendida (local)', () => {
     // + 8 de MD-503: Documentos (listar, detalle, publicar versión, archivo, asignar, quitar, aceptar y `GET /v1/me/documents`).
     // + 7 de MD-515: Notificaciones.
     // - 3 y + 2 de MD-504: se retiran `PUT /v1/evidence-submissions/{id}/review`, `POST …/verdicts` y `PUT /v1/verdicts/{id}/review`; entran `POST /v1/controls/{id}/approval` y `POST …/tests/{test_id}/result`; también se retira `GET …/tests/{test_id}/verdicts` (el historial v1 se borra): −1.
-    expect(ids.length).toBe(193);
+    // + 1 de D154: `GET /v1/connection-templates/microsoft-365-app` (el script de alta de Microsoft 365).
+    // + 2 de D157: `POST /v1/assets/{id}/connection/microsoft/start` y `…/complete` (las vueltas del navegador desde Microsoft no se documentan).
+    expect(ids.length).toBe(196);
     expect(ids.some((id) => id.includes('/internal/'))).toBe(false);
   });
 

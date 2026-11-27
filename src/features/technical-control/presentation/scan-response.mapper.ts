@@ -13,6 +13,9 @@ export const toExecutionResponse = (e: ExecutionSummary, t: Translate = (k) => k
   queued_at: iso(e.queuedAt),
   started_at: iso(e.startedAt),
   finished_at: iso(e.finishedAt),
+  // El avance REAL mientras corre, si esa evaluación lo informa; si no, `null` (la pantalla lo estima por tiempo y lo dice).
+  progress_percent: e.status === 'running' && e.progressPercentage > 0 ? e.progressPercentage : null,
+  mail_reviewed: e.mailReviewed,
   // Clave i18n de por qué falló y su texto ya traducido (la plataforma no tiene i18n propio); nunca el texto del motor.
   failure_reason: e.failureReason,
   failure_message: e.failureReason ? t(e.failureReason) : null,

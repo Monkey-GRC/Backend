@@ -12,5 +12,6 @@
   "connection_set": "We saved the role. Now let us check the connection.",
   "updated": "We saved the changes. If the connection changed, it needs to be checked again.",
   "removed": "We removed the system. Its history is kept.",
-  "resources": "These are the assets we found in your account."
+  "resources": "These are the assets we found in your account.",
+  "microsoft_consent_started": "Continue on the Microsoft page."
 }

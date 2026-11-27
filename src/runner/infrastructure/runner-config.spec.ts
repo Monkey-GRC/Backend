@@ -5,9 +5,15 @@ const ok = { RUNNER_TOKEN: 'tok', ENGINE_IMAGE: 'toniblyx/prowler:5.44.0' };
 describe('loadRunnerConfig', () => {
   it('toma valores por defecto seguros', () => {
     expect(loadRunnerConfig(ok)).toEqual({
-      backendUrl: 'http://backend:3000', runnerToken: 'tok', engineImage: 'toniblyx/prowler:5.44.0', gcpFederationRoleArn: null,
-      engineTimeoutMs: MAX_ENGINE_TIMEOUT_SECONDS * 1000, engineMemoryBytes: 2048 * 1024 * 1024, engineCpus: 2, pollIntervalMs: 5000, validationPollIntervalMs: 1000, sonda: null,
+      backendUrl: 'http://backend:3000', runnerToken: 'tok', engineImage: 'toniblyx/prowler:5.44.0', gcpFederationRoleArn: null, microsoftApp: null,
+      engineTimeoutMs: MAX_ENGINE_TIMEOUT_SECONDS * 1000, engineMemoryBytes: 2048 * 1024 * 1024, engineCpus: 2, engineConcurrency: 1, validationConcurrency: 2, runnerId: expect.any(String), pollIntervalMs: 5000, validationPollIntervalMs: 1000, sonda: null,
     });
+  });
+  it('toma la concurrencia y el identificador del trabajador, y rechaza valores fuera de rango', () => {
+    expect(loadRunnerConfig({ ...ok, ENGINE_CONCURRENCY: '4', VALIDATION_CONCURRENCY: '5', RUNNER_ID: 'runner-a' })).toMatchObject({ engineConcurrency: 4, validationConcurrency: 5, runnerId: 'runner-a' });
+    expect(() => loadRunnerConfig({ ...ok, ENGINE_CONCURRENCY: '0' })).toThrow(/ENGINE_CONCURRENCY/);
+    expect(() => loadRunnerConfig({ ...ok, ENGINE_CONCURRENCY: '100' })).toThrow(/ENGINE_CONCURRENCY/);
+    expect(() => loadRunnerConfig({ ...ok, RUNNER_ID: 'con espacios' })).toThrow(/RUNNER_ID/);
   });
   it('acepta una imagen fijada por digest', () => {
     expect(loadRunnerConfig({ ...ok, ENGINE_IMAGE: 'toniblyx/prowler@sha256:9dbcc3c9abcd' }).engineImage).toContain('@sha256:');

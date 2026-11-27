@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConnectionCategory, DEFAULT_CRITICALITY, NO_COVERAGE, ResourceKindValue } from '../../../../common/catalogs/technical-catalogs';
+import { CLOUD_MEASURED_DIMENSIONS, ConnectionCategory, DEFAULT_CRITICALITY, NO_COVERAGE, PROBE_MEASURED_DIMENSIONS, ResourceKindValue } from '../../../../common/catalogs/technical-catalogs';
 import { DiscoveredResource, Inventory } from '../../domain/entities/technical-control.entities';
 import type { AuditIntent } from '../../../../common/audit/audit-log.writer';
 import { DomainError } from '../../../../common/errors/domain-error';
@@ -15,8 +15,10 @@ import { collectDirectCheckFailures } from '../notifications/direct-check-failur
 import { RUNNER_POOL } from '../../application/runner-pool';
 import { FailedRow } from '../../domain/scan/findings';
 import { interpretTestResult } from '../../domain/scan/interpret-evaluations';
+import { ORGANIZATION_WIDE_PLATFORMS, withUnmeasured } from '../../domain/scan/unmeasured';
 import { TestCheckLink } from '../../domain/scan/readiness';
 import { InterpretedResult } from '../../domain/scan/scan.types';
+import { MAIL_ONLY_CHECKS, mailReviewed } from '../../domain/scan/mail-review';
 import {
   ClaimedExecution,
   ExecutionKindValue,
@@ -139,10 +141,49 @@ export class ScanPrismaRepository extends ScanRepository {
         orderBy: { queuedAt: 'desc' },
         skip: (page.page - 1) * page.pageSize,
         take: page.pageSize,
-        select: { id: true, status: true, origin: true, queuedAt: true, startedAt: true, finishedAt: true, failureReason: true },
+        select: { id: true, status: true, origin: true, queuedAt: true, startedAt: true, finishedAt: true, failureReason: true, progressPercentage: true },
       });
-      return { items: rows.map((r) => ({ ...r })), total, page: page.page, pageSize: page.pageSize };
+      // D157 · Se deriva de los resultados guardados, no se almacena.
+      const completed = rows.filter((r) => r.status === 'completed').map((r) => r.id);
+      const executionsWith = async (rawCheckIds?: string[]) => {
+        if (completed.length === 0) return new Set<string>();
+        const found = await tx.checkResult.findMany({
+          where: { executionId: { in: completed }, platform: 'microsoft_365', ...(rawCheckIds ? { rawCheckId: { in: rawCheckIds }, result: { in: ['passed', 'failed'] } } : {}) },
+          distinct: ['executionId'],
+          select: { executionId: true },
+        });
+        return new Set(found.map((f) => f.executionId));
+      };
+      const microsoft365 = await executionsWith();
+      const withMail = microsoft365.size > 0 ? await executionsWith(MAIL_ONLY_CHECKS) : new Set<string>();
+      return { items: rows.map((r) => ({ ...r, mailReviewed: mailReviewed(r, microsoft365, withMail) })), total, page: page.page, pageSize: page.pageSize };
     });
+  }
+
+  // ---- la evaluación programada de nube (D158) ----
+
+  async listDueCloudAssessments(input: { maxWaiting: number; retrySeconds: number }): Promise<{ tenantId: string; assetId: string }[]> {
+    // Sin empresa: la función SECURITY DEFINER mira todas, solo lee y devuelve identificadores (SEG-47).
+    type Row = { out_tenant_id: string; out_asset_id: string };
+    const rows = await this.prisma.$queryRaw<Row[]>`SELECT * FROM tenant.list_due_cloud_assessments(${this.runnerPool}, ${input.maxWaiting}::int, ${input.retrySeconds}::int)`;
+    return rows.map((r) => ({ tenantId: r.out_tenant_id, assetId: r.out_asset_id }));
+  }
+
+  async queueScheduledAssessment(scope: TenantScope, assetId: string): Promise<{ executionId: string } | null> {
+    try {
+      return await this.prisma.withScope(scope, async (tx) => {
+        // Se vuelve a mirar dentro de la empresa: el cliente pudo quitar o cambiar la conexión después de la lista.
+        const asset = await tx.asset.findFirst({ where: { id: assetId, status: 'active', parentAssetId: null }, select: { id: true } });
+        const provisioning = asset ? await tx.assetProvisioning.findFirst({ where: { assetId, isActive: true, connectionStatus: 'scheduled' }, select: { id: true } }) : null;
+        if (!provisioning) return null;
+        const created = await tx.execution.create({ data: { tenantId: scope.companyId, assetId, status: 'queued', origin: 'scheduled', kind: 'assessment', runnerPool: this.runnerPool }, select: { id: true } });
+        return { executionId: created.id };
+      });
+    } catch (e) {
+      // El índice único parcial `executions_one_open_per_asset` decide: otra pasada o el cliente ya abrió una.
+      if ((e as { code?: string }).code === 'P2002') return null;
+      throw e;
+    }
   }
 
   async claimNext(kind?: ExecutionKindValue): Promise<ClaimedExecution | null> {
@@ -216,7 +257,7 @@ export class ScanPrismaRepository extends ScanRepository {
       if (!execution) throw new DomainError('NOT_FOUND');
       const asset = await tx.asset.findFirst({
         where: { id: execution.assetId },
-        select: { platform: true, externalAccountId: true, provisionings: { take: 1, select: { regions: true, connectionMethod: true, roleArn: true, externalId: true, projectNumber: true, encryptedCredentials: true } } },
+        select: { platform: true, externalAccountId: true, provisionings: { take: 1, select: { regions: true, connectionMethod: true, roleArn: true, externalId: true, projectNumber: true, appClientId: true, certificateThumbprint: true, encryptedCredentials: true } } },
       });
       if (!asset) throw new DomainError('NOT_FOUND');
       const prov = asset.provisionings[0];
@@ -232,6 +273,8 @@ export class ScanPrismaRepository extends ScanRepository {
         roleArn: prov?.roleArn ?? null,
         externalId: prov?.externalId ?? null,
         projectNumber: prov?.projectNumber ?? null,
+        appClientId: prov?.appClientId ?? null,
+        certificateThumbprint: prov?.certificateThumbprint ?? null,
         encryptedCredentials: prov?.encryptedCredentials ?? null,
       };
     });
@@ -254,6 +297,10 @@ export class ScanPrismaRepository extends ScanRepository {
       },
       SCAN_TRANSACTION,
     );
+  }
+
+  async setProgress(scope: TenantScope, executionId: string, percent: number): Promise<void> {
+    await this.prisma.withScope(scope, (tx) => tx.execution.updateMany({ where: { id: executionId, status: 'running', progressPercentage: { lt: percent } }, data: { progressPercentage: percent } }));
   }
 
   failExecution(scope: TenantScope, executionId: string, reason: string, audit: AuditIntent<{ executionId: string }>) {
@@ -471,7 +518,8 @@ export class ScanPrismaRepository extends ScanRepository {
   }
 
   // Lo que una corrida devolvió, ya interpretado. Con un servicio, un recurso con activo propio que NO es de ese servicio no se mide para él.
-  private async executionResults(tx: TransactionClient, executionId: string, serviceId?: string): Promise<(InterpretedResult & { checkUuid: string })[]> {
+  // `childAssetId`: el activo propio del recurso medido (D61), si lo tiene; lo que es de toda la cuenta va sin él.
+  private async executionResults(tx: TransactionClient, executionId: string, serviceId?: string): Promise<(InterpretedResult & { checkUuid: string; childAssetId: string | null })[]> {
     const rows = await tx.checkResult.findMany({
       where: { executionId },
       select: {
@@ -485,7 +533,7 @@ export class ScanPrismaRepository extends ScanRepository {
             resourceUid: true,
             resourceType: true,
             name: true,
-            childAsset: { select: { serviceAssets: { where: serviceId ? { serviceId } : {}, select: { id: true } } } },
+            childAsset: { select: { id: true, serviceAssets: { where: serviceId ? { serviceId } : {}, select: { id: true } } } },
           },
         },
       },
@@ -493,6 +541,7 @@ export class ScanPrismaRepository extends ScanRepository {
     const scoped = serviceId ? rows.filter((r) => !r.assetResource?.childAsset || r.assetResource.childAsset.serviceAssets.length > 0) : rows;
     return scoped.map((r) => ({
       checkUuid: r.check.id,
+      childAssetId: r.assetResource?.childAsset?.id ?? null,
       checkId: r.check.checkId,
       resourceKey: r.assetResource?.resourceUid ?? null,
       resourceUid: r.assetResource?.resourceUid ?? null,
@@ -506,57 +555,78 @@ export class ScanPrismaRepository extends ScanRepository {
   }
 
   // DT-50: lo que la corrida dijo de cada test pasa a `evaluations`, que es lo que lee el cumplimiento (controles, categorías, marco). Una fila por control del
-  // servicio, test de nube y activo; el histórico no se pisa: la lectura toma la más reciente. Solo cuentan los checks que el comité ratificó (D56), salvo en
+  // servicio, test y activo (la conexión y, D160, cada recurso elegido en el que algo se midió); el histórico no se pisa: la lectura toma la más reciente. Solo cuentan los checks que el comité ratificó (D56), salvo en
   // desarrollo y demostración (`READINESS_INCLUDE_PROPOSED`), igual que la preparación del activo. Corre en la misma transacción que los resultados.
   //
-  // `source`: de dónde vienen los resultados. `cloud` (el motor de nube, tests de dimensión nube, checks por su código del motor) o `sca` (la sonda de un servidor, tests de
+  // `source`: de dónde vienen los resultados. `cloud` (el motor de nube, tests de nube, aplicación, base de datos o servidores con Directos de su plataforma, D160; checks por su código del motor) o `sca` (la sonda de un servidor, tests de
   // servidor, base de datos o aplicación; los checks se identifican por su id del catálogo, porque el mismo número de check se repite entre políticas distintas).
   private async writeEvaluations(tx: TransactionClient, scope: TenantScope, executionId: string, assetId: string, evaluatedAt: Date, source: 'cloud' | 'sca' = 'cloud'): Promise<number> {
     const includeProposed = this.config.get<string>('READINESS_INCLUDE_PROPOSED')?.trim().toLowerCase() === 'true';
     const services = await tx.serviceAsset.findMany({ where: { assetId }, select: { serviceId: true } });
     if (services.length === 0) return 0;
     const parameters = await this.evaluationParameters.load(tx);
+    // D160 · La plataforma de la conexión de nube: de una prueba solo cuentan sus Directos de ESA plataforma (el mismo código de check existe en más de una nube).
+    const platform = source === 'cloud' ? ((await tx.asset.findFirst({ where: { id: assetId }, select: { platform: true } }))?.platform?.trim().toLowerCase() ?? null) : null;
+    const organizationWide = platform && ORGANIZATION_WIDE_PLATFORMS.includes(platform) ? platform : null;
     let written = 0;
     for (const { serviceId } of services) {
       // La versión del catálogo con la que se evalúa: la del marco contratado más antiguo del servicio (D36; hoy un servicio clona de una sola versión).
       const framework = await tx.serviceFramework.findFirst({ where: { serviceId, status: 'active' }, orderBy: { contractedAt: 'asc' }, select: { catalogVersionId: true } });
       if (!framework) continue;
       const links = await tx.clientControlTest.findMany({
-        where: { clientControl: { serviceId, isActive: true }, test: { dimension: source === 'cloud' ? { equals: 'cloud' as const } : { in: ['server' as const, 'database' as const, 'app' as const] } } },
+        where: { clientControl: { serviceId, isActive: true }, test: { dimension: { in: [...(source === 'cloud' ? CLOUD_MEASURED_DIMENSIONS : PROBE_MEASURED_DIMENSIONS)] } } },
         // v2 (RC-04): solo los vínculos `direct` deciden la prueba; los de módulo («N/A», `check_id` nulo) los ignora el motor.
-        select: { clientControlId: true, testId: true, test: { select: { dimension: true, testChecks: { where: { role: 'direct' as const, checkId: { not: null } }, select: { provenance: true, check: { select: { id: true, checkId: true } } } } } } },
+        select: { clientControlId: true, testId: true, test: { select: { dimension: true, testChecks: { where: { role: 'direct' as const, checkId: { not: null } }, select: { provenance: true, check: { select: { id: true, checkId: true, platform: true } } } } } } },
       });
       if (links.length === 0) continue;
       // D91 · Si lo que la sonda midió mueve el estado de un control, queda su evento: sin persona detrás (usuario nulo).
       const before = await captureControlStates(tx, serviceId, parameters);
       const read = await this.executionResults(tx, executionId, serviceId);
       const results = source === 'cloud' ? read : read.map((r) => ({ ...r, checkId: r.checkUuid }));
+      // D160 · Cada recurso que el servicio eligió es un activo (D61) y lleva su propio resultado; lo que es de toda la cuenta (usuarios, políticas, lo que no tiene activo
+      // propio) se queda en la conexión.
+      const ofConnection = results.filter((r) => !r.childAssetId);
+      const ofResource = new Map<string, typeof results>();
+      for (const r of results) if (r.childAssetId) ofResource.set(r.childAssetId, [...(ofResource.get(r.childAssetId) ?? []), r]);
       const rows = links.flatMap((l) => {
-        const checkIds = new Set(l.test.testChecks.flatMap((t) => (t.check && (includeProposed || t.provenance === 'committee_ratified') ? [source === 'cloud' ? t.check.checkId : t.check.id] : [])));
-        if (checkIds.size === 0) return []; // sin checks ratificados, la sonda no mide este test: queda pendiente, no «no aplica»
-        const out = interpretTestResult(checkIds, results);
-        return [
-          {
-            tenantId: scope.companyId,
-            serviceId,
-            clientControlId: l.clientControlId,
-            testId: l.testId,
-            assetId,
-            catalogVersionId: framework.catalogVersionId,
-            evaluatedAt,
-            dimension: l.test.dimension,
-            result: out.result,
-            rawProbeResult: out.rawProbeResult,
-            diagnosticPercentage: out.diagnosticPercentage,
-            origin: 'automated' as const,
-          },
-        ];
+        const usable = l.test.testChecks.flatMap((t) => (t.check && (includeProposed || t.provenance === 'committee_ratified') ? [t.check] : []));
+        if (usable.length === 0) return []; // sin checks ratificados, la sonda no mide este test: queda pendiente, no «no aplica»
+        const mine = source === 'cloud' ? usable.filter((c) => c.platform === platform) : usable;
+        const checkIds = new Set(mine.map((c) => (source === 'cloud' ? c.checkId : c.id)));
+        // D159 · En Microsoft 365, un Directo de esa plataforma que no volvió es «Sin datos», no «No aplica».
+        const expected = organizationWide ? mine.map((c) => c.checkId) : [];
+        const row = (measuredAssetId: string, out: ReturnType<typeof interpretTestResult>) => ({
+          tenantId: scope.companyId,
+          serviceId,
+          clientControlId: l.clientControlId,
+          testId: l.testId,
+          assetId: measuredAssetId,
+          catalogVersionId: framework.catalogVersionId,
+          evaluatedAt,
+          dimension: l.test.dimension,
+          result: out.result,
+          rawProbeResult: out.rawProbeResult,
+          diagnosticPercentage: out.diagnosticPercentage,
+          origin: 'automated' as const,
+        });
+        // La conexión siempre deja su fila (también «no aplica»): es lo que la saca del alcance de una prueba que no la mide. Un recurso, solo si algo se midió en él.
+        const perResource = [...ofResource].flatMap(([childAssetId, own]) => {
+          const out = interpretTestResult(checkIds, own);
+          return out.result === 'not_applicable' ? [] : [row(childAssetId, out)];
+        });
+        return [row(assetId, interpretTestResult(checkIds, withUnmeasured(expected, ofConnection))), ...perResource];
       });
       for (const part of chunks(rows)) await tx.evaluation.createMany({ data: part });
       written += rows.length;
       await recordControlStateChanges(tx, { parameters, tenantId: scope.companyId, serviceId, before, cause: 'probe_result', notifications: this.notifications, actor: { userId: null, ipAddress: null, userAgent: null } });
     }
     return written;
+  }
+
+  // D159 · La plataforma del activo, solo si es de las que revisan la organización entera. Sale de la CONEXIÓN y no de lo que volvió: una corrida sin ninguna fila también dejó todo sin medir.
+  private async organizationWidePlatform(tx: TransactionClient, assetId: string): Promise<string | null> {
+    const asset = await tx.asset.findFirst({ where: { id: assetId }, select: { platform: true } });
+    return asset?.platform && ORGANIZATION_WIDE_PLATFORMS.includes(asset.platform) ? asset.platform : null;
   }
 
   loadLatestScan(scope: TenantScope, assetId: string, serviceId?: string): Promise<LoadedScan | null> {
@@ -571,13 +641,16 @@ export class ScanPrismaRepository extends ScanRepository {
       const results = await this.executionResults(tx, execution.id, serviceId);
 
       const checkUuids = [...new Set(results.map((r) => r.checkUuid))];
+      // D159 · En Microsoft 365 se esperan todos sus Directos, hayan vuelto o no: lo que falta cuenta como sin medir y no puede dejar el activo «listo».
+      const organizationWide = await this.organizationWidePlatform(tx, assetId);
       const linkRows = await tx.testCheck.findMany({
-        where: { checkId: { in: checkUuids }, role: 'direct', test: { dimension: 'cloud' } },
-        select: { provenance: true, check: { select: { checkId: true } }, test: { select: { code: true } } },
+        where: { role: 'direct', test: { dimension: { in: [...CLOUD_MEASURED_DIMENSIONS] } }, OR: [{ checkId: { in: checkUuids } }, ...(organizationWide ? [{ check: { platform: organizationWide } }] : [])] },
+        select: { provenance: true, check: { select: { checkId: true, platform: true } }, test: { select: { code: true } } },
       });
       const links: TestCheckLink[] = linkRows.flatMap((l) => (l.check ? [{ testCode: l.test.code, checkId: l.check.checkId, provenance: l.provenance }] : []));
+      const expected = linkRows.flatMap((l) => (l.check && l.check.platform === organizationWide ? [l.check.checkId] : []));
 
-      return { executionId: execution.id, finishedAt: execution.finishedAt, engineVersion: execution.engineVersion, regions: execution.regions, checksExecuted: execution.checksExecuted, results: results.map(({ checkUuid: _checkUuid, ...r }) => r), links };
+      return { executionId: execution.id, finishedAt: execution.finishedAt, engineVersion: execution.engineVersion, regions: execution.regions, checksExecuted: execution.checksExecuted, results: withUnmeasured(expected, results.map(({ checkUuid: _checkUuid, childAssetId: _childAssetId, ...r }) => r)), links };
     });
   }
 

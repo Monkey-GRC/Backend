@@ -41,7 +41,7 @@ export class ExecutionsController {
   @HttpCode(HttpStatus.ACCEPTED)
   async evaluate(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Req() req: Request) {
     const queued = await this.queueExecution.execute(principal, id, metaOf(req));
-    return new ResponseDto(HttpStatus.ACCEPTED, t('execution.queued'), { id: queued.executionId, status: 'queued', origin: 'manual', started_at: null });
+    return new ResponseDto(HttpStatus.ACCEPTED, t('execution.queued'), { id: queued.executionId, status: 'queued', origin: 'manual', started_at: null, progress_percent: null });
   }
 
   @ApiOperation({ summary: 'Historial de evaluaciones', description: 'Las evaluaciones del activo, de la más reciente a la más antigua, con el motivo traducido si alguna falló.' })

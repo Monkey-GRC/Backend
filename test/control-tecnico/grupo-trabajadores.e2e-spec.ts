@@ -9,6 +9,7 @@ const ROLE_ARN = 'arn:aws:iam::123456789012:role/MonkeyReadOnly';
 let local: INestApplication;
 let server: INestApplication;
 let a: Tenant;
+let b: Tenant;
 const drainQueue = () => owner(`update tenant.executions set status = 'failed', finished_at = now(), failure_reason = 'test.cleanup' where status in ('queued', 'running')`);
 const claim = (app: INestApplication) => request(app.getHttpServer()).post('/internal/runner/claim').set('Authorization', `Bearer ${RUNNER_TOKEN}`);
 const poolOf = (id: string) => owner<{ runner_pool: string }>('select runner_pool from tenant.executions where id = $1', [id]).then((r) => r[0].runner_pool);
@@ -16,7 +17,7 @@ const poolOf = (id: string) => owner<{ runner_pool: string }>('select runner_poo
 beforeAll(async () => {
   server = await bootApp({ RUNNER_POOL: '' });
   local = await bootApp({ RUNNER_POOL: `local-${RUN}` });
-  ({ a } = await dosEmpresas(local));
+  ({ a, b } = await dosEmpresas(local));
 });
 afterAll(async () => {
   await drainQueue();
@@ -25,12 +26,12 @@ afterAll(async () => {
 });
 beforeEach(drainQueue);
 
-async function validatedAsset(name: string): Promise<string> {
-  const res = await a.agent.post('/v1/assets').send(awsBody(a, name)).expect(201);
+async function validatedAsset(name: string, t: Tenant = a): Promise<string> {
+  const res = await t.agent.post('/v1/assets').send(awsBody(t, name)).expect(201);
   const id = res.body.data.id as string;
-  await a.agent.patch(`/v1/assets/${id}/connection`).send({ role_arn: ROLE_ARN }).expect(200);
+  await t.agent.patch(`/v1/assets/${id}/connection`).send({ role_arn: ROLE_ARN }).expect(200);
   await owner('update tenant.asset_provisionings set external_id = $2 where asset_id = $1', [id, `mk-${RUN}`]);
-  await a.agent.post(`/v1/assets/${id}/validate`).expect(200);
+  await t.agent.post(`/v1/assets/${id}/validate`).expect(200);
   return id;
 }
 
@@ -64,5 +65,20 @@ describe('Grupos de trabajadores', () => {
     const ask = (pool: string) => owner<{ out_execution_id: string }>('select * from tenant.claim_next_execution(null, $1)', [pool]);
     expect(await ask('local-x')).toHaveLength(0);
     expect((await ask('otro-grupo')).map((r) => r.out_execution_id)).toEqual([executionId]);
+  });
+
+  it('reparto justo: una empresa con varias corridas encoladas no hace esperar a otra que llegó después', async () => {
+    const queue = async (t: Tenant, name: string): Promise<string> => {
+      const assetId = await validatedAsset(name, t);
+      return (await t.agent.post(`/v1/assets/${assetId}/executions`).expect(202)).body.data.id;
+    };
+    const first = await queue(a, `aws-fair-a1-${RUN}`);
+    const second = await queue(a, `aws-fair-a2-${RUN}`);
+    const other = await queue(b, `aws-fair-b1-${RUN}`);
+
+    const claimed: string[] = [];
+    for (let i = 0; i < 3; i++) claimed.push((await claim(local).expect(200)).body.data.execution_id);
+    // La primera de A (llegó antes), luego la de B (no tiene nada en curso) y al final la segunda de A.
+    expect(claimed).toEqual([first, other, second]);
   });
 });

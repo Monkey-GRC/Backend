@@ -107,11 +107,11 @@ export class CreateAssetDto {
   @IsIn(CONNECTION_METHOD_VALUES)
   connection_method!: (typeof CONNECTION_METHOD_VALUES)[number];
 
-  @ApiPropertyOptional({ nullable: true, example: '123456789012', maxLength: 30, description: 'Cuenta de AWS a la que apunta la conexión (12 dígitos) o, en GCP, el ID del proyecto.' })
+  @ApiPropertyOptional({ nullable: true, example: '123456789012', maxLength: 36, description: 'Cuenta de AWS a la que apunta la conexión (12 dígitos), en GCP el ID del proyecto o, en Microsoft 365, el ID del tenant (un GUID).' })
   @IsOptional()
   @Transform(trimOrNull)
   @IsString()
-  @MaxLength(30)
+  @MaxLength(36)
   external_account_id?: string | null;
 
   @ApiPropertyOptional({ isArray: true, type: String, example: ['us-east-1'], maxItems: 50, description: 'Regiones a evaluar: las únicas que se miran (D53). Opciones en `GET /v1/catalogs/aws_region`. No van en GCP (`identity_federation`): se evalúa el proyecto completo.' })
@@ -154,11 +154,11 @@ export class UpdateAssetDto {
   @MaxLength(50, { each: true })
   tags?: string[];
 
-  @ApiPropertyOptional({ example: '123456789012', maxLength: 30, description: 'Cuenta nueva. **Reinicia la conexión** a `pending` y genera un identificador externo nuevo.' })
+  @ApiPropertyOptional({ example: '123456789012', maxLength: 36, description: 'Cuenta nueva. **Reinicia la conexión** a `pending` y genera un identificador externo nuevo.' })
   @IsOptional()
   @Transform(trim)
   @IsString()
-  @MaxLength(30)
+  @MaxLength(36)
   external_account_id?: string;
 
   @ApiPropertyOptional({ isArray: true, type: String, example: ['us-east-1'], maxItems: 50, description: 'Regiones nuevas. Reinicia la conexión a `pending`.' })
@@ -199,6 +199,23 @@ export class SetConnectionDto {
   @IsNotEmpty()
   @MaxLength(19)
   project_number?: string;
+
+  @ApiPropertyOptional({ example: '0b8c3e1a-2d4f-4a6b-8c9d-1e2f3a4b5c6d', maxLength: 36, description: 'ID de la aplicación que imprime el script de alta de Microsoft 365 (un GUID). Obligatorio en `app_certificate`; no va en los demás canales. No es un secreto.' })
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(36)
+  client_id?: string;
+}
+
+// POST /v1/assets/{id}/connection/microsoft/complete (D157)
+export class CompleteMicrosoftConsentDto {
+  @ApiProperty({ maxLength: 2000, description: 'El recibo (`m365`) con el que Microsoft devolvió al administrador a la pantalla. Lo firma Monkey y vence en 5 minutos.' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  handle!: string;
 }
 
 // PUT /v1/assets/{id}/schedule

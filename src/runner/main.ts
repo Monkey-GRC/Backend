@@ -12,6 +12,7 @@ import { loadRunnerConfig } from './infrastructure/runner-config';
 import { createAwsAdapter } from './infrastructure/providers/aws/aws-adapter';
 import { CloudAdapters, engineProfileFor, RoutingCredentialBroker, RoutingInventoryScanner } from './infrastructure/providers/cloud-adapters';
 import { createGcpAdapter } from './infrastructure/providers/gcp/gcp-adapter';
+import { createMicrosoft365Adapter } from './infrastructure/providers/microsoft365/microsoft-365-adapter';
 
 // Punto de entrada del trabajador (D57): `node dist/runner/main.js`. Es la raíz de composición: aquí, y solo aquí, se eligen los adaptadores.
 // Para correr el motor en la nube bastaría otro `ScanEngine`; el bucle y el backend no cambian.
@@ -26,18 +27,24 @@ class StdoutLogger extends RunnerLogger {
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const MAX_BACKOFF_MS = 60_000;
+const ORPHAN_SWEEP_MS = 10 * 60_000;
 
 async function main() {
   const config = loadRunnerConfig(process.env);
   const log = new StdoutLogger();
   // DOCKER_HOST apunta al proxy de Docker (solo las rutas de contenedores), nunca al socket del servidor.
   // Un adaptador por nube (credencial, motor, inventario); el trabajo elige el suyo por su plataforma. GCP solo existe si este trabajador tiene la identidad de Monkey.
-  const adapters: CloudAdapters = { aws: createAwsAdapter(config.engineImage), ...(config.gcpFederationRoleArn ? { gcp: createGcpAdapter(config.engineImage, config.gcpFederationRoleArn) } : {}) };
+  // Microsoft 365 (D154) no necesita nada de este trabajador: la aplicación y el certificado de cada cliente llegan con el trabajo.
+  const adapters: CloudAdapters = {
+    aws: createAwsAdapter(config.engineImage),
+    ...(config.gcpFederationRoleArn ? { gcp: createGcpAdapter(config.engineImage, config.gcpFederationRoleArn) } : {}),
+    microsoft_365: createMicrosoft365Adapter(config.engineImage, config.microsoftApp),
+  };
   const engine = new DockerScanEngine(new Docker(), engineProfileFor(adapters), {
     timeoutMs: config.engineTimeoutMs,
     memoryBytes: config.engineMemoryBytes,
     cpus: config.engineCpus,
-  });
+  }, config.runnerId);
   const api = new HttpRunnerApi(config.backendUrl, config.runnerToken);
   const broker = new RoutingCredentialBroker(adapters);
   // La lectura de la sonda de servidores es opcional (D113): sin SONDA_API_URL este trabajador solo evalúa la nube.
@@ -65,15 +72,18 @@ async function main() {
       )
     : undefined;
   // Carriles independientes (D58): una evaluación de minutos no puede hacer esperar la validación (ni el alta de un servidor) de un cliente que mira la pantalla.
+  // Cada carril corre UNA ejecución a la vez; varios carriles del mismo tipo corren en paralelo. El reparto sin duplicados lo garantiza la cola del backend (`SKIP LOCKED`).
+  const replicas = <T extends { name: string }>(count: number, make: () => T): T[] => Array.from({ length: count }, (_, i) => { const lane = make(); return { ...lane, name: `${lane.name} ${i + 1}` }; });
   const lanes = [
-    { name: 'validación', step: new RunNextExecution(api, broker, engine, log, 'validation', new RoutingInventoryScanner(adapters), sonda), pollMs: config.validationPollIntervalMs },
-    { name: 'evaluación', step: new RunNextExecution(api, broker, engine, log, 'assessment', undefined, sonda), pollMs: config.pollIntervalMs },
+    ...replicas(config.validationConcurrency, () => ({ name: 'validación', step: new RunNextExecution(api, broker, engine, log, 'validation', new RoutingInventoryScanner(adapters), sonda), pollMs: config.validationPollIntervalMs })),
+    ...replicas(config.engineConcurrency, () => ({ name: 'evaluación', step: new RunNextExecution(api, broker, engine, log, 'assessment', undefined, sonda), pollMs: config.pollIntervalMs })),
     ...(enrollment ? [{ name: 'alta de servidores', step: new RunNextExecution(api, broker, engine, log, 'enrollment', undefined, undefined, enrollment), pollMs: config.validationPollIntervalMs }] : []),
   ];
 
   const orphans = await engine.cleanupOrphans();
   log.info(
     `Trabajador listo (carriles: ${lanes.map((l) => l.name).join(', ')}). Motor: ${config.engineImage}. Nubes: ${Object.keys(adapters).join(', ')}. Contenedores huérfanos retirados: ${orphans}. ` +
+      `Aplicación de Monkey para Microsoft 365: ${config.microsoftApp ? 'sí' : 'no'}. ` +
       `Sonda de servidores: ${config.sonda ? `sí (versiones ${config.sonda.supportedVersions.join(', ')})` : 'no'}.`,
   );
 
@@ -102,7 +112,11 @@ async function main() {
       }
     }
   };
+  const sweeper = setInterval(() => {
+    void engine.cleanupExpired().catch((e: unknown) => log.error(`No se pudieron retirar contenedores vencidos (${describeError(e)}).`));
+  }, ORPHAN_SWEEP_MS);
   await Promise.all(lanes.map(runLane));
+  clearInterval(sweeper);
   log.info('Trabajador detenido.');
 }
 
