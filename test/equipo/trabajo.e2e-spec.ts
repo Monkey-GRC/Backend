@@ -109,10 +109,14 @@ afterAll(async () => {
 });
 
 describe('permisos', () => {
-  it('sin sesión, 401; «Mi trabajo» no es del admin_empresa, el auditor ni admin_monkey (403)', async () => {
+  it('sin sesión, 401; «Mi trabajo» no es del auditor ni de admin_monkey (403); el admin_empresa solo ve su bandeja «Por aprobar» (MD-529)', async () => {
     expect((await request(app.getHttpServer()).get('/v1/me/work')).status).toBe(401);
     expect((await request(app.getHttpServer()).get('/v1/team/workload')).status).toBe(401);
-    for (const agent of [a.agent, auditor, monkey]) {
+    // MD-529: el admin_empresa recibe su bandeja (to_review, sin avance); cualquier otro bucket es 422.
+    const bandeja = await a.agent.get('/v1/me/work').expect(200);
+    expect(bandeja.body.data.progress).toBeNull();
+    expect((await a.agent.get('/v1/me/work?bucket=to_upload').expect(422)).body.error.fields[0].code).toBe('bucket.invalid');
+    for (const agent of [auditor, monkey]) {
       const res = await agent.get('/v1/me/work').expect(403);
       expect(res.body.error.code).toBe('FORBIDDEN');
     }
@@ -147,20 +151,21 @@ describe('los buckets (D122)', () => {
     const mios = (await trabajo(d1.session, 'page_size=100')).items as any[];
     expect(mios.map((i) => i.client_control_id).sort()).toEqual([c.c1, c.c2, c.c3, c.c5, c.m, c.s2].sort());
     for (const i of mios) expect(i).toMatchObject({ bucket: 'to_upload', role_in_control: 'executor' });
-    expect(Object.keys(mios[0]).sort()).toEqual(['bucket', 'client_control_id', 'code', 'pending_items', 'role_in_control', 'service', 'state', 'title']);
+    expect(Object.keys(mios[0]).sort()).toEqual(['bucket', 'client_control_id', 'code', 'pending_decisions', 'pending_items', 'role_in_control', 'service', 'state', 'title']);
   });
 
-  it('lo que sube el ejecutor cuenta al subirlo: el control queda «listo» para él y para el dueño, y nadie lo revisa', async () => {
+  it('lo que sube el ejecutor cuenta al subirlo: el control queda «listo» para él y, para el dueño, por aprobar (MD-529: to_review)', async () => {
     await subir(d1.session, c.c1, (await docTests(c.c1))[0], 'c1');
-    expect(await de(d1.session, c.c1)).toMatchObject({ bucket: 'done', pending_items: 0 });
-    expect(await de(r1.session, c.c1)).toMatchObject({ bucket: 'done', pending_items: 0, state: 'effective' });
-    expect((await trabajo(r1.session, 'bucket=to_review')).total).toBe(0);
+    expect(await de(d1.session, c.c1)).toMatchObject({ bucket: 'done', pending_items: 0, pending_decisions: [] });
+    // El control ya cumple: al responsable le toca la primera aprobación (D132).
+    expect(await de(r1.session, c.c1)).toMatchObject({ bucket: 'to_review', pending_items: 1, state: 'effective', pending_decisions: ['control_approval'] });
+    expect((await trabajo(r1.session, 'bucket=to_review')).total).toBe(1);
     expect((await trabajo(d1.session, 'bucket=in_review')).total).toBe(0);
   });
 
   it('lo que sube el dueño también cuenta: «listo»', async () => {
     await subir(r1.session, c.c4, (await docTests(c.c4))[0], 'c4');
-    expect(await de(r1.session, c.c4)).toMatchObject({ bucket: 'done', pending_items: 0, state: 'effective' });
+    expect(await de(r1.session, c.c4)).toMatchObject({ bucket: 'to_review', pending_items: 1, state: 'effective' }); // cumple: espera su aprobación
   });
 
   it('devuelto: lo que el responsable devolvió con el control es «rechazado» para el ejecutor y para su dueño', async () => {
@@ -183,9 +188,9 @@ describe('los buckets (D122)', () => {
   it('cuando aplican varios, gana el primero: «rechazado» antes que «por subir»', async () => {
     const [tA, tB] = await docTests(c.c5);
     const a1 = await subir(d1.session, c.c5, tA, 'c5a');
-    expect(await de(r1.session, c.c5)).toMatchObject({ bucket: 'to_upload', pending_items: 1 }); // una entregada y otra por subir
+    expect(await de(r1.session, c.c5)).toMatchObject({ bucket: 'to_review', pending_items: 2 }); // ya cumple (espera su aprobación) y falta una por subir
     await subir(d1.session, c.c5, tB, 'c5b');
-    expect(await de(r1.session, c.c5)).toMatchObject({ bucket: 'done', pending_items: 0 });
+    expect(await de(r1.session, c.c5)).toMatchObject({ bucket: 'to_review', pending_items: 1 }); // cumple: espera la aprobación del responsable
     await devolver(r1.session, c.c5, [a1]);
     expect(await de(r1.session, c.c5)).toMatchObject({ bucket: 'rejected', pending_items: 1 });
     expect(await de(d1.session, c.c5)).toMatchObject({ bucket: 'rejected', pending_items: 1 });
@@ -323,7 +328,7 @@ describe('una prueba de proceso cuenta como evidencia (MD-499)', () => {
     await asignarControl(a.companyId, control, r1.id, d1.id);
     expect(await de(r1.session, control)).toMatchObject({ bucket: 'to_upload', pending_items: 1 });
     await subir(d1.session, control, test.id, 'proceso');
-    expect(await de(r1.session, control)).toMatchObject({ bucket: 'done' });
+    expect(await de(r1.session, control)).toMatchObject({ bucket: 'to_review', pending_decisions: ['control_approval'] }); // ya cumple: espera la aprobación del responsable
     expect(await de(d1.session, control)).toMatchObject({ bucket: 'done' });
   });
 

@@ -73,6 +73,14 @@ const RUTAS: Partial<Record<Permission, Call>> = {
   'responsibles.view': (g) => g.get('/v1/responsibles'),
   'responsibles.manage': (g) => g.delete(`/v1/responsibles/${U}`),
   'work.mine': (g) => g.get('/v1/me/work'),
+  'users.directory': (g) => g.get('/v1/users/directory'),
+  'controls.propose_level': (g) => g.post(`/v1/controls/${U}/level-overrides`).send({ proposed_level: 'weak', justification: 'x' }),
+  'controls.decide_level': (g) => g.post(`/v1/level-overrides/${U}/decision`).send({ decision: 'approve' }),
+  'controls.plan_register': (g) => g.post(`/v1/controls/${U}/remediation-plans`).send({ test_id: U, what: 'x', owner_id: U, due_date: '2030-01-01' }),
+  'controls.plan_decide': (g) => g.post(`/v1/remediation-plans/${U}/decision`).send({ decision: 'approve' }),
+  'controls.na_request': (g) => g.post(`/v1/controls/${U}/requirements/${U}/not-applicable-requests`).send({ reason: 'x' }),
+  'controls.na_decide': (g) => g.post(`/v1/not-applicable-requests/${U}/decision`).send({ decision: 'approve' }),
+  'controls.declare_no_occurrences': (g) => g.post(`/v1/controls/${U}/requirements/${U}/no-occurrence-declarations`).send({}),
   'documents.mine': (g) => g.get('/v1/me/documents'),
 };
 

@@ -269,7 +269,7 @@ describe('Período auditado — histórico y período siguiente (D145, D148)', (
     expect((await roll()).stateEvents).toBeGreaterThanOrEqual(1);
     const written = await events();
     expect(written).toHaveLength(1);
-    expect(written[0]).toMatchObject({ user_id: null, previous_value: { state: 'effective', level: 'adequate' }, new_value: { control_id: ctl.id, service_id: a.serviceId, cause: 'window_closed', level: 'not_evaluated' } });
+    expect(written[0]).toMatchObject({ user_id: null, previous_value: { state: 'effective', level: 'adequate' }, new_value: { control_id: ctl.id, service_id: a.serviceId, cause: 'window_closed', level: expect.stringMatching(/^(not_evaluated|ineffective)$/) } }); // sin evidencia: nada evaluado, o Vencido si su requisito «cuando sea requerido» tiene un trimestre cerrado sin declaración (MD-529)
     await roll();
     expect(await events()).toHaveLength(1);
   });
