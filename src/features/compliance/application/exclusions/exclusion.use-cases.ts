@@ -62,10 +62,10 @@ export class ExpireExclusionsUseCase {
 
   constructor(private readonly expiry: ExclusionExpiry) {}
 
-  // `tenantIds` acota la pasada a esas empresas (las pruebas); sin él, todas las no archivadas.
+  // `tenantIds` acota la pasada a esas empresas (las pruebas; `[]` = ninguna); sin él, todas las no archivadas.
   async execute(now: Date = new Date(), tenantIds?: readonly string[]): Promise<ExpireExclusionsResult> {
     const result: ExpireExclusionsResult = { tenants: 0, failed: 0, expired: 0 };
-    for (const tenantId of (await this.expiry.listTenantIds()).filter((id) => !tenantIds || tenantIds.includes(id))) {
+    for (const tenantId of await this.expiry.listTenantIds(tenantIds)) {
       try {
         result.expired += await this.expiry.expireTenant(tenantId, now);
         result.tenants++;

@@ -37,4 +37,13 @@ describe('ExpireExclusionsUseCase', () => {
     expect(await useCase.execute(NOW)).toEqual({ tenants: 1, failed: 1, expired: 2 });
     expect(expireTenant).toHaveBeenCalledWith('t2', NOW);
   });
+
+  it('`tenantIds` se pasa al repositorio: el filtro va en la consulta y `[]` no recorre ninguna empresa', async () => {
+    const listTenantIds = jest.fn(async (only?: readonly string[]) => (only ? only.filter((id) => ['t1', 't2'].includes(id)) : ['t1', 't2']));
+    const expireTenant = jest.fn().mockResolvedValue(0);
+    const useCase = new ExpireExclusionsUseCase({ listTenantIds, expireTenant } as unknown as ExclusionExpiry);
+    expect(await useCase.execute(NOW, [])).toEqual({ tenants: 0, failed: 0, expired: 0 });
+    expect(listTenantIds).toHaveBeenCalledWith([]);
+    expect(expireTenant).not.toHaveBeenCalled();
+  });
 });

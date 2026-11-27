@@ -47,8 +47,8 @@ export abstract class ExclusionRepository {
 
 // D135 · El vencimiento (tarea diaria): cada empresa en su transacción, con el sistema como actor.
 export abstract class ExclusionExpiry {
-  // Las empresas que no están archivadas.
-  abstract listTenantIds(): Promise<string[]>;
+  // Las empresas que no están archivadas; con `only`, solo esas (`[]` = ninguna empresa). El filtro va en la consulta.
+  abstract listTenantIds(only?: readonly string[]): Promise<string[]>;
   // Registra el vencimiento (`expired_at`, una sola vez) de las aprobadas cuya vigencia efectiva ya pasó, con su evento y el de estado. Devuelve cuántas registró.
   abstract expireTenant(tenantId: string, now: Date): Promise<number>;
 }
