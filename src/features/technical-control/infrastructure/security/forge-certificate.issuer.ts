@@ -3,7 +3,7 @@ import { createHash, generateKeyPairSync } from 'node:crypto';
 import forge from 'node-forge';
 import { CertificateIssuer, IssuedCertificate } from '../../domain/ports/certificate-issuer';
 
-// Dos años: el mismo plazo del ejemplo del motor (`-days 730`). El vencimiento se muestra y la renovación es DT-130.
+// Dos años: el mismo plazo del ejemplo del motor (`-days 730`). El vencimiento se muestra y la renovación es DT-137.
 export const CERTIFICATE_VALID_DAYS = 730;
 const RSA_BITS = 2048;
 const BACKDATE_MS = 5 * 60_000;

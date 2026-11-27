@@ -53,7 +53,7 @@ function prepare(tenant: string, quiet = false): void {
 
 // Cloud Shell exige una suscripción de Azure y una organización de solo Microsoft 365 no tiene. Aquí el mismo comando corre en la imagen oficial de la CLI de Microsoft.
 // Tú inicias sesión con un código en tu navegador; la sesión vive dentro del contenedor y se borra con él. Solo se monta el comando: la llave privada no entra.
-// Con «exchange» pide además el permiso de Exchange y el rol de Lector global (DT-131).
+// Con «exchange» pide además el permiso de Exchange y el rol de Lector global (DT-138).
 function onboard(tenant: string, exchange: boolean): void {
   prepare(tenant, true);
   const folder = join(dirOf(tenant), 'alta');

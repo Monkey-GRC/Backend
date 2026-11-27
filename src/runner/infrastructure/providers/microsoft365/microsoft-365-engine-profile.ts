@@ -10,7 +10,7 @@ const JWT = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 const ENGINE_PYTHON = '/home/prowler/.venv/bin/python';
 
 // El motor evalúa el tenant completo con su proveedor de Microsoft 365 (sin regiones). Recibe SOLO permisos temporales de esa organización (D156), por el ENTORNO del contenedor
-// efímero y nunca por la línea de comandos (que se ve en la lista de procesos). Los checks de correo exigen además el acceso de Exchange y el rol de Lector global (DT-131).
+// efímero y nunca por la línea de comandos (que se ve en la lista de procesos). Los checks de correo exigen además el acceso de Exchange y el rol de Lector global (DT-138).
 export function prowlerMicrosoft365Profile(image: string): EngineProfile {
   return {
     image,
