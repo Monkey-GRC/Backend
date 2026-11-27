@@ -32,7 +32,7 @@ describe('Catálogos de las opciones de conexión', () => {
 
   it('connection_method conserva value y label y suma description, availability y tags', async () => {
     const es = await items('connection_method', 'es');
-    expect(es.map((o) => [o.value, o.tags])).toEqual([['readonly_role', ['recommended']], ['access_keys', ['less_secure']], ['agent', []], ['identity_federation', ['recommended']]]);
+    expect(es.map((o) => [o.value, o.tags])).toEqual([['readonly_role', ['recommended']], ['access_keys', ['less_secure']], ['agent', []], ['identity_federation', ['recommended']], ['app_certificate', ['advanced']], ['admin_consent', ['recommended', 'fastest']]]);
     expect(es[0].label).toBe('Rol de solo lectura (recomendado)');
   });
 

@@ -81,8 +81,14 @@ export class ExclusionPrismaRepository extends ExclusionRepository {
         const link = await tx.serviceAsset.findFirst({ where: { serviceId, assetId: input.assetId, asset: { status: 'active' } }, select: { asset: { select: { type: true } } } });
         const test = await tx.test.findFirst({ where: { id: input.testId }, select: { dimension: true } });
         const dimension = link ? dimensionOfAssetType(link.asset.type) : null;
+        // D160 · También le aplica si una evaluación automática midió esa prueba en ese activo (la cuenta de nube en una prueba de aplicación, un recurso descubierto…): misma
+        // regla que la lectura del cumplimiento (`assetsInScope`).
+        const sameType = !!link && !!test && dimension === test.dimension;
+        const measured =
+          !!link && !!test && !sameType &&
+          !!(await tx.evaluation.findFirst({ where: { serviceId, testId: input.testId, assetId: input.assetId, origin: 'automated', result: { not: 'not_applicable' } }, select: { id: true } }));
         const applies =
-          !!link && !!test && dimension === test.dimension && !!(await tx.clientControlTest.findFirst({ where: { testId: input.testId, clientControl: { serviceId, isActive: true } }, select: { id: true } }));
+          (sameType || measured) && !!(await tx.clientControlTest.findFirst({ where: { testId: input.testId, clientControl: { serviceId, isActive: true } }, select: { id: true } }));
         if (!applies) throw new DomainError('NOT_FOUND');
 
         // Un test automático no se sobrescribe sin sustento técnico (el documental no tiene activos, así que aquí el test siempre lo es).

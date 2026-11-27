@@ -12,5 +12,6 @@
   "connection_set": "Guardamos el rol. Ahora comprobemos la conexión.",
   "updated": "Guardamos los cambios. Si cambió la conexión, hay que comprobarla de nuevo.",
   "removed": "Quitamos el activo. Su historial se conserva.",
-  "resources": "Estos son los activos que encontramos en tu cuenta."
+  "resources": "Estos son los activos que encontramos en tu cuenta.",
+  "microsoft_consent_started": "Continúa en la página de Microsoft."
 }

@@ -43,6 +43,9 @@ export class ConnectionSetupResponse {
   @ApiProperty({ required: false, example: 'acme-prod-421905', description: '`identity_federation` (GCP): el ID del proyecto declarado.' }) project_id?: string;
   @ApiProperty({ required: false, nullable: true, example: '407295138461', description: '`identity_federation`: número de proyecto que el cliente entregó; `null` hasta entonces.' }) project_number?: string | null;
   @ApiProperty({ required: false, nullable: true, description: '`identity_federation`: comando listo para pegar en Cloud Shell, con el script completo dentro. `null` si el servidor no tiene configurada la identidad de Monkey.' }) setup_command?: string | null;
+  @ApiProperty({ required: false, example: '3f2a91c4-7b6d-4e0a-9c11-5d8e2f7a0b13', description: '`app_certificate` (Microsoft 365): el ID del tenant declarado.' }) tenant_id?: string;
+  @ApiProperty({ required: false, nullable: true, example: '0b8c3e1a-2d4f-4a6b-8c9d-1e2f3a4b5c6d', description: '`app_certificate`: el ID de la aplicación que el cliente entregó; `null` hasta entonces.' }) client_id?: string | null;
+  @ApiProperty({ required: false, type: Object, description: '`app_certificate`: `{ thumbprint, expires_at }` del certificado público que se sube a la aplicación. No son secretos; la clave privada nunca sale.' }) certificate?: { thumbprint: string; expires_at: string };
   @ApiProperty({ required: false, description: '`access_keys`: advertencia de que las llaves de larga duración son menos seguras que un rol.' }) warning?: string;
   @ApiProperty({ isArray: true, type: String, description: 'Pasos de instrucciones ya traducidos al idioma de la petición.' }) steps!: string[];
 }
@@ -200,6 +203,10 @@ export class QueuedExecutionResponse {
   @ApiProperty({ nullable: true, example: null, description: 'Aún no empieza.' }) started_at!: string | null;
 }
 
+export class MicrosoftConsentStartResponse {
+  @ApiProperty({ example: 'https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize?client_id=…', description: 'La dirección de Microsoft a la que se manda el navegador del administrador.' }) authorize_url!: string;
+}
+
 export class ExecutionResponse {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ enum: ['queued', 'running', 'completed', 'failed', 'cancelled'], enumName: 'ExecutionStatus' }) status!: string;
@@ -207,6 +214,8 @@ export class ExecutionResponse {
   @ApiProperty({ format: 'date-time', nullable: true }) queued_at!: string | null;
   @ApiProperty({ format: 'date-time', nullable: true }) started_at!: string | null;
   @ApiProperty({ format: 'date-time', nullable: true }) finished_at!: string | null;
+  @ApiProperty({ type: Number, nullable: true, example: 42, description: 'Avance real (0 a 99) de una evaluación en curso que lo informa; `null` si no lo informa o ya no está en curso.' }) progress_percent!: number | null;
+  @ApiProperty({ type: Boolean, nullable: true, description: 'Solo en una evaluación completada de Microsoft 365: si de verdad se leyó el correo (D157). `null` en cualquier otro caso.' }) mail_reviewed!: boolean | null;
   @ApiProperty({ nullable: true, example: 'connection.role_not_found', description: 'Clave de por qué falló; nunca el texto del motor.' }) failure_reason!: string | null;
   @ApiProperty({ nullable: true, description: 'El mismo motivo ya traducido al idioma de la petición.' }) failure_message!: string | null;
 }

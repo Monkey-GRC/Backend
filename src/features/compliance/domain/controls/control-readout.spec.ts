@@ -10,6 +10,63 @@ describe('dimensionOfAssetType (§2, D5)', () => {
   });
 });
 
+describe('D160 · los activos de una prueba: decide la plataforma conectada, no la dimensión', () => {
+  const NOW_ISH = new Date('2026-11-23T11:00:00Z');
+  const APP = readoutTest('mfa', 'technical', { dimension: 'app' });
+  const read = (test: typeof APP, assets: ReturnType<typeof asset>[], results: Array<[string, 'compliant' | 'non_compliant' | 'pending' | 'not_applicable']>, patch: Parameters<typeof control>[1] = {}) => {
+    const c = control([requirement('r1', [test])], patch);
+    const keyed = results.map(([assetId, r]) => [`c1|${test.testId}|${assetId}`, r] as const);
+    return readControl(c, data([c], assets, { results: new Map(keyed), signals: { resultDates: new Map(keyed.map(([k]) => [k, NOW_ISH])) } })).requirements[0].tests[0];
+  };
+
+  it('la organización conectada decide una prueba de aplicación: un Directo en FAIL es excepción y señala ese activo', () => {
+    const t = read(APP, [asset('m365', 'cloud_service')], [['m365', 'non_compliant']]);
+    expect(t).toMatchObject({ status: 'exception', manual: false, assetCoverage: { withResult: 1, inScope: 1 }, failingAssetIds: ['m365'] });
+    expect(read(APP, [asset('m365', 'cloud_service')], [['m365', 'compliant']]).status).toBe('correct');
+    expect(read(APP, [asset('m365', 'cloud_service')], [['m365', 'pending']]).status).toBe('pending');
+  });
+  it('una conexión que no mide esa prueba («no aplica») no entra: la prueba sigue a mano (T-05)', () => {
+    expect(read(APP, [asset('aws', 'cloud_service')], [['aws', 'not_applicable']])).toMatchObject({ status: 'pending', manual: true, assetCoverage: null });
+    expect(read(APP, [asset('aws', 'cloud_service')], [])).toMatchObject({ manual: true });
+  });
+  it('dos conexiones miden la misma prueba: cuentan las dos, y la que falla la deja en excepción', () => {
+    const t = read(APP, [asset('aws', 'cloud_service'), asset('m365', 'cloud_service')], [['aws', 'compliant'], ['m365', 'non_compliant']]);
+    expect(t).toMatchObject({ status: 'exception', assetCoverage: { withResult: 2, inScope: 2 }, failingAssetIds: ['m365'] });
+  });
+  it('un recurso descubierto sin resultado no deja la prueba pendiente para siempre; con resultado, cuenta como un activo más', () => {
+    const SRV = readoutTest('ha', 'technical');
+    const ec2 = { ...asset('ec2'), discovered: true };
+    expect(read(SRV, [ec2], [])).toMatchObject({ manual: true, assetCoverage: null });
+    expect(read(SRV, [ec2, asset('srv')], [['srv', 'compliant']])).toMatchObject({ status: 'correct', assetCoverage: { withResult: 1, inScope: 1 } });
+    expect(read(SRV, [ec2, asset('srv')], [['srv', 'compliant'], ['ec2', 'non_compliant']])).toMatchObject({ status: 'exception', assetCoverage: { withResult: 2, inScope: 2 }, failingAssetIds: ['ec2'] });
+  });
+  it('un activo de su tipo con conexión propia se sigue esperando aunque no tenga resultado («Sin datos»)', () => {
+    expect(read(readoutTest('ha', 'technical'), [asset('srv')], [])).toMatchObject({ status: 'pending', manual: false, assetCoverage: { withResult: 0, inScope: 1 } });
+  });
+  it('los módulos de la sonda no se le piden a la cuenta de nube que entra a la prueba por sus checks', () => {
+    const withModule = readoutTest('hids', 'technical', { links: { directCheckCount: 1, complementaryCheckIds: [], modules: [{ role: 'direct', ref: 'Análisis de logs y detección de intrusiones (HIDS)' }], dependencies: [], directKeys: ['check:hids'], items: [] } });
+    expect(read(withModule, [asset('aws', 'cloud_service')], [['aws', 'compliant']]).status).toBe('correct');
+  });
+
+  describe('parte manual de una prueba semiautomática', () => {
+    const SEMI = readoutTest('audit', 'technical', { dimension: 'app', automation: 'semi_automated' });
+    const tenant = [asset('m365', 'cloud_service')];
+    it('con los checks en PASS sigue pendiente hasta que el responsable registra el resultado; nunca cumple sola', () => {
+      expect(read(SEMI, tenant, [['m365', 'compliant']])).toMatchObject({ status: 'pending', manual: false, manualPart: true });
+      expect(read(SEMI, tenant, [['m365', 'compliant']], { manualResults: correct('audit') })).toMatchObject({ status: 'correct', manualPart: true });
+    });
+    it('un Directo en FAIL es excepción aunque el resultado manual sea correcto, y un resultado manual en excepción gana a los checks en PASS', () => {
+      expect(read(SEMI, tenant, [['m365', 'non_compliant']], { manualResults: correct('audit') }).status).toBe('exception');
+      const failed = new Map([['audit', { result: 'exception' as const, at: new Date('2026-11-20T00:00:00Z') }]]);
+      expect(read(SEMI, tenant, [['m365', 'compliant']], { manualResults: failed }).status).toBe('exception');
+    });
+    it('una automática se decide solo con sus checks; una semiautomática sin ningún check aplicable es manual, como siempre', () => {
+      expect(read(APP, tenant, [['m365', 'compliant']])).toMatchObject({ status: 'correct', manualPart: false });
+      expect(read(SEMI, [], [])).toMatchObject({ manual: true, status: 'pending' });
+    });
+  });
+});
+
 describe('readControl · el control con el motor v2', () => {
   it('sin ningún resultado queda «Sin medir»: lo que no se midió no es cumplimiento ni fallo', () => {
     const c = control([requirement('r1', [readoutTest('a', 'technical', { dimension: 'cloud' })]), requirement('r2', [readoutTest('b', 'documentary')])]);

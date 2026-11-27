@@ -207,7 +207,7 @@ export const FREQUENCIES_BY_CAPABILITY: Record<string, string[]> = {
   ac_06: ['continuous'],
 };
 
-export type ConnectionMethodSeed = 'readonly_role' | 'access_keys' | 'agent' | 'identity_federation';
+export type ConnectionMethodSeed = 'readonly_role' | 'access_keys' | 'agent' | 'identity_federation' | 'app_certificate' | 'admin_consent';
 
 export interface PlatformSeed {
   capability: string;
@@ -246,7 +246,8 @@ export const PLATFORMS: PlatformSeed[] = [
   platform('ac_01', 'aws', 'Amazon Web Services', ['readonly_role', 'access_keys'], 'aws', 'available'),
   platform('ac_01', 'azure', 'Azure'),
   platform('ac_01', 'gcp', 'GCP', ['identity_federation'], 'gcp', 'available'),
-  platform('ac_01', 'microsoft_365', 'Microsoft 365'),
+  // D157: probado con un tenant real; la migración `microsoft_365_platform_available` la abre en las bases que ya existen.
+  platform('ac_01', 'microsoft_365', 'Microsoft 365', ['admin_consent', 'app_certificate'], 'microsoft_365', 'available'),
   platform('ac_01', 'google_workspace', 'Google Workspace'),
   ...OS_SERVER('ac_02'),
   platform('ac_03', 'postgresql', 'PostgreSQL', ['agent']),
@@ -280,6 +281,8 @@ export const CONNECTION_OPTIONS: ConnectionOptionSeed[] = [
   option('connection_method', 'access_keys', 'available', ['less_secure']),
   option('connection_method', 'agent', 'available'),
   option('connection_method', 'identity_federation', 'available', ['recommended']),
+  option('connection_method', 'app_certificate', 'available', ['advanced']),
+  option('connection_method', 'admin_consent', 'available', ['recommended', 'fastest']),
   option('gcp_connection_scope', 'project', 'available'),
   option('gcp_connection_scope', 'organization', 'coming_soon'),
   option('gcp_setup_method', 'cloud_shell', 'available', ['recommended', 'fastest']),

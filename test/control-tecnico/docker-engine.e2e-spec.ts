@@ -95,12 +95,40 @@ maybe('DockerScanEngine (Docker real)', () => {
   });
 
   it('retira al arrancar los contenedores huérfanos de una corrida interrumpida', async () => {
-    const orphan = await docker.createContainer({ Image: IMAGE, Cmd: ['sleep', '60'], Labels: { 'monkey.runner': '1' } });
+    const orphan = await docker.createContainer({ Image: IMAGE, Cmd: ['sleep', '60'], Labels: { 'monkey.runner': '1', 'monkey.runner.id': 'default' } });
     await orphan.start();
     expect(await leftovers()).toHaveLength(1);
     expect(await engine('true').cleanupOrphans()).toBe(1);
     expect(await leftovers()).toHaveLength(0);
   });
+
+  it('con varios trabajadores en el mismo servidor, ninguno retira la corrida en curso de otro; la vencida sí se retira', async () => {
+    const named = (id: string, now?: () => number) => new DockerScanEngine(docker, () => profile(`sleep 4; printf '[]' > /out/scan.ocsf.json`), LIMITS, id, now);
+    const running = named('trabajador-a').run(input);
+    for (let i = 0; i < 100 && (await leftovers()).length === 0; i++) await new Promise((r) => setTimeout(r, 50));
+    expect(await named('trabajador-b').cleanupOrphans()).toBe(0);
+    expect(await named('trabajador-b').cleanupExpired()).toBe(0);
+    await expect(running).resolves.toMatchObject({ findings: [] });
+
+    const abandoned = named('trabajador-a').run({ ...input, executionId: 'exec-vencida' }).catch(() => 'retirada');
+    for (let i = 0; i < 100 && (await leftovers()).length === 0; i++) await new Promise((r) => setTimeout(r, 50));
+    expect(await named('trabajador-b', () => Date.now() + 31 * 60_000).cleanupExpired()).toBe(1);
+    await expect(abandoned).resolves.toBe('retirada');
+  }, 60_000);
+
+  it('copia los archivos del perfil antes de arrancar y lee el avance real que el motor escribe', async () => {
+    const seen: string[] = [];
+    const withFiles: EngineProfile = {
+      ...profile(`sh /tmp/aviso.sh && printf '[]' > /out/scan.ocsf.json`),
+      files: [{ path: '/tmp/aviso.sh', content: 'echo ruido; echo "MONKEY_PROGRESS 1 4"; sleep 1; echo "MONKEY_PROGRESS 4 4"\n' }],
+      reportsProgress: true,
+    };
+    const e = new DockerScanEngine(docker, () => withFiles, LIMITS);
+    await e.run({ ...input, onProgress: (done, total) => seen.push(`${done}/${total}`) });
+    await new Promise((r) => setTimeout(r, 200));
+    expect(seen).toEqual(['1/4', '4/4']);
+    expect(await leftovers()).toHaveLength(0);
+  }, 60_000);
 
   it('un resultado grande (varios MB) se lee completo', async () => {
     const run = await engine(`i=0; { printf '['; while [ $i -lt 20000 ]; do [ $i -gt 0 ] && printf ','; printf '{"i":%d,"relleno":"%0200d"}' $i 0; i=$((i+1)); done; printf ']'; } > /out/scan.ocsf.json`).run(input);

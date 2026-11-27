@@ -54,7 +54,10 @@ export abstract class TechnicalControlRepository {
   // Lanza ASSET_NOT_ACTIVE / FREQUENCY_NOT_SUPPORTED.
   // Fija el ARN del rol de solo lectura (canal `readonly_role`). Lanza CONNECTION_METHOD_NOT_APPLICABLE si el activo no usa ese canal y
   // ASSET_ALREADY_ACTIVE si ya está activo. La conexión vuelve a `pending`: hay que comprobarla de nuevo.
-  abstract setConnection(scope: TenantScope, id: string, connection: { roleArn: string } | { projectNumber: string }, audit: AuditIntent<AssetChange>): Promise<AssetChange>;
+  // «Conectar Microsoft 365» (D157): enlaza el activo a la organización que Monkey comprobó. La conexión queda pendiente de comprobar.
+  abstract linkMicrosoftTenant(scope: TenantScope, id: string, tenantId: string, audit: AuditIntent<AssetChange>): Promise<AssetChange>;
+
+  abstract setConnection(scope: TenantScope, id: string, connection: { roleArn: string } | { projectNumber: string } | { appClientId: string }, audit: AuditIntent<AssetChange>): Promise<AssetChange>;
   // Edita un activo. Si `resetsConnection`, la activación y la programación se pierden y la conexión vuelve a `pending`.
   // Lanza EXECUTION_IN_PROGRESS si hay una evaluación o comprobación en curso.
   abstract updateAsset(scope: TenantScope, id: string, edit: AssetEdit, audit: AuditIntent<AssetChange>): Promise<AssetChange>;

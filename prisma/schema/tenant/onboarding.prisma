@@ -731,6 +731,9 @@ enum ConnectionMethod {
   access_keys
   // GCP (D112): el proyecto del cliente confía en la sesión de AWS de Monkey; sin llaves.
   identity_federation
+  // Microsoft 365 (D154): una aplicación del cliente que se autentica con un certificado que genera Monkey.
+  app_certificate
+  admin_consent
 
   @@map("connection_method")
   @@schema("tenant")
@@ -760,6 +763,12 @@ model AssetProvisioning {
   roleArn               String?            @map("role_arn")
   // GCP (D112): el número del proyecto que imprime el script de alta. No es un secreto; el trabajador arma la audiencia de la federación con él.
   projectNumber         String?            @map("project_number")
+  // Microsoft 365 (D154): el ID de la aplicación que el cliente creó (lo imprime el script de alta) y la parte PÚBLICA del certificado de la conexión. Ninguno es un secreto:
+  // la clave privada y el PFX van cifrados en `encryptedCredentials`.
+  appClientId           String?            @map("app_client_id")
+  certificatePem        String?            @map("certificate_pem") @db.Text
+  certificateThumbprint String?            @map("certificate_thumbprint")
+  certificateExpiresAt  DateTime?          @map("certificate_expires_at")
   // Cuándo se descubrieron por última vez los recursos de la cuenta. Lo que no se vio desde entonces ya no se muestra.
   inventoryAt           DateTime?          @map("inventory_at")
   // Servicios que no se pudieron leer en ese descubrimiento: el cliente ve «incompleto», no «vacío».

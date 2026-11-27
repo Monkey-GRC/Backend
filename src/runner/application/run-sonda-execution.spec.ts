@@ -20,6 +20,10 @@ const checks: SondaScaCheck[] = [
 ];
 
 class FakeApi extends RunnerApi {
+  readonly percents: number[] = [];
+  async progress(_job: unknown, percent: number): Promise<void> {
+    this.percents.push(percent);
+  }
   snapshots: SondaSnapshot[] = [];
   failed: { reason: string }[] = [];
   constructor(private readonly submitError?: unknown, private readonly failError?: unknown) { super(); }

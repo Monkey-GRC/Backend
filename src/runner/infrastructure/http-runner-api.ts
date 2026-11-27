@@ -8,6 +8,10 @@ type Fetch = typeof fetch;
 function toConnection(c: Record<string, any>): RunnerJob['connection'] {
   if (c['method'] === 'readonly_role') return { method: 'readonly_role', roleArn: c['role_arn'], externalId: c['external_id'] ?? null };
   if (c['method'] === 'identity_federation') return { method: 'identity_federation', externalId: c['external_id'], projectNumber: c['project_number'] };
+  if (c['method'] === 'admin_consent') return { method: 'admin_consent' };
+  if (c['method'] === 'app_certificate') {
+    return { method: 'app_certificate', clientId: c['client_id'], certificateThumbprint: c['certificate_thumbprint'], privateKeyPem: c['private_key_pem'] };
+  }
   return { method: 'access_keys', accessKeyId: c['access_key_id'], secretAccessKey: c['secret_access_key'] };
 }
 
@@ -65,6 +69,10 @@ export class HttpRunnerApi extends RunnerApi {
     // La salida de un escaneo pesa megas: tiempo de sobra para subirla.
     const body = { tenant_id: job.tenantId, engine_version: run.engineVersion, regions, started_at: run.startedAt.toISOString(), finished_at: run.finishedAt.toISOString(), findings: run.findings };
     await this.ensureOk(await this.post(`/internal/runner/executions/${job.executionId}/results`, body, 180_000));
+  }
+
+  async progress(job: RunnerJob, percent: number): Promise<void> {
+    await this.ensureOk(await this.post(`/internal/runner/executions/${job.executionId}/progress`, { tenant_id: job.tenantId, percent }, 10_000));
   }
 
   async enrolled(job: RunnerJob, agent: { agentId: string; key: string }): Promise<void> {

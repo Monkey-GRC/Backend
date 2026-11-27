@@ -51,6 +51,8 @@ export async function bootApp(env: Record<string, string> = {}, configure?: (bui
     RATE_LIMIT_COMPANY_PER_MINUTE: '1000000',
     // D97 · Sin tarea programada del borrado definitivo: las pruebas la ejecutan a mano.
     COMPANY_PURGE_INTERVAL_MINUTES: '0',
+    // D158 · Sin evaluación programada de nube: las pruebas ejecutan la pasada a mano.
+    CLOUD_SCHEDULE_INTERVAL_MINUTES: '0',
     // D148 · Sin tarea diaria de períodos auditados: las pruebas la ejecutan a mano.
     EVALUATION_PERIOD_INTERVAL_MINUTES: '0',
     // MD-515 · Sin tarea del resumen diario de avisos: las pruebas la ejecutan a mano (hora de salida: las 12:00 UTC).

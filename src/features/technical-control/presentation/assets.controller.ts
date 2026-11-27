@@ -39,7 +39,7 @@ import {
 } from '../application/use-cases/asset.use-cases';
 import { ConnectionProbe } from '../domain/ports/connection-probe';
 import { ConnectionTemplates } from '../application/connection-templates';
-import { GcpSetupCommand, toAssetListItem, toAssetResponse } from './technical-control-response.mapper';
+import { GcpSetupCommand, M365SetupCommand, toAssetListItem, toAssetResponse } from './technical-control-response.mapper';
 import { API_TAGS } from '../../../common/swagger/api-docs.config';
 import { ApiData, ApiDomainErrors, ApiEmpty, ApiPaged } from '../../../common/swagger/api-envelope';
 import { AssetListItemResponse, AssetResponse, AssetValidationResponse, DiscoveredResourcesResponse } from './technical-control.responses';
@@ -83,6 +83,11 @@ export class AssetsController {
     return role ? (projectId, externalId) => this.templates.gcpSetupCommand(role, projectId, externalId) : null;
   }
 
+  // El comando de alta de Microsoft 365 (D154): el tenant y el certificado PÚBLICO de ESTA conexión. No depende de ninguna configuración del servidor.
+  private m365SetupCommand(): M365SetupCommand {
+    return (tenantId, certificatePem) => this.templates.microsoft365SetupCommand(tenantId, certificatePem);
+  }
+
   @ApiOperation({ summary: 'Registrar y conectar un activo', description: 'Primer paso del flujo **conectar → validar → activar → programar**. El tipo del activo se deduce de la conexión elegida (D46). Con el canal de rol de solo lectura la respuesta trae `connection_setup`: el identificador externo y los pasos para crear el rol en la cuenta del cliente. Las credenciales (canal de llaves) solo entran aquí, se guardan cifradas y **nunca se devuelven**. Requiere el escenario de despliegue.' })
   @ApiData(AssetResponse, 'Activo registrado, con las instrucciones para completar la conexión.', { status: 201 })
   @ApiDomainErrors('CONNECTION_METHOD_NOT_APPLICABLE', 'ORGANIZATION_NOT_DECLARED')
@@ -109,7 +114,7 @@ export class AssetsController {
       },
       metaOf(req),
     );
-    return new ResponseDto(HttpStatus.CREATED, t('asset.created'), toAssetResponse(asset, this.principalArn(), t, this.gcpSetupCommand()));
+    return new ResponseDto(HttpStatus.CREATED, t('asset.created'), toAssetResponse(asset, this.principalArn(), t, this.gcpSetupCommand(), this.m365SetupCommand()));
   }
 
   @ApiOperation({ summary: 'Listar activos', description: 'Activos de la empresa, filtrables por servicio, categoría de conexión y estado operativo. No incluye los dados de baja.' })
@@ -132,7 +137,7 @@ export class AssetsController {
   @ApiData(AssetResponse, 'Detalle del activo.')
   @Get(':id')
   async detail(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string) {
-    return new ResponseDto(HttpStatus.OK, t('asset.detail'), toAssetResponse(await this.getAsset.execute(principal, id), this.principalArn(), t, this.gcpSetupCommand()));
+    return new ResponseDto(HttpStatus.OK, t('asset.detail'), toAssetResponse(await this.getAsset.execute(principal, id), this.principalArn(), t, this.gcpSetupCommand(), this.m365SetupCommand()));
   }
 
   // Los activos que la conexión reconoció dentro de la cuenta, en las regiones declaradas (D59).
@@ -188,7 +193,7 @@ export class AssetsController {
       },
       metaOf(req),
     );
-    return new ResponseDto(HttpStatus.OK, t('asset.updated'), toAssetResponse(asset, this.principalArn(), t, this.gcpSetupCommand()));
+    return new ResponseDto(HttpStatus.OK, t('asset.updated'), toAssetResponse(asset, this.principalArn(), t, this.gcpSetupCommand(), this.m365SetupCommand()));
   }
 
   // Dar de baja: el sistema deja de listarse y de evaluarse; su historial se conserva.
@@ -207,8 +212,8 @@ export class AssetsController {
   @ApiDomainErrors('CONNECTION_METHOD_NOT_APPLICABLE')
   @Patch(':id/connection')
   async connection(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Body() dto: SetConnectionDto, @Req() req: Request) {
-    const asset = await this.setConnection.execute(principal, id, { roleArn: dto.role_arn, projectNumber: dto.project_number }, metaOf(req));
-    return new ResponseDto(HttpStatus.OK, t('asset.connection_set'), toAssetResponse(asset, this.principalArn(), t, this.gcpSetupCommand()));
+    const asset = await this.setConnection.execute(principal, id, { roleArn: dto.role_arn, projectNumber: dto.project_number, clientId: dto.client_id }, metaOf(req));
+    return new ResponseDto(HttpStatus.OK, t('asset.connection_set'), toAssetResponse(asset, this.principalArn(), t, this.gcpSetupCommand(), this.m365SetupCommand()));
   }
 
   @ApiOperation({ summary: 'Validar la conexión', description: 'Comprueba que Monkey puede leer la cuenta del cliente. Deja la conexión en `validated` (o `failed`, con el motivo). En modo `demo` la comprobación es simulada y así se indica; en `live` es real. Con un descubrimiento exitoso se actualiza el inventario (D59).' })
@@ -236,7 +241,7 @@ export class AssetsController {
   @HttpCode(HttpStatus.OK)
   async activate(@CurrentUser() principal: Principal, @Param('id', idPipe) id: string, @Req() req: Request) {
     const asset = await this.activateAsset.execute(principal, id, metaOf(req));
-    return new ResponseDto(HttpStatus.OK, t('asset.activated'), toAssetResponse(asset, this.principalArn(), t, this.gcpSetupCommand()));
+    return new ResponseDto(HttpStatus.OK, t('asset.activated'), toAssetResponse(asset, this.principalArn(), t, this.gcpSetupCommand(), this.m365SetupCommand()));
   }
 
   @ApiOperation({ summary: 'Programar la frecuencia de evaluación', description: 'Cada cuánto se evalúa el activo de forma automática. Solo un activo ya activado. Queda registro de auditoría.' })
@@ -251,6 +256,6 @@ export class AssetsController {
     @Req() req: Request,
   ) {
     const asset = await this.scheduleAsset.execute(principal, id, dto.frequency, metaOf(req));
-    return new ResponseDto(HttpStatus.OK, t('asset.scheduled'), toAssetResponse(asset, this.principalArn(), t, this.gcpSetupCommand()));
+    return new ResponseDto(HttpStatus.OK, t('asset.scheduled'), toAssetResponse(asset, this.principalArn(), t, this.gcpSetupCommand(), this.m365SetupCommand()));
   }
 }

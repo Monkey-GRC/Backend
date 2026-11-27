@@ -5,7 +5,7 @@
     "aws": "Evalúa de forma continua la configuración de tu cuenta: identidades y accesos, cifrado, registros y red.",
     "azure": "Evaluará de forma continua la configuración de tu suscripción: identidades y accesos, cifrado, registros y red.",
     "gcp": "Evaluará de forma continua la configuración de tu proyecto: identidades y accesos, cifrado, registros y red.",
-    "microsoft_365": "Evaluará la configuración de tu organización: inicio de sesión con segundo factor, acceso condicional, correo y colaboración.",
+    "microsoft_365": "Evalúa la configuración de tu organización: inicio de sesión con segundo factor, acceso condicional, correo y colaboración.",
     "google_workspace": "Evaluará la configuración de tu dominio: inicio de sesión, segundo factor y uso compartido.",
     "github": "Mostrará cómo se revisan y aprueban los cambios en tu código, y las vulnerabilidades de sus dependencias.",
     "jira": "Convertirá cada hallazgo en un ticket asignado y seguirá su avance hasta cerrarlo."
@@ -74,13 +74,53 @@
       "works_with": ["Cumplimiento"]
     },
     "microsoft_365": {
-      "overview": "Monkey evaluará la configuración de tu organización de Microsoft 365 y convertirá cada resultado en insumo de las pruebas automáticas de tus controles. Todavía no está disponible.",
+      "overview": "Monkey evalúa la configuración de seguridad de tu organización de Microsoft 365 con acceso de solo lectura, que autorizas con un botón. Cada resultado es un insumo de las pruebas automáticas de tus controles.",
       "features": [
-        "Evaluar el inicio de sesión con segundo factor, el acceso condicional, el correo y la colaboración",
-        "Ver cada hallazgo con su código de control, su impacto y cómo corregirlo"
+        "Evaluar identidades y accesos: segundo factor, acceso condicional y roles con privilegios",
+        "Evaluar la configuración del correo y la colaboración",
+        "Ver el avance real mientras se evalúa",
+        "Repetir la evaluación cada 6 o 24 horas"
       ],
-      "capabilities": ["Evaluación continua de la configuración"],
-      "works_with": ["Cumplimiento"]
+      "prerequisites": [
+        "Un Administrador global (o Administrador de roles con privilegios) de tu organización para autorizar el acceso",
+        "Para revisar el correo: asignar a la aplicación de Monkey el rol «Lector global» después de autorizar",
+        "Los riesgos del servicio ya evaluados",
+        "Algunas verificaciones necesitan licencias de Microsoft: si tu organización no las tiene, quedan sin medir"
+      ],
+      "permissions": {
+        "directory": {
+          "name": "Directorio y roles",
+          "detail": "Leer usuarios, grupos, quién es administrador y la sincronización con tus servidores. Incluye datos de las personas."
+        },
+        "policies": {
+          "name": "Políticas de seguridad",
+          "detail": "Leer las políticas de acceso y de inicio de sesión."
+        },
+        "activity": {
+          "name": "Actividad y revisiones",
+          "detail": "Leer los registros de auditoría e inicios de sesión y las revisiones de acceso."
+        },
+        "security_signals": {
+          "name": "Datos de seguridad",
+          "detail": "Leer alertas de identidad y consultar eventos de seguridad. Esos eventos pueden incluir datos de personas, equipos o correos."
+        },
+        "devices_and_sites": {
+          "name": "SharePoint y equipos administrados",
+          "detail": "Leer los ajustes de SharePoint y la configuración de los equipos administrados."
+        },
+        "mail": {
+          "name": "Correo",
+          "detail": "Permite leer la configuración del correo según el rol que asignes a la aplicación. Asigna «Lector global», que no permite cambiar nada."
+        }
+      },
+      "security": {
+        "read_only": "Monkey pide permisos de lectura. El de correo actúa según el rol que asignes: «Lector global» no permite cambiar nada.",
+        "temporary_credentials": "Cada evaluación usa accesos temporales de Microsoft. Monkey no guarda contraseñas ni secretos de tu organización.",
+        "isolated_execution": "Cada evaluación corre en un entorno aislado que se elimina al terminar.",
+        "tenant_isolation": "Los resultados de tu organización solo los ve tu empresa."
+      },
+      "capabilities": ["Evaluación de la configuración"],
+      "works_with": ["Cumplimiento", "Conexiones de tus servicios"]
     },
     "google_workspace": {
       "overview": "Monkey evaluará la configuración de tu dominio de Google Workspace y convertirá cada resultado en insumo de las pruebas automáticas de tus controles. Todavía no está disponible.",

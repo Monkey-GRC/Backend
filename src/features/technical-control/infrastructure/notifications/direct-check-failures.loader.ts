@@ -1,4 +1,5 @@
 import { Prisma } from '../../../../../generated/prisma/client';
+import { CLOUD_MEASURED_DIMENSIONS, PROBE_MEASURED_DIMENSIONS } from '../../../../common/catalogs/technical-catalogs';
 import { exceptionEndsOn } from '../../../../common/evaluation-parameters/exception-window';
 import type { ControlNotificationEvent } from '../../../../common/notifications/notification-emitter';
 import type { EvaluationParameters } from '../../../../common/evaluation-parameters/parameters';
@@ -26,13 +27,14 @@ export async function collectDirectCheckFailures(tx: TransactionClient, scan: Di
   const rows = await tx.clientControlTest.findMany({
     where: {
       clientControl: { serviceId: { in: serviceIds }, isActive: true },
-      test: { dimension: scan.source === 'cloud' ? { equals: 'cloud' as const } : { in: ['server' as const, 'database' as const, 'app' as const] } },
+      // D160 · Las mismas dimensiones que `writeEvaluations`: la nube también decide pruebas de aplicación, base de datos y servidores.
+      test: { dimension: { in: [...(scan.source === 'cloud' ? CLOUD_MEASURED_DIMENSIONS : PROBE_MEASURED_DIMENSIONS)] } },
     },
     select: {
       clientControlId: true,
       testId: true,
       clientControl: { select: { serviceId: true } },
-      test: { select: { testChecks: { where: { role: 'direct' as const, checkId: { not: null }, ...(scan.includeProposed ? {} : { provenance: 'committee_ratified' as const }) }, select: { check: { select: { id: true, titleEn: true, titleEs: true } } } } } },
+      test: { select: { testChecks: { where: { role: 'direct' as const, ...(scan.source === 'cloud' ? { check: { policyId: 'cloud_configuration' } } : { checkId: { not: null } }), ...(scan.includeProposed ? {} : { provenance: 'committee_ratified' as const }) }, select: { check: { select: { id: true, titleEn: true, titleEs: true } } } } } },
     },
   });
   const titles = new Map<string, CheckTitle>();

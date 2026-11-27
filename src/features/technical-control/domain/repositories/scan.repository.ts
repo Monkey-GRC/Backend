@@ -54,12 +54,15 @@ export type RunContext = {
   platform: string;
   externalAccountId: string | null;
   regions: string[];
-  connectionMethod: 'agent' | 'readonly_role' | 'access_keys' | 'identity_federation' | null;
+  connectionMethod: 'agent' | 'readonly_role' | 'access_keys' | 'identity_federation' | 'app_certificate' | 'admin_consent' | null;
   // Lo que el cliente configuró para el rol (no son secretos). Las llaves, si las hay, siguen cifradas en `encryptedCredentials`.
   roleArn: string | null;
   externalId: string | null;
   // GCP (D112): el número del proyecto que el cliente entregó.
   projectNumber: string | null;
+  // Microsoft 365 (D154): el ID de la aplicación del cliente y la huella de su certificado. La clave privada y el PFX siguen cifrados en `encryptedCredentials`.
+  appClientId: string | null;
+  certificateThumbprint: string | null;
   encryptedCredentials: string | null;
 };
 
@@ -81,6 +84,10 @@ export type ExecutionSummary = {
   startedAt: Date | null;
   finishedAt: Date | null;
   failureReason: string | null;
+  // 0 a 100. 0 = esa evaluación (todavía) no informa avance.
+  progressPercentage: number;
+  // D157 · Solo en una evaluación completada de Microsoft 365: si de verdad se leyó el correo. `null` = no aplica.
+  mailReviewed: boolean | null;
 };
 
 // Ejecuciones de la sonda de nube de UN activo. Todo pasa por withScope (RLS impone el aislamiento entre empresas), salvo `claimNext`,
@@ -105,6 +112,11 @@ export abstract class ScanRepository {
 
   abstract listExecutions(scope: TenantScope, assetId: string, page: PageRequest): Promise<Page<ExecutionSummary>>;
 
+  // D158 · Las conexiones de nube cuya frecuencia venció, de todas las empresas (función SQL angosta, solo identificadores), sin pasar del cupo de programadas que pueden esperar.
+  abstract listDueCloudAssessments(input: { maxWaiting: number; retrySeconds: number }): Promise<{ tenantId: string; assetId: string }[]>;
+  // Deja en cola la evaluación programada. `null` si entretanto la conexión dejó de estar programada o ya tiene una ejecución abierta.
+  abstract queueScheduledAssessment(scope: TenantScope, assetId: string): Promise<{ executionId: string } | null>;
+
   // «Comprobar conexión» (D58): una validación en cola. Comprueba que se puede acceder a la cuenta del cliente; dura segundos y el cliente espera.
   // NOT_FOUND si el activo no existe para esta empresa; EXECUTION_IN_PROGRESS si ya hay una ejecución abierta (el índice único lo impone).
   abstract queueValidation(scope: TenantScope, assetId: string, actorUserId: string | null, audit: AuditIntent<{ executionId: string }>): Promise<{ executionId: string }>;
@@ -124,6 +136,9 @@ export abstract class ScanRepository {
   // Cierra una ejecución `running`. EXECUTION_NOT_RUNNING si no lo está (otra empresa, ya cerrada o inexistente: no se distingue).
   abstract completeExecution(scope: TenantScope, executionId: string, outcome: ScanOutcome, audit: AuditIntent<RecordedScan>): Promise<RecordedScan>;
   // Un fallo de ejecución es un problema de CONEXIÓN, no un incumplimiento (§8): no guarda resultados ni mueve la preparación.
+  // Guarda el avance de una ejecución EN CURSO; solo si sube.
+  abstract setProgress(scope: TenantScope, executionId: string, percent: number): Promise<void>;
+
   abstract failExecution(scope: TenantScope, executionId: string, reason: string, audit: AuditIntent<{ executionId: string }>): Promise<{ executionId: string }>;
 
   // Importar un escaneo ya hecho: crea la ejecución directamente completada. Lanza NOT_FOUND si el activo no existe para esta empresa.

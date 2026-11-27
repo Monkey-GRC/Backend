@@ -9,7 +9,7 @@
 export type RunnerJobKind = 'assessment' | 'validation' | 'enrollment';
 
 // Las nubes que el trabajador sabe evaluar. Cada una tiene su adaptador (credencial, motor, inventario) en `infrastructure/providers/<nube>/`.
-export type RunnerPlatform = 'aws' | 'gcp';
+export type RunnerPlatform = 'aws' | 'gcp' | 'microsoft_365';
 
 export type RunnerJob = {
   executionId: string;
@@ -25,6 +25,10 @@ export type RunnerJob = {
     | { method: 'readonly_role'; roleArn: string; externalId: string | null }
     // GCP (D112): `externalId` es el nombre de la sesión de AWS con la que Monkey entra; el número de proyecto arma la audiencia de la federación.
     | { method: 'identity_federation'; externalId: string; projectNumber: string }
+    // Microsoft 365 (D154): la aplicación del cliente y el certificado de la conexión. La clave privada viaja SOLO en esta respuesta, por la red interna, y no sale del trabajador (D156).
+    | { method: 'app_certificate'; clientId: string; certificateThumbprint: string; privateKeyPem: string }
+    // Microsoft 365 con el botón (D157): el cliente autorizó la aplicación de Monkey. No viaja ninguna credencial: la de la aplicación la tiene el trabajador.
+    | { method: 'admin_consent' }
     // Las llaves viajan SOLO en esta respuesta, por la red interna. Nunca se registran.
     | { method: 'access_keys'; accessKeyId: string; secretAccessKey: string }
     // Un servidor con agente de la sonda (D113). NO hay credenciales del cliente: el trabajador lee la sonda con la suya, que nunca viaja por esta
@@ -36,8 +40,8 @@ export type RunnerJob = {
   enrollment?: { name: string; group: string; remove?: boolean };
 };
 
-// Credenciales con las que el motor mira la cuenta del cliente. Siempre TEMPORALES (SEG-46): con un rol son de 1 hora; el motor nunca ve llaves de larga vida
-// de Monkey. Una unión discriminada: cada nube tiene la suya y solo su adaptador la lee.
+// Credenciales con las que el motor mira la cuenta del cliente. Casi siempre TEMPORALES (SEG-46): con un rol son de 1 hora; el motor nunca ve llaves de larga vida
+// de Monkey (excepción documentada, siempre de UN cliente y de solo lectura: el canal de llaves de AWS). Una unión discriminada: cada nube tiene la suya y solo su adaptador la lee.
 export type AwsCredentials = {
   provider: 'aws';
   accessKeyId: string;
@@ -50,7 +54,15 @@ export type GcpCredentials = {
   accessToken: string;
   expiresAt: Date;
 };
-export type TemporaryCredentials = AwsCredentials | GcpCredentials;
+// Microsoft 365 (D156): permisos temporales (~1 h) de UNA organización, uno por servicio. El certificado y su llave se quedan en el trabajador.
+// Correo y reuniones son opcionales: sin ellos, sus verificaciones no corren.
+export type Microsoft365Credentials = {
+  provider: 'microsoft_365';
+  tenantId: string;
+  clientId: string;
+  tokens: { graph: string; exchange: string | null; teams: string | null };
+};
+export type TemporaryCredentials = AwsCredentials | GcpCredentials | Microsoft365Credentials;
 
 export type EngineInput = {
   executionId: string;
@@ -58,6 +70,8 @@ export type EngineInput = {
   accountId: string | null;
   regions: string[];
   credentials: TemporaryCredentials;
+  // Avance REAL de la corrida, si el motor de esa nube lo informa: verificaciones hechas de un total.
+  onProgress?: (done: number, total: number) => void;
 };
 
 export type EngineRun = {
@@ -75,6 +89,11 @@ export const FAILURE = {
   accountMismatch: 'connection.account_mismatch',
   credentialsInvalid: 'connection.credentials_invalid',
   federationRejected: 'connection.federation_rejected',
+  // Microsoft 365 (D154): Entra no aceptó la aplicación o el certificado; o la aplicación no tiene los permisos de lectura (falta el consentimiento).
+  appRejected: 'connection.app_rejected',
+  permissionsMissing: 'connection.permissions_missing',
+  // Con el botón (D157): la organización aún no tiene aplicada la autorización (o se la quitaron). El cliente espera un momento o vuelve a autorizar.
+  consentRequired: 'connection.consent_required',
   methodNotSupportedByRunner: 'connection.method_not_supported_by_runner',
   engineFailed: 'execution.engine_failed',
   engineTimeout: 'execution.engine_timeout',

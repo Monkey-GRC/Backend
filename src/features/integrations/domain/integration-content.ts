@@ -17,7 +17,20 @@ export const INTEGRATION_CONTENT: Record<string, IntegrationContentShape> = {
   },
   azure: SOON,
   gcp: SOON,
-  microsoft_365: SOON,
+  // D157. El de correo es `read` porque lo que permite lo decide el rol que se le asigna, y se pide «Lector global».
+  microsoft_365: {
+    resourceTypes: [],
+    permissions: [
+      { key: 'directory', scope: 'Directory.Read.All · RoleManagementPolicy.Read.Directory · OnPremDirectorySynchronization.Read.All', access: 'read' },
+      { key: 'policies', scope: 'Policy.Read.All', access: 'read' },
+      { key: 'activity', scope: 'AuditLog.Read.All · AccessReview.Read.All', access: 'read' },
+      { key: 'security_signals', scope: 'ThreatHunting.Read.All · SecurityIdentitiesHealth.Read.All · SecurityIdentitiesSensors.Read.All', access: 'read' },
+      { key: 'devices_and_sites', scope: 'SharePointTenantSettings.Read.All · DeviceManagementConfiguration.Read.All · DeviceManagementManagedDevices.Read.All · DeviceManagementServiceConfig.Read.All', access: 'read' },
+      { key: 'mail', scope: 'Exchange.ManageAsApp', access: 'read' },
+    ],
+    security: ['read_only', 'temporary_credentials', 'isolated_execution', 'tenant_isolation'],
+    full: true,
+  },
   google_workspace: SOON,
   github: SOON,
   jira: SOON,

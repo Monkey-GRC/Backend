@@ -60,6 +60,10 @@ export type AssetProvisioningView = {
   roleArn: string | null;
   // GCP (D112): el número del proyecto que el cliente entregó. No es un secreto.
   projectNumber: string | null;
+  // Microsoft 365 (D154): el ID de la aplicación que el cliente entregó y la parte PÚBLICA del certificado de la conexión. Nada de esto es secreto: la clave privada
+  // y el PFX van cifrados y no salen del Backend (salvo hacia el trabajador por la red interna).
+  appClientId: string | null;
+  certificate: { pem: string; thumbprint: string; expiresAt: Date } | null;
   automatedCapabilityCode: ConnectionCategory;
   connectionStatus: string;
   lastValidatedAt: Date | null;
@@ -125,6 +129,8 @@ export type NewAsset = {
   externalId: string | null;
   // La versión del sistema que el cliente declaró (D113): la política del catálogo. Con ella nace la fila de agente del activo, en la misma transacción.
   agentScaPolicyId: string | null;
+  // Microsoft 365 (D154): la parte pública del certificado que Monkey generó para la conexión. La parte secreta ya viene cifrada en `encryptedCredentials`.
+  certificate?: { pem: string; thumbprint: string; expiresAt: Date } | null;
 };
 
 // Lo que la sonda necesita para validar una conexión. Las credenciales llegan descifradas y solo
@@ -153,6 +159,8 @@ export type AssetEdit = {
   regions?: string[];
   roleArn?: string | null;
   projectNumber?: string | null;
+  // Microsoft 365 (D154): cambiar de tenant exige una aplicación nueva, así que el ID de la anterior se borra.
+  appClientId?: string | null;
   encryptedCredentials?: string;
   // Una cuenta nueva exige un ExternalId nuevo: el anterior se entregó para otra cuenta.
   externalId?: string;

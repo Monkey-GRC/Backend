@@ -6,6 +6,30 @@ import { RunSondaExecution } from './run-sonda-execution';
 
 export type StepResult = 'idle' | 'completed' | 'failed';
 
+// Los tramos del avance (0 a 100): comprobar el acceso, evaluar verificación por verificación (el tramo largo) y guardar el resultado, que cierra en 100.
+export const PROGRESS_ACCESS = 10;
+export const PROGRESS_SAVING = 95;
+const MIN_PROGRESS_INTERVAL_MS = 2_000;
+
+// Informa el avance sin frenar la corrida: solo cuando sube, como mucho cada 2 s (salvo los saltos de tramo), en orden, y un fallo al informar no la afecta.
+export function progressReporter(send: (percent: number) => Promise<void>, now: () => number = Date.now) {
+  let last = 0;
+  let sentAt = -Infinity;
+  let queue: Promise<void> = Promise.resolve();
+  const report = (percent: number, force = false) => {
+    const value = Math.min(99, Math.floor(percent));
+    if (value <= last || (!force && now() - sentAt < MIN_PROGRESS_INTERVAL_MS)) return;
+    last = value;
+    sentAt = now();
+    queue = queue.then(() => send(value)).catch(() => undefined);
+  };
+  return {
+    stage: (percent: number) => report(percent, true),
+    checks: (done: number, total: number) => report(PROGRESS_ACCESS + ((PROGRESS_SAVING - PROGRESS_ACCESS - 1) * Math.min(done, total)) / Math.max(1, total)),
+    flush: () => queue,
+  };
+}
+
 // Un paso del trabajador: reclama UNA ejecución, la corre y entrega el resultado (o informa por qué no pudo).
 // Es el único lugar con lógica; los puertos (API, credenciales, motor) se sustituyen en las pruebas y, mañana, en la nube.
 export class RunNextExecution {
@@ -51,7 +75,11 @@ export class RunNextExecution {
         this.log.info(`Ejecución ${job.executionId}: conexión validada${inventory ? ` (${inventory.resources.length} activos encontrados)` : ''}.`);
         return 'completed';
       }
-      const run = await this.engine.run({ executionId: job.executionId, accountId: job.externalAccountId, regions: job.regions, credentials });
+      const progress = progressReporter((percent) => this.api.progress(job, percent));
+      progress.stage(PROGRESS_ACCESS);
+      const run = await this.engine.run({ executionId: job.executionId, accountId: job.externalAccountId, regions: job.regions, credentials, onProgress: progress.checks });
+      progress.stage(PROGRESS_SAVING);
+      await progress.flush();
       try {
         await this.api.submitResults(job, run, job.regions);
         this.log.info(`Ejecución ${job.executionId}: entregada (${run.findings.length} filas).`);

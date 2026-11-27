@@ -50,6 +50,14 @@ describe('HttpRunnerApi', () => {
     });
   });
 
+  it('claim: traduce el trabajo de Microsoft 365 (aplicación y certificado, sin regiones; D154)', async () => {
+    reply = { status: 200, body: { data: { execution_id: 'e1', kind: 'validation', tenant_id: 't1', asset_id: 'a1', origin: 'manual', platform: 'microsoft_365', external_account_id: '3f2a91c4-7b6d-4e0a-9c11-5d8e2f7a0b13', regions: [], connection: { method: 'app_certificate', client_id: '0b8c3e1a-2d4f-4a6b-8c9d-1e2f3a4b5c6d', certificate_thumbprint: 'AB12', private_key_pem: 'PEM' } } } };
+    expect(await api().claim()).toEqual({
+      executionId: 'e1', kind: 'validation', tenantId: 't1', assetId: 'a1', origin: 'manual', platform: 'microsoft_365', externalAccountId: '3f2a91c4-7b6d-4e0a-9c11-5d8e2f7a0b13', regions: [],
+      connection: { method: 'app_certificate', clientId: '0b8c3e1a-2d4f-4a6b-8c9d-1e2f3a4b5c6d', certificateThumbprint: 'AB12', privateKeyPem: 'PEM' },
+    });
+  });
+
   it('claim: traduce el trabajo del contrato (rol y llaves)', async () => {
     reply = { status: 200, body: { data: { execution_id: 'e1', kind: 'assessment', tenant_id: 't1', asset_id: 'a1', origin: 'manual', platform: 'aws', external_account_id: '123', regions: ['us-east-1'], connection: { method: 'readonly_role', role_arn: 'arn:r', external_id: 'mk-1' } } } };
     expect(await api().claim()).toEqual({ ...job, externalAccountId: '123', connection: { method: 'readonly_role', roleArn: 'arn:r', externalId: 'mk-1' } });

@@ -38,7 +38,7 @@ export const PROBE_MODES: readonly ProbeMode[] = ['simulated', 'unavailable', 'r
 export const RESOURCE_KIND_VALUES = ['server', 'database', 'storage', 'function', 'other'] as const;
 export type ResourceKindValue = (typeof RESOURCE_KIND_VALUES)[number];
 
-export const CONNECTION_METHOD_VALUES = ['readonly_role', 'access_keys', 'agent', 'identity_federation'] as const;
+export const CONNECTION_METHOD_VALUES = ['readonly_role', 'access_keys', 'agent', 'identity_federation', 'app_certificate', 'admin_consent'] as const;
 export type ConnectionMethodValue = (typeof CONNECTION_METHOD_VALUES)[number];
 // Las conexiones cuyo activo es un sistema operativo: servidores en la nube, servidores on-premise y equipos de trabajo. Ahí el cliente declara la VERSIÓN de su
 // sistema (D113), de la que salen el comando de instalación y qué evaluación se espera. Las bases de datos (`ac_03`, `ac_05`) se eligen por su motor, no por un SO.
@@ -48,12 +48,20 @@ export const OS_CONNECTION_CATEGORIES: readonly string[] = ['ac_02', 'ac_04', 'a
 export const CONNECTION_OPTION_CATALOGS: string[] = ['connection_method', 'gcp_connection_scope', 'gcp_setup_method'];
 export const CLOUD_PLATFORM_AWS = 'aws';
 export const CLOUD_PLATFORM_GCP = 'gcp';
+// Microsoft 365 (D154): el activo es el tenant. El proveedor del motor se llama `m365`, pero la plataforma de Monkey es `microsoft_365` (la del catálogo de conexiones).
+export const CLOUD_PLATFORM_M365 = 'microsoft_365';
 // Las nubes que el trabajador sabe evaluar (D56: un catálogo de checks por plataforma).
-export const CLOUD_PLATFORMS = [CLOUD_PLATFORM_AWS, CLOUD_PLATFORM_GCP] as const;
+export const CLOUD_PLATFORMS = [CLOUD_PLATFORM_AWS, CLOUD_PLATFORM_GCP, CLOUD_PLATFORM_M365] as const;
 export type CloudPlatform = (typeof CLOUD_PLATFORMS)[number];
+// D160 · Las dimensiones de prueba que una evaluación decide, por fuente. El libro vincula checks del motor de nube a pruebas de aplicación, base de datos y servidores
+// (`TEST_CHECKS`), no solo a las de nube: decide la plataforma conectada, no la dimensión. Endpoint y red quedan fuera hasta que el comité defina su población (`DT-135`).
+export const CLOUD_MEASURED_DIMENSIONS = ['cloud', 'server', 'database', 'app'] as const;
+export const PROBE_MEASURED_DIMENSIONS = ['server', 'database', 'app'] as const;
 // GCP (D112): el activo es el proyecto. El ID lo declara el cliente; el número lo imprime el script de alta.
 export const GCP_PROJECT_ID = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
 export const GCP_PROJECT_NUMBER = /^\d{6,19}$/;
+// Microsoft 365 (D154): el ID del tenant y el ID de la aplicación son GUID (no son secretos). El trabajador valida lo mismo antes de armar la línea del motor.
+export const M365_GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const AWS_ACCOUNT_ID = /^\d{12}$/;
 export const AWS_ROLE_ARN = /^arn:aws:iam::(\d{12}):role\/[\w+=,.@/-]{1,512}$/;
 // Mismas reglas que el trabajador: nada llega a la línea de comandos del motor sin revisar.

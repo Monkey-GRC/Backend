@@ -1,4 +1,4 @@
-import { CLOUD_PLATFORM_AWS, CLOUD_PLATFORM_GCP, NO_COVERAGE } from '../../../../common/catalogs/technical-catalogs';
+import { CLOUD_PLATFORM_AWS, CLOUD_PLATFORM_GCP, CLOUD_PLATFORM_M365, NO_COVERAGE } from '../../../../common/catalogs/technical-catalogs';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { ConnectionProbe, ProbeFieldError, ProbeInput, ProbeResult } from '../../domain/ports/connection-probe';
 import { ScanRepository } from '../../domain/repositories/scan.repository';
@@ -23,6 +23,15 @@ const FIELD_BY_PLATFORM: Record<string, Record<string, string>> = {
     'connection.federation_rejected': 'project_number',
     'connection.account_mismatch': 'external_account_id',
     'connection.not_configured': 'project_number',
+    'connection.provider_not_supported': 'platform',
+  },
+  // Microsoft 365 (D154): lo que el cliente corrige es la aplicación (su ID, su certificado o su consentimiento) o el tenant.
+  [CLOUD_PLATFORM_M365]: {
+    'connection.consent_required': 'consent',
+    'connection.app_rejected': 'client_id',
+    'connection.permissions_missing': 'client_id',
+    'connection.account_mismatch': 'external_account_id',
+    'connection.not_configured': 'client_id',
     'connection.provider_not_supported': 'platform',
   },
 };

@@ -194,7 +194,9 @@
     "readonly_role": "Read-only role (recommended)",
     "access_keys": "Access keys (less secure)",
     "agent": "Installed probe",
-    "identity_federation": "Identity federation, no keys (GCP)"
+    "identity_federation": "Identity federation, no keys (GCP)",
+    "app_certificate": "Application with a certificate, no secrets to copy (Microsoft 365)",
+    "admin_consent": "Sign in with Microsoft (recommended)"
   },
   "os_version": {
     "linux_generic": "Linux (general checks)"
@@ -354,7 +356,9 @@
       "readonly_role": "Monkey assumes a read-only role that you create in your account. It stores no keys and you can revoke it at any time.",
       "access_keys": "You paste a read-only access key. It works, but you have to safeguard a long-lived secret.",
       "identity_federation": "Your project trusts the Monkey identity. No keys are created or stored.",
-      "agent": "You install the Monkey probe on the machine; it reports its status to Monkey."
+      "app_certificate": "You create a read-only application in your Microsoft Entra and upload a certificate that Monkey generates. You copy no secret.",
+      "agent": "You install the Monkey probe on the machine; it reports its status to Monkey.",
+      "admin_consent": "Sign in with your administrator and approve read-only permissions. No codes, certificates or passwords to copy."
     },
     "gcp_connection_scope": {
       "project": "Connect one Google Cloud project, or a few. This is the scope to start with.",

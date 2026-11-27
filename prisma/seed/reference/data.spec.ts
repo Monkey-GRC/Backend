@@ -72,15 +72,15 @@ describe('catálogos de referencia (MD-75, MD-83)', () => {
       expect(all).not.toMatch(/EC2|RDS|Cloud SQL|Atlas|VPS|Azure VM/i);
     });
 
-    it('solo está disponible lo que tiene flujo construido: AWS, GCP y Linux y Windows en servidores on-premise (D112, D113)', () => {
-      expect(PLATFORMS.filter((p) => p.availability === 'available').map((p) => `${p.capability}/${p.code}`)).toEqual(['ac_01/aws', 'ac_01/gcp', 'ac_04/linux', 'ac_04/windows']);
+    it('solo está disponible lo que tiene flujo construido: AWS, GCP, Microsoft 365 y Linux y Windows en servidores on-premise (D112, D113, D157)', () => {
+      expect(PLATFORMS.filter((p) => p.availability === 'available').map((p) => `${p.capability}/${p.code}`)).toEqual(['ac_01/aws', 'ac_01/gcp', 'ac_01/microsoft_365', 'ac_04/linux', 'ac_04/windows']);
     });
 
     it('una plataforma disponible tiene canal y regiones; una bloqueada no se puede conectar todavía', () => {
       for (const p of PLATFORMS.filter((x) => x.availability === 'available')) {
         expect(p.methods.length).toBeGreaterThan(0);
-        // Una nube se evalúa por regiones; GCP se conecta por proyecto (D112) y un servidor con agente no tiene regiones.
-        if (p.code !== 'gcp' && !p.methods.includes('agent')) expect(PLATFORM_REGIONS[`${p.capability}/${p.code}`]?.length).toBeGreaterThan(0);
+        // Una nube se evalúa por regiones; GCP se conecta por proyecto (D112), Microsoft 365 por organización (D157) y un servidor con agente no tiene regiones.
+        if (p.code !== 'gcp' && p.code !== 'microsoft_365' && !p.methods.includes('agent')) expect(PLATFORM_REGIONS[`${p.capability}/${p.code}`]?.length).toBeGreaterThan(0);
       }
       expect(PLATFORMS.find((p) => p.code === 'aws')?.methods[0]).toBe('readonly_role');
     });
@@ -116,7 +116,7 @@ describe('catálogos de referencia (MD-75, MD-83)', () => {
     });
 
     it('connection_method lleva las etiquetas del contrato y cubre los canales de las plataformas', () => {
-      expect(of('connection_method').map((o) => [o.code, o.tags])).toEqual([['readonly_role', ['recommended']], ['access_keys', ['less_secure']], ['agent', []], ['identity_federation', ['recommended']]]);
+      expect(of('connection_method').map((o) => [o.code, o.tags])).toEqual([['readonly_role', ['recommended']], ['access_keys', ['less_secure']], ['agent', []], ['identity_federation', ['recommended']], ['app_certificate', ['advanced']], ['admin_consent', ['recommended', 'fastest']]]);
       const used = new Set(PLATFORMS.flatMap((p) => p.methods));
       for (const m of used) expect(of('connection_method').some((o) => o.code === m)).toBe(true);
     });

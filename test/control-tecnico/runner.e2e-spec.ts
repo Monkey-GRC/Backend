@@ -93,7 +93,7 @@ describe('El trabajador contra el backend real', () => {
 
     // lo que recibió el motor: las regiones declaradas y credenciales temporales, nunca el formulario del cliente
     expect(broker.jobs[0]).toMatchObject({ executionId, tenantId: a.companyId, externalAccountId: ACCOUNT, regions: ['us-east-1'], connection: { method: 'readonly_role', roleArn: ROLE_ARN, externalId: `mk-${RUN}` } });
-    expect(engine.inputs[0]).toEqual({ executionId, accountId: ACCOUNT, regions: ['us-east-1'], credentials: TEMP });
+    expect(engine.inputs[0]).toEqual({ executionId, accountId: ACCOUNT, regions: ['us-east-1'], credentials: TEMP, onProgress: expect.any(Function) });
 
     expect((await history(a, assetId))[0]).toMatchObject({ id: executionId, status: 'completed' });
     const ready = await a.agent.get(`/v1/assets/${assetId}/readiness`).expect(200);

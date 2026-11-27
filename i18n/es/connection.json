@@ -4,6 +4,8 @@
   "account_mismatch": "El acceso que configuraste es de otra cuenta distinta a la que declaraste. Revisa el identificador de la cuenta.",
   "credentials_invalid": "Las credenciales no son válidas o están desactivadas. Revísalas e inténtalo de nuevo.",
   "federation_rejected": "Google Cloud no aceptó el acceso de Monkey. Revisa que corriste el comando de alta en ese proyecto y que el número de proyecto es el suyo.",
+  "app_rejected": "Microsoft no aceptó la aplicación de Monkey. Revisa que corriste el comando de alta en tu tenant y que pegaste el ID de la aplicación que imprimió.",
+  "permissions_missing": "La aplicación de Monkey no tiene todos los permisos de solo lectura o falta el consentimiento del administrador. Vuelve a correr el comando de alta con un administrador global.",
   "regions_missing": "Aún no declaraste en qué regiones evaluar. Elige al menos una.",
   "not_configured": "Este activo todavía no tiene su conexión configurada.",
   "provider_not_supported": "Esta plataforma aún no está disponible para conectar.",
@@ -32,11 +34,23 @@
     "step_2": "Copia el comando de alta y pégalo en Cloud Shell. Crea el acceso de solo lectura para Monkey en ese proyecto; no entregas ninguna clave.",
     "step_3": "Al terminar, el comando imprime el número de proyecto. Cópialo y pégalo en este formulario."
   },
+  "m365_app": {
+    "step_1": "Abre Azure Cloud Shell (portal.azure.com, el icono de la terminal) en modo Bash, con una cuenta de administrador global de tu organización de Microsoft 365.",
+    "step_2": "Copia el comando de alta y pégalo en Cloud Shell. Crea en tu Microsoft Entra una aplicación de solo lectura para Monkey y le sube el certificado público; no entregas ningún secreto.",
+    "step_3": "Al terminar, el comando imprime el ID de la aplicación. Cópialo y pégalo en este formulario."
+  },
   "agent": {
     "step_1": "Entra al servidor con una cuenta de administrador (en Windows, abre PowerShell como administrador; en Linux, usa una terminal con sudo).",
     "step_2": "Copia el comando de instalación que te mostramos y ejecútalo. Instala un programa ligero de Monkey: no te pedimos contraseñas y no se abre ningún puerto de entrada en tu servidor.",
     "step_3": "Si tu red limita las conexiones de salida, permite la que te indicamos junto al comando.",
     "step_4": "Espera unos minutos. Cuando el programa se conecte, el estado de este servidor cambiará a «Conectado»."
   },
-  "permission_denied": "El usuario o rol no tiene permisos de solo lectura suficientes. Revisa que tenga SecurityAudit y ViewOnlyAccess."
+  "permission_denied": "El usuario o rol no tiene permisos de solo lectura suficientes. Revisa que tenga SecurityAudit y ViewOnlyAccess.",
+  "m365_consent": {
+    "step_1": "Inicia sesión con un administrador de tu organización.",
+    "step_2": "Revisa los permisos de solo lectura y haz clic en Aceptar.",
+    "step_3": "Vuelve a Monkey: comprobamos el acceso por ti."
+  },
+  "consent_invalid": "La autorización venció o no corresponde a esta sesión. Vuelve a hacer clic en «Conectar con Microsoft».",
+  "consent_required": "Microsoft no nos dio el acceso: puede que todavía esté aplicando la autorización. Espera un par de minutos e inténtalo de nuevo. Si se repite, revisa en Microsoft Entra que la aplicación de Monkey siga autorizada."
 }

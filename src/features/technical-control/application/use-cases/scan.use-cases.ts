@@ -2,7 +2,7 @@ import { Inventory } from '../../domain/entities/technical-control.entities';
 import { Injectable } from '@nestjs/common';
 import type { AuditEntry } from '../../../../common/audit/audit-log.writer';
 import type { Principal } from '../../../../common/auth/principal';
-import { CLOUD_PLATFORM_AWS, CLOUD_PLATFORM_GCP, CLOUD_PLATFORMS } from '../../../../common/catalogs/technical-catalogs';
+import { CLOUD_PLATFORM_AWS, CLOUD_PLATFORM_GCP, CLOUD_PLATFORM_M365, CLOUD_PLATFORMS } from '../../../../common/catalogs/technical-catalogs';
 import { DomainError } from '../../../../common/errors/domain-error';
 import { RequestMeta } from '../../../../common/http/request-meta';
 import { Page, PageRequest } from '../../../../common/pagination/page';
@@ -138,6 +138,10 @@ export type RunnerJob = {
     | { method: 'readonly_role'; roleArn: string; externalId: string | null }
     // GCP (D112): el proyecto confía en la sesión de Monkey con este `externalId` como nombre; el número de proyecto arma la audiencia de la federación.
     | { method: 'identity_federation'; externalId: string; projectNumber: string }
+    // Microsoft 365 (D154): la aplicación del cliente y el certificado de la conexión. La clave privada y el PFX descifrados viajan SOLO en esta respuesta, por la red interna,
+    // y no se registran nunca (como las llaves de AWS).
+    | { method: 'app_certificate'; clientId: string; certificateThumbprint: string; privateKeyPem: string }
+    | { method: 'admin_consent' }
     // Las llaves descifradas viajan SOLO en esta respuesta, por la red interna, y no se registran nunca.
     | { method: 'access_keys'; accessKeyId: string; secretAccessKey: string }
     // Un servidor con agente (D113): no hay credenciales del cliente.
@@ -158,7 +162,28 @@ export function buildConnection(ctx: RunContext, creds: Credentials | null): { o
   const platform = ctx.platform.trim().toLowerCase();
   if (!(CLOUD_PLATFORMS as readonly string[]).includes(platform)) return { ok: false, reason: 'connection.provider_not_supported' };
   if (platform === CLOUD_PLATFORM_GCP) return buildGcpConnection(ctx);
+  if (platform === CLOUD_PLATFORM_M365) return buildMicrosoft365Connection(ctx, creds);
   return buildAwsConnection(ctx, creds);
+}
+
+// Microsoft 365 (D154) evalúa el tenant completo: sin regiones. Sin el ID de la aplicación (o sin el certificado guardado) todavía no se configuró.
+function buildMicrosoft365Connection(ctx: RunContext, creds: Credentials | null): ReturnType<typeof buildConnection> {
+  // Con el botón (D157) el trabajador usa la aplicación de Monkey, que tiene él: de aquí solo sale qué organización evaluar. Sin autorizar todavía no está configurada.
+  if (ctx.connectionMethod === 'admin_consent') {
+    if (!ctx.externalAccountId) return { ok: false, reason: 'connection.not_configured' };
+    return { ok: true, job: { platform: CLOUD_PLATFORM_M365, externalAccountId: ctx.externalAccountId, connection: { method: 'admin_consent' } } };
+  }
+  if (ctx.connectionMethod !== 'app_certificate') return { ok: false, reason: 'connection.method_not_supported_by_runner' };
+  const privateKeyPem = text(creds?.['private_key_pem']);
+  if (!ctx.externalAccountId || !ctx.appClientId || !ctx.certificateThumbprint || !privateKeyPem) return { ok: false, reason: 'connection.not_configured' };
+  return {
+    ok: true,
+    job: {
+      platform: CLOUD_PLATFORM_M365,
+      externalAccountId: ctx.externalAccountId,
+      connection: { method: 'app_certificate', clientId: ctx.appClientId, certificateThumbprint: ctx.certificateThumbprint, privateKeyPem },
+    },
+  };
 }
 
 // GCP evalúa el proyecto completo: sin regiones. Sin el número de proyecto (o sin el identificador externo) todavía no se configuró.
@@ -299,6 +324,17 @@ export class CompleteScaExecutionUseCase {
     return this.repo.completeSca(scope, executionId, { agentId: input.agent.agentId, finishedAt: input.finishedAt, sondaVersion: input.sondaVersion, checksExecuted: executed, rows: sca.rows, logs }, (r) =>
       entry(scope, null, 'execution.complete', recordedState(r.executionId, link?.assetId ?? null, { source: 'sca', sonda_version: input.sondaVersion, results: r.resultCount, unmapped_policies: sca.unmapped.length })),
     );
+  }
+}
+
+// El avance de una evaluación en curso, para que quien espera vea que avanza. Es telemetría, no un cambio de la empresa: no deja rastro de auditoría. Solo sube, y solo en una
+// ejecución «en curso»: uno tardío (ya cerrada) se ignora sin error.
+@Injectable()
+export class ReportExecutionProgressUseCase {
+  constructor(private readonly repo: ScanRepository) {}
+
+  execute(tenantId: string, executionId: string, percent: number): Promise<void> {
+    return this.repo.setProgress({ companyId: tenantId }, executionId, percent);
   }
 }
 

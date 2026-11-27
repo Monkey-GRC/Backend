@@ -3,21 +3,29 @@ import type { TransactionClient } from '../../../../infrastructure/database/pris
 import type { AutomaticReading } from '../../domain/notifications/stale-evidence-notifications';
 
 // D153 · La última recolección completada de cada activo que mide una prueba automática de un control activo, para la pasada diaria de `automatic_evidence_stale`. Un número FIJO de
-// consultas por empresa (no por servicio ni por control). Una prueba de nube lee la recolección del activo de nube; las de servidor, base de datos y aplicación, la de un activo con sonda
-// (misma regla que `writeEvaluations`). Un activo que nunca se leyó no está desactualizado: está sin datos y no entra.
+// consultas por empresa (no por servicio ni por control). Una conexión de nube cuenta para las pruebas que tienen un check Directo de su plataforma, sea cual sea su dimensión (D160); un
+// activo con sonda, para las de servidor, base de datos y aplicación (misma regla que `writeEvaluations`). Un activo que nunca se leyó no está desactualizado: está sin datos y no entra.
 export async function loadAutomaticReadings(tx: TransactionClient): Promise<AutomaticReading[]> {
   const links = await tx.clientControlTest.findMany({
     where: {
       clientControl: { isActive: true, service: { frameworks: { some: { status: 'active' } } } },
       test: { dimension: { in: ['cloud', 'server', 'database', 'app'] }, testChecks: { some: { role: 'direct', checkId: { not: null } } } },
     },
-    select: { clientControlId: true, clientControl: { select: { serviceId: true } }, test: { select: { dimension: true } } },
+    select: { clientControlId: true, testId: true, clientControl: { select: { serviceId: true } }, test: { select: { dimension: true } } },
   });
   if (links.length === 0) return [];
+  // D160 · Una conexión de nube mide una prueba (de cualquiera de esas dimensiones) si la prueba tiene un check Directo de SU plataforma. Una sola consulta, sobre los vínculos del
+  // motor de nube (unos cientos de filas en todo el catálogo).
+  const cloudDirects = await tx.testCheck.findMany({
+    where: { role: 'direct', testId: { in: [...new Set(links.map((l) => l.testId))] }, check: { policyId: 'cloud_configuration' } },
+    select: { testId: true, check: { select: { platform: true } } },
+  });
+  const cloudPlatformsOf = new Map<string, Set<string>>();
+  for (const d of cloudDirects) if (d.check) cloudPlatformsOf.set(d.testId, (cloudPlatformsOf.get(d.testId) ?? new Set<string>()).add(d.check.platform));
   const serviceIds = [...new Set(links.map((l) => l.clientControl.serviceId))];
   const serviceAssets = await tx.serviceAsset.findMany({
     where: { serviceId: { in: serviceIds }, asset: { status: 'active', parentAssetId: null } },
-    select: { serviceId: true, asset: { select: { id: true, name: true, agent: { select: { id: true } } } } },
+    select: { serviceId: true, asset: { select: { id: true, name: true, platform: true, agent: { select: { id: true } } } } },
   });
   if (serviceAssets.length === 0) return [];
   const assetIds = [...new Set(serviceAssets.map((s) => s.asset.id))];
@@ -33,10 +41,12 @@ export async function loadAutomaticReadings(tx: TransactionClient): Promise<Auto
   for (const sa of serviceAssets) assetsOfService.set(sa.serviceId, [...(assetsOfService.get(sa.serviceId) ?? []), sa]);
   const readings: AutomaticReading[] = [];
   for (const link of links) {
-    const wantsProbe = link.test.dimension !== 'cloud';
+    const probeMeasures = link.test.dimension !== 'cloud';
+    const cloudPlatforms = cloudPlatformsOf.get(link.testId);
     for (const { asset } of assetsOfService.get(link.clientControl.serviceId) ?? []) {
       const last = lastOf.get(asset.id);
-      if (!last || !!asset.agent !== wantsProbe) continue;
+      const measures = asset.agent ? probeMeasures : !!cloudPlatforms?.has(asset.platform.trim().toLowerCase());
+      if (!last || !measures) continue;
       readings.push({ controlId: link.clientControlId, assetId: asset.id, assetName: asset.name, executionId: last.executionId, finishedAt: last.finishedAt });
     }
   }

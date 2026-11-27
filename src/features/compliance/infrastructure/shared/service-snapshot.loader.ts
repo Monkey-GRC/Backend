@@ -29,7 +29,7 @@ const CRITERIA_ORDER = ['security', 'availability', 'confidentiality', 'integrit
 const LINK_ITEM_SELECT = { check: { select: { id: true, titleEs: true, titleEn: true } }, ownerControl: { select: { code: true } } } satisfies Prisma.TestCheckSelect;
 const testSelect = (withLinkItems: boolean) =>
   ({
-    id: true, code: true, dimension: true, displayName: true, displayNameEn: true, displayDescription: true, type: true, primarySource: true, integrationCategory: { select: { name: true } },
+    id: true, code: true, dimension: true, displayName: true, displayNameEn: true, displayDescription: true, type: true, primarySource: true, automation: true, integrationCategory: { select: { name: true } },
     testChecks: { select: { role: true, checkId: true, ownerControlId: true, moduleRef: true, provenance: true, ...(withLinkItems ? LINK_ITEM_SELECT : {}) } },
   }) satisfies Prisma.TestSelect;
 
@@ -62,7 +62,7 @@ function linksOf(test: TestRow, withLinkItems: boolean): TestLinks {
 }
 
 const toReadoutTest = (t: TestRow, withLinkItems: boolean): ReadoutTest => ({
-  testId: t.id, code: t.code, displayName: t.displayName, displayNameEn: t.displayNameEn, displayDescription: t.displayDescription, testType: t.type, dimension: t.dimension as Dimension, primarySource: t.primarySource, integrationCategory: t.integrationCategory?.name ?? null,
+  testId: t.id, code: t.code, displayName: t.displayName, displayNameEn: t.displayNameEn, displayDescription: t.displayDescription, testType: t.type, dimension: t.dimension as Dimension, primarySource: t.primarySource, automation: t.automation, integrationCategory: t.integrationCategory?.name ?? null,
   mandatory: true, active: true, links: linksOf(t, withLinkItems),
 });
 
@@ -260,7 +260,9 @@ export async function loadServiceSnapshot(
   const pool = onlyControlId === undefined ? undefined : await withDependencyOwners(tx, serviceId, controls, contracted, withLinkItems, scopeWindow);
   const everyControl = pool ?? controls;
 
-  const assets = (await tx.serviceAsset.findMany({ where: { serviceId, asset: { status: 'active' } }, select: { asset: { select: { id: true, name: true, type: true } } } })).map((r) => r.asset);
+  const assets = (await tx.serviceAsset.findMany({ where: { serviceId, asset: { status: 'active' } }, select: { asset: { select: { id: true, name: true, type: true, parentAssetId: true } } } }))
+    // D160 · Un activo con padre es un recurso que una conexión de nube descubrió (D61): no tiene conexión propia.
+    .map(({ asset: { parentAssetId, ...a } }) => ({ ...a, discovered: parentAssetId !== null }));
   const technicalAssets = assets.filter((a) => dimensionOfAssetType(a.type) !== null);
 
   // El último resultado de cada (control, test, activo): el histórico es inmutable y la lectura toma el más reciente. Las evaluaciones de origen `manual` son las de antes de D121: el motor ya no las lee;

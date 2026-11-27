@@ -194,7 +194,9 @@
     "readonly_role": "Rol de solo lectura (recomendado)",
     "access_keys": "Llaves de acceso (menos seguro)",
     "agent": "Sonda instalada",
-    "identity_federation": "Federación de identidad, sin claves (GCP)"
+    "identity_federation": "Federación de identidad, sin claves (GCP)",
+    "app_certificate": "Aplicación con certificado, sin copiar secretos (Microsoft 365)",
+    "admin_consent": "Conectar con Microsoft (recomendado)"
   },
   "os_version": {
     "linux_generic": "Linux (pruebas generales)"
@@ -354,7 +356,9 @@
       "readonly_role": "Monkey asume un rol de solo lectura que creas en tu cuenta. No guarda llaves y puedes revocarlo cuando quieras.",
       "access_keys": "Pegas una llave de acceso de solo lectura. Funciona, pero exige custodiar un secreto de larga duración.",
       "identity_federation": "Tu proyecto confía en la identidad de Monkey. No se crean ni se guardan claves.",
-      "agent": "Instalas la sonda de Monkey en el equipo; reporta su estado a Monkey."
+      "app_certificate": "Creas en tu Microsoft Entra una aplicación de solo lectura y le subes un certificado que genera Monkey. No copias ningún secreto.",
+      "agent": "Instalas la sonda de Monkey en el equipo; reporta su estado a Monkey.",
+      "admin_consent": "Inicias sesión con tu administrador y autorizas permisos de solo lectura. No copias códigos, certificados ni contraseñas."
     },
     "gcp_connection_scope": {
       "project": "Conecta un proyecto, o unos pocos, de Google Cloud. Es el alcance con el que empezar.",

@@ -3,13 +3,16 @@ import {
   AWS_ACCOUNT_ID,
   CLOUD_PLATFORM_AWS,
   CLOUD_PLATFORM_GCP,
+  CLOUD_PLATFORM_M365,
   GCP_PROJECT_ID,
+  M365_GUID,
   ConnectionMethodValue,
   MAX_REGIONS,
 } from '../../../common/catalogs/technical-catalogs';
 import { DomainError } from '../../../common/errors/domain-error';
 import { FieldError } from '../../../common/errors/validation.exception';
 import { PlatformRule } from '../domain/entities/technical-control.entities';
+import type { IssuedCertificate } from '../domain/ports/certificate-issuer';
 
 // Reglas del alta de un activo con su canal de conexión (D53, D58; contracts/modules/onboarding-technical-control.md). Funciones puras: sin Nest ni base de datos.
 
@@ -27,7 +30,10 @@ export type ConnectionPlan = {
   externalAccountId: string | null;
   regions: string[];
   // Lo que se cifra y se guarda (solo el canal de llaves). Nunca se devuelve.
-  secretToStore: { access_key_id: string; secret_access_key: string } | null;
+  // Las llaves (AWS) o la clave privada del certificado de la conexión (Microsoft 365, D154).
+  secretToStore: { access_key_id: string; secret_access_key: string } | { private_key_pem: string } | null;
+  // Microsoft 365 (D154): la parte PÚBLICA del certificado que Monkey generó. No es un secreto.
+  certificate?: { pem: string; thumbprint: string; expiresAt: Date } | null;
   // Lo genera Monkey; no es un secreto del cliente. Evita que otro cliente use el rol de este (confused deputy).
   externalId: string | null;
 };
@@ -67,6 +73,42 @@ export function checkGcpProject(externalAccountId: string | null | undefined): {
   return { errors: [], project };
 }
 
+// El ID de un tenant de Microsoft 365 declarado (alta y edición): un GUID. Se guarda en minúsculas, como lo imprime el script de alta.
+export function checkM365Tenant(externalAccountId: string | null | undefined): { errors: FieldError[]; tenant: string | null } {
+  const tenant = text(externalAccountId);
+  if (!tenant) return { errors: [{ field: 'external_account_id', code: 'required' }], tenant: null };
+  if (!M365_GUID.test(tenant)) return { errors: [{ field: 'external_account_id', code: 'invalid' }], tenant: null };
+  return { errors: [], tenant: tenant.toLowerCase() };
+}
+
+// Lo que el plan necesita de fuera: hoy, quién genera el certificado de la conexión (D154). Se inyecta para que el plan siga siendo puro y las pruebas no generen claves de verdad.
+export type ConnectionDeps = { issueCertificate: (label: string) => IssuedCertificate };
+
+// Microsoft 365 (D154): el activo es el tenant, sin regiones ni llaves del cliente. Monkey genera el certificado de la conexión: el cliente solo recibe el público.
+function planMicrosoft365(req: ConnectionRequest, platform: PlatformRule, deps?: ConnectionDeps): { errors: FieldError[]; plan: ConnectionPlan | null } {
+  if (platform.code !== CLOUD_PLATFORM_M365) throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
+  const { errors, tenant } = checkM365Tenant(req.externalAccountId);
+  if (req.regions !== undefined) errors.push({ field: 'regions', code: 'field.not_allowed' });
+  if (req.credentials !== undefined) errors.push({ field: 'credentials', code: 'field.not_allowed' });
+  // Generar el par de claves cuesta: solo se hace cuando todo lo demás es válido.
+  if (errors.length > 0 || !tenant) return { errors, plan: null };
+  if (!deps) throw new Error('Falta el generador de certificados de la conexión.');
+  const issued = deps.issueCertificate(tenant);
+  return {
+    errors,
+    plan: {
+      method: 'app_certificate',
+      platformId: platform.id,
+      platform: platform.code,
+      externalAccountId: tenant,
+      regions: [],
+      secretToStore: { private_key_pem: issued.privateKeyPem },
+      certificate: { pem: issued.certificatePem, thumbprint: issued.thumbprint, expiresAt: issued.expiresAt },
+      externalId: null,
+    },
+  };
+}
+
 function planGcpFederation(req: ConnectionRequest, platform: PlatformRule): { errors: FieldError[]; plan: ConnectionPlan | null } {
   if (platform.code !== CLOUD_PLATFORM_GCP) throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
   const { errors, project } = checkGcpProject(req.externalAccountId);
@@ -76,8 +118,18 @@ function planGcpFederation(req: ConnectionRequest, platform: PlatformRule): { er
   return { errors, plan: { method: 'identity_federation', platformId: platform.id, platform: platform.code, externalAccountId: project, regions: [], secretToStore: null, externalId: newExternalId() } };
 }
 
+// Microsoft 365 con el botón (D157): al declararlo no se pide nada. La organización la pone Monkey cuando el administrador autoriza, a partir de su identidad firmada.
+function planAdminConsent(req: ConnectionRequest, platform: PlatformRule): { errors: FieldError[]; plan: ConnectionPlan | null } {
+  if (platform.code !== CLOUD_PLATFORM_M365) throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
+  const errors: FieldError[] = [];
+  if (text(req.externalAccountId)) errors.push({ field: 'external_account_id', code: 'field.not_allowed' });
+  if (req.regions !== undefined) errors.push({ field: 'regions', code: 'field.not_allowed' });
+  if (req.credentials !== undefined) errors.push({ field: 'credentials', code: 'field.not_allowed' });
+  return { errors, plan: errors.length > 0 ? null : { method: 'admin_consent', platformId: platform.id, platform: platform.code, externalAccountId: null, regions: [], secretToStore: null, externalId: null } };
+}
+
 // `platform` es la plataforma elegida, ya comprobada contra el catálogo: existe en la conexión y está disponible. Aquí se valida lo que sigue: el canal y los datos de la conexión.
-export function planConnection(req: ConnectionRequest, platform: PlatformRule): { errors: FieldError[]; plan: ConnectionPlan | null } {
+export function planConnection(req: ConnectionRequest, platform: PlatformRule, deps?: ConnectionDeps): { errors: FieldError[]; plan: ConnectionPlan | null } {
   // Un canal que la plataforma no tiene no es un error de formulario: es una combinación imposible (409).
   if (!platform.connectionMethods.includes(req.connectionMethod)) throw new DomainError('CONNECTION_METHOD_NOT_APPLICABLE');
 
@@ -92,6 +144,11 @@ export function planConnection(req: ConnectionRequest, platform: PlatformRule): 
 
   // GCP (D112): el activo es el proyecto, sin regiones ni llaves.
   if (req.connectionMethod === 'identity_federation') return planGcpFederation(req, platform);
+
+  if (req.connectionMethod === 'admin_consent') return planAdminConsent(req, platform);
+
+  // Microsoft 365 (D154): el activo es el tenant; el certificado lo genera Monkey.
+  if (req.connectionMethod === 'app_certificate') return planMicrosoft365(req, platform, deps);
 
   // Nube: el flujo de AWS (D58). Una plataforma con canal de nube que aún no tiene su flujo no llega aquí: se queda bloqueada en el catálogo.
   const errors: FieldError[] = [];
@@ -150,6 +207,16 @@ export type ConnectionSetup =
       templatePath: string;
       steps: string[];
     }
+  | {
+      method: 'app_certificate';
+      tenantId: string;
+      clientId: string | null;
+      certificate: { pem: string; thumbprint: string; expiresAt: Date };
+      templatePath: string;
+      steps: string[];
+    }
+  // `tenantId` es `null` hasta que el administrador autoriza (D157).
+  | { method: 'admin_consent'; tenantId: string | null; steps: string[] }
   | { method: 'access_keys'; warning: string; steps: string[] }
   | { method: 'agent'; steps: string[] };
 
@@ -162,8 +229,12 @@ export const ROLE_TEMPLATE_PATH = '/v1/connection-templates/aws-readonly-role';
 export const GCP_SETUP_FILE_NAME = 'monkey-gcp-setup.sh';
 export const GCP_TEMPLATE_PATH = '/v1/connection-templates/gcp-identity-federation';
 
+// Cómo se llama el script de alta de Microsoft 365 que el cliente descarga (D154).
+export const M365_SETUP_FILE_NAME = 'monkey-m365-setup.sh';
+export const M365_TEMPLATE_PATH = '/v1/connection-templates/microsoft-365-app';
+
 export function buildConnectionSetup(
-  p: { connectionMethod: ConnectionMethodValue | null; externalId: string | null; roleArn: string | null; projectNumber?: string | null; externalAccountId?: string | null },
+  p: { connectionMethod: ConnectionMethodValue | null; externalId: string | null; roleArn: string | null; projectNumber?: string | null; externalAccountId?: string | null; appClientId?: string | null; certificate?: { pem: string; thumbprint: string; expiresAt: Date } | null },
   monkeyPrincipalArn: string | null,
 ): ConnectionSetup | null {
   if (p.connectionMethod === 'identity_federation' && p.externalId && p.externalAccountId) {
@@ -175,6 +246,19 @@ export function buildConnectionSetup(
       templatePath: GCP_TEMPLATE_PATH,
       steps: ['connection.gcp_federation.step_1', 'connection.gcp_federation.step_2', 'connection.gcp_federation.step_3'],
     };
+  }
+  if (p.connectionMethod === 'app_certificate' && p.externalAccountId && p.certificate) {
+    return {
+      method: 'app_certificate',
+      tenantId: p.externalAccountId,
+      clientId: p.appClientId ?? null,
+      certificate: p.certificate,
+      templatePath: M365_TEMPLATE_PATH,
+      steps: ['connection.m365_app.step_1', 'connection.m365_app.step_2', 'connection.m365_app.step_3'],
+    };
+  }
+  if (p.connectionMethod === 'admin_consent') {
+    return { method: 'admin_consent', tenantId: p.externalAccountId ?? null, steps: ['connection.m365_consent.step_1', 'connection.m365_consent.step_2', 'connection.m365_consent.step_3'] };
   }
   if (p.connectionMethod === 'readonly_role' && p.externalId) {
     return {

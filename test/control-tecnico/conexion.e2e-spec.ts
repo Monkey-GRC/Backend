@@ -135,7 +135,7 @@ describe('Las opciones de la pantalla vienen del backend, con su texto', () => {
     expect(regions.find((r) => r.value === 'us-east-1')).toEqual({ value: 'us-east-1', label: 'Virginia del Norte (us-east-1)' });
     expect(regions.length).toBeGreaterThanOrEqual(15);
     const methods = (await a.agent.get('/v1/catalogs/connection_method').expect(200)).body.data.items as { value: string; label: string }[];
-    expect(methods.map((m) => m.value)).toEqual(['readonly_role', 'access_keys', 'agent', 'identity_federation']);
+    expect(methods.map((m) => m.value)).toEqual(['readonly_role', 'access_keys', 'agent', 'identity_federation', 'app_certificate', 'admin_consent']);
     expect(methods[0].label).toMatch(/recomendado/i);
   });
   it('el alta solo acepta las regiones que se ofrecen', async () => {

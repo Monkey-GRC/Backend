@@ -1,7 +1,7 @@
 import { InterpretedResult } from './scan.types';
 
-// Las áreas de negocio en que se agrupan las pruebas de nube de la v2 (contracts/modules/control-tecnico.md). Qué pruebas cuentan sale del catálogo: las de
-// dimensión `cloud` con vínculos `direct` a checks del motor. Solo el AGRUPAMIENTO es propuesta de desarrollo (falta ratificarla con el comité): por el prefijo del
+// Las áreas de negocio en que se agrupan las pruebas que mide una conexión de nube (contracts/modules/control-tecnico.md). Qué pruebas cuentan sale del catálogo: las que
+// tienen vínculos `direct` a checks del motor, de dimensión nube, aplicación, base de datos o servidores (D160). Solo el AGRUPAMIENTO es propuesta de desarrollo (falta ratificarla con el comité): por el prefijo del
 // control al que pertenece la prueba (`T-IDA-4-04` → `IDA`); lo que no es de identidad ni de datos y red se muestra como registro y respaldo.
 export const READINESS_AREAS = ['identity_access', 'data_network', 'logging_backup'] as const;
 const AREA_BY_CONTROL_PREFIX: Record<string, (typeof READINESS_AREAS)[number]> = { IDA: 'identity_access', RED: 'data_network', CIF: 'data_network', CNT: 'data_network' };

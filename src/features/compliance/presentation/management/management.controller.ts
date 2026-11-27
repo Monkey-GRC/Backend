@@ -49,7 +49,7 @@ export class ManagementController {
     summary: 'Registrar el resultado de una prueba manual',
     description:
       'El responsable del control; si el control no tiene responsable o este es el `admin_empresa`, lo registra el `admin_empresa`. El delegado carga la evidencia pero no registra el resultado (D140 punto 2). Aplica a las pruebas manuales (operativa, de población o técnica manual): ' +
-      'una automática la resuelve el motor y una documental, su evidencia (`409 TEST_NOT_MANUAL`). **El resultado es de la prueba en ese control**, no de los demás del servicio (D129): cada registro es una fila nueva e inmutable que vale en la ventana vigente. ' +
+      'una automática la resuelve el motor y una documental, su evidencia (`409 TEST_NOT_MANUAL`). También una técnica semiautomática que el motor mide con checks: el resultado cubre su parte manual y la prueba queda en el peor de los dos (D160).**El resultado es de la prueba en ese control**, no de los demás del servicio (D129): cada registro es una fila nueva e inmutable que vale en la ventana vigente. ' +
       '`observation` y `exception` exigen `note` (`422 note.required`). Responde con el estado de gestión del control después del registro. Queda registro de auditoría.',
   })
   @ApiData(ManualTestResultResponse, 'El resultado registrado y el estado de gestión del control.', { status: 201 })

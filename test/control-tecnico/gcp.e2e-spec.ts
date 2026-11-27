@@ -125,7 +125,8 @@ describe('Alta de un proyecto de GCP (variante D)', () => {
     ['con un ID de proyecto en mayúsculas', { external_account_id: 'Acme-Prod' }, 'external_account_id', 'invalid'],
     ['con un ID que empieza con número', { external_account_id: '1acme-prod-421905' }, 'external_account_id', 'invalid'],
     ['con un ID que termina en guion', { external_account_id: 'acme-prod-4219-' }, 'external_account_id', 'invalid'],
-    ['con un ID de más de 30 caracteres', { external_account_id: 'a'.repeat(31) }, 'external_account_id', 'string.max'],
+    ['con un ID de más de 30 caracteres', { external_account_id: 'a'.repeat(31) }, 'external_account_id', 'invalid'],
+    ['con un ID de más de 36 caracteres', { external_account_id: 'a'.repeat(37) }, 'external_account_id', 'string.max'],
     ['con un ID con guion bajo', { external_account_id: 'acme_prod_421905' }, 'external_account_id', 'invalid'],
     ['con un ID de proyecto que intenta inyectar', { external_account_id: 'acme-prod; rm -rf /' }, 'external_account_id', 'invalid'],
   ])('rechaza %s (422)', async (_n, over, field, code) => {
@@ -251,7 +252,7 @@ describe('Validar y evaluar un proyecto de GCP con el trabajador real', () => {
     const engine = new FakeEngine(() => [finding('FAIL')]);
     const outcome = await serve('assessment', new FakeBroker(), engine);
     expect(outcome).toBe('completed');
-    expect(engine.inputs[0]).toEqual({ executionId, accountId: PROJECT, regions: [], credentials: TOKEN });
+    expect(engine.inputs[0]).toEqual({ executionId, accountId: PROJECT, regions: [], credentials: TOKEN, onProgress: expect.any(Function) });
     expect((await history(a, id))[0]).toMatchObject({ status: 'completed' });
     const rows = await owner<{ platform: string; region: string | null; result: string }>(
       'select platform, region, result from tenant.check_results where execution_id = $1', [executionId],
