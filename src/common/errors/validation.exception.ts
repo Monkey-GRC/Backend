@@ -1,6 +1,7 @@
 import { UnprocessableEntityException, ValidationError } from '@nestjs/common';
 
-export type FieldError = { field: string; code: string };
+// `params` solo llena el texto del mensaje (p. ej. los días del tope de una excepción): no viaja en la respuesta.
+export type FieldError = { field: string; code: string; params?: Record<string, string | number> };
 
 // class-validator → código corto del contrato (conventions.md: enum.invalid, required…).
 const CONSTRAINT_CODES: Record<string, string> = {

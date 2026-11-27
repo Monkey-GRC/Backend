@@ -71,5 +71,7 @@
   "occurrence_id_invalid": "Ese caso no es de este requisito.",
   "owner_id_invalid": "Elige a una persona activa de la empresa.",
   "bucket_invalid": "Ese filtro no está disponible para tu rol: solo tienes «Por aprobar».",
-  "to_before_from": "La fecha final no puede ser anterior a la inicial."
+  "to_before_from": "La fecha final no puede ser anterior a la inicial.",
+  "date_min": "La fecha debe ser posterior a hoy.",
+  "exception_max_days": "La excepción dura como máximo {days} días."
 }

@@ -57,9 +57,10 @@ export class RollEvaluationPeriodsUseCase {
 
   constructor(private readonly rollover: EvaluationPeriodRollover) {}
 
-  async execute(now: Date = new Date()): Promise<RolloverResult> {
+  // `tenantIds` acota la pasada a esas empresas (las pruebas; `[]` = ninguna); sin él, todas las no archivadas.
+  async execute(now: Date = new Date(), tenantIds?: readonly string[]): Promise<RolloverResult> {
     const result: RolloverResult = { tenants: 0, failed: 0, opened: 0, stateEvents: 0 };
-    for (const tenantId of await this.rollover.listTenantIds()) {
+    for (const tenantId of await this.rollover.listTenantIds(tenantIds)) {
       try {
         const done = await this.rollover.rollTenant(tenantId, now, (o): AuditEntry => ({
           tenantId, userId: null, action: 'evaluation_period.opened', resource: 'service_framework', result: 'success', ipAddress: '', userAgent: 'system',

@@ -45,8 +45,8 @@ export type OpenedPeriod = { serviceId: string; frameworkCode: string; previous:
 
 // D148 · La tarea diaria. Todo lo hace por empresa, cada una en su transacción, con el sistema como actor.
 export abstract class EvaluationPeriodRollover {
-  // Las empresas que no están archivadas.
-  abstract listTenantIds(): Promise<string[]>;
+  // Las empresas que no están archivadas; con `only`, solo esas (`[]` = ninguna empresa). El filtro va en la consulta.
+  abstract listTenantIds(only?: readonly string[]): Promise<string[]>;
   // Cierra los períodos abiertos ya terminados y abre el siguiente (D145); después vuelve a evaluar los controles de la empresa y deja el evento (D91) de lo que cambió solo por el paso del tiempo.
   // Cada período abierto se audita con `audit` (el actor lo arma el caso de uso: sistema), en la misma transacción que la apertura.
   abstract rollTenant(tenantId: string, now: Date, audit: AuditIntent<OpenedPeriod>): Promise<RolloverSummary>;

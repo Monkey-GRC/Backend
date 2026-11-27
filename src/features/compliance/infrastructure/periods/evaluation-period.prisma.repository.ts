@@ -103,8 +103,8 @@ export class EvaluationPeriodRolloverPrismaRepository extends EvaluationPeriodRo
     super();
   }
 
-  listTenantIds(): Promise<string[]> {
-    return this.prisma.withScope({ companyId: '', role: 'admin_monkey' }, async (tx) => (await tx.company.findMany({ where: { status: { not: 'deactivated' } }, select: { id: true }, orderBy: { id: 'asc' } })).map((c) => c.id));
+  listTenantIds(only?: readonly string[]): Promise<string[]> {
+    return this.prisma.withScope({ companyId: '', role: 'admin_monkey' }, async (tx) => (await tx.company.findMany({ where: { status: { not: 'deactivated' }, ...(only ? { id: { in: [...only] } } : {}) }, select: { id: true }, orderBy: { id: 'asc' } })).map((c) => c.id));
   }
 
   async rollTenant(tenantId: string, now: Date, audit: Parameters<EvaluationPeriodRollover['rollTenant']>[2]): Promise<RolloverSummary> {

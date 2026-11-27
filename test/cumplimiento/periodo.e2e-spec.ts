@@ -193,7 +193,7 @@ describe('Período auditado — rastro de auditoría (SEG-36)', () => {
 
 describe('Período auditado — histórico y período siguiente (D145, D148)', () => {
   const list = (t: Tenant = a, code = 'soc2') => t.agent.get(`/v1/services/${t.serviceId}/frameworks/${code}/evaluation-periods`);
-  const roll = () => app.get(RollEvaluationPeriodsUseCase).execute();
+  const roll = () => app.get(RollEvaluationPeriodsUseCase).execute(new Date(), [a.companyId, b.companyId]);
   const system = (tenantId: string) =>
     owner<{ user_agent: string; user_id: string | null; before_state: any; after_state: any }>(
       `select user_agent, user_id, before_state, after_state from audit.audit_logs where tenant_id = $1 and action = 'evaluation_period.opened' order by created_at`,
@@ -266,10 +266,10 @@ describe('Período auditado — histórico y período siguiente (D145, D148)', (
         [a.companyId],
       );
     expect(await events()).toEqual([]);
-    expect((await roll()).stateEvents).toBeGreaterThanOrEqual(1);
+    expect((await roll()).stateEvents).toBe(1);
     const written = await events();
     expect(written).toHaveLength(1);
-    expect(written[0]).toMatchObject({ user_id: null, previous_value: { state: 'effective', level: 'adequate' }, new_value: { control_id: ctl.id, service_id: a.serviceId, cause: 'window_closed', level: expect.stringMatching(/^(not_evaluated|ineffective)$/) } }); // sin evidencia: nada evaluado, o Vencido si su requisito «cuando sea requerido» tiene un trimestre cerrado sin declaración (MD-529)
+    expect(written[0]).toMatchObject({ user_id: null, previous_value: { state: 'effective', level: 'adequate' }, new_value: { control_id: ctl.id, service_id: a.serviceId, cause: 'window_closed', state: 'expired', level: 'ineffective' } }); // con el período abierto, sus ventanas cerradas sin evidencia lo dejan Vencido: el estado es determinista
     await roll();
     expect(await events()).toHaveLength(1);
   });

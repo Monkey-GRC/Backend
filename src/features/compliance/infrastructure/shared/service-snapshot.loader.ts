@@ -105,6 +105,7 @@ async function loadControls(
 ): Promise<ReadoutControl[]> {
   // Con `relationJoins` (schema.prisma) las relaciones anidadas (control, requisitos, pruebas, checks) llegan en UNA consulta, no una por nivel: cada consulta cuesta un viaje a la base.
   const rows = await tx.clientControl.findMany({
+    orderBy: [{ ownCode: 'asc' }, { id: 'asc' }],
     where: {
       serviceId, isActive: true,
       ...(only === undefined ? {} : { id: typeof only === 'string' ? only : { in: [...only] } }),
@@ -119,8 +120,9 @@ async function loadControls(
           ...POINT_OF_FOCUS_LINKS,
         },
       },
-      dimensions: { select: { dimension: true, type: true, reasonNotApplicable: true } },
+      dimensions: { select: { dimension: true, type: true, reasonNotApplicable: true }, orderBy: { dimension: 'asc' } },
       requirements: {
+        orderBy: { id: 'asc' },
         select: {
           id: true, periodicity: true, isApplicable: true,
           controlRequirement: {
@@ -139,6 +141,7 @@ async function loadControls(
   const evidenceRows = rows.length
     ? await tx.evidenceRequirement.findMany({
         where: { clientControlId: { in: rows.map((r) => r.id) } },
+        orderBy: { id: 'asc' },
         select: { clientControlId: true, testId: true, submissions: { select: { ...SUBMISSION_STATE_SELECT, submittedAt: true } } },
       })
     : [];
@@ -164,7 +167,7 @@ async function loadControls(
     ? await tx.controlApproval.findMany({
         where: { clientControlId: { in: ids }, OR: [{ decision: 'approved', invalidatedAt: null }, { id: { in: lastReturns.map((r) => r.id) } }] },
         select: { id: true, clientControlId: true, step: true, decision: true, reason: true, at: true, windowStart: true, invalidatedAt: true, actor: { select: { id: true, name: true, lastName: true } } },
-        orderBy: { at: 'asc' },
+        orderBy: [{ at: 'asc' }, { id: 'asc' }],
       })
     : [];
   const approvalsOf = new Map<string, ApprovalRecord[]>();
@@ -246,7 +249,8 @@ export async function loadServiceSnapshot(
   parameters: EvaluationParameters,
   onlyControlId?: string | readonly string[],
   // `now` solo lo fija quien evalúa el paso del tiempo con SU reloj (la pasada diaria de las ventanas, MD-515); las lecturas usan el instante actual.
-  options: { withLinkItems?: boolean; now?: Date } = {},
+  // `keepExceptionIds` (MD-501) deja vivas esas excepciones aunque ya hayan vencido: el «antes» del vencimiento, con la misma fecha que el «después».
+  options: { withLinkItems?: boolean; now?: Date; keepExceptionIds?: readonly string[] } = {},
 ): Promise<ServiceReadoutData> {
   const withLinkItems = options.withLinkItems ?? false;
   const contracted = await loadContracted(tx, serviceId);
@@ -260,7 +264,7 @@ export async function loadServiceSnapshot(
   const pool = onlyControlId === undefined ? undefined : await withDependencyOwners(tx, serviceId, controls, contracted, withLinkItems, scopeWindow);
   const everyControl = pool ?? controls;
 
-  const assets = (await tx.serviceAsset.findMany({ where: { serviceId, asset: { status: 'active' } }, select: { asset: { select: { id: true, name: true, type: true, parentAssetId: true } } } }))
+  const assets = (await tx.serviceAsset.findMany({ where: { serviceId, asset: { status: 'active' } }, select: { asset: { select: { id: true, name: true, type: true, parentAssetId: true } } }, orderBy: { assetId: 'asc' } }))
     // D160 · Un activo con padre es un recurso que una conexión de nube descubrió (D61): no tiene conexión propia.
     .map(({ asset: { parentAssetId, ...a } }) => ({ ...a, discovered: parentAssetId !== null }));
   const technicalAssets = assets.filter((a) => dimensionOfAssetType(a.type) !== null);
@@ -276,13 +280,14 @@ export async function loadServiceSnapshot(
   // Y, solo si hay ventanas de calendario por medir en una prueba técnica, los días con un resultado decidido de cada (control, test, activo) dentro del período: de ahí sale la cobertura de las ventanas ya cerradas.
   const resultDays = period ? await loadResultDays(tx, serviceId, period, everyControl, now, parameters.validityWindows) : undefined;
 
+  const kept = new Set(options.keepExceptionIds ?? []);
   // D135 · Una excepción APROBADA y vigente (de 90 días como máximo, PR-04) deja pasar un FAIL de un activo en una prueba, marcado. La pendiente, la rechazada y la vencida no cambian nada.
   const exceptionRows = await tx.exclusion.findMany({
-    where: { serviceId, status: 'approved', assetId: { not: null }, validFrom: { lte: today }, validUntil: { gte: today } },
-    select: { testId: true, assetId: true, validFrom: true, validUntil: true },
+    where: { serviceId, status: 'approved', assetId: { not: null }, OR: [{ validFrom: { lte: today }, validUntil: { gte: today } }, ...(kept.size > 0 ? [{ id: { in: [...kept] } }] : [])] },
+    select: { id: true, testId: true, assetId: true, validFrom: true, validUntil: true },
   });
   const exceptions = new Set<string>();
-  for (const x of exceptionRows) if (exceptionEndsOn(x.validFrom, x.validUntil, parameters).getTime() >= today.getTime()) exceptions.add(testAssetKey(x.testId, x.assetId as string));
+  for (const x of exceptionRows) if (kept.has(x.id) || exceptionEndsOn(x.validFrom, x.validUntil, parameters).getTime() >= today.getTime()) exceptions.add(testAssetKey(x.testId, x.assetId as string));
 
   // S-04 · Los checks Complementarios en FAIL del último resultado de cada activo (de la última corrida completada).
   const complementaryByCheck = new Map<string, string[]>();
@@ -357,7 +362,7 @@ async function withDependencyOwners(tx: TransactionClient, serviceId: string, co
 export async function loadOpenPeriod(tx: TransactionClient, serviceId: string): Promise<AuditedPeriod | null> {
   const row = await tx.serviceFrameworkPeriod.findFirst({
     where: { status: 'open', serviceFramework: { serviceId, status: 'active' } },
-    orderBy: { periodEnd: 'desc' },
+    orderBy: [{ periodEnd: 'desc' }, { id: 'asc' }],
     select: { periodStart: true, periodEnd: true },
   });
   return row ? { start: row.periodStart, end: row.periodEnd } : null;

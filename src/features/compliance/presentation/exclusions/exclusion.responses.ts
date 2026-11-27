@@ -20,11 +20,13 @@ export class ExclusionResponse {
   @ApiProperty({ type: ExclusionTestResponse, description: 'Prueba que se pide excluir.' }) test!: ExclusionTestResponse;
   @ApiProperty({ type: ExclusionAssetResponse, description: 'Activo al que se le excluye esa prueba.' }) asset!: ExclusionAssetResponse;
   @ApiProperty({ description: 'Por qué se pide la exclusión.' }) justification!: string;
-  @ApiProperty({ nullable: true, description: 'Sustento técnico. Obligatorio si la prueba es automática: la evaluación automática no se sobrescribe sin él.' }) technical_justification!: string | null;
-  @ApiProperty({ enum: ['pending', 'approved', 'rejected'], enumName: 'ExclusionStatus', description: 'Hoy siempre `approved`: la crea y la decide el admin_empresa en un solo acto (D96). `pending` y `rejected` quedan sin uso.' }) status!: string;
-  @ApiProperty({ description: 'Una exclusión aprobada cuya vigencia ya pasó deja de excluir: el activo vuelve a contar.' }) is_expired!: boolean;
-  @ApiProperty({ example: '2026-01-01', description: 'Inicio de la vigencia (la fija el período del servicio, no el cliente).' }) valid_from!: string;
-  @ApiProperty({ example: '2026-12-31', description: 'Fin de la vigencia.' }) valid_until!: string;
+  @ApiProperty({ nullable: true, description: 'El sustento técnico (control compensatorio, aislamiento…); `null` en las anteriores a MD-501.' }) technical_justification!: string | null;
+  @ApiProperty({ enum: ['pending', 'approved', 'rejected'], enumName: 'ExclusionStatus', description: 'Hoy siempre `approved`: la propone y la decide el admin_empresa en un solo acto (D96). `pending` y `rejected` quedan sin uso.' }) status!: string;
+  @ApiProperty({ example: '2026-11-27', description: 'El día en que se aprobó.' }) valid_from!: string;
+  @ApiProperty({ example: '2027-01-31', description: 'La fecha de fin que pidió el administrador (en las anteriores a MD-501, el fin del período).' }) valid_until!: string;
+  @ApiProperty({ example: '2027-01-31', description: 'Hasta cuándo cuenta de verdad: la menor entre `valid_until` y `valid_from` + el tope vigente (PR-04).' }) effective_until!: string;
+  @ApiProperty({ description: '`effective_until` ya pasó: el check vuelve a contar como FAIL.' }) is_expired!: boolean;
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'Cuándo la tarea diaria registró el vencimiento; `null` si sigue vigente o aún no pasó la tarea.' }) expired_at!: string | null;
   @ApiProperty({ type: PersonResponse, description: 'Quién la creó (el admin_empresa).' }) proposed_by!: PersonResponse;
   @ApiProperty({ format: 'date-time' }) requested_at!: string;
   @ApiProperty({ type: PersonResponse, nullable: true, description: 'Quién la decidió (la misma persona).' }) decided_by!: PersonResponse | null;

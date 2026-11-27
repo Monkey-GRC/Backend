@@ -34,7 +34,7 @@ export async function loadAutomaticReadings(tx: TransactionClient): Promise<Auto
       FROM unnest(${assetIds}::uuid[]) AS a(id)
      CROSS JOIN LATERAL (SELECT x.id, x.finished_at FROM tenant.executions x
                           WHERE x.asset_id = a.id AND x.kind = 'assessment' AND x.status = 'completed' AND x.finished_at IS NOT NULL
-                          ORDER BY x.finished_at DESC LIMIT 1) ex`);
+                          ORDER BY x.finished_at DESC, x.id DESC LIMIT 1) ex`);
   const lastOf = new Map(latest.map((l) => [l.assetId, l]));
 
   const assetsOfService = new Map<string, typeof serviceAssets>();

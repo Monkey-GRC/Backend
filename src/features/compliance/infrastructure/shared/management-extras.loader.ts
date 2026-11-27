@@ -48,12 +48,12 @@ export async function loadManagementExtras(
            EXISTS (SELECT 1 FROM tenant.requirement_applicability_requests WHERE client_control_requirement_id = ANY(${allRequirementIds}::uuid[])) AS applicability`);
   const has = row ?? { overrides: false, plans: false, occurrences: false, declarations: false, applicability: false };
   const [overrides, plans, occurrences, declarations, results, applicability] = await Promise.all([
-    has.overrides ? tx.controlLevelOverride.findMany({ where: { clientControlId: { in: ids }, invalidatedAt: null }, orderBy: { proposedAt: 'asc' } }) : [],
-    has.plans ? tx.remediationPlan.findMany({ where: { clientControlId: { in: ids }, invalidatedAt: null }, orderBy: { proposedAt: 'asc' } }) : [],
-    has.occurrences ? tx.requirementOccurrence.findMany({ where: { clientControlRequirementId: { in: onDemandIds }, occurredOn: { gte: eventSince } }, orderBy: { occurredOn: 'asc' } }) : [],
-    has.declarations ? tx.noOccurrenceDeclaration.findMany({ where: { clientControlRequirementId: { in: onDemandIds }, invalidatedAt: null, windowStart: { gte: eventSince } } }) : [],
+    has.overrides ? tx.controlLevelOverride.findMany({ where: { clientControlId: { in: ids }, invalidatedAt: null }, orderBy: [{ proposedAt: 'asc' }, { id: 'asc' }] }) : [],
+    has.plans ? tx.remediationPlan.findMany({ where: { clientControlId: { in: ids }, invalidatedAt: null }, orderBy: [{ proposedAt: 'asc' }, { id: 'asc' }] }) : [],
+    has.occurrences ? tx.requirementOccurrence.findMany({ where: { clientControlRequirementId: { in: onDemandIds }, occurredOn: { gte: eventSince } }, orderBy: [{ occurredOn: 'asc' }, { id: 'asc' }] }) : [],
+    has.declarations ? tx.noOccurrenceDeclaration.findMany({ where: { clientControlRequirementId: { in: onDemandIds }, invalidatedAt: null, windowStart: { gte: eventSince } }, orderBy: [{ windowStart: 'asc' }, { id: 'asc' }] }) : [],
     historySince ? tx.manualTestResult.findMany({ where: { clientControlId: { in: ids }, registeredAt: { gte: historySince } }, orderBy: [{ registeredAt: 'asc' }, { id: 'asc' }], select: { clientControlId: true, testId: true, result: true, registeredAt: true, note: true, registeredBy: true } }) : [],
-    has.applicability ? tx.requirementApplicabilityRequest.findMany({ where: { clientControlRequirementId: { in: allRequirementIds } }, orderBy: { requestedAt: 'asc' } }) : [],
+    has.applicability ? tx.requirementApplicabilityRequest.findMany({ where: { clientControlRequirementId: { in: allRequirementIds } }, orderBy: [{ requestedAt: 'asc' }, { id: 'asc' }] }) : [],
   ]);
   const submissions = occurrences.length
     ? await tx.evidenceSubmission.findMany({ where: { requirementOccurrenceId: { in: occurrences.map((o) => o.id) } }, select: { requirementOccurrenceId: true, ...SUBMISSION_STATE_SELECT } })

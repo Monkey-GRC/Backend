@@ -66,7 +66,7 @@ export const DOMAIN_ERROR_CATALOG: Record<
   CAUSE_INACTIVE: { status: HttpStatus.CONFLICT, messageKey: 'cause.inactive' },
   // Exclusiones (contracts/modules/compliance-audit.md).
   EXCLUSION_ALREADY_EXISTS: { status: HttpStatus.CONFLICT, messageKey: 'exclusion.already_exists' },
-  EVALUATION_NOT_DEFINED: { status: HttpStatus.CONFLICT, messageKey: 'exclusion.evaluation_not_defined' },
+  CHECK_NOT_FAILING: { status: HttpStatus.CONFLICT, messageKey: 'exclusion.check_not_failing' },
   // Aprobación del control (MD-504, D132).
   CONTROL_NOT_COMPLIANT: { status: HttpStatus.CONFLICT, messageKey: 'approval.control_not_compliant' },
   OWNER_APPROVAL_REQUIRED: { status: HttpStatus.CONFLICT, messageKey: 'approval.owner_approval_required' },

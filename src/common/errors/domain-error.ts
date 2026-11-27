@@ -72,7 +72,7 @@ export type DomainErrorCode =
   | 'CAUSE_INACTIVE'
   // Exclusiones (contracts/modules/compliance-audit.md, MD-144).
   | 'EXCLUSION_ALREADY_EXISTS'
-  | 'EVALUATION_NOT_DEFINED'
+  | 'CHECK_NOT_FAILING'
   // Resultado de una prueba manual (contracts/cumplimiento/aprobacion.md, MD-504).
   | 'TEST_NOT_MANUAL'
   // Observaciones del auditor (contracts/modules/compliance-audit.md, MD-154): una cerrada no se toca; responder solo una abierta; cerrar o devolver solo una respondida.
