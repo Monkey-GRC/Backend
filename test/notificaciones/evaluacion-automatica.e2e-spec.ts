@@ -250,6 +250,48 @@ describe('automatic_evidence_stale · la última recolección supera PR-05 (D153
   });
 });
 
+// MD-502 · D162 · El aviso ordena sus pares por la MISMA prioridad que la tarjeta del detalle del control (severidad × criticidad del activo), no por título.
+describe('direct_check_failed · el orden por prioridad (D162)', () => {
+  const BAJA = `d162_a_baja_${RUN}`;
+  const ALTA = `d162_z_alta_${RUN}`;
+  let ctl: string;
+
+  beforeAll(async () => {
+    const [t] = await owner<{ id: string; test_id: string }>(
+      `select c.id, t.id as test_id from tenant.client_controls c join tenant.client_control_tests cct on cct.client_control_id = c.id
+         join catalog.tests t on t.id = cct.test_id and t.dimension = 'cloud' where c.service_id = $1 and c.is_active order by c.own_code limit 1`,
+      [a.serviceId],
+    );
+    ctl = t.id;
+    for (const [check, title] of [[BAJA, 'A comprobación de prioridad baja'], [ALTA, 'Z comprobación de prioridad alta']]) {
+      const [{ id }] = await owner<{ id: string }>(
+        `insert into catalog.checks (id, platform, policy_id, check_id, title_en, condition, remediation, origin, mapping_provenance, mapping_confidence)
+         values (gen_random_uuid(), 'aws', 'cloud_configuration', $1, $2, 'c', 'r', 'engine_native', 'test', 'low') returning id`,
+        [check, title],
+      );
+      await owner(`insert into catalog.test_checks (id, test_id, check_id, role, provenance) values (gen_random_uuid(), $1, $2, 'direct', 'committee_ratified')`, [t.test_id, id]);
+    }
+    await owner(`update tenant.assets set criticality = 'low' where id = $1`, [a.assetId]);
+  });
+  afterAll(async () => {
+    await owner(`delete from catalog.test_checks where check_id in (select id from catalog.checks where check_id in ($1, $2))`, [BAJA, ALTA]);
+  });
+
+  const lectura = (estado: 'PASS' | 'FAIL') => {
+    const fin = new Date(Date.UTC(2026, 10, 22, 10, minuto++, 0));
+    const f = (check: string, severity: string) => ({ ...fila(check, estado), severity });
+    return app.get(ImportScanUseCase).execute({ companyId: a.companyId }, { assetId: a.assetId, origin: 'manual', actorUserId: null, startedAt: new Date(fin.getTime() - 60_000), finishedAt: fin, engineVersion: '5.44.0', regions: ['us-east-1'], raw: [f(BAJA, 'Low'), f(ALTA, 'Critical')] });
+  };
+
+  it('el check de mayor prioridad va primero aunque su título sea el último alfabéticamente', async () => {
+    await lectura('PASS');
+    await lectura('FAIL');
+    const [aviso] = (await avisos(a.companyId, 'direct_check_failed')).filter((r) => r.target_id === ctl);
+    expect(aviso.params.failures.map((f: { check_title_en: string }) => f.check_title_en)).toEqual(['Z comprobación de prioridad alta', 'A comprobación de prioridad baja']);
+    expect(aviso.params.failure_count).toBe(2);
+  });
+});
+
 // MD-508 · La ruta de la sonda de un servidor (`completeSca`, `source: 'sca'`): los checks se identifican por su id del catálogo y no hay recursos. Misma regla: avisa el cambio, no la línea base.
 describe('direct_check_failed · la ruta de la sonda (SCA)', () => {
   let probe: { control: string; test: string; check: string; platform: string; policy: string; raw: string };
