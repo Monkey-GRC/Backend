@@ -8,6 +8,7 @@ import { evaluateControlLevel } from '../engine/v2/control-level';
 import type { SolidConditions } from '../engine/v2/control-level';
 import { evaluateManualTest, ManualEvidence, ManualResult } from '../engine/v2/manual-test';
 import { EvaluationParameters } from '../../../../common/evaluation-parameters/parameters';
+import type { GapScope } from '../../../../common/compliance/compliance-readings.port';
 import { evaluateRequirement, requirementStatusInPeriod } from '../engine/v2/requirement';
 import { AssetOutcomes, checkResultOf, CheckCounts, CheckOutcome, classifyModuleRef, evaluateTechnicalTest, ModuleFacts, moduleLinkResult, withException, worstStatus } from '../engine/v2/technical-test';
 import { ControlLevel, Periodicity, RequirementStatus, TestStatus, TestType } from '../engine/v2/types';
@@ -368,6 +369,32 @@ export function hasDirectFailure(data: ReadoutData, testId: string, assetId: str
     }
   }
   return false;
+}
+
+/** La MISMA lectura que el motor (`directResultOf`, `assetsInScope`, los planes vigentes): lo que aquí sale `fail` es lo que deja la prueba en Excepción. `null` si el control no lleva la prueba. Requiere la foto cargada con `withLinkItems`. */
+export function gapScopeOf(control: ReadoutControl, testId: string, data: ReadoutData): GapScope | null {
+  const entry = entriesOf(control).find((e) => e.test.testId === testId);
+  if (!entry) return null;
+  const { requirement, test } = entry;
+  const links = test.links ?? NO_LINKS;
+  const periodicity = requirement.periodicity ?? control.periodicity ?? null;
+  const checks = links.items.flatMap((i) => (i.check && (i.role === 'direct' || i.role === 'complementary') ? [{ id: i.check.id, role: i.role, titleEs: i.check.titleEs, titleEn: i.check.titleEn }] : []));
+  const assets = assetsInScope(control, test, data).map((asset) => {
+    const result = links.directCheckCount > 0 ? directResultOf(control, test, asset, periodicity, data).result : null;
+    return { id: asset.id, name: asset.name, direct: result === 'fail' || result === 'fail_with_exception' ? result : null };
+  });
+  const windowStart = readControl(control, data).windowStart;
+  const live = (control.extras?.plans ?? []).find((p) => p.testId === testId && isLivePlan(p, windowStart));
+  const owner = control.access.owner;
+  return {
+    control: { id: control.id, code: control.catalogCode ?? control.ownCode, name: control.name },
+    test: { id: test.testId, code: test.code, displayName: test.displayName, displayNameEn: test.displayNameEn },
+    checks,
+    assets,
+    plan: live ? { assignee: live.assignee, dueDate: live.dueDate } : null,
+    owner: owner ? { id: owner.id, name: owner.name, lastName: owner.lastName } : null,
+    now: data.signals.now,
+  };
 }
 
 const moduleFactsOf = (data: ReadoutData, asset: ReadoutAsset): ModuleFacts => data.signals.moduleFacts.get(asset.id) ?? { openCriticalHigh: null, scorePercent: null };
