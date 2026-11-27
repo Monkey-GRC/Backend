@@ -3,8 +3,9 @@ import { CLOUD_MEASURED_DIMENSIONS, PROBE_MEASURED_DIMENSIONS } from '../../../.
 import { exceptionEndsOn } from '../../../../common/evaluation-parameters/exception-window';
 import type { ControlNotificationEvent } from '../../../../common/notifications/notification-emitter';
 import type { EvaluationParameters } from '../../../../common/evaluation-parameters/parameters';
-import { publicText } from '../../../../common/text/provider-names';
 import type { TransactionClient } from '../../../../infrastructure/database/prisma.service';
+import { checkTitles } from '../../domain/scan/gap-message';
+import { gapPriority, normalizeSeverity, priorityRank, type GapPriority } from '../../domain/scan/gap-priority';
 import { failureParams, newDirectFailures, type CheckTitle, type DirectTestLink, type FailedChecksByService } from '../../domain/scan/direct-check-failures';
 
 // D153 · Los checks Directos que pasan a FAIL en la recolección que se cierra, contra la recolección completada anterior del MISMO activo. Corre en la transacción que cierra la recolección.
@@ -42,7 +43,7 @@ export async function collectDirectCheckFailures(tx: TransactionClient, scan: Di
   for (const r of rows) {
     const checks = r.test.testChecks.flatMap((t) => (t.check ? [t.check] : []));
     if (checks.length === 0) continue;
-    for (const c of checks) titles.set(c.id, { en: publicText(c.titleEn), es: publicText(c.titleEs) });
+    for (const c of checks) titles.set(c.id, checkTitles(c));
     links.push({ serviceId: r.clientControl.serviceId, controlId: r.clientControlId, testId: r.testId, checkIds: checks.map((c) => c.id) });
   }
   if (links.length === 0) return [];
@@ -78,6 +79,25 @@ export async function collectDirectCheckFailures(tx: TransactionClient, scan: Di
 
   const failures = newDirectFailures({ links, current: now, previous: before, exceptedTestIds });
   if (failures.size === 0) return [];
-  const asset = await tx.asset.findFirstOrThrow({ where: { id: assetId }, select: { name: true } });
-  return [...failures].map(([controlId, ids]) => ({ type: 'direct_check_failed' as const, controlId, dedupeSuffix: executionId, ...failureParams(asset.name, ids, titles) }));
+  // D162 · La prioridad de cada check, con el MISMO activo que la tarjeta del detalle del control: el recurso con activo propio (D61) cuenta con SU criticidad; lo demás, con la de la conexión. Si el check
+  // falla en varios activos, vale el de mayor prioridad. La severidad es la de cada resultado (nula en la sonda).
+  const asset = await tx.asset.findFirstOrThrow({ where: { id: assetId }, select: { name: true, criticality: true } });
+  const failedIds = [...new Set([...failures.values()].flat())];
+  const priorities = new Map<string, GapPriority>();
+  const results = await tx.checkResult.findMany({
+    where: { executionId, result: 'failed', checkId: { in: failedIds } },
+    select: { checkId: true, engineSeverity: true, assetResource: { select: { childAsset: { select: { criticality: true } } } } },
+  });
+  for (const r of results) {
+    const priority = gapPriority({ severity: normalizeSeverity(r.engineSeverity), assetCriticality: r.assetResource?.childAsset?.criticality ?? asset.criticality });
+    const known = priorities.get(r.checkId);
+    if (!known || priorityRank(priority) < priorityRank(known)) priorities.set(r.checkId, priority);
+  }
+  const priorityOf = (id: string): GapPriority => priorities.get(id) ?? gapPriority({ severity: null, assetCriticality: asset.criticality });
+  return [...failures].map(([controlId, ids]) => ({
+    type: 'direct_check_failed' as const,
+    controlId,
+    dedupeSuffix: executionId,
+    ...failureParams(asset.name, ids.map((id) => ({ id, priority: priorityOf(id) })), titles),
+  }));
 }

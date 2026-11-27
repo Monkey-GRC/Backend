@@ -48,6 +48,8 @@ export const COMPLIANCE_ENUM_CATALOGS = {
   responsible_type: values(OrganizationResponsibleType),
   cause_control_effect: values(ClientCauseControlEffect),
   exclusion_status: values(ExclusionStatus),
+  // MD-502 (D162) · No es un enum de Postgres: la prioridad de una brecha se deriva al leer (severidad del check × criticidad del activo).
+  gap_priority: ['critical', 'high', 'medium', 'low'],
   audit_observation_type: values(AuditObservationType),
   audit_observation_status: values(AuditObservationStatus),
   assessor_role: values(AssessorRole),

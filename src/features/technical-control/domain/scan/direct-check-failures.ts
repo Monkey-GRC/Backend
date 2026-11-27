@@ -1,4 +1,5 @@
 import type { FailureParam } from '../../../../common/notifications/notification-draft';
+import { priorityRank, type GapPriority } from './gap-priority';
 
 // D153, D138 punto 3 · Qué checks Directos PASAN a FAIL en una recolección. Avisa el cambio, no el estado: un check que ya fallaba en la recolección anterior del mismo activo no vuelve a avisar.
 // Función pura: recibe lo que la recolección actual y la anterior dijeron (ya cargado por lote) y devuelve, por control, los checks que cambiaron.
@@ -41,14 +42,16 @@ export function newDirectFailures(input: NewDirectFailuresInput): Map<string, st
 export const GROUPED_FAILURES = 5;
 
 export type CheckTitle = { en: string | null; es: string | null };
+/** Un check que pasó a FAIL con su prioridad (D162): la misma función que arma la brecha del detalle del control (`gapPriority`). */
+export type FailedCheck = { id: string; priority: GapPriority };
 
 /**
- * El contenido del aviso de un control: hasta 5 pares activo-check (orden estable por título) y el total. Los títulos del catálogo ya pasaron por el filtro de proveedor (SEG-39):
- * uno que nombra al proveedor llega nulo y el texto pone uno genérico.
+ * El contenido del aviso de un control: hasta 5 pares activo-check (los de mayor prioridad primero y, a igual prioridad, por título) y el total. Los títulos del catálogo salen de `checkTitles`
+ * (el armador de la brecha, D138 punto 3) y ya pasaron por el filtro de proveedor (SEG-39): uno que nombra al proveedor llega nulo y el texto pone uno genérico.
  */
-export function failureParams(assetName: string, checkIds: readonly string[], titles: ReadonlyMap<string, CheckTitle>): { failures: FailureParam[]; failureCount: number } {
-  const all = checkIds.map((id) => ({ id, title: titles.get(id) ?? { en: null, es: null } }));
-  all.sort((a, b) => (a.title.en ?? '').localeCompare(b.title.en ?? '') || (a.id < b.id ? -1 : 1));
+export function failureParams(assetName: string, failed: readonly FailedCheck[], titles: ReadonlyMap<string, CheckTitle>): { failures: FailureParam[]; failureCount: number } {
+  const all = failed.map(({ id, priority }) => ({ id, priority, title: titles.get(id) ?? { en: null, es: null } }));
+  all.sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority) || (a.title.en ?? '').localeCompare(b.title.en ?? '') || (a.id < b.id ? -1 : 1));
   return {
     failures: all.slice(0, GROUPED_FAILURES).map(({ title }) => ({ asset_name: assetName, check_title_en: title.en, check_title_es: title.es })),
     failureCount: all.length,

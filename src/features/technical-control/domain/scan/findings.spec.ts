@@ -1,110 +1,137 @@
-import { buildFindings, FailedRow, MAX_RESOURCES_PER_FINDING } from './findings';
+import { buildFindings, classifyFailure, FailedRow, FindingsContext, MAX_RESOURCES_PER_FINDING } from './findings';
 
 const row = (patch: Partial<FailedRow> = {}): FailedRow => ({
-  checkUuid: 'c1',
-  severity: 'high',
-  titleEn: 'Bucket allows public access',
-  titleEs: null,
-  remediation: 'Enable block public access.',
-  remediationEs: null,
-  translationOrigin: null,
+  checkId: 'c1',
+  role: 'direct',
+  assetId: 'a1',
+  assetName: 'cuenta-produccion',
+  assetCriticality: 'low',
+  severity: 'critical',
+  check: { titleEn: 'Bucket allows public access', titleEs: null, condition: 'Buckets are evaluated.', remediation: 'Enable block public access.', remediationEs: null, translationOrigin: null },
   resourceName: 'bucket-a',
   resourceUid: 'arn:aws:s3:::bucket-a',
   region: 'us-east-1',
+  failingSince: new Date('2026-11-20T05:40:00Z'),
   ...patch,
 });
 
-// D90 · Los hallazgos: uno por check, con sus recursos y la guía en el idioma de la persona, sin nombrar al proveedor.
-describe('buildFindings (D90)', () => {
-  it('groups the failed rows of a check into one finding with its resources', () => {
-    const out = buildFindings([row(), row({ resourceName: 'bucket-b', resourceUid: 'arn:aws:s3:::bucket-b' })], 'en', 'x');
-    expect(out).toHaveLength(1);
-    expect(out[0].resources.map((r) => r.name)).toEqual(['bucket-a', 'bucket-b']);
-    expect(out[0].resourcesTotal).toBe(2);
+const ctx = (patch: Partial<FindingsContext> = {}): FindingsContext => ({
+  direct: new Map([['a1', 'fail' as const]]),
+  exceptions: new Map(),
+  plan: null,
+  controlOwner: { id: 'u-owner', name: 'Laura', lastName: 'Gómez' },
+  language: 'en',
+  fallbackTitle: 'x',
+  ...patch,
+});
+
+// D138 punto 3, MD-502 · Una fila por check y activo: brecha abierta, exceptuada u observación; lo decide el motor v2.
+describe('classifyFailure', () => {
+  it('un Complementario es observación, sea cual sea la lectura Directa del activo', () => {
+    expect(classifyFailure('complementary', 'fail')).toBe('observation');
+    expect(classifyFailure('complementary', null)).toBe('observation');
   });
 
-  it('counts the same resource once, and keeps the worst severity of the check', () => {
-    const out = buildFindings([row({ severity: 'low' }), row({ severity: 'critical' })], 'en', 'x');
-    expect(out[0].resources).toHaveLength(1);
-    expect(out[0].severity).toBe('critical');
+  it('un Directo es brecha si el motor lo lee en FAIL y exceptuada si lo lee con excepción', () => {
+    expect(classifyFailure('direct', 'fail')).toBe('gap');
+    expect(classifyFailure('direct', 'fail_with_exception')).toBe('excepted');
   });
 
-  it('sorts by severity first, then by title', () => {
-    const out = buildFindings(
-      [row({ checkUuid: 'a', severity: 'low', titleEn: 'A' }), row({ checkUuid: 'b', severity: 'critical', titleEn: 'Z' }), row({ checkUuid: 'c', severity: 'critical', titleEn: 'B' })],
-      'en',
-      'x',
-    );
-    expect(out.map((f) => f.title)).toEqual(['B', 'Z', 'A']);
-  });
-
-  it('caps the resources of a finding and reports the real total', () => {
-    const many = Array.from({ length: MAX_RESOURCES_PER_FINDING + 10 }, (_, i) => row({ resourceName: `r${i}`, resourceUid: `uid-${i}` }));
-    const out = buildFindings(many, 'en', 'x');
-    expect(out[0].resources).toHaveLength(MAX_RESOURCES_PER_FINDING);
-    expect(out[0].resourcesTotal).toBe(MAX_RESOURCES_PER_FINDING + 10);
-  });
-
-  it('gives the Spanish guidance flagged as AI-generated while nobody has reviewed it', () => {
-    const [f] = buildFindings([row({ titleEs: 'El bucket permite acceso público', remediationEs: 'Activa el bloqueo de acceso público.', translationOrigin: 'machine' })], 'es', 'x');
-    expect(f.title).toBe('El bucket permite acceso público');
-    expect(f.remediation).toEqual({ text: 'Activa el bloqueo de acceso público.', language: 'es', isAiGenerated: true });
-  });
-
-  it('does not flag a reviewed translation as AI-generated', () => {
-    const [f] = buildFindings([row({ remediationEs: 'Activa el bloqueo.', translationOrigin: 'reviewed' })], 'es', 'x');
-    expect(f.remediation).toEqual({ text: 'Activa el bloqueo.', language: 'es', isAiGenerated: false });
-  });
-
-  it('falls back to the original English, said as English, when there is no translation', () => {
-    const [f] = buildFindings([row()], 'es', 'x');
-    expect(f.remediation).toEqual({ text: 'Enable block public access.', language: 'en', isAiGenerated: false });
-    expect(f.title).toBe('Bucket allows public access');
-  });
-
-  it('never lets a text that names the probe provider out', () => {
-    const [f] = buildFindings([row({ titleEn: 'Prowler check failed', remediation: 'Run Wazuh to fix it', remediationEs: 'Usa prowler', translationOrigin: 'machine' })], 'es', 'Configuración que no cumple');
-    expect(f.title).toBe('Configuración que no cumple');
-    expect(f.remediation).toBeNull();
-    expect(JSON.stringify(f)).not.toMatch(/prowler|wazuh/i);
-  });
-
-  it('returns nothing when nothing failed', () => {
-    expect(buildFindings([], 'es', 'x')).toEqual([]);
+  it('un Directo que el motor no lee en FAIL (corrida vencida, sin datos) no es nada', () => {
+    expect(classifyFailure('direct', null)).toBeNull();
+    expect(classifyFailure('direct', undefined)).toBeNull();
   });
 });
 
-// D113 · Los servidores: la sonda no califica sus checks, y el recurso afectado es el propio servidor.
-describe('buildFindings · servidores (D113)', () => {
-  const server = (patch: Partial<FailedRow> = {}): FailedRow =>
-    row({ checkUuid: 's1', severity: null, titleEn: 'Ensure /tmp is a separate partition.', titleEs: 'Asegurar que /tmp es una partición separada.', remediation: 'Create a separate /tmp partition.', resourceName: 'srv-prod-01', resourceUid: null, region: null, ...patch });
-
-  it('does not invent a severity: a check the probe does not rate has none', () => {
-    const [f] = buildFindings([server()], 'es', 'x');
-    expect(f.severity).toBeNull();
-    // Un valor ilegible sí cae a «media» (como siempre), pero la ausencia de dato no.
-    expect(buildFindings([server({ severity: 'rara' })], 'es', 'x')[0].severity).toBe('medium');
-    expect(buildFindings([server({ severity: '  ' })], 'es', 'x')[0].severity).toBeNull();
+describe('buildFindings', () => {
+  it('arma un ítem por check y activo con sus recursos, la prioridad y su base', () => {
+    const { items, summary } = buildFindings([row(), row({ resourceName: 'bucket-b', resourceUid: 'arn:aws:s3:::bucket-b' })], ctx());
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      id: 'a1:c1', kind: 'gap', asset: { id: 'a1', name: 'cuenta-produccion', criticality: 'low' }, priority: 'high', priorityBasis: { severity: 'critical', assetCriticality: 'low' }, resourcesTotal: 2,
+    });
+    expect(items[0].resources.map((r) => r.name)).toEqual(['bucket-a', 'bucket-b']);
+    expect(summary).toEqual({ openGaps: 1, excepted: 0, observations: 0 });
   });
 
-  it('puts what is not rated after everything that is, and keeps a real severity when another row has it', () => {
-    const out = buildFindings([server({ checkUuid: 'a', titleEn: 'Alpha', titleEs: 'Alfa' }), server({ checkUuid: 'b', titleEs: 'Beta', severity: 'low' })], 'es', 'x');
-    expect(out.map((f) => f.title)).toEqual(['Beta', 'Alfa']);
-    expect(buildFindings([server(), server({ severity: 'high' })], 'es', 'x')[0].severity).toBe('high');
+  it('el mismo check en dos activos son dos ítems; cuenta el mismo recurso una vez y toma la severidad más grave', () => {
+    const { items } = buildFindings(
+      [row({ severity: 'low' }), row({ severity: 'critical' }), row({ assetId: 'a2', assetName: 'otra', assetCriticality: 'high', severity: 'low' })],
+      ctx({ direct: new Map([['a1', 'fail' as const], ['a2', 'fail' as const]]) }),
+    );
+    expect(items).toHaveLength(2);
+    const first = items.find((i) => i.asset.id === 'a1');
+    expect(first?.resources).toHaveLength(1);
+    expect(first?.priorityBasis?.severity).toBe('critical');
+    expect(items.find((i) => i.asset.id === 'a2')?.priority).toBe('medium');
   });
 
-  it('names the affected server and lists every server that fails the same check once', () => {
-    const [f] = buildFindings([server(), server({ resourceName: 'srv-prod-02' }), server()], 'es', 'x');
-    expect(f.resources).toEqual([
-      { name: 'srv-prod-01', uid: null, region: null },
-      { name: 'srv-prod-02', uid: null, region: null },
-    ]);
-    expect(f.resourcesTotal).toBe(2);
+  it('una brecha exceptuada lleva su excepción y sigue con prioridad y responsable; no cuenta como abierta', () => {
+    const { items, summary } = buildFindings([row()], ctx({ direct: new Map([['a1', 'fail_with_exception' as const]]), exceptions: new Map([['a1', { id: 'ex1', effectiveUntil: '2026-12-31' }]]) }));
+    expect(items[0]).toMatchObject({ kind: 'excepted', exception: { id: 'ex1', effectiveUntil: '2026-12-31' }, priority: 'high', owner: { id: 'u-owner' } });
+    expect(summary).toEqual({ openGaps: 0, excepted: 1, observations: 0 });
   });
 
-  it('uses the Spanish title of the catalog and says when the guidance is only available in English', () => {
-    const [f] = buildFindings([server()], 'es', 'x');
-    expect(f.title).toBe('Asegurar que /tmp es una partición separada.');
-    expect(f.remediation).toEqual({ text: 'Create a separate /tmp partition.', language: 'en', isAiGenerated: false });
+  it('una observación no lleva prioridad, base, responsable, fecha ni excepción', () => {
+    const { items } = buildFindings([row({ role: 'complementary' })], ctx({ plan: { assignee: { id: 'u-plan', name: 'P', lastName: 'Q' }, dueDate: '2026-12-15' } }));
+    expect(items[0]).toMatchObject({ kind: 'observation', priority: null, priorityBasis: null, owner: null, dueDate: null, exception: null });
+  });
+
+  it('el responsable y la fecha son los del plan vigente; sin plan, el responsable del control y sin fecha', () => {
+    const withPlan = buildFindings([row()], ctx({ plan: { assignee: { id: 'u-plan', name: 'Pedro', lastName: 'Ruiz' }, dueDate: '2026-12-15' } })).items[0];
+    expect(withPlan.owner).toEqual({ id: 'u-plan', name: 'Pedro', lastName: 'Ruiz' });
+    expect(withPlan.dueDate).toBe('2026-12-15');
+    const without = buildFindings([row()], ctx()).items[0];
+    expect(without.owner).toEqual({ id: 'u-owner', name: 'Laura', lastName: 'Gómez' });
+    expect(without.dueDate).toBeNull();
+    expect(buildFindings([row()], ctx({ controlOwner: null })).items[0].owner).toBeNull();
+  });
+
+  it('deja fuera un Directo que el motor no lee en FAIL', () => {
+    expect(buildFindings([row()], ctx({ direct: new Map() })).items).toEqual([]);
+  });
+
+  it('failing_since es la primera corrida de la racha (la más antigua de sus filas)', () => {
+    const { items } = buildFindings([row({ failingSince: new Date('2026-11-25T00:00:00Z') }), row({ resourceUid: 'u2', failingSince: new Date('2026-11-20T00:00:00Z') })], ctx());
+    expect(items[0].failingSince).toEqual(new Date('2026-11-20T00:00:00Z'));
+  });
+
+  it('ordena las brechas por prioridad, luego las exceptuadas y al final las observaciones; dentro de cada grupo, por título', () => {
+    const t = (titleEn: string) => ({ ...row().check, titleEn });
+    const { items } = buildFindings(
+      [
+        row({ checkId: 'o1', role: 'complementary', check: t('Aaa observación') }),
+        row({ checkId: 'e1', assetId: 'a2', check: t('Bbb exceptuada') }),
+        row({ checkId: 'g1', severity: 'low', assetCriticality: 'low', check: t('Aaa baja') }),
+        row({ checkId: 'g2', severity: 'critical', assetCriticality: 'critical', check: t('Zzz crítica') }),
+        row({ checkId: 'g3', severity: 'critical', assetCriticality: 'critical', check: t('Bbb crítica') }),
+        row({ checkId: 'e2', assetId: 'a2', check: t('Aaa exceptuada') }),
+      ],
+      ctx({ direct: new Map([['a1', 'fail' as const], ['a2', 'fail_with_exception' as const]]) }),
+    );
+    expect(items.map((i) => i.title)).toEqual(['Bbb crítica', 'Zzz crítica', 'Aaa baja', 'Aaa exceptuada', 'Bbb exceptuada', 'Aaa observación']);
+  });
+
+  it('acota los recursos de un ítem a 50 y cuenta el total real', () => {
+    const many = Array.from({ length: MAX_RESOURCES_PER_FINDING + 10 }, (_, i) => row({ resourceName: `r${i}`, resourceUid: `uid-${i}` }));
+    const { items } = buildFindings(many, ctx());
+    expect(items[0].resources).toHaveLength(MAX_RESOURCES_PER_FINDING);
+    expect(items[0].resourcesTotal).toBe(MAX_RESOURCES_PER_FINDING + 10);
+  });
+
+  it('un servidor no trae recursos: el activo es el recurso', () => {
+    const { items } = buildFindings([row({ severity: null, resourceName: null, resourceUid: null, region: null })], ctx());
+    expect(items[0]).toMatchObject({ resources: [], resourcesTotal: 0, priority: 'low', priorityBasis: { severity: null, assetCriticality: 'low' } });
+  });
+
+  it('en español da la traducción de la guía como generada por IA y el título traducido', () => {
+    const { items } = buildFindings([row({ check: { ...row().check, titleEs: 'El bucket permite acceso público', remediationEs: 'Activa el bloqueo.', translationOrigin: 'machine' } })], ctx({ language: 'es' }));
+    expect(items[0].title).toBe('El bucket permite acceso público');
+    expect(items[0].remediation).toEqual({ text: 'Activa el bloqueo.', language: 'es', isAiGenerated: true });
+  });
+
+  it('un texto que nombra al proveedor no sale: título neutro y sin guía', () => {
+    const { items } = buildFindings([row({ check: { ...row().check, titleEn: 'Prowler finding', remediation: 'See the Prowler docs.', condition: null } })], ctx({ fallbackTitle: 'Comprobación sin título' }));
+    expect(items[0]).toMatchObject({ title: 'Comprobación sin título', remediation: null, evaluated: null });
   });
 });

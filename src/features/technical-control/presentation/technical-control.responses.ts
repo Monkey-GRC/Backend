@@ -7,6 +7,8 @@ import {
   SCHEDULE_FREQUENCY_VALUES,
 } from '../../../common/catalogs/technical-catalogs';
 import { CapabilityOptionResponse } from '../../catalogs/presentation/catalogs.responses';
+import { GAP_KINDS } from '../domain/scan/findings';
+import { GAP_PRIORITIES, SEVERITIES } from '../domain/scan/gap-priority';
 
 // Formas del `data` de contracts/modules/onboarding-technical-control.md y control-tecnico-operacion.md, solo para la documentación
 // (las arman technical-control-response.mapper.ts y scan-response.mapper.ts). Ninguna lleva el proveedor de la capacidad ni credenciales.
@@ -255,17 +257,77 @@ export class FindingResourceResponse {
   @ApiProperty({ nullable: true, example: 'us-east-1', description: 'Región donde está el recurso.' }) region!: string | null;
 }
 
-export class FindingRemediationResponse {
-  @ApiProperty({ description: 'Cómo corregirlo, en texto plano.' }) text!: string;
+export class FindingTextResponse {
+  @ApiProperty({ description: 'El texto, en plano. La guía de corrección: párrafos, viñetas con `- ` y comandos entre tres comillas invertidas.' }) text!: string;
   @ApiProperty({ enum: ['es', 'en'], enumName: 'FindingLanguage', description: '`es` si hay traducción de Monkey; `en` si se muestra el original por no tenerla.' }) language!: string;
   @ApiProperty({ description: 'La traducción la hizo una IA y nadie la ha revisado: la pantalla debe decirlo.' }) is_ai_generated!: boolean;
 }
 
+export class FindingControlResponse {
+  @ApiProperty({ format: 'uuid', description: 'El control del cliente.' }) id!: string;
+  @ApiProperty({ example: 'IAC-4', description: 'Código del control.' }) code!: string;
+  @ApiProperty({ description: 'Nombre del control.' }) name!: string;
+}
+
+export class FindingTestResponse {
+  @ApiProperty({ format: 'uuid', description: 'La prueba.' }) id!: string;
+  @ApiProperty({ example: 'T-IAC-4-01', description: 'Código de la prueba.' }) code!: string;
+  @ApiProperty({ nullable: true, description: 'Nombre de la prueba en el idioma de la petición.' }) display_name!: string | null;
+}
+
+export class FindingSummaryResponse {
+  @ApiProperty({ example: 1, description: 'Brechas abiertas (FAIL de un check Directo sin excepción vigente), sin paginar.' }) open_gaps!: number;
+  @ApiProperty({ example: 0, description: 'Brechas exceptuadas (FAIL de un Directo con excepción vigente), sin paginar.' }) excepted!: number;
+  @ApiProperty({ example: 1, description: 'Observaciones (FAIL de un check Complementario), sin paginar.' }) observations!: number;
+}
+
+export class FindingAssetResponse {
+  @ApiProperty({ format: 'uuid', description: 'El activo donde falla.' }) id!: string;
+  @ApiProperty({ example: 'cuenta-produccion', description: 'El nombre que le dio el cliente.' }) name!: string;
+  @ApiProperty({ enum: [...ASSET_CRITICALITY_VALUES], enumName: 'AssetCriticality', description: 'Criticidad del activo.' }) criticality!: string;
+}
+
+export class FindingPriorityBasisResponse {
+  @ApiProperty({ enum: [...SEVERITIES], enumName: 'FindingSeverity', nullable: true, description: 'Severidad del check; nula cuando quien midió no califica sus checks (la sonda): no se inventa un nivel.' }) severity!: string | null;
+  @ApiProperty({ enum: [...ASSET_CRITICALITY_VALUES], enumName: 'AssetCriticality', description: 'Criticidad del activo.' }) asset_criticality!: string;
+}
+
+export class FindingExceptionResponse {
+  @ApiProperty({ format: 'uuid', description: 'La excepción que deja pasar el FAIL.' }) id!: string;
+  @ApiProperty({ format: 'date', description: 'Hasta cuándo vale, con el tope de PR-04 aplicado.' }) effective_until!: string;
+}
+
+export class FindingOwnerResponse {
+  @ApiProperty({ format: 'uuid', description: 'La persona.' }) id!: string;
+  @ApiProperty({ nullable: true, description: 'Nombre.' }) name!: string | null;
+  @ApiProperty({ nullable: true, description: 'Apellido.' }) last_name!: string | null;
+}
+
 export class FindingResponse {
-  @ApiProperty({ format: 'uuid', description: 'Identifica la comprobación dentro del catálogo de Monkey.' }) id!: string;
+  @ApiProperty({ example: '8f10…:3c2b…', description: 'Estable por activo y check: `<asset_id>:<check_id>`.' }) id!: string;
+  @ApiProperty({ enum: [...GAP_KINDS], enumName: 'FindingKind', description: '`gap`: FAIL de un Directo sin excepción. `excepted`: FAIL de un Directo con excepción vigente. `observation`: FAIL de un Complementario.' }) kind!: string;
+  @ApiProperty({ type: FindingAssetResponse, description: 'El activo donde falla.' }) asset!: FindingAssetResponse;
   @ApiProperty({ example: 'El almacenamiento permite acceso público', description: 'Qué no se cumple, en el idioma de la petición.' }) title!: string;
-  @ApiProperty({ enum: ['critical', 'high', 'medium', 'low', 'informational'], enumName: 'FindingSeverity', nullable: true, description: 'Nulo cuando quien midió no califica sus checks (los servidores): no se inventa un nivel.' }) severity!: string | null;
-  @ApiProperty({ type: [FindingResourceResponse], description: 'Hasta 50 recursos afectados.' }) resources!: FindingResourceResponse[];
+  @ApiProperty({ type: FindingTextResponse, nullable: true, description: 'Qué se evaluó. Null si el catálogo no lo trae o nombra al proveedor.' }) evaluated!: FindingTextResponse | null;
+  @ApiProperty({ type: FindingTextResponse, nullable: true, description: 'Qué debe corregir. Null si la comprobación no trae una guía que se pueda mostrar.' }) remediation!: FindingTextResponse | null;
+  @ApiProperty({ enum: [...GAP_PRIORITIES], enumName: 'GapPriority', nullable: true, description: 'Prioridad (D162). Solo en `gap` y `excepted`; null en `observation`.' }) priority!: string | null;
+  @ApiProperty({ type: FindingPriorityBasisResponse, nullable: true, description: 'De qué salió la prioridad. Null en `observation`.' }) priority_basis!: FindingPriorityBasisResponse | null;
+  @ApiProperty({ type: [FindingResourceResponse], description: 'Hasta 50 recursos del activo que fallan; vacío en un servidor (el activo es el recurso).' }) resources!: FindingResourceResponse[];
   @ApiProperty({ example: 3, description: 'Cuántos recursos están afectados en total (puede ser más de los que se listan).' }) resources_total!: number;
-  @ApiProperty({ type: FindingRemediationResponse, nullable: true, description: 'Null si la comprobación no trae una guía que se pueda mostrar.' }) remediation!: FindingRemediationResponse | null;
+  @ApiProperty({ type: FindingExceptionResponse, nullable: true, description: 'Solo en `excepted`: la excepción que lo deja pasar.' }) exception!: FindingExceptionResponse | null;
+  @ApiProperty({ type: FindingOwnerResponse, nullable: true, description: 'Quién lo corrige: el responsable del plan de remediación vigente de la prueba o, sin plan, el del control. Null en `observation`.' }) owner!: FindingOwnerResponse | null;
+  @ApiProperty({ format: 'date', nullable: true, description: 'La fecha del plan de remediación vigente; null sin plan.' }) due_date!: string | null;
+  @ApiProperty({ format: 'date-time', description: 'La primera corrida, de la racha actual, en que ese check falló en ese activo.' }) failing_since!: string;
+}
+
+export class FindingsResponse {
+  @ApiProperty({ type: FindingControlResponse, description: 'El control del cliente.' }) control!: FindingControlResponse;
+  @ApiProperty({ type: FindingTestResponse, description: 'La prueba.' }) test!: FindingTestResponse;
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'La corrida más reciente que se leyó; null si no hay ninguna (y entonces `items` va vacío).' }) measured_at!: string | null;
+  @ApiProperty({ type: FindingSummaryResponse, description: 'Cuántos ítems hay de cada tipo, sin paginar.' }) summary!: FindingSummaryResponse;
+  @ApiProperty({ type: [FindingResponse], description: 'Brechas abiertas por prioridad, luego exceptuadas y al final observaciones; dentro de cada grupo, por título.' }) items!: FindingResponse[];
+  @ApiProperty({ example: 1, description: 'Página actual (desde 1).' }) page!: number;
+  @ApiProperty({ example: 25, description: 'Elementos por página (máx. 100).' }) page_size!: number;
+  @ApiProperty({ example: 12, description: 'Total de ítems.' }) total!: number;
+  @ApiProperty({ example: 1, description: 'Total de páginas.' }) total_pages!: number;
 }
